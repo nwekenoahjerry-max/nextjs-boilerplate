@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClerkMe
 
-## Getting Started
+ClerkMe is a clinical clerking and learning companion concept for medical students, with an initial focus on African medical training contexts.
 
-First, run the development server:
+## Current version
+
+This repository currently contains the first responsive front-end prototype:
+- Clinical workspace overview and navigation
+- Clinical clerking template selection for medicine, paediatrics, obstetrics and surgery
+- A basic in-session draft form (not persistent storage)
+- Placeholder areas for patient case library, clinical guides, OSCE/Viva and question bank
+- Responsive desktop and mobile layouts
+
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Important implementation notes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Patient data is not currently persisted or sent to a backend.
+- Authentication, role-based access, AI assistance, database storage, QBank content and OSCE simulations are not yet implemented.
+- Do not enter identifiable patient information into this prototype.
+- ClerkMe is a learning and documentation aid, not an autonomous diagnostic or prescribing system. Clinical decisions remain the responsibility of qualified healthcare professionals.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The Cloudflare Pages project is connected to this repository's `main` branch. A push to `main` triggers an automatic deployment. The current Cloudflare configuration should be checked for a compatible Next.js static export/build setup before relying on production deployment.
