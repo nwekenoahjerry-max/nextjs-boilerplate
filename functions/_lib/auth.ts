@@ -4,8 +4,6 @@ export interface D1Database { prepare(sql: string): D1PreparedStatement; }
 export interface D1PreparedStatement { bind(...values: unknown[]): D1PreparedStatement; first<T = Record<string, unknown>>(): Promise<T | null>; all<T = Record<string, unknown>>(): Promise<{ results: T[] }>; run(): Promise<unknown>; }
 export interface AppContext { request: Request; env: Env; params: Record<string, string>; }
 const SESSION_COOKIE = "__Host-clerkme_session";
-const SESSION_DAYS = 7;
-
 export async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
@@ -13,21 +11,18 @@ export async function sha256(value: string): Promise<string> {
 export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers } });
 }
-export function cookieHeader(token: string, maxAge: number) {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
-}
-export function clearSessionCookie() {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
-}
+export function cookieHeader(token: string, maxAge: number) { return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`; }
+export function clearSessionCookie() { return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`; }
 export async function requireUser(context: AppContext): Promise<AppUser | Response> {
   const cookie = context.request.headers.get("Cookie") || "";
   const token = cookie.split(";").map(v => v.trim()).find(v => v.startsWith(SESSION_COOKIE + "="))?.slice(SESSION_COOKIE.length + 1);
   if (!token) return json({ error: "Authentication required." }, 401);
-  const tokenHash = await sha256(decodeURIComponent(token));
+  let decoded: string; try { decoded = decodeURIComponent(token); } catch { return json({ error: "Invalid session." }, 401); }
+  const tokenHash = await sha256(decoded);
   const row = await context.env.DB.prepare(`
-    SELECT u.id, u.email, u.name, u.picture, u.role
-    FROM sessions s JOIN users u ON u.id = s.user_id
-    WHERE s.token_hash = ? AND s.expires_at > datetime('now')
+    SELECT p.id, p.email, p.full_name AS name, NULL AS picture, 'student' AS role
+    FROM sessions s JOIN student_profiles p ON p.id = s.user_id
+    WHERE s.token_hash = ? AND s.expires_at > unixepoch()
   `).bind(tokenHash).first<AppUser>();
   if (!row) return json({ error: "Session expired. Please sign in again." }, 401, { "Set-Cookie": clearSessionCookie() });
   return row;
