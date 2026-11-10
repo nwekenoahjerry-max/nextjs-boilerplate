@@ -98,3 +98,20 @@
 .flight-quiz-footer i{width:6px;height:6px;box-shadow:none}
 @media(max-width:900px){.flight-dashboard{grid-template-columns:1fr}.flight-sky{height:330px}.flight-question-panel{padding:18px}}
 @media(max-width:600px){.flight-quiz{padding:12px;border-radius:15px}.flight-quiz-heading{align-items:flex-start}.flight-quiz-heading h2{font-size:21px}.flight-quiz-heading p{font-size:10px;max-width:230px}.flight-best{min-width:88px;padding:9px}.flight-best>span{font-size:6px}.flight-best strong{font-size:16px}.flight-visual-panel{padding:11px}.flight-sky{height:300px}.flight-altitude{margin-left:10px}.flight-question-panel{padding:14px}.flight-question-panel h3{font-size:15px}.flight-quiz-footer{font-size:6px}.flight-metrics span{font-size:6px;letter-spacing:.3px}}
+
+
+/* Accessibility: adjustable type scale and clearer text hierarchy */
+.font-controls{display:flex;align-items:center;gap:5px;margin-right:8px}
+.font-controls button{border:1px solid #dce8df;background:#fff;color:#245d4c;border-radius:7px;min-width:34px;height:32px;font-size:13px;font-weight:800;cursor:pointer}
+.font-controls button:hover,.profile-top-link:hover{background:#edf5f0}
+.profile-top-link{display:inline-flex;align-items:center;border:1px solid #dce8df;border-radius:7px;padding:8px 11px;color:#176b5d;text-decoration:none;font-size:13px;font-weight:750;background:#fff}
+.flight-auto-advance{margin-top:12px;color:#668275;font-size:13px;font-weight:700;padding:10px 0}
+.flight-feedback strong{font-size:14px}
+.flight-feedback p{font-size:13px;line-height:1.7}
+.flight-option{font-size:14px;padding:13px 14px}
+.flight-question-panel h3{font-size:20px}
+.flight-question-panel .question-topline,.flight-question-panel .question-difficulty{font-size:11px}
+.flight-metrics span,.flight-best>span{font-size:10px}
+.flight-quiz-heading p,.flight-mission-placeholder p,.flight-start-overlay p{font-size:14px}
+.flight-quiz-footer{font-size:9px}
+@media(max-width:700px){.profile-top-link{font-size:11px;padding:7px 8px}.font-controls{margin-right:4px}.font-controls button{min-width:30px;height:30px}}
