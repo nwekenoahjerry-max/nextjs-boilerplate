@@ -8,10 +8,10 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   let raw = outer?.response ?? outer?.result?.response ?? value;
   if (typeof raw === "object" && raw !== null) return raw as Record<string, unknown>;
   if (typeof raw !== "string") throw new Error("The AI service returned an unexpected response.");
-  raw = raw.trim().replace(/^\u0060{3}(?:json)?\s*/i, "").replace(/\s*\u0060{3}$/i, "");
-  const start = raw.indexOf("{"); const end = raw.lastIndexOf("}");
-  if (start >= 0 && end > start) raw = raw.slice(start, end + 1);
-  return JSON.parse(raw) as Record<string, unknown>;
+  let text = raw.trim().replace(/^\u0060{3}(?:json)?\s*/i, "").replace(/\s*\u0060{3}$/i, "");
+  const start = text.indexOf("{"); const end = text.lastIndexOf("}");
+  if (start >= 0 && end > start) text = text.slice(start, end + 1);
+  return JSON.parse(text) as Record<string, unknown>;
 }
 
 export const onRequestPost = async (context: AppContext) => {
