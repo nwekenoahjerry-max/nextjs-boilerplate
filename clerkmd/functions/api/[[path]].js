@@ -120,7 +120,7 @@ export async function onRequest({ request, env, params }) {
   }
   if (route === 'reset/request') {
     const e = String(body.email || '').trim().toLowerCase();
-    if (!/^\\S+@\\S+\\.\\S+$/.test(e)) return J({ error: 'Enter a valid email address.' }, 400);
+    if (!/^\S+@\S+\.\S+$/.test(e)) return J({ error: 'Enter a valid email address.' }, 400);
     if (!env.RESEND_API_KEY || !env.MAIL_FROM) {
       return J({ error: 'Password reset email is not configured. Add RESEND_API_KEY and a verified MAIL_FROM sender in Cloudflare Pages.' }, 503);
     }
