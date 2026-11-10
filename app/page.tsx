@@ -120,8 +120,6 @@ function FlightGame() {
 
 export default function Home() {
   const [active, setActive] = useState("overview");
-  const [uiScale, setUiScale] = useState(1);
-  useEffect(() => { document.body.style.zoom = String(uiScale); return () => { document.body.style.zoom = ""; }; }, [uiScale]);
   const [showNew, setShowNew] = useState(false);
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
@@ -173,7 +171,7 @@ export default function Home() {
       </aside>
 
       <section className="main-area">
-        <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><div className="font-controls" aria-label="Text size controls"><button type="button" aria-label="Decrease text size" onClick={() => setUiScale(value => Math.max(0.9, +(value - 0.1).toFixed(1)))}>A−</button><button type="button" aria-label="Increase text size" onClick={() => setUiScale(value => Math.min(1.3, +(value + 0.1).toFixed(1)))}>A+</button></div><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "N"}</div></div></header>
+        <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "N"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>✧</span> Learn • Practise • Improve</div></div>
