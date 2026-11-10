@@ -1,10 +1,8 @@
 name = "clerkmd"
-compatibility_date = "2024-11-01"
+compatibility_date = "2026-11-04"
 pages_build_output_dir = "public"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "clerkme"
 database_id = "ccfafcf6-4ce7-43de-b406-fc2b1130f683"
-
-# Secrets (never commit): wrangler pages secret put PAYSTACK_SECRET
