@@ -45,7 +45,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="upgrade-card"><div className="upgrade-icon">✦</div><strong>Learn with confidence</strong><p>Build your clinical skills, one patient at a time.</p><button onClick={() => setActive("guides")}>Explore guides <span>↗</span></button></div>
-          <div className="profile"><div className="avatar">N</div><div><strong>Medical student</strong><small>Personal workspace</small></div><span className="profile-dots">•••</span></div>
+          <a className="profile profile-link" href="/profile"><div className="avatar">{authUser?.name?.[0] || "N"}</div><div><strong>{authUser?.name || "Medical student"}</strong><small>View and edit profile</small></div><span className="profile-dots">↗</span></a>
         </div>
       </aside>
 
