@@ -53,9 +53,22 @@ function xmlText(xml: string, tag: string) {
     .join(" ");
 }
 
-async function loadPdfJs() {
-  const win = window as Window & { pdfjsLib?: { GlobalWorkerOptions: { workerSrc: string }; getDocument: (config: {data: Uint8Array}) => {promise: Promise<{numPages:number;getPage:(page:number)=>Promise<{getTextContent:()=>Promise<{items:Array<{str?:string}>}>}>}>} } };
-  if (win.pdfjsLib) return win.pdfjsLib;
+type PdfJsLibrary = {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument: (config: { data: Uint8Array }) => {
+    promise: Promise<{
+      numPages: number;
+      getPage: (page: number) => Promise<{
+        getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
+      }>;
+    }>;
+  };
+};
+
+async function loadPdfJs(): Promise<PdfJsLibrary> {
+  const getLibrary = () => (window as unknown as Record<string, unknown>).pdfjsLib as PdfJsLibrary | undefined;
+  const existingLibrary = getLibrary();
+  if (existingLibrary) return existingLibrary;
   await new Promise<void>((resolve,reject)=>{
     const existing=document.querySelector<HTMLScriptElement>('script[data-clerkme-pdfjs="true"]');
     if(existing){existing.addEventListener("load",()=>resolve(),{once:true});existing.addEventListener("error",()=>reject(new Error("PDF reader could not load. Try a PPTX or text file.")),{once:true});return;}
@@ -65,7 +78,7 @@ async function loadPdfJs() {
     script.onload=()=>resolve();script.onerror=()=>reject(new Error("PDF reader could not load. Try a PPTX or text file."));
     document.head.appendChild(script);
   });
-  const library=win.pdfjsLib;
+  const library=getLibrary();
   if(!library) throw new Error("PDF reader did not initialise. Try a PPTX or text file.");
   library.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   return library;
