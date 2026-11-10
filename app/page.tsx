@@ -39,7 +39,7 @@ type PracticeQuestion = { id: string; unit: string; topic: string; level: string
 type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; topic: string; difficulty: string };
 const shuffleIndexes = (length: number) => Array.from({length}, (_,i)=>i).sort(()=>Math.random()-.5);
 function mapGeneratedQuestions(items: GeneratedQuestion[], unit: string): PracticeQuestion[] {
-  return items.map((item,i)=>({id:"upload-"+Date.now()+"-"+i,unit,topic:item.topic,level:item.difficulty,q:item.question,o:item.options,a:item.answerIndex,e:item.explanation}));
+  return items.map(item=>({id:"upload-"+crypto.randomUUID(),unit,topic:item.topic,level:item.difficulty,q:item.question,o:item.options,a:item.answerIndex,e:item.explanation}));
 }
 function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
   const [unit,setUnit]=useState("general-medicine");
@@ -56,13 +56,19 @@ function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"fli
     try{
       const extracted=await extractStudyFile(file);
       setSourceChars(extracted.text.length);
-      const response=await fetch("/api/learning/generate",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({unit,sourceText:extracted.text,sourceTitle:extracted.name,count,level})});
-      const data=await response.json();
-      if(!response.ok) throw new Error(data.error||"Could not generate questions.");
-      const questions=mapGeneratedQuestions(data.questions||[],unit);
-      if(!questions.length) throw new Error("No usable questions were returned. Try a different slide deck or a smaller question count.");
-      onGenerated(questions,unit);
-      setMessage("Generated "+questions.length+" questions from "+extracted.name+". They have been added to this practice session.");
+      const allQuestions:PracticeQuestion[]=[];
+      const batchSize=25;
+      for(let offset=0;offset<count;offset+=batchSize){
+        const batchCount=Math.min(batchSize,count-offset);
+        setMessage("Generating questions "+(offset+1)+"–"+(offset+batchCount)+" of "+count+"…");
+        const response=await fetch("/api/learning/generate",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({unit,sourceText:extracted.text,sourceTitle:extracted.name,count:batchCount,level})});
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.error||("Question batch "+(Math.floor(offset/batchSize)+1)+" failed."));
+        allQuestions.push(...mapGeneratedQuestions(data.questions||[],unit));
+      }
+      if(!allQuestions.length) throw new Error("No usable questions were returned. Try a different slide deck or a clearer source file.");
+      onGenerated(allQuestions,unit);
+      setMessage("Generated "+allQuestions.length+" questions from "+extracted.name+". They have been added to this practice session.");
     }catch(e){setError(e instanceof Error?e.message:"Question generation failed.");}
     finally{setBusy(false);}
   };
@@ -70,10 +76,10 @@ function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"fli
     <div className="slide-generator-heading"><div><span className="eyebrow">{purpose==="flight"?"BUILD YOUR FLIGHT QUESTION SET":"CREATE QUESTIONS FROM YOUR LECTURES"}</span><h3>{purpose==="flight"?"Fly with your own lecture slides":"Upload slides and generate questions"}</h3><p>Use your current unit's lecture notes to create original practice questions with explanations.</p></div><span className="upload-icon">⇧</span></div>
     <div className="slide-generator-controls">
       <label>Clinical unit<select value={unit} onChange={e=>setUnit(e.target.value)}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-      <label>Number of questions<input type="number" min={1} max={50} value={count} onChange={e=>setCount(Math.max(1,Math.min(50,Number(e.target.value)||1)))}/></label>
+      <label>Number of questions<input type="number" min={1} max={200} value={count} onChange={e=>setCount(Math.max(1,Math.min(200,Number(e.target.value)||1)))}/></label>
       <label>Difficulty<select value={level} onChange={e=>setLevel(e.target.value)}><option>Mixed</option><option>Foundation</option><option>Clinical</option><option>Advanced</option></select></label>
     </div>
-    <label className="slide-file-picker"><span>⇧</span><span><strong>{file?file.name:"Choose lecture slides or notes"}</strong><small>{file?(Math.round(file.size/1024)+" KB · ready to extract"):"PPTX, PDF, DOCX, TXT or Markdown · up to 20 MB"}</small></span><input type="file" accept=".pptx,.pdf,.docx,.txt,.md,.csv" onChange={e=>{setFile(e.target.files?.[0]||null);setError("");setMessage("");}}/></label>
+    <label className="slide-file-picker"><span>⇧</span><span><strong>{file?file.name:"Choose lecture slides or notes"}</strong><small>{file?(Math.round(file.size/1024)+" KB · ready to extract"):"PPTX, PDF, DOCX, TXT or Markdown · up to 20 MB · text-based slides"}</small></span><input type="file" accept=".pptx,.pdf,.docx,.txt,.md,.csv" onChange={e=>{setFile(e.target.files?.[0]||null);setError("");setMessage("");}}/></label>
     <div className="slide-generator-footer"><span>Slides are read in your browser; extracted text is sent to the authenticated AI service for question creation.</span><button className="primary-button" onClick={generate} disabled={busy||!file}>{busy?"Reading slides and creating questions…":"Generate questions"} <span>→</span></button></div>
     {sourceChars>0&&<p className="upload-meta">Read {sourceChars.toLocaleString()} characters from the selected file.</p>}
     {message&&<p className="success-note">{message}</p>}{error&&<p className="auth-error">{error}</p>}
