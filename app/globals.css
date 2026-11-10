@@ -11,3 +11,90 @@
 @media(max-width:600px){.clerking-fields{grid-template-columns:1fr}.auth-card{padding:26px 20px}}
 
 .flight-game{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 12px 35px #143d3008}.flight-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:16px}.flight-head h2{font:800 22px Manrope;margin:8px 0 5px;color:#173b36}.flight-head p{font-size:11px;color:#829088;margin:0}.flight-stats{display:flex;gap:18px}.flight-stats span{font-size:8px;letter-spacing:1px;color:#829088}.flight-stats strong{display:block;font:700 15px Manrope;color:#176b5d;margin-top:5px}.flight-screen{position:relative;overflow:hidden;border-radius:12px;background:#07182b}.flight-screen canvas{display:block;width:100%;height:520px}.flight-overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,16,28,.48);backdrop-filter:blur(3px)}.flight-overlay-card{width:min(90%,340px);padding:26px;border:1px solid #ffffff36;border-radius:16px;background:rgba(9,32,49,.9);color:#fff;text-align:center}.flight-jet-icon{font-size:38px;color:#a8e4f5}.flight-overlay-card h3{font:700 20px Manrope;margin:10px 0}.flight-overlay-card p{font-size:11px;line-height:1.7;color:#c2d8e1;margin:0 0 18px}.flight-controls{display:flex;justify-content:space-between;align-items:center;padding-top:14px;color:#84928a;font-size:9px;letter-spacing:1px}.flight-controls div{display:flex;gap:8px}.flight-controls button{width:43px;height:38px;border:1px solid #dce7e0;border-radius:8px;background:#f5f8f5;color:#176b5d;font-size:20px;touch-action:none}.flight-controls button:active{background:#dceee5}@media(max-width:600px){.flight-head{display:block}.flight-stats{margin-top:14px}.flight-screen canvas{height:460px}.flight-game{padding:12px}.flight-controls{font-size:8px}}
+
+
+/* Skyward Flight Academy — question-led flight experience */
+.flight-quiz{background:#fff;border:1px solid #e4ebe6;border-radius:22px;padding:22px;box-shadow:0 18px 55px #173b3610}
+.flight-quiz-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:20px}
+.flight-quiz-heading h2{font:800 25px/1.15 Manrope,sans-serif;color:#173b36;letter-spacing:-.8px;margin:8px 0 6px}
+.flight-quiz-heading h2 span{color:#4d9079}
+.flight-quiz-heading p{font-size:12px;color:#83918a;margin:0;line-height:1.6}
+.flight-best{background:#f1f7f3;border:1px solid #e2eee6;border-radius:12px;padding:12px 16px;min-width:120px}
+.flight-best>span,.flight-metrics span{display:block;font-size:8px;letter-spacing:1.1px;font-weight:800;color:#819087}
+.flight-best strong{display:block;font:800 21px Manrope;color:#226e58;margin-top:4px}
+.flight-best small{font-size:10px}
+.flight-dashboard{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr);gap:16px;align-items:stretch}
+.flight-visual-panel{background:#102b3b;border-radius:17px;padding:15px;color:#fff;overflow:hidden;min-width:0}
+.flight-sky-label{display:flex;align-items:center;gap:8px;color:#c2d8df;font-size:8px;font-weight:800;letter-spacing:1.4px}
+.live-dot,.flight-quiz-footer i{width:7px;height:7px;border-radius:50%;background:#67d5a5;display:inline-block;box-shadow:0 0 0 4px #67d5a522}
+.flight-altitude{position:absolute;z-index:2;margin:15px 0 0 14px;display:flex;flex-direction:column;gap:2px}
+.flight-altitude>span{font-size:8px;letter-spacing:1.4px;color:#c3d9df;font-weight:700}
+.flight-altitude strong{font:800 24px Manrope;color:#fff}
+.flight-altitude small{font-size:10px;color:#a8d9d5}
+.altitude-track{height:4px;width:104px;border-radius:5px;background:#ffffff28;overflow:hidden;margin-top:5px}
+.altitude-track span{display:block;width:100%;background:linear-gradient(90deg,#68d9b2,#d4efb1);border-radius:5px;transition:height .5s ease}
+.flight-sky{height:355px;position:relative;overflow:hidden;border-radius:12px;margin-top:12px;background:linear-gradient(180deg,#153c55 0%,#32728b 48%,#a4cbd0 100%)}
+.sky-sun{position:absolute;width:105px;height:105px;border-radius:50%;right:13%;top:13%;background:radial-gradient(circle,#fff7d7 0%,#f9e6ad 42%,#f9e6ad00 72%);opacity:.9}
+.sky-cloud{position:absolute;height:24px;width:100px;border-radius:50%;background:#ffffffa8;filter:blur(5px);box-shadow:18px -8px 0 3px #ffffff91,43px 1px 0 0 #ffffffa0}
+.cloud-a{top:30%;left:-5%;transform:scale(.9)}.cloud-b{top:53%;right:-10%;transform:scale(1.4)}.cloud-c{top:76%;left:13%;transform:scale(.75)}.cloud-d{top:17%;left:57%;transform:scale(.55);opacity:.55}.cloud-e{top:67%;right:37%;transform:scale(.65);opacity:.65}
+.flight-route-line{position:absolute;left:50%;top:10%;height:78%;border-left:1px dashed #ffffff55}
+.flight-plane{position:absolute;z-index:1;left:50%;top:48%;width:108px;height:135px;transform:translate(-50%,-50%);filter:drop-shadow(0 15px 14px #08243555);transition:top .6s cubic-bezier(.2,.8,.2,1)}
+.flight-plane svg{width:100%;height:100%;overflow:visible}
+.flight-plane.plane-boost{top:37%;filter:drop-shadow(0 0 18px #b9f5db)}
+.flight-plane.plane-drop{top:62%;filter:drop-shadow(0 0 14px #ffb18e)}
+.sky-coordinate{position:absolute;color:#ffffffa8;font:700 8px Manrope;letter-spacing:1px}
+.coord-one{right:13px;top:14px}.coord-two{right:13px;bottom:15px;text-align:right}
+.coord-two b{display:block;color:#fff;font-size:11px;margin-top:4px}
+.flight-start-overlay{position:absolute;z-index:3;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:22px;background:#0c2637b8;backdrop-filter:blur(5px);color:#fff}
+.flight-start-icon{font-size:30px;color:#a9e8db;margin-bottom:9px}
+.flight-start-overlay strong{font:800 20px Manrope}
+.flight-start-overlay p{max-width:260px;color:#d1e2e4;font-size:11px;line-height:1.65;margin:8px 0 16px}
+.flight-launch-button{border:0;border-radius:9px;padding:12px 17px;background:#b8e6cf;color:#123c32;font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 7px 18px #061d2844}
+.flight-launch-button span{padding-left:12px}
+.flight-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 2px 1px}
+.flight-metrics>div{border-right:1px solid #ffffff20;padding-left:7px}
+.flight-metrics>div:last-child{border:0}
+.flight-metrics span{font-size:7px;color:#a7c1c7;letter-spacing:.8px}
+.flight-metrics strong{display:block;font:800 18px Manrope;color:#fff;margin-top:5px}
+.flight-metrics small{font-size:10px;color:#a7c1c7}
+.flight-question-panel{border:1px solid #e7eee9;border-radius:17px;padding:20px;min-width:0;background:linear-gradient(160deg,#fff 0%,#fbfdfb 100%)}
+.question-topline{display:flex;justify-content:space-between;gap:10px;font-size:8px;font-weight:800;letter-spacing:1.1px;color:#4c806d}
+.question-topline span:last-child{color:#a18b5c}
+.question-progress{height:4px;background:#edf2ee;border-radius:9px;margin:12px 0 19px;overflow:hidden}
+.question-progress span{display:block;height:100%;background:linear-gradient(90deg,#70b79a,#c5d99a);border-radius:9px;transition:width .3s}
+.question-difficulty{font-size:8px;font-weight:800;letter-spacing:1.3px;color:#a0a99f}
+.flight-question-panel h3{font:700 17px/1.5 Manrope;color:#1e3d35;margin:9px 0 17px;letter-spacing:-.25px}
+.flight-options{display:grid;gap:9px}
+.flight-option{width:100%;display:flex;align-items:center;gap:11px;text-align:left;border:1px solid #e6ece7;background:#fff;border-radius:10px;padding:11px 12px;color:#40564d;font:600 11px/1.45 'DM Sans',sans-serif;cursor:pointer;transition:border .18s,background .18s,transform .18s}
+.flight-option:hover:not(:disabled){border-color:#8dbba4;background:#f7fbf8;transform:translateY(-1px)}
+.option-letter{flex:0 0 25px;width:25px;height:25px;border-radius:7px;display:grid;place-items:center;background:#f0f5f1;color:#5a816d;font-size:9px;font-weight:800}
+.option-mark{margin-left:auto;color:#aab6ad;font-size:13px}
+.flight-option.option-correct{border-color:#78bd97;background:#eef9f1;color:#236a46}
+.flight-option.option-correct .option-letter{background:#d8f0df;color:#237447}
+.flight-option.option-wrong{border-color:#e3a19a;background:#fff3f1;color:#a6473d}
+.flight-option.option-wrong .option-letter{background:#fbe0dc;color:#a6473d}
+.flight-option.option-muted{opacity:.5}
+.flight-feedback{position:relative;margin-top:14px;padding:13px 13px 14px;border-radius:10px;border:1px solid #d9ecdf;background:#f1f9f3}
+.flight-feedback.wrong{border-color:#f0d9d5;background:#fff5f3}
+.flight-feedback strong{font:800 11px Manrope;color:#27734b}
+.flight-feedback.wrong strong{color:#ad5146}
+.flight-feedback p{font-size:10px;line-height:1.65;color:#63746a;margin:6px 0 0;padding-right:42px}
+.altitude-change{position:absolute;right:12px;top:12px;font:800 12px Manrope;color:#27804f}
+.flight-feedback.wrong .altitude-change{color:#b64e43}
+.flight-feedback button{margin-top:11px;border:0;border-radius:7px;background:#246e58;color:white;padding:9px 12px;font-size:10px;font-weight:800;cursor:pointer}
+.flight-feedback button span{padding-left:10px}
+.flight-mission-placeholder{padding:22px 15px;border:1px dashed #dce9df;border-radius:11px;background:#f8fbf8;text-align:center}
+.flight-mission-placeholder span{font-size:23px;color:#77a78d}
+.flight-mission-placeholder p{font-size:11px;line-height:1.7;color:#75867b;margin:8px 0 0}
+.flight-howto{border-top:1px solid #edf1ed;margin-top:18px;padding-top:14px}
+.flight-howto>span{font-size:8px;letter-spacing:1.2px;font-weight:800;color:#829187}
+.flight-howto p{display:flex;justify-content:space-between;font-size:10px;color:#66766c;margin:10px 0 0}
+.flight-howto i{font-style:normal;font-weight:800;color:#3d9869}
+.flight-game-over-note{margin-top:16px;padding:12px;border-radius:10px;background:#f3f7f3}
+.flight-game-over-note strong{font:800 11px Manrope;color:#315e4b}
+.flight-game-over-note p{font-size:10px;line-height:1.6;color:#75847a;margin:5px 0 0}
+.flight-quiz-footer{display:flex;justify-content:space-between;gap:12px;padding:15px 3px 0;color:#97a39a;font-size:7px;font-weight:800;letter-spacing:1px}
+.flight-quiz-footer span:first-child{display:flex;align-items:center;gap:8px}
+.flight-quiz-footer i{width:6px;height:6px;box-shadow:none}
+@media(max-width:900px){.flight-dashboard{grid-template-columns:1fr}.flight-sky{height:330px}.flight-question-panel{padding:18px}}
+@media(max-width:600px){.flight-quiz{padding:12px;border-radius:15px}.flight-quiz-heading{align-items:flex-start}.flight-quiz-heading h2{font-size:21px}.flight-quiz-heading p{font-size:10px;max-width:230px}.flight-best{min-width:88px;padding:9px}.flight-best>span{font-size:6px}.flight-best strong{font-size:16px}.flight-visual-panel{padding:11px}.flight-sky{height:300px}.flight-altitude{margin-left:10px}.flight-question-panel{padding:14px}.flight-question-panel h3{font-size:15px}.flight-quiz-footer{font-size:6px}.flight-metrics span{font-size:6px;letter-spacing:.3px}}
