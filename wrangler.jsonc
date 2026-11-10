@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "clerkmd",
+  "pages_build_output_dir": "./out",
+  "compatibility_date": "2026-11-04",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clerkmd",
+      "database_id": "e9b5c562-7f37-495c-a8db-d2f155009f6a"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "1001652725948-s7bjafldo8md4hgosnf0dpi4cros7tan.apps.googleusercontent.com"
+  }
+}
