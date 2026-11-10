@@ -100,18 +100,91 @@
 @media(max-width:600px){.flight-quiz{padding:12px;border-radius:15px}.flight-quiz-heading{align-items:flex-start}.flight-quiz-heading h2{font-size:21px}.flight-quiz-heading p{font-size:10px;max-width:230px}.flight-best{min-width:88px;padding:9px}.flight-best>span{font-size:6px}.flight-best strong{font-size:16px}.flight-visual-panel{padding:11px}.flight-sky{height:300px}.flight-altitude{margin-left:10px}.flight-question-panel{padding:14px}.flight-question-panel h3{font-size:15px}.flight-quiz-footer{font-size:6px}.flight-metrics span{font-size:6px;letter-spacing:.3px}}
 
 
-/* Accessibility: adjustable type scale and clearer text hierarchy */
-.font-controls{display:flex;align-items:center;gap:5px;margin-right:8px}
-.font-controls button{border:1px solid #dce8df;background:#fff;color:#245d4c;border-radius:7px;min-width:34px;height:32px;font-size:13px;font-weight:800;cursor:pointer}
-.font-controls button:hover,.profile-top-link:hover{background:#edf5f0}
-.profile-top-link{display:inline-flex;align-items:center;border:1px solid #dce8df;border-radius:7px;padding:8px 11px;color:#176b5d;text-decoration:none;font-size:13px;font-weight:750;background:#fff}
-.flight-auto-advance{margin-top:12px;color:#668275;font-size:13px;font-weight:700;padding:10px 0}
-.flight-feedback strong{font-size:14px}
-.flight-feedback p{font-size:13px;line-height:1.7}
-.flight-option{font-size:14px;padding:13px 14px}
-.flight-question-panel h3{font-size:20px}
-.flight-question-panel .question-topline,.flight-question-panel .question-difficulty{font-size:11px}
-.flight-metrics span,.flight-best>span{font-size:10px}
-.flight-quiz-heading p,.flight-mission-placeholder p,.flight-start-overlay p{font-size:14px}
-.flight-quiz-footer{font-size:9px}
-@media(max-width:700px){.profile-top-link{font-size:11px;padding:7px 8px}.font-controls{margin-right:4px}.font-controls button{min-width:30px;height:30px}}
+
+/* Responsive navigation and touch-friendly layouts */
+@media (max-width: 700px) {
+  html, body { width:100%; overflow-x:hidden; }
+  .app-shell { display:block; min-height:100dvh; padding-bottom:76px; }
+  .sidebar {
+    position:fixed; inset:auto 0 0 0; width:100%; height:72px;
+    padding:6px 5px max(6px, env(safe-area-inset-bottom));
+    border-right:0; border-top:1px solid #dfe9e2; z-index:20;
+    background:rgba(255,255,255,.97); backdrop-filter:blur(14px);
+    display:block;
+  }
+  .sidebar .brand,.sidebar .workspace-label,.sidebar .sidebar-bottom { display:none; }
+  .nav-list {
+    display:flex; align-items:stretch; justify-content:space-around;
+    gap:3px; width:100%; height:100%; overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .nav-list::-webkit-scrollbar { display:none; }
+  .nav-item {
+    flex:1 0 58px; min-width:58px; height:58px; padding:5px 3px;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    gap:3px; border-radius:9px; font-size:9px; line-height:1.1;
+    white-space:normal; text-align:center;
+  }
+  .nav-item .nav-icon { display:block; width:auto; font-size:18px; line-height:1.2; }
+  .nav-plus { display:none; }
+  .main-area { margin:0; width:100%; min-width:0; }
+  .topbar {
+    height:56px; padding:0 14px; gap:8px;
+    position:sticky; top:0; z-index:10;
+  }
+  .breadcrumb { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:10px; }
+  .breadcrumb span { padding:0 4px; }
+  .top-actions { gap:7px; flex-shrink:0; }
+  .saved-label,.status-dot { display:none; }
+  .profile-top-link { font-size:11px; padding:7px 9px; }
+  .small-avatar { width:27px; height:27px; margin-left:0; }
+  .help-button { margin-left:0; }
+  .content { width:100%; padding:22px 14px 28px; }
+  .welcome-row { display:block; margin-bottom:20px; }
+  .welcome-row h1 { font-size:clamp(24px,7vw,30px); line-height:1.2; }
+  .subheading { font-size:13px; line-height:1.6; }
+  .date-chip { margin-top:13px; font-size:10px; }
+  .hero-card { min-height:0; padding:24px 18px; margin-bottom:25px; }
+  .hero-copy { max-width:100%; }
+  .hero-copy h2 { font-size:clamp(21px,6vw,27px); }
+  .hero-copy p { font-size:12px; line-height:1.7; }
+  .hero-art { right:-100px; opacity:.12; pointer-events:none; }
+  .tool-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .tool-card { min-width:0; min-height:135px; padding:12px; }
+  .tool-title { font-size:12px; line-height:1.35; }
+  .tool-desc { font-size:10px; overflow-wrap:anywhere; }
+  .lower-grid,.template-grid,.resource-grid { grid-template-columns:minmax(0,1fr); }
+  .panel { min-width:0; }
+  .section-heading { gap:10px; align-items:flex-start; }
+  .section-heading p { max-width:180px; }
+  .form-panel { width:100%; max-width:100%; padding:16px; }
+  .form-panel input,.form-panel textarea,.form-panel select { font-size:16px; }
+  .flight-quiz { padding:11px; width:100%; }
+  .flight-quiz-heading { display:block; }
+  .flight-quiz-heading h2 { font-size:clamp(20px,6vw,25px); }
+  .flight-quiz-heading p { max-width:none; font-size:12px; }
+  .flight-best { display:inline-block; margin-top:12px; min-width:120px; }
+  .flight-dashboard { display:flex; flex-direction:column; gap:12px; }
+  .flight-visual-panel,.flight-question-panel { width:100%; min-width:0; }
+  .flight-sky { height:245px; }
+  .flight-plane { width:85px; height:110px; }
+  .flight-altitude strong { font-size:21px; }
+  .flight-question-panel { padding:14px 12px; }
+  .flight-question-panel h3 { font-size:17px; line-height:1.45; overflow-wrap:anywhere; }
+  .flight-option { min-height:48px; padding:12px 10px; font-size:13px; gap:8px; }
+  .option-letter { flex-basis:27px; width:27px; height:27px; }
+  .flight-feedback p { padding-right:0; font-size:12px; }
+  .altitude-change { position:static; margin-top:8px; }
+  .flight-metrics { gap:4px; }
+  .flight-metrics span { font-size:8px; line-height:1.3; }
+  .flight-quiz-footer { flex-wrap:wrap; font-size:8px; }
+  .clerking-fields { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width: 380px) {
+  .content { padding-left:11px; padding-right:11px; }
+  .topbar { padding-left:10px; padding-right:10px; }
+  .profile-top-link { font-size:10px; padding:6px 7px; }
+  .nav-item { flex-basis:53px; min-width:53px; font-size:8px; }
+  .tool-card { padding:10px; }
+  .flight-metrics span { font-size:7px; }
+}
