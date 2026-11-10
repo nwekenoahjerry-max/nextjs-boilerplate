@@ -135,6 +135,8 @@ function FlightGame() {
         <div className="flight-best"><span>PERSONAL BEST</span><strong>{bestAltitude.toLocaleString()} <small>FT</small></strong></div>
       </div>
 
+      <SlideQuestionGenerator purpose="flight" onGenerated={(items,unit)=>{setGameUnit(unit);setGameQuestions(items.map(q=>({topic:q.topic,difficulty:q.level,question:q.q,options:q.o,answer:q.a,explanation:q.e})));setQuestionIndex(0);setStarted(false);setGameOver(false);setSelected(null);setAltitude(1000);setCorrectCount(0);setWrongAnswers(0);setStreak(0);setLastOutcome(null);setLastChange(0);}}/>
+      {gameUnit!=="general-medicine"&&<p className="flight-source-note">Flight questions loaded for {clinicalUnits.find(u=>u.id===gameUnit)?.name}. Your next flight will use this set.</p>}
       <div className="flight-dashboard">
         <div className="flight-visual-panel">
           <div className="flight-sky-label"><span className="live-dot"></span>{gameOver ? "FLIGHT COMPLETE" : started ? "FLIGHT IN PROGRESS" : "FLIGHT DECK READY"}</div>
