@@ -82,6 +82,8 @@ function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"fli
 
 function FlightGame() {
   const [started, setStarted] = useState(false);
+  const [gameQuestions, setGameQuestions] = useState(flightQuestions);
+  const [gameUnit, setGameUnit] = useState("general-medicine");
   const [gameOver, setGameOver] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [altitude, setAltitude] = useState(1000);
@@ -92,7 +94,7 @@ function FlightGame() {
   const [selected, setSelected] = useState<number | null>(null);
   const [lastOutcome, setLastOutcome] = useState<"correct" | "wrong" | null>(null);
   const [lastChange, setLastChange] = useState(0);
-  const question = flightQuestions[questionIndex % flightQuestions.length];
+  const question = gameQuestions[questionIndex % gameQuestions.length];
   const progress = Math.max(0, Math.min(100, altitude / 3000 * 100));
 
   const startFlight = () => {
@@ -153,7 +155,7 @@ function FlightGame() {
 
         <div className="flight-question-panel">
           <div className="question-topline"><span>MISSION {String(questionIndex + 1).padStart(2,"0")}</span><span>{question.topic}</span></div>
-          <div className="question-progress"><span style={{width: (((questionIndex % flightQuestions.length) + 1) / flightQuestions.length * 100) + "%"}} /></div>
+          <div className="question-progress"><span style={{width: (((questionIndex % gameQuestions.length) + 1) / gameQuestions.length * 100) + "%"}} /></div>
           <div className="question-difficulty">{question.difficulty} QUESTION</div>
           <h3>{started && !gameOver ? question.question : "Your next clinical question is cleared for take-off."}</h3>
           {started && !gameOver ? <div className="flight-options">{question.options.map((option,index) => <button key={option} className={"flight-option " + (selected === null ? "" : index === question.answer ? "option-correct" : index === selected ? "option-wrong" : "option-muted")} onClick={() => answerQuestion(index)} disabled={selected !== null}><span className="option-letter">{String.fromCharCode(65+index)}</span><span>{option}</span><span className="option-mark">{selected !== null && index === question.answer ? "✓" : selected === index ? "×" : "↗"}</span></button>)}</div> : <div className="flight-mission-placeholder"><span>✦</span><p>Choose an answer to climb. A wrong answer reduces your altitude. Keep your aircraft above ground level to continue.</p></div>}
@@ -162,7 +164,7 @@ function FlightGame() {
           {gameOver && <div className="flight-game-over-note"><strong>Flight summary</strong><p>You answered {correctCount} question{correctCount === 1 ? "" : "s"} correctly, made {wrongAnswers} incorrect attempt{wrongAnswers === 1 ? "" : "s"}, and reached {bestAltitude.toLocaleString()} ft.</p></div>}
         </div>
       </div>
-      <div className="flight-quiz-footer"><span><i></i> CLINICAL LEARNING MODE · FOR EDUCATIONAL USE</span><span>QUESTION SET · {flightQuestions.length} QUESTIONS</span></div>
+      <div className="flight-quiz-footer"><span><i></i> CLINICAL LEARNING MODE · FOR EDUCATIONAL USE</span><span>QUESTION SET · {gameQuestions.length} QUESTIONS</span></div>
     </section>
   );
 }
