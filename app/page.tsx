@@ -174,7 +174,9 @@ function FlightGame() {
 export default function Home() {
   const [active, setActive] = useState("overview");
   const [qbankUnit, setQbankUnit] = useState("general-medicine");
-  const [qbankOrder, setQbankOrder] = useState(() => questionBank.map((q,i) => q.unit === "general-medicine" ? i : -1).filter(i => i >= 0));
+  const [generatedQuestionBank, setGeneratedQuestionBank] = useState<PracticeQuestion[]>([]);
+  const [qbankQuestions, setQbankQuestions] = useState<PracticeQuestion[]>(questionBank.filter(q => q.unit === "general-medicine") as PracticeQuestion[]);
+  const [qbankOrder, setQbankOrder] = useState(() => shuffleIndexes(questionBank.filter(q => q.unit === "general-medicine").length));
   const [qbankIndex, setQbankIndex] = useState(0);
   const [qbankSelected, setQbankSelected] = useState<number | null>(null);
   const [guideUnit, setGuideUnit] = useState("general-medicine");
