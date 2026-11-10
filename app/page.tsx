@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { clinicalUnits, questionBank, caseGuides } from "../lib/learning-content";
+import { goodHistoryExamples } from "../lib/good-history";
+import { extractStudyFile } from "../lib/file-text";
 
 const navItems = [
   ["Overview", "overview", "⌂"],
@@ -31,6 +33,52 @@ const flightQuestions = [
   { topic:"MEDICINE", difficulty:"CLINICAL", question:"Which clinical feature is most characteristic of left-sided heart failure?", options:["Ascites","Raised JVP alone","Pulmonary crepitations","Splenomegaly"], answer:2, explanation:"Left ventricular failure raises pulmonary venous pressure, producing pulmonary congestion and basal crepitations. Peripheral oedema and raised JVP are more typical of systemic venous congestion." },
   { topic:"PAEDIATRICS", difficulty:"CLINICAL", question:"A febrile 4-year-old is lethargic, has cold extremities and a capillary refill time of 5 seconds. What does this most strongly suggest?", options:["Adequate perfusion","Circulatory shock","Isolated mild fever","Simple febrile seizure"], answer:1, explanation:"Altered mental state, cold peripheries and prolonged capillary refill indicate poor perfusion and possible shock. Escalate immediately and follow emergency protocols." }
 ];
+
+
+type PracticeQuestion = { id: string; unit: string; topic: string; level: string; q: string; o: string[]; a: number; e: string };
+type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; topic: string; difficulty: string };
+const shuffleIndexes = (length: number) => Array.from({length}, (_,i)=>i).sort(()=>Math.random()-.5);
+function mapGeneratedQuestions(items: GeneratedQuestion[], unit: string): PracticeQuestion[] {
+  return items.map((item,i)=>({id:"upload-"+Date.now()+"-"+i,unit,topic:item.topic,level:item.difficulty,q:item.question,o:item.options,a:item.answerIndex,e:item.explanation}));
+}
+function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
+  const [unit,setUnit]=useState("general-medicine");
+  const [file,setFile]=useState<File|null>(null);
+  const [count,setCount]=useState(20);
+  const [level,setLevel]=useState("Mixed");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+  const [error,setError]=useState("");
+  const [sourceChars,setSourceChars]=useState(0);
+  const generate=async()=>{
+    if(!file){setError("Choose a slide deck or lecture file first.");return;}
+    setBusy(true);setError("");setMessage("");
+    try{
+      const extracted=await extractStudyFile(file);
+      setSourceChars(extracted.text.length);
+      const response=await fetch("/api/learning/generate",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({unit,sourceText:extracted.text,sourceTitle:extracted.name,count,level})});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"Could not generate questions.");
+      const questions=mapGeneratedQuestions(data.questions||[],unit);
+      if(!questions.length) throw new Error("No usable questions were returned. Try a different slide deck or a smaller question count.");
+      onGenerated(questions,unit);
+      setMessage("Generated "+questions.length+" questions from "+extracted.name+". They have been added to this practice session.");
+    }catch(e){setError(e instanceof Error?e.message:"Question generation failed.");}
+    finally{setBusy(false);}
+  };
+  return <section className="slide-generator">
+    <div className="slide-generator-heading"><div><span className="eyebrow">{purpose==="flight"?"BUILD YOUR FLIGHT QUESTION SET":"CREATE QUESTIONS FROM YOUR LECTURES"}</span><h3>{purpose==="flight"?"Fly with your own lecture slides":"Upload slides and generate questions"}</h3><p>Use your current unit's lecture notes to create original practice questions with explanations.</p></div><span className="upload-icon">⇧</span></div>
+    <div className="slide-generator-controls">
+      <label>Clinical unit<select value={unit} onChange={e=>setUnit(e.target.value)}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+      <label>Number of questions<input type="number" min={1} max={50} value={count} onChange={e=>setCount(Math.max(1,Math.min(50,Number(e.target.value)||1)))}/></label>
+      <label>Difficulty<select value={level} onChange={e=>setLevel(e.target.value)}><option>Mixed</option><option>Foundation</option><option>Clinical</option><option>Advanced</option></select></label>
+    </div>
+    <label className="slide-file-picker"><span>⇧</span><span><strong>{file?file.name:"Choose lecture slides or notes"}</strong><small>{file?(Math.round(file.size/1024)+" KB · ready to extract"):"PPTX, PDF, DOCX, TXT or Markdown · up to 20 MB"}</small></span><input type="file" accept=".pptx,.pdf,.docx,.txt,.md,.csv" onChange={e=>{setFile(e.target.files?.[0]||null);setError("");setMessage("");}}/></label>
+    <div className="slide-generator-footer"><span>Slides are read in your browser; extracted text is sent to the authenticated AI service for question creation.</span><button className="primary-button" onClick={generate} disabled={busy||!file}>{busy?"Reading slides and creating questions…":"Generate questions"} <span>→</span></button></div>
+    {sourceChars>0&&<p className="upload-meta">Read {sourceChars.toLocaleString()} characters from the selected file.</p>}
+    {message&&<p className="success-note">{message}</p>}{error&&<p className="auth-error">{error}</p>}
+  </section>;
+}
 
 function FlightGame() {
   const [started, setStarted] = useState(false);
