@@ -39,6 +39,7 @@ function FlightGame() {
   const [bestAltitude, setBestAltitude] = useState(1000);
   const [correctCount, setCorrectCount] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [wrongAnswers, setWrongAnswers] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [lastOutcome, setLastOutcome] = useState<"correct" | "wrong" | null>(null);
   const [lastChange, setLastChange] = useState(0);
@@ -47,7 +48,7 @@ function FlightGame() {
 
   const startFlight = () => {
     setStarted(true); setGameOver(false); setQuestionIndex(0); setAltitude(1000);
-    setCorrectCount(0); setStreak(0); setSelected(null); setLastOutcome(null); setLastChange(0);
+    setCorrectCount(0); setStreak(0); setWrongAnswers(0); setSelected(null); setLastOutcome(null); setLastChange(0);
   };
 
   const answerQuestion = (optionIndex: number) => {
@@ -59,16 +60,22 @@ function FlightGame() {
       setCorrectCount(value => value + 1); setStreak(value => value + 1);
       setLastOutcome("correct"); setLastChange(250);
     } else {
-      const nextAltitude = Math.max(0, altitude - 300);
-      setAltitude(nextAltitude); setStreak(0);
+      const nextWrongAnswers = wrongAnswers + 1;
+      const nextAltitude = nextWrongAnswers >= 4 ? 0 : Math.max(0, altitude - 300);
+      setWrongAnswers(nextWrongAnswers); setAltitude(nextAltitude); setStreak(0);
       setLastOutcome("wrong"); setLastChange(-300);
-      if (nextAltitude === 0) setGameOver(true);
+      if (nextWrongAnswers >= 4) setGameOver(true);
     }
   };
 
-  const nextQuestion = () => {
-    setQuestionIndex(value => value + 1); setSelected(null); setLastOutcome(null); setLastChange(0);
-  };
+  useEffect(() => {
+    if (selected === null || gameOver) return;
+    const timer = window.setTimeout(() => {
+      setQuestionIndex(value => value + 1);
+      setSelected(null); setLastOutcome(null); setLastChange(0);
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [selected, gameOver]);
 
   return (
     <section className="flight-quiz">
@@ -90,9 +97,9 @@ function FlightGame() {
             </div>
             <div className="sky-coordinate coord-one">N 06° 12′</div><div className="sky-coordinate coord-two">CLIMB RATE <b>{lastOutcome === "correct" ? "+250" : lastOutcome === "wrong" ? "−300" : "READY"}</b></div>
             {!started && <div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>Ready for take-off?</strong><p>Answer clinical questions to control your altitude.</p><button className="flight-launch-button" onClick={startFlight}>Start your flight <span>→</span></button></div>}
-            {gameOver && <div className="flight-start-overlay"><div className="flight-start-icon">◈</div><strong>You've landed</strong><p>Your aircraft has descended to ground level. Review, refuel and try again.</p><button className="flight-launch-button" onClick={startFlight}>Restart flight <span>↻</span></button></div>}
+            {gameOver && <div className="flight-start-overlay"><div className="flight-start-icon">◈</div><strong>Flight failed — jet grounded</strong><p>You answered four questions incorrectly. Review the explanations and launch a new flight when ready.</p><button className="flight-launch-button" onClick={startFlight}>Restart flight <span>↻</span></button></div>}
           </div>
-          <div className="flight-metrics"><div><span>QUESTIONS CORRECT</span><strong>{correctCount}</strong></div><div><span>CURRENT STREAK</span><strong>{streak} <small>×</small></strong></div><div><span>QUESTIONS ANSWERED</span><strong>{questionIndex + (selected !== null ? 1 : 0)}</strong></div></div>
+          <div className="flight-metrics"><div><span>QUESTIONS CORRECT</span><strong>{correctCount}</strong></div><div><span>WRONG ANSWERS LEFT</span><strong>{Math.max(0, 3 - wrongAnswers)}</strong></div><div><span>QUESTIONS ANSWERED</span><strong>{questionIndex + (selected !== null ? 1 : 0)}</strong></div></div>
         </div>
 
         <div className="flight-question-panel">
@@ -101,9 +108,9 @@ function FlightGame() {
           <div className="question-difficulty">{question.difficulty} QUESTION</div>
           <h3>{started && !gameOver ? question.question : "Your next clinical question is cleared for take-off."}</h3>
           {started && !gameOver ? <div className="flight-options">{question.options.map((option,index) => <button key={option} className={"flight-option " + (selected === null ? "" : index === question.answer ? "option-correct" : index === selected ? "option-wrong" : "option-muted")} onClick={() => answerQuestion(index)} disabled={selected !== null}><span className="option-letter">{String.fromCharCode(65+index)}</span><span>{option}</span><span className="option-mark">{selected !== null && index === question.answer ? "✓" : selected === index ? "×" : "↗"}</span></button>)}</div> : <div className="flight-mission-placeholder"><span>✦</span><p>Choose an answer to climb. A wrong answer reduces your altitude. Keep your aircraft above ground level to continue.</p></div>}
-          {selected !== null && lastOutcome && <div className={"flight-feedback " + lastOutcome}><strong>{lastOutcome === "correct" ? "Excellent — altitude gained!" : "Not quite — altitude lost."}</strong><p>{question.explanation}</p><div className="altitude-change">{lastChange > 0 ? "+" : ""}{lastChange.toLocaleString()} FT</div>{!gameOver && <button onClick={nextQuestion}>Next mission <span>→</span></button>}</div>}
+          {selected !== null && lastOutcome && <div className={"flight-feedback " + lastOutcome}><strong>{lastOutcome === "correct" ? "Excellent — altitude gained!" : "Not quite — altitude lost."}</strong><p>{question.explanation}</p><div className="altitude-change">{lastChange > 0 ? "+" : ""}{lastChange.toLocaleString()} FT</div>{!gameOver && <div className="flight-auto-advance">Next question loading automatically…</div>}</div>}
           {!started && <div className="flight-howto"><span>HOW TO PLAY</span><p><b>Correct answer</b> <i>+</i> 250 ft altitude</p><p><b>Wrong answer</b> <i>−</i> 300 ft altitude</p></div>}
-          {gameOver && <div className="flight-game-over-note"><strong>Flight summary</strong><p>You answered {correctCount} question{correctCount === 1 ? "" : "s"} correctly and reached {bestAltitude.toLocaleString()} ft. Start again to beat your record.</p></div>}
+          {gameOver && <div className="flight-game-over-note"><strong>Flight summary</strong><p>You answered {correctCount} question{correctCount === 1 ? "" : "s"} correctly, made {wrongAnswers} incorrect attempt{wrongAnswers === 1 ? "" : "s"}, and reached {bestAltitude.toLocaleString()} ft.</p></div>}
         </div>
       </div>
       <div className="flight-quiz-footer"><span><i></i> CLINICAL LEARNING MODE · FOR EDUCATIONAL USE</span><span>QUESTION SET · {flightQuestions.length} QUESTIONS</span></div>
@@ -113,6 +120,8 @@ function FlightGame() {
 
 export default function Home() {
   const [active, setActive] = useState("overview");
+  const [uiScale, setUiScale] = useState(1);
+  useEffect(() => { document.body.style.zoom = String(uiScale); return () => { document.body.style.zoom = ""; }; }, [uiScale]);
   const [showNew, setShowNew] = useState(false);
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
@@ -164,7 +173,7 @@ export default function Home() {
       </aside>
 
       <section className="main-area">
-        <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "N"}</div></div></header>
+        <header className="topbar"><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><div className="font-controls" aria-label="Text size controls"><button type="button" aria-label="Decrease text size" onClick={() => setUiScale(value => Math.max(0.9, +(value - 0.1).toFixed(1)))}>A−</button><button type="button" aria-label="Increase text size" onClick={() => setUiScale(value => Math.min(1.3, +(value + 0.1).toFixed(1)))}>A+</button></div><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "N"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>✧</span> Learn • Practise • Improve</div></div>
