@@ -20,59 +20,96 @@ const templates = [
 ];
 
 
-function FlightGame() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [running, setRunning] = useState(false);
-  const [score, setScore] = useState(0);
-  const [best, setBest] = useState(0);
-  const direction = useRef(0);
-  const start = () => { setScore(0); setRunning(true); };
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !running) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let frame = 0, points = 0, last = 0, raf = 0, crashed = false;
-    let jetX = canvas.width / 2, obstacles: Array<{x:number;y:number;w:number;h:number;speed:number}> = [];
-    const resize = () => { const dpr = Math.min(window.devicePixelRatio || 1, 2); const w = canvas.clientWidth || 760; const h = 520; canvas.width = w*dpr; canvas.height = h*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); };
-    resize(); jetX = (canvas.clientWidth || 760)/2;
-    const keyDown = (e:KeyboardEvent) => { if (["ArrowLeft","a","A"].includes(e.key)) direction.current=-1; if (["ArrowRight","d","D"].includes(e.key)) direction.current=1; };
-    const keyUp = () => { direction.current=0; };
-    window.addEventListener("keydown",keyDown); window.addEventListener("keyup",keyUp);
-    const draw = (t:number) => {
-      const w=canvas.clientWidth||760,h=520; ctx.clearRect(0,0,w,h);
-      const bg=ctx.createLinearGradient(0,0,0,h); bg.addColorStop(0,"#07182b"); bg.addColorStop(1,"#123c55"); ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-      ctx.strokeStyle="rgba(155,208,230,.12)"; ctx.lineWidth=1;
-      for(let y=(frame*2)%48;y<h;y+=48){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-      for(let x=30;x<w;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
-      // distant cloud banks and speed streaks
-      for(let i=0;i<9;i++){const y=(i*91+frame*3)%(h+80)-40;ctx.fillStyle="rgba(205,231,239,.08)";ctx.beginPath();ctx.ellipse((i*137+60)%w,y,34,5,0,0,Math.PI*2);ctx.fill();}
-      if(frame%72===0) obstacles.push({x:35+Math.random()*(w-100),y:-45,w:45+Math.random()*28,h:28+Math.random()*20,speed:3+Math.min(points/500,4)});
-      obstacles=obstacles.filter(o=>o.y<h+60);
-      obstacles.forEach(o=>{o.y+=o.speed;ctx.save();ctx.shadowColor="#ff6d4e";ctx.shadowBlur=15;ctx.fillStyle="#d75b45";ctx.beginPath();ctx.roundRect(o.x,o.y,o.w,o.h,8);ctx.fill();ctx.fillStyle="#ffb18e";ctx.fillRect(o.x+8,o.y+7,o.w-16,3);ctx.restore();});
-      jetX += direction.current*5; jetX=Math.max(32,Math.min(w-32,jetX));
-      const jy=h-105;
-      // exhaust
-      const flame=ctx.createLinearGradient(0,jy+25,0,jy+80);flame.addColorStop(0,"#fff2a6");flame.addColorStop(1,"rgba(255,115,42,0)");
-      ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(jetX-8,jy+15);ctx.lineTo(jetX+8,jy+15);ctx.lineTo(jetX,jy+76+Math.sin(frame/3)*8);ctx.fill();
-      // modern fighter jet, nose pointing upwards
-      ctx.save();ctx.translate(jetX,jy);ctx.shadowColor="#77d8f2";ctx.shadowBlur=18;
-      const body=ctx.createLinearGradient(-18,0,18,0);body.addColorStop(0,"#647b8d");body.addColorStop(.48,"#edf4f7");body.addColorStop(1,"#52697c");
-      ctx.fillStyle=body;ctx.beginPath();ctx.moveTo(0,-48);ctx.quadraticCurveTo(8,-27,10,3);ctx.lineTo(29,29);ctx.lineTo(28,37);ctx.lineTo(8,28);ctx.lineTo(6,44);ctx.lineTo(-6,44);ctx.lineTo(-8,28);ctx.lineTo(-28,37);ctx.lineTo(-29,29);ctx.lineTo(-10,3);ctx.quadraticCurveTo(-8,-27,0,-48);ctx.fill();
-      ctx.fillStyle="#7bd4ec";ctx.beginPath();ctx.ellipse(0,-13,5,12,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle="#253c50";ctx.fillRect(-3,5,6,20);ctx.restore();
-      if(obstacles.some(o=>Math.abs((o.x+o.w/2)-jetX)<o.w/2+17 && Math.abs((o.y+o.h/2)-jy)<o.h/2+27)){crashed=true;setBest(b=>Math.max(b,Math.floor(points)));setRunning(false);}
-      points+=0.12; frame++; if(frame%10===0)setScore(Math.floor(points));
-      ctx.fillStyle="#fff";ctx.font="700 17px Arial";ctx.fillText("ALTITUDE  "+Math.floor(points*120)+" FT",20,32);
-      ctx.font="11px Arial";ctx.fillStyle="#b7d5e3";ctx.fillText("DODGE THE FLIGHT HAZARDS",20,51);
-      if(!crashed) raf=requestAnimationFrame(draw);
-    };
-    raf=requestAnimationFrame(draw);
-    return()=>{cancelAnimationFrame(raf);window.removeEventListener("keydown",keyDown);window.removeEventListener("keyup",keyUp);};
-  },[running]);
-  return <section className="flight-game"><div className="flight-head"><div><span className="eyebrow">ARCADE FLIGHT SIMULATOR</span><h2>Skyward: Jet Run</h2><p>Keep climbing. Avoid the hazards. How far can you fly?</p></div><div className="flight-stats"><span>ALTITUDE <strong>{score.toLocaleString()} ft</strong></span><span>BEST <strong>{best.toLocaleString()} ft</strong></span></div></div><div className="flight-screen"><canvas ref={canvasRef} aria-label="Jet flying upwards through an obstacle course"/>{!running&&<div className="flight-overlay"><div className="flight-overlay-card"><div className="flight-jet-icon">✈</div><h3>{score>0?"Flight ended":"Ready for take-off?"}</h3><p>Fly vertically through the sky. Steer left and right to avoid incoming hazards.</p><button className="primary-button" onClick={start}>{score>0?"Fly again":"Start flight"} →</button></div></div>}</div><div className="flight-controls"><span>CONTROLS: ← → or A / D</span><div><button onPointerDown={()=>direction.current=-1} onPointerUp={()=>direction.current=0} onPointerLeave={()=>direction.current=0} aria-label="Steer left">←</button><button onPointerDown={()=>direction.current=1} onPointerUp={()=>direction.current=0} onPointerLeave={()=>direction.current=0} aria-label="Steer right">→</button></div></div></section>;
-}
+const flightQuestions = [
+  { topic:"CARDIOLOGY", difficulty:"FOUNDATION", question:"A 58-year-old man presents with crushing central chest pain radiating to his left arm. Which investigation should be obtained immediately?", options:["12-lead ECG","Echocardiography","Exercise stress test","CT pulmonary angiography"], answer:0, explanation:"A 12-lead ECG should be obtained promptly (ideally within 10 minutes) in suspected acute coronary syndrome. Do not delay emergency assessment or treatment." },
+  { topic:"PAEDIATRICS", difficulty:"FOUNDATION", question:"A 2-year-old child has diarrhoea, sunken eyes and is unable to drink. What is the most appropriate classification?", options:["No dehydration","Some dehydration","Severe dehydration","Persistent diarrhoea"], answer:2, explanation:"Inability to drink, especially with other danger signs, is a feature of severe dehydration. Assess urgently and begin appropriate rehydration." },
+  { topic:"OBSTETRICS", difficulty:"CLINICAL", question:"A woman at 34 weeks' gestation has BP 170/115 mmHg, severe headache and visual symptoms. What is the priority diagnosis?", options:["Gestational hypertension","Severe pre-eclampsia","Chronic hypertension","White-coat hypertension"], answer:1, explanation:"Severe-range hypertension with neurological symptoms after 20 weeks is consistent with pre-eclampsia with severe features. This is an obstetric emergency." },
+  { topic:"MEDICINE", difficulty:"FOUNDATION", question:"Which electrolyte abnormality is classically associated with peaked T waves on an ECG?", options:["Hypokalaemia","Hypercalcaemia","Hyperkalaemia","Hyponatraemia"], answer:2, explanation:"Hyperkalaemia classically causes tall, peaked T waves and can progress to PR prolongation, QRS widening and life-threatening arrhythmias." },
+  { topic:"SURGERY", difficulty:"CLINICAL", question:"A patient has right iliac fossa pain, fever and rebound tenderness. Which diagnosis is most likely?", options:["Acute appendicitis","Acute pancreatitis","Cholecystitis","Renal colic"], answer:0, explanation:"Migratory pain to the right iliac fossa with fever and localised peritoneal irritation strongly suggests acute appendicitis. Consider differentials and assess urgently." },
+  { topic:"OBSTETRICS", difficulty:"FOUNDATION", question:"What is the first-line uterotonic used to prevent postpartum haemorrhage after vaginal birth?", options:["Magnesium sulphate","Oxytocin","Diazepam","Nifedipine"], answer:1, explanation:"Oxytocin is the standard first-line uterotonic for prevention of postpartum haemorrhage where available and not contraindicated." },
+  { topic:"MEDICINE", difficulty:"CLINICAL", question:"Which clinical feature is most characteristic of left-sided heart failure?", options:["Ascites","Raised JVP alone","Pulmonary crepitations","Splenomegaly"], answer:2, explanation:"Left ventricular failure raises pulmonary venous pressure, producing pulmonary congestion and basal crepitations. Peripheral oedema and raised JVP are more typical of systemic venous congestion." },
+  { topic:"PAEDIATRICS", difficulty:"CLINICAL", question:"A febrile 4-year-old is lethargic, has cold extremities and a capillary refill time of 5 seconds. What does this most strongly suggest?", options:["Adequate perfusion","Circulatory shock","Isolated mild fever","Simple febrile seizure"], answer:1, explanation:"Altered mental state, cold peripheries and prolonged capillary refill indicate poor perfusion and possible shock. Escalate immediately and follow emergency protocols." }
+];
 
+function FlightGame() {
+  const [started, setStarted] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [altitude, setAltitude] = useState(1000);
+  const [bestAltitude, setBestAltitude] = useState(1000);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [lastOutcome, setLastOutcome] = useState<"correct" | "wrong" | null>(null);
+  const [lastChange, setLastChange] = useState(0);
+  const question = flightQuestions[questionIndex % flightQuestions.length];
+  const progress = Math.max(0, Math.min(100, altitude / 3000 * 100));
+
+  const startFlight = () => {
+    setStarted(true); setGameOver(false); setQuestionIndex(0); setAltitude(1000);
+    setCorrectCount(0); setStreak(0); setSelected(null); setLastOutcome(null); setLastChange(0);
+  };
+
+  const answerQuestion = (optionIndex: number) => {
+    if (selected !== null || gameOver) return;
+    setSelected(optionIndex);
+    if (optionIndex === question.answer) {
+      const nextAltitude = altitude + 250;
+      setAltitude(nextAltitude); setBestAltitude(value => Math.max(value, nextAltitude));
+      setCorrectCount(value => value + 1); setStreak(value => value + 1);
+      setLastOutcome("correct"); setLastChange(250);
+    } else {
+      const nextAltitude = Math.max(0, altitude - 300);
+      setAltitude(nextAltitude); setStreak(0);
+      setLastOutcome("wrong"); setLastChange(-300);
+      if (nextAltitude === 0) setGameOver(true);
+    }
+  };
+
+  const nextQuestion = () => {
+    setQuestionIndex(value => value + 1); setSelected(null); setLastOutcome(null); setLastChange(0);
+  };
+
+  return (
+    <section className="flight-quiz">
+      <div className="flight-quiz-heading">
+        <div><span className="eyebrow">CLINICAL KNOWLEDGE · FLIGHT CHALLENGE</span><h2>Skyward <span>Flight Academy</span></h2><p>Your knowledge is the engine. Every correct answer sends your jet higher.</p></div>
+        <div className="flight-best"><span>PERSONAL BEST</span><strong>{bestAltitude.toLocaleString()} <small>FT</small></strong></div>
+      </div>
+
+      <div className="flight-dashboard">
+        <div className="flight-visual-panel">
+          <div className="flight-sky-label"><span className="live-dot"></span>{gameOver ? "FLIGHT COMPLETE" : started ? "FLIGHT IN PROGRESS" : "FLIGHT DECK READY"}</div>
+          <div className="flight-altitude"><span>ALTITUDE</span><strong>{altitude.toLocaleString()}<small> FT</small></strong><div className="altitude-track"><span style={{height: progress + "%"}} /></div></div>
+          <div className="flight-sky">
+            <div className="sky-sun"></div><div className="sky-cloud cloud-a"></div><div className="sky-cloud cloud-b"></div><div className="sky-cloud cloud-c"></div>
+            <div className="sky-cloud cloud-d"></div><div className="sky-cloud cloud-e"></div>
+            <div className="flight-route-line"></div>
+            <div className={"flight-plane " + (lastOutcome === "correct" ? "plane-boost" : lastOutcome === "wrong" ? "plane-drop" : "")} aria-label="Jet aircraft">
+              <svg viewBox="0 0 120 150" role="img" aria-label="Silver jet pointing upwards"><defs><linearGradient id="jetMetal" x1="0" x2="1"><stop offset="0" stopColor="#647d91"/><stop offset=".48" stopColor="#f5fbff"/><stop offset="1" stopColor="#526b80"/></linearGradient><linearGradient id="jetFlame" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#fff5b0"/><stop offset="1" stopColor="#ff813d" stopOpacity="0"/></linearGradient></defs><path d="M54 104 L60 143 L66 104 Z" fill="url(#jetFlame)"/><path d="M60 7 C69 28 72 57 75 83 L109 111 L108 122 L72 108 L68 137 L52 137 L48 108 L12 122 L11 111 L45 83 C48 57 51 28 60 7Z" fill="url(#jetMetal)" stroke="#d9e8f1" strokeWidth="2"/><path d="M60 24 C66 42 66 54 64 66 L60 74 L56 66 C54 54 54 42 60 24Z" fill="#76d9f5"/><path d="M57 82 L63 82 L65 111 L55 111Z" fill="#304b61"/><path d="M17 113 L46 96 M103 113 L74 96" stroke="#9bb3c5" strokeWidth="2"/></svg>
+            </div>
+            <div className="sky-coordinate coord-one">N 06° 12′</div><div className="sky-coordinate coord-two">CLIMB RATE <b>{lastOutcome === "correct" ? "+250" : lastOutcome === "wrong" ? "−300" : "READY"}</b></div>
+            {!started && <div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>Ready for take-off?</strong><p>Answer clinical questions to control your altitude.</p><button className="flight-launch-button" onClick={startFlight}>Start your flight <span>→</span></button></div>}
+            {gameOver && <div className="flight-start-overlay"><div className="flight-start-icon">◈</div><strong>You've landed</strong><p>Your aircraft has descended to ground level. Review, refuel and try again.</p><button className="flight-launch-button" onClick={startFlight}>Restart flight <span>↻</span></button></div>}
+          </div>
+          <div className="flight-metrics"><div><span>QUESTIONS CORRECT</span><strong>{correctCount}</strong></div><div><span>CURRENT STREAK</span><strong>{streak} <small>×</small></strong></div><div><span>QUESTIONS ANSWERED</span><strong>{questionIndex + (selected !== null ? 1 : 0)}</strong></div></div>
+        </div>
+
+        <div className="flight-question-panel">
+          <div className="question-topline"><span>MISSION {String(questionIndex + 1).padStart(2,"0")}</span><span>{question.topic}</span></div>
+          <div className="question-progress"><span style={{width: (((questionIndex % flightQuestions.length) + 1) / flightQuestions.length * 100) + "%"}} /></div>
+          <div className="question-difficulty">{question.difficulty} QUESTION</div>
+          <h3>{started && !gameOver ? question.question : "Your next clinical question is cleared for take-off."}</h3>
+          {started && !gameOver ? <div className="flight-options">{question.options.map((option,index) => <button key={option} className={"flight-option " + (selected === null ? "" : index === question.answer ? "option-correct" : index === selected ? "option-wrong" : "option-muted")} onClick={() => answerQuestion(index)} disabled={selected !== null}><span className="option-letter">{String.fromCharCode(65+index)}</span><span>{option}</span><span className="option-mark">{selected !== null && index === question.answer ? "✓" : selected === index ? "×" : "↗"}</span></button>)}</div> : <div className="flight-mission-placeholder"><span>✦</span><p>Choose an answer to climb. A wrong answer reduces your altitude. Keep your aircraft above ground level to continue.</p></div>}
+          {selected !== null && lastOutcome && <div className={"flight-feedback " + lastOutcome}><strong>{lastOutcome === "correct" ? "Excellent — altitude gained!" : "Not quite — altitude lost."}</strong><p>{question.explanation}</p><div className="altitude-change">{lastChange > 0 ? "+" : ""}{lastChange.toLocaleString()} FT</div>{!gameOver && <button onClick={nextQuestion}>Next mission <span>→</span></button>}</div>}
+          {!started && <div className="flight-howto"><span>HOW TO PLAY</span><p><b>Correct answer</b> <i>+</i> 250 ft altitude</p><p><b>Wrong answer</b> <i>−</i> 300 ft altitude</p></div>}
+          {gameOver && <div className="flight-game-over-note"><strong>Flight summary</strong><p>You answered {correctCount} question{correctCount === 1 ? "" : "s"} correctly and reached {bestAltitude.toLocaleString()} ft. Start again to beat your record.</p></div>}
+        </div>
+      </div>
+      <div className="flight-quiz-footer"><span><i></i> CLINICAL LEARNING MODE · FOR EDUCATIONAL USE</span><span>QUESTION SET · {flightQuestions.length} QUESTIONS</span></div>
+    </section>
+  );
+}
 
 export default function Home() {
   const [active, setActive] = useState("overview");
