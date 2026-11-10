@@ -219,6 +219,18 @@ export default function Home() {
   const saveCase = async () => { if (!authUser) { window.location.href = "/login"; return; } setSaving(true); setApiError(""); try { const r = await fetch("/api/cases", { method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin", body:JSON.stringify({caseReference:patientName,title:"Clinical case " + patientName,presentingComplaint:complaint,specialty:selectedSpecialty,history:{historyOfPresentingComplaint:hpc,pastMedicalAndSurgicalHistory:pastHistory,medicationHistory:medications,allergies,familyHistory,socialHistory,reviewOfSystems:systemsReview,rawClerkingNotes,formattedProse:organisedClerkingProse},examination:{vitalSigns:vitals,findings:examination},assessment:{clinicalSummary:assessment,differentialDiagnoses:differentials},plan:{managementPlan:plan}}) }); const d=await r.json(); if (!r.ok) throw new Error(d.error || "Could not save case."); setSaved(true); setActive("patients"); await loadCases(); } catch(e) { setApiError(e instanceof Error ? e.message : "Could not save case."); } finally { setSaving(false); } };
 
   const startClerking = () => { setActive("clerking"); setShowNew(true); setSaved(false); };
+  const organiseClerking = async () => {
+    setOrganiseLoading(true); setOrganiseError(""); setOrganisedClerkingProse(""); setOrganiseMissing([]); setOrganiseUnclear([]);
+    try {
+      const r = await fetch("/api/learning/organise", { method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin", body:JSON.stringify({unit:selectedSpecialty,complaint,notes:rawClerkingNotes}) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Could not organise the notes.");
+      setOrganisedClerkingProse(d.prose || "");
+      setOrganiseMissing(Array.isArray(d.missingInformation) ? d.missingInformation : []);
+      setOrganiseUnclear(Array.isArray(d.unclearOrContradictory) ? d.unclearOrContradictory : []);
+    } catch(e) { setOrganiseError(e instanceof Error ? e.message : "Could not organise the notes."); }
+    finally { setOrganiseLoading(false); }
+  };
 
   return (
     <main className="app-shell">
