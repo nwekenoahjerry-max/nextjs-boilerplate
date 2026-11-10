@@ -41,7 +41,7 @@ const shuffleIndexes = (length: number) => Array.from({length}, (_,i)=>i).sort((
 function mapGeneratedQuestions(items: GeneratedQuestion[], unit: string): PracticeQuestion[] {
   return items.map(item=>({id:"upload-"+crypto.randomUUID(),unit,topic:item.topic,level:item.difficulty,q:item.question,o:item.options,a:item.answerIndex,e:item.explanation}));
 }
-function SlideQuestionGenerator({ purpose, onPrepared }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
+function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
   const [unit,setUnit]=useState("general-medicine");
   const [file,setFile]=useState<File|null>(null);
   const [count,setCount]=useState(20);
