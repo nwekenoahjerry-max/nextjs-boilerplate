@@ -5,6 +5,35 @@ const J = (o, s = 200, h = {}) => new Response(JSON.stringify(o), { status: s, h
 const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
 const rnd = () => hex(crypto.getRandomValues(new Uint8Array(24)));
 const day = () => new Date().toISOString().slice(0, 10);
+async function verifyGoogleToken(token, clientId) {
+  try {
+    const parts = String(token || '').split('.');
+    if (parts.length !== 3 || parts.some(x => !x)) return null;
+    const decode = x => {
+      let b = x.replace(/-/g, '+').replace(/_/g, '/');
+      b += '='.repeat((4 - b.length % 4) % 4);
+      return Uint8Array.from(atob(b), c => c.charCodeAt(0));
+    };
+    const header = JSON.parse(new TextDecoder().decode(decode(parts[0])));
+    const claims = JSON.parse(new TextDecoder().decode(decode(parts[1])));
+    if (header.alg !== 'RS256' || !header.kid) return null;
+    const keyResponse = await fetch('https://www.googleapis.com/oauth2/v3/certs');
+    if (!keyResponse.ok) return null;
+    const keySet = await keyResponse.json();
+    const jwk = (keySet.keys || []).find(k => k.kid === header.kid && k.kty === 'RSA' && k.use === 'sig');
+    if (!jwk) return null;
+    const publicKey = await crypto.subtle.importKey('jwk', jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+    const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', publicKey, decode(parts[2]), enc.encode(parts[0] + '.' + parts[1]));
+    const now = Math.floor(Date.now() / 1000);
+    const audienceOk = Array.isArray(claims.aud) ? claims.aud.includes(clientId) : claims.aud === clientId;
+    if (!valid || !audienceOk || !['accounts.google.com', 'https://accounts.google.com'].includes(claims.iss)
+      || !claims.sub || !claims.email || !(claims.email_verified === true || claims.email_verified === 'true')
+      || !Number.isFinite(Number(claims.exp)) || Number(claims.exp) <= now
+      || (claims.nbf && Number(claims.nbf) > now)) return null;
+    return claims;
+  } catch { return null; }
+}
 async function hash(pw, salt) {
   const k = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits']);
   return hex(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode(salt), iterations: 100000 }, k, 256));
@@ -24,6 +53,43 @@ async function startSession(db, uid, user) {
 export async function onRequest({ request, env, params }) {
   const db = env.DB, route = (params.path || []).join('/');
   const raw = request.method === 'POST' ? await request.text() : ''; let body = {}; try { body = JSON.parse(raw); } catch {}
+  if (route === 'config') return J({ googleClientId: env.GOOGLE_CLIENT_ID || '' });
+  if (route === 'google') {
+    if (!env.GOOGLE_CLIENT_ID) return J({ error: 'Google sign-in is not configured on this deployment.' }, 503);
+    const origin = request.headers.get('origin');
+    if (origin && origin !== new URL(request.url).origin) return J({ error: 'Google sign-in request rejected.' }, 403);
+    const claims = await verifyGoogleToken(body.credential, env.GOOGLE_CLIENT_ID);
+    if (!claims) return J({ error: 'Google could not verify this sign-in. Please try again.' }, 401);
+    const email = String(claims.email).trim().toLowerCase();
+    let user = await db.prepare('SELECT u.* FROM google_accounts g JOIN users u ON u.id=g.uid WHERE g.sub=?').bind(claims.sub).first();
+    if (user) return startSession(db, user.id, user);
+    user = await db.prepare('SELECT * FROM users WHERE email=?').bind(email).first();
+    if (user) {
+      const trustedEmail = email.endsWith('@gmail.com') || Boolean(claims.hd);
+      if (!trustedEmail) return J({ error: 'This email already has an account. Sign in with your password first.' }, 409);
+      const linked = await db.prepare('SELECT sub FROM google_accounts WHERE uid=?').bind(user.id).first();
+      if (linked && linked.sub !== claims.sub) return J({ error: 'This account is already linked to another Google account.' }, 409);
+      if (!linked) await db.prepare('INSERT INTO google_accounts(sub,uid,created) VALUES(?,?,?)').bind(claims.sub, user.id, Date.now()).run();
+      return startSession(db, user.id, user);
+    }
+    const salt = rnd(), randomPassword = rnd() + rnd();
+    try {
+      const created = await db.prepare('INSERT INTO users(email,name,school,level,pw,salt,created) VALUES(?,?,?,?,?,?,?)')
+        .bind(email, String(claims.name || '').slice(0, 80), '', '', await hash(randomPassword, salt), salt, Date.now()).run();
+      user = await db.prepare('SELECT * FROM users WHERE id=?').bind(created.meta.last_row_id).first();
+    } catch {
+      user = await db.prepare('SELECT * FROM users WHERE email=?').bind(email).first();
+      if (!user) return J({ error: 'Could not create your ClerkMD account. Please try again.' }, 500);
+    }
+    try {
+      await db.prepare('INSERT INTO google_accounts(sub,uid,created) VALUES(?,?,?)').bind(claims.sub, user.id, Date.now()).run();
+    } catch {
+      const mapped = await db.prepare('SELECT u.* FROM google_accounts g JOIN users u ON u.id=g.uid WHERE g.sub=?').bind(claims.sub).first();
+      if (mapped) user = mapped;
+      else return J({ error: 'This Google account is already linked elsewhere. Please contact support.' }, 409);
+    }
+    return startSession(db, user.id, user);
+  }
   if (route === 'signup') {
     const { email, password, name, school, level } = body;
     if (!/^\S+@\S+\.\S+$/.test(email || '') || (password || '').length < 8) return J({ error: 'Valid email and 8+ character password required' }, 400);
@@ -53,13 +119,30 @@ export async function onRequest({ request, env, params }) {
     return J({ ok: 1 });
   }
   if (route === 'reset/request') {
-    const e = (body.email || '').toLowerCase(), usr = await db.prepare('SELECT id FROM users WHERE email=?').bind(e).first();
-    if (usr && env.RESEND_API_KEY) {
-      const t = rnd();
-      await db.prepare('INSERT INTO resets VALUES(?,?,?)').bind(await hash(t, 'rs'), usr.id, Date.now() + 36e5).run();
-      await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({ from: env.MAIL_FROM || 'Clerk Me <onboarding@resend.dev>', to: e, subject: 'Reset your Clerk Me password',
-          html: `<p>Reset your password: <a href="${new URL(request.url).origin}/?reset=${t}">choose a new password</a>. The link expires in 1 hour.</p>` }) });
+    const e = String(body.email || '').trim().toLowerCase();
+    if (!/^\\S+@\\S+\\.\\S+$/.test(e)) return J({ error: 'Enter a valid email address.' }, 400);
+    if (!env.RESEND_API_KEY || !env.MAIL_FROM) {
+      return J({ error: 'Password reset email is not configured. Add RESEND_API_KEY and a verified MAIL_FROM sender in Cloudflare Pages.' }, 503);
+    }
+    const usr = await db.prepare('SELECT id FROM users WHERE email=?').bind(e).first();
+    if (!usr) return J({ ok: 1 });
+    const t = rnd(), tokenHash = await hash(t, 'rs');
+    await db.prepare('DELETE FROM resets WHERE uid=?').bind(usr.id).run();
+    await db.prepare('INSERT INTO resets VALUES(?,?,?)').bind(tokenHash, usr.id, Date.now() + 36e5).run();
+    const resetUrl = new URL('/?reset=' + encodeURIComponent(t), new URL(request.url).origin).toString();
+    const mail = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + env.RESEND_API_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        from: env.MAIL_FROM,
+        to: e,
+        subject: 'Reset your ClerkMD password',
+        html: '<p>We received a request to reset your ClerkMD password.</p><p><a href="' + resetUrl + '">Choose a new password</a></p><p>This link expires in one hour. If you did not request this, you can ignore this email.</p>'
+      })
+    });
+    if (!mail.ok) {
+      await db.prepare('DELETE FROM resets WHERE uid=?').bind(usr.id).run();
+      return J({ error: 'The reset email could not be sent. Check that your Resend sender domain is verified and MAIL_FROM matches it.' }, 502);
     }
     return J({ ok: 1 });
   }
