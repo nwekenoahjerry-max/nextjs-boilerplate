@@ -185,6 +185,13 @@ export default function Home() {
   const [osceIndex, setOsceIndex] = useState(0);
   const [osceReveal, setOsceReveal] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [rawClerkingNotes,setRawClerkingNotes]=useState("");
+  const [organisedClerkingProse,setOrganisedClerkingProse]=useState("");
+  const [organiseLoading,setOrganiseLoading]=useState(false);
+  const [organiseError,setOrganiseError]=useState("");
+  const [organiseMissing,setOrganiseMissing]=useState<string[]>([]);
+  const [organiseUnclear,setOrganiseUnclear]=useState<string[]>([]);
+  const [streakData,setStreakData]=useState<{streak:number;bestStreak:number;activeDays:number;todayActive:boolean}>({streak:0,bestStreak:0,activeDays:0,todayActive:false});
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
