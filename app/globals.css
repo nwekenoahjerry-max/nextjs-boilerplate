@@ -306,3 +306,7 @@
  .slide-file-picker{min-height:74px}
  .good-history-example p{font-size:11px}
 }
+
+
+.generation-progress{margin:12px 0 0;padding:11px 13px;border-radius:8px;background:#f1f6fb;color:#45677f;font-size:10px;line-height:1.6}
+.slide-generator-controls input[type=number]{font-variant-numeric:tabular-nums}
