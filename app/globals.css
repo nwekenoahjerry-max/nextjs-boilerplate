@@ -310,3 +310,67 @@
 
 .generation-progress{margin:12px 0 0;padding:11px 13px;border-radius:8px;background:#f1f6fb;color:#45677f;font-size:10px;line-height:1.6}
 .slide-generator-controls input[type=number]{font-variant-numeric:tabular-nums}
+
+
+/* ClerkMe visual refresh — inspired by MarkMD's focused study-product hierarchy */
+:root{--ink:#142f35;--muted:#71838a;--green:#087e72;--green-dark:#073f42;--mint:#e8f5f1;--paper:#f5f8f8;--line:#e3ebea;--gold:#e7bd66}
+body{background:#f4f7f7;color:#17353a}
+.sidebar{width:258px;padding:27px 17px 18px;background:#fbfdfd;border-right:1px solid #e5eceb}
+.brand{padding:0 10px 37px}.brand-mark{background:linear-gradient(145deg,#0a5d5a,#092f3b);border-radius:12px;box-shadow:0 7px 18px #0a5b5426}.brand strong{font-size:23px;letter-spacing:-1.1px}.brand strong span{color:#07877a}
+.workspace-label{font-size:9px;letter-spacing:2px;color:#91a09f}
+.nav-list{gap:6px}.nav-item{height:44px;border-radius:10px;font-size:12px;color:#667a7d;transition:background .18s,color .18s,transform .18s}.nav-item:hover{background:#f0f6f4;transform:translateX(2px)}.nav-item.active{background:#e6f3ef;color:#08766b;box-shadow:inset 3px 0 #078779}.nav-icon{font-size:17px}
+.upgrade-card{background:linear-gradient(145deg,#edf6f2,#f8f8ee);border-color:#e1ece5}.upgrade-card button{font-size:11px}
+.main-area{margin-left:258px;width:calc(100% - 258px)}
+.topbar{height:66px;padding:0 4.5%;background:#fbfdfdeF;border-bottom-color:#e5eceb}
+.breadcrumb{font-size:11px}.top-actions{gap:12px}.profile-top-link{font-size:10px;color:#08776d;text-decoration:none;font-weight:700}
+.content{max-width:1360px;padding:40px 4.5% 42px}
+.welcome-row{margin-bottom:22px}.welcome-row h1{font-size:clamp(29px,3.2vw,40px);letter-spacing:-1.7px;line-height:1.15;color:#12363b}.subheading{font-size:13px;line-height:1.7;color:#71848a}.eyebrow{font-size:9px;letter-spacing:2px;color:#718c88}
+.date-chip{border-radius:9px;background:#fff;border-color:#e3ece8;padding:10px 13px;font-weight:600}
+.activity-streak-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e4ece9;border-radius:13px;padding:13px 17px;margin:0 0 20px;box-shadow:0 5px 18px #173b3606}
+.streak-flame{width:37px;height:37px;border-radius:11px;background:#fff5df;color:#c58a2c;display:grid;place-items:center;font-size:19px}
+.activity-streak-card>div:nth-child(2){display:grid;gap:4px;flex:1}.activity-streak-card>div:nth-child(2) strong{font:700 12px Manrope;color:#244a46}.activity-streak-card>div:nth-child(2) span{font-size:10px;color:#82928e}
+.streak-record{border-left:1px solid #e8eeeb;padding-left:18px}.streak-record small{font-size:8px;letter-spacing:1px;color:#94a19c}.streak-record b{display:block;font:800 15px Manrope;color:#b28a3d;margin-top:3px}
+.hero-card{min-height:280px;border-radius:18px;padding:39px 42px;margin-bottom:34px;background:radial-gradient(circle at 85% 20%,#2b827b 0,transparent 28%),linear-gradient(112deg,#092f3b 0%,#0b5554 58%,#137b70 100%);box-shadow:0 18px 45px #0a49431b}
+.hero-kicker{font-size:9px;letter-spacing:2px;color:#b9ddd4}.hero-copy{max-width:550px}.hero-copy h2{font-size:clamp(25px,3vw,35px);letter-spacing:-1px}.hero-copy p{font-size:12px;line-height:1.85;color:#d4e6e1}.hero-card .primary-button{background:#f0d18a;color:#163e3d;border-radius:8px;padding:13px 18px}
+.hero-art{right:7%;width:300px}.medical-cross{border-radius:28px;background:#ffffff10;border-color:#ffffff30;box-shadow:0 0 75px #b8e6d52a}
+.art-note{border-radius:8px;box-shadow:0 10px 30px #052c2b40;font-size:10px}
+.section-heading{margin-bottom:15px}.section-heading h2{font-size:18px;letter-spacing:-.4px;color:#193d40}.section-heading p{font-size:11px;color:#879794}
+.tool-grid{gap:14px;margin-bottom:30px}.tool-card{border:1px solid #e4ecea;border-radius:13px;min-height:154px;padding:18px;background:linear-gradient(180deg,#fff,#fcfdfd);box-shadow:0 4px 16px #143d3005;transition:transform .2s,box-shadow .2s,border-color .2s}.tool-card:hover{transform:translateY(-4px);box-shadow:0 14px 28px #143d3010;border-color:#c9dfd7}.tool-icon{width:38px;height:38px;border-radius:11px}.tool-title{font-size:12px;color:#23474a}.tool-desc{font-size:10px;line-height:1.7;color:#82928f}
+.lower-grid{gap:17px}.panel,.tip-panel{border-radius:14px;border-color:#e3ece8;box-shadow:0 5px 20px #143d3005}.panel{padding:22px}.panel-heading h3{font-size:14px;color:#24484a}.template-row{padding:14px 0}.template-icon{border-radius:11px}.template-info strong{font-size:11px;color:#345653}.tip-panel{background:linear-gradient(145deg,#eef6f1,#f5f7ed);padding:24px}.tip-panel h3{font-size:19px;color:#234a43}.tip-panel p{font-size:11px;line-height:1.85}
+.page-intro{margin-bottom:23px}.page-intro h1{font-size:clamp(27px,3vw,36px);letter-spacing:-1.3px;color:#173b3e}.page-intro p{font-size:12px;line-height:1.75;color:#788b89}
+.template-card,.resource-card,.guide-card,.osce-card,.qbank-card,.form-panel{border-radius:14px;border-color:#e3ece9;box-shadow:0 6px 22px #143d3006}
+.template-card:hover,.resource-card:hover,.guide-card:hover{border-color:#c5ddd4;box-shadow:0 12px 26px #143d300c}
+.primary-button{background:#0a776d;color:#fff;border-radius:8px;padding:12px 17px;box-shadow:0 6px 16px #0a776d20}.primary-button:hover{background:#075f58}
+.secondary-button{border:1px solid #dce8e3;border-radius:8px;background:#fff;color:#27665d;padding:10px 14px;font-size:11px;font-weight:700}
+.learning-toolbar{border:1px solid #e3ece9;background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:17px}
+.learning-toolbar label,.slide-generator-controls label{color:#46615e}.learning-toolbar select,.slide-generator-controls select,.slide-generator-controls input{border:1px solid #dce7e3;border-radius:8px;background:#fbfdfc;padding:10px 11px;color:#254743}
+.slide-generator{border:1px solid #dfeae5;border-radius:15px;background:linear-gradient(145deg,#fff,#f8fbf9);padding:20px;margin:18px 0;box-shadow:0 7px 22px #143d3006}
+.slide-generator-heading h3{font:700 17px Manrope;color:#214744}.slide-generator-heading p{font-size:11px;color:#7c908b;line-height:1.7}
+.slide-file-picker{border:1px dashed #b9d5ca;border-radius:11px;background:#f6faf7;padding:14px}
+.qbank-card,.osce-card{padding:23px;background:#fff}.qbank-card h2,.osce-card h2{font-size:19px;line-height:1.55;color:#234744}
+.qbank-option,.flight-option{border-radius:10px;border-color:#e1ebe7}
+.guide-detail .guide-section{border:1px solid #e4ece8;border-radius:13px;background:#fff;padding:20px;margin:14px 0}
+.activity-streak-card,.hero-card,.tool-card,.panel,.tip-panel{animation:clerkme-rise .45s ease both}
+@keyframes clerkme-rise{from{opacity:.65;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:1100px){.sidebar{width:225px}.main-area{margin-left:225px;width:calc(100% - 225px)}.hero-art{right:0;opacity:.7}}
+@media(max-width:700px){
+ .sidebar{width:auto;height:66px;inset:auto 0 0;padding:5px 7px;background:#fbfdfd;border-right:0;border-top:1px solid #e3ece9;display:flex;flex-direction:row;align-items:center;justify-content:center;box-shadow:0 -8px 24px #153e3510}
+ .brand,.workspace-label,.sidebar-bottom{display:none}
+ .nav-list{display:flex;width:100%;justify-content:space-around;gap:3px}
+ .nav-item{height:52px;min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:3px 1px;font-size:8px;border-radius:8px;white-space:nowrap}
+ .nav-item.active{box-shadow:inset 0 2px #078779}
+ .nav-icon{font-size:17px;width:auto;line-height:1.1}
+ .nav-plus{display:none}
+ .main-area{margin:0 0 66px;width:100%}
+ .topbar{height:55px;padding:0 15px}.breadcrumb{font-size:9px}.saved-label,.status-dot,.profile-top-link{display:none}.top-actions{gap:6px}
+ .content{padding:26px 15px 30px}
+ .welcome-row{display:block}.welcome-row h1{font-size:29px}.date-chip{margin-top:13px;display:inline-block}
+ .activity-streak-card{padding:11px;gap:10px}.activity-streak-card>div:nth-child(2) span{font-size:9px}.streak-record{padding-left:10px}.streak-record small{font-size:7px}
+ .hero-card{padding:26px 22px;min-height:300px;margin-bottom:27px}.hero-copy{max-width:100%}.hero-copy h2{font-size:27px}.hero-copy p{max-width:95%;font-size:11px}.hero-art{right:-85px;top:77%;opacity:.18}
+ .tool-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tool-card{min-height:145px;padding:13px}.tool-desc{font-size:9px}
+ .lower-grid{grid-template-columns:1fr}.template-grid,.resource-grid,.guide-grid{grid-template-columns:1fr}
+ .flight-dashboard{grid-template-columns:1fr}.flight-quiz{padding:13px}.flight-quiz-heading{align-items:flex-start}.flight-quiz-heading h2{font-size:21px}.flight-best{min-width:98px;padding:10px}.flight-best strong{font-size:17px}
+ .slide-generator{padding:14px}.slide-generator-controls{grid-template-columns:1fr 1fr}.slide-generator-controls label:first-child{grid-column:1/-1}
+ .page-intro h1{font-size:28px}
+}
+@media(max-width:380px){.nav-item{font-size:7px}.nav-icon{font-size:15px}.flight-quiz-heading{display:block}.flight-best{display:inline-block;margin-top:12px}}
