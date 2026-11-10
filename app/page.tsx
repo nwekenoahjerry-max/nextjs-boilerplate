@@ -41,7 +41,7 @@ const shuffleIndexes = (length: number) => Array.from({length}, (_,i)=>i).sort((
 function mapGeneratedQuestions(items: GeneratedQuestion[], unit: string): PracticeQuestion[] {
   return items.map(item=>({id:"upload-"+crypto.randomUUID(),unit,topic:item.topic,level:item.difficulty,q:item.question,o:item.options,a:item.answerIndex,e:item.explanation}));
 }
-function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
+function SlideQuestionGenerator({ purpose, onPrepared }: { purpose: "bank"|"flight"; onGenerated: (questions: PracticeQuestion[], unit: string)=>void }) {
   const [unit,setUnit]=useState("general-medicine");
   const [file,setFile]=useState<File|null>(null);
   const [count,setCount]=useState(20);
@@ -68,7 +68,7 @@ function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"fli
       }
       if(!allQuestions.length) throw new Error("No usable questions were returned. Try a different slide deck or a clearer source file.");
       onGenerated(allQuestions,unit);
-      setMessage("Generated "+allQuestions.length+" questions from "+extracted.name+". They have been added to this practice session.");
+      setMessage("Prepared "+allQuestions.length+" questions from "+extracted.name+". They have been added to this practice session.");
     }catch(e){setError(e instanceof Error?e.message:"Question generation failed.");}
     finally{setBusy(false);}
   };
@@ -80,7 +80,7 @@ function SlideQuestionGenerator({ purpose, onGenerated }: { purpose: "bank"|"fli
       <label>Difficulty<select value={level} onChange={e=>setLevel(e.target.value)}><option>Mixed</option><option>Foundation</option><option>Clinical</option><option>Advanced</option></select></label>
     </div>
     <label className="slide-file-picker"><span>⇧</span><span><strong>{file?file.name:"Choose lecture slides or notes"}</strong><small>{file?(Math.round(file.size/1024)+" KB · ready to extract"):"PPTX, PDF, DOCX, TXT or Markdown · up to 20 MB · text-based slides"}</small></span><input type="file" accept=".pptx,.pdf,.docx,.txt,.md,.csv" onChange={e=>{setFile(e.target.files?.[0]||null);setError("");setMessage("");}}/></label>
-    <div className="slide-generator-footer"><span>Slides are read in your browser; extracted text is sent to the authenticated AI service for question creation.</span><button className="primary-button" onClick={generate} disabled={busy||!file}>{busy?"Reading slides and creating questions…":"Generate questions"} <span>→</span></button></div>
+    <div className="slide-generator-footer"><span>Your lecture text is processed to prepare a question set for the selected clinical unit.</span><button className="primary-button" onClick={generate} disabled={busy||!file}>{busy?"Reading slides and creating questions…":"Generate questions"} <span>→</span></button></div>
     {sourceChars>0&&<p className="upload-meta">Read {sourceChars.toLocaleString()} characters from the selected file.</p>}
     {message&&<p className={busy?"generation-progress":"success-note"}>{message}</p>}{error&&<p className="auth-error">{error}</p>}
   </section>;
@@ -281,7 +281,7 @@ export default function Home() {
           </>}
 
           {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <button className="template-card" key={t.title} onClick={() => { setSelectedSpecialty(t.tag === "PAEDIATRICS" ? "paediatrics" : t.tag === "OBSTETRICS" ? "obstetrics-gynaecology" : t.tag === "SURGERY" ? "surgery" : "general-medicine"); setShowNew(true); setSaved(false); }}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><span className="card-action">Use template →</span></button>)}</div>{showNew && <div className="form-panel"><div className="panel-heading"><div><h3>Start a new patient clerking</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button className="close-button" onClick={() => setShowNew(false)}>×</button></div>
-            <div className="clerking-ai-panel"><div className="clerking-ai-heading"><div><span className="eyebrow">AI CLERKING ASSISTANT</span><h3>Turn rough clerking notes into a polished history</h3><p>Upload your notes or paste them below. ClerkMe will organise only the details you provide and flag missing information.</p></div><span className="upload-icon">✎</span></div>
+            <div className="clerking-ai-panel"><div className="clerking-ai-heading"><div><span className="eyebrow">CLERKING NOTE ORGANISER</span><h3>Organise rough notes into a clear clinical history</h3><p>Upload a document or paste your notes. ClerkMe will arrange the information you provide and identify details that still need to be checked.</p></div><span className="upload-icon">✎</span></div>
               <label className="slide-file-picker"><span>⇧</span><span><strong>Upload existing clerking notes</strong><small>DOCX, PDF, TXT or Markdown · remove names and hospital identifiers first</small></span><input type="file" accept=".docx,.pdf,.txt,.md" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setOrganiseError("");try{const extracted=await extractStudyFile(file);setRawClerkingNotes(extracted.text);}catch(err){setOrganiseError(err instanceof Error?err.message:"Could not read that file.");}}}/></label>
               <label>Paste or edit your raw clerking notes<textarea rows={7} value={rawClerkingNotes} onChange={e=>setRawClerkingNotes(e.target.value)} placeholder="Paste your rough notes here: presenting complaint, chronology, associated symptoms, relevant negatives, past history, medications, examination and assessment…"/></label>
               <button className="primary-button" onClick={organiseClerking} disabled={organiseLoading||rawClerkingNotes.trim().length<30}>{organiseLoading?"Organising your clerking…":"Organise into clinical prose"} <span>→</span></button>
