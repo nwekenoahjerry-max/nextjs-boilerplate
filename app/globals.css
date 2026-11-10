@@ -413,3 +413,56 @@ button:disabled{cursor:not-allowed}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Refined, human-led interface: restrained type, colour and surfaces */
+:root{
+ --ink:#292438;--muted:#746f7d;--green:#7050bd;--green-dark:#4e3688;
+ --mint:#f2eef9;--paper:#fbfafc;--line:#e9e5ee;--gold:#c5b5e3;
+ --purple:#7050bd;--purple-dark:#4e3688;--lavender:#f2eef9;--lavender-soft:#f8f6fb;
+ --shadow-soft:0 2px 8px rgba(39,29,58,.045);--shadow-lift:0 5px 16px rgba(39,29,58,.075)
+}
+*{box-sizing:border-box}
+body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:var(--ink);background:#fbfafc}
+h1,h2,h3,h4,.brand strong,.auth-card h1,.flight-quiz-heading h2,.section-heading h2,.panel-heading h3{
+ font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+ letter-spacing:-.035em
+}
+button,input,textarea,select{font-family:inherit}
+.brand strong{font-weight:750;letter-spacing:-.045em}
+.brand-mark{border-radius:8px;background:#5b408f;box-shadow:none}
+.sidebar{background:#fff;border-right:1px solid #e8e4ec;box-shadow:none}
+.nav-item{border-radius:6px;color:#686271}
+.nav-item:hover,.nav-item.active{background:#f2eef8;color:#553b91;box-shadow:none}
+.nav-item.active{font-weight:700}
+.topbar{background:#fff;border-bottom:1px solid #e8e4ec;backdrop-filter:none;box-shadow:none}
+.hero-card{background:#59408d;border-radius:9px;box-shadow:none}
+.hero-art{opacity:.52}
+.orbit{border-color:#ffffff26}
+.medical-cross{border-radius:18px;background:#ffffff0d;border:1px solid #ffffff24;box-shadow:none}
+.art-note{box-shadow:0 2px 8px #25153b20;border-radius:5px}
+.primary-button{background:#7050bd;color:#fff;border-radius:6px;box-shadow:none;font-weight:650}
+.primary-button:hover{background:#5c409d;box-shadow:none;transform:translateY(-1px)}
+.tool-card,.template-card,.resource-card,.panel,.form-panel,.slide-generator,.flight-quiz,.osce-card,.qbank-card,.guide-section{
+ border-radius:8px;box-shadow:var(--shadow-soft);border-color:#e8e4ec
+}
+.tool-card:hover,.template-card:hover,.resource-card:hover,.guide-card:hover{
+ transform:translateY(-2px);box-shadow:var(--shadow-lift);border-color:#d3c8e5
+}
+.tool-icon,.template-icon,.empty-icon{border-radius:7px}
+.tip-panel{background:#f5f2f8;border:1px solid #e8e2ef;border-radius:8px}
+.upgrade-card{background:#f7f4fa;border:1px solid #e9e3ef;border-radius:8px}
+.auth-page{background:#f8f6fa}
+.auth-card{border-radius:10px;box-shadow:0 8px 28px rgba(39,29,58,.07)}
+.sign-in-link,.secondary-button,.help-button{border-radius:6px}
+.form-panel input,.form-panel textarea,.slide-generator-controls input,.slide-generator-controls select,.clerking-ai-panel textarea{border-radius:5px}
+.slide-generator{border-radius:8px;box-shadow:var(--shadow-soft)}
+.slide-file-picker{border-radius:6px}
+.flight-quiz{border-radius:9px;box-shadow:var(--shadow-soft)}
+.flight-quiz-heading h2{letter-spacing:-.04em}
+.flight-launch-button{background:#7050bd;color:#fff;border-radius:6px}
+.flight-launch-button:hover{background:#5c409d;filter:none;transform:translateY(-1px)}
+.flight-feedback.correct{background:#f3f0f8;border-color:#ddd4ea;color:#4e3688}
+.flight-options .flight-option{border-radius:6px}
+.question-progress span{background:#7050bd}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
