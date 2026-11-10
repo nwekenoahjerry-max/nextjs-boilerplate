@@ -1,4 +1,5 @@
-export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; }
+export interface WorkersAI { run(model: string, input: Record<string, unknown>): Promise<unknown>; }
+export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; AI?: WorkersAI; }
 export interface AppUser { id: string; email: string; name: string; picture: string | null; role: string; }
 export interface D1Database { prepare(sql: string): D1PreparedStatement; }
 export interface D1PreparedStatement { bind(...values: unknown[]): D1PreparedStatement; first<T = Record<string, unknown>>(): Promise<T | null>; all<T = Record<string, unknown>>(): Promise<{ results: T[] }>; run(): Promise<unknown>; }
