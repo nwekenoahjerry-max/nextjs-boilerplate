@@ -66,7 +66,7 @@ export default function InstallAppButton({ variant = "card" }: { variant?: "card
         <strong>Install ClerkMe on this device</strong>
         <p><b>Android:</b> Open the browser menu and choose “Install app” or “Add to Home screen”.</p>
         <p><b>iPhone / iPad:</b> Open this page in Safari, tap Share, then “Add to Home Screen”.</p>
-        <p><b>Laptop / desktop:</b> In Chrome or Edge, use the install icon in the address bar or choose “Install ClerkMe” from the browser menu.</p>
+        <p><b>Windows / Chromebook:</b> In Chrome or Edge, use the install icon in the address bar or choose “Install ClerkMe” from the browser menu.</p><p><b>Mac:</b> In Safari 17 or later, use File → Add to Dock. Chrome and Edge also provide an install option.</p>
       </div>}
     </div>
   );
