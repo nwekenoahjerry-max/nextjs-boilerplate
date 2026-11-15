@@ -79,6 +79,9 @@ export const onRequestPost = async (context: AppContext) => {
     "Score must be an integer from 0 to 100. For a start request, score 0 and scoreLabel Not assessed. For a question request, do not penalise the student: score 0 and scoreLabel Not assessed. For an answer request, give a meaningful assessment. On start, feedback is empty. Use empty arrays where appropriate.";
 
   const conversation = history.map(item=>(item.role==="assistant"?"EXAMINER":"STUDENT")+": "+item.content).join("\n\n") || "No previous turns.";
+  const latestInputAlreadyInHistory = history.length > 0 &&
+    history[history.length - 1].role === "user" &&
+    history[history.length - 1].content === studentInput;
   const intentDescription = intent === "start"
     ? "Start a new fictional clinical case."
     : intent === "question"
@@ -86,7 +89,7 @@ export const onRequestPost = async (context: AppContext) => {
       : "The student is submitting an answer to the current case task; assess and advance the case.";
   const userMessage = "Selected unit: " + unit + "\nSelected source material: " + (sourceTitle || "None") +
     "\nInteraction: " + intentDescription + "\n\nConversation so far:\n" + conversation +
-    "\n\nStudent's latest input:\n" + (studentInput || "No response yet. Generate the first case scenario and ask the first focused question.") +
+    (latestInputAlreadyInHistory ? "" : "\n\nStudent's latest input:\n" + (studentInput || "No response yet. Generate the first case scenario and ask the first focused question.")) +
     "\n\nSOURCE MATERIAL (optional supporting context):\n---\n" + (sourceContext || "No uploaded source material selected.") + "\n---\n" +
     "Generate the next simulation turn in the required JSON shape.";
 
