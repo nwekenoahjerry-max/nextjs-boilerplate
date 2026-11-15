@@ -1,6 +1,6 @@
 "use client";
 
-const sections = [
+const sections: [string, string, string[], string][] = [
   ["Biodata and source of history", "Establish the patient's demographic context and the source, reliability and limitations of the account.", [
     "Age/date of birth, sex and clinically relevant gender information; occupation, residence/community and marital status where relevant.",
     "Date and time of clerking, clinical setting and a non-identifying study reference.",
@@ -128,7 +128,7 @@ const sections = [
   ], "Check completeness, chronology, spelling, units, laterality and internal consistency before saving. Do not place direct patient identifiers in ClerkMe."]
 ];
 
-const specialty = [
+const specialty: [string, string][] = [
   ["Medicine", "Explore cardiovascular, respiratory, gastrointestinal, renal, endocrine, neurological, rheumatological, haematological and infectious symptoms. Include risk factors, disease control, complications and medication adherence."],
   ["Surgery and emergency", "Establish mechanism/timing of injury where relevant, previous operations, anaesthetic history, bleeding risk, anticoagulants, last oral intake and tetanus status. In trauma, perform the primary survey and life-saving interventions before a prolonged history."],
   ["Paediatrics", "Use the caregiver as informant while addressing the child appropriately. Include antenatal, birth, neonatal, feeding, nutrition, development, immunisation, growth, family environment and safeguarding."],
