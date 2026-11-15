@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/clerkme-icon.svg",
-    apple: "/clerkme-icon.svg",
+    apple: "/clerkme-192.png",
   },
   keywords: ["clinical clerking", "medical students", "OSCE", "clinical skills", "Africa"],
 };
