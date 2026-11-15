@@ -465,3 +465,152 @@ button,input,textarea,select{font-family:inherit}
 .flight-options .flight-option{border-radius:6px}
 .question-progress span{background:#7050bd}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ClerkMe adaptive learning workspace */
+.unit-guide-toolbar{align-items:flex-start}
+.unit-guide-toolbar>p{max-width:720px}
+.unit-guide-tabs,.materials-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.unit-guide-tabs button,.materials-tabs button{border:1px solid #e3e8e5;background:#fff;color:#61736a;border-radius:7px;padding:10px 15px;font-size:11px;font-weight:750}
+.unit-guide-tabs button.active,.materials-tabs button.active{background:#eaf4ee;border-color:#c8dfd0;color:#23644b}
+.unit-guide-intro-card,.unit-guide-final-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:22px;margin:18px 0}
+.unit-guide-intro-card h2,.unit-guide-final-card h2{font:750 22px/1.25 Manrope;color:#204639;margin:8px 0}
+.unit-guide-intro-card>p,.unit-guide-supporting-copy{font-size:12px;line-height:1.8;color:#718078}
+.unit-guide-outcomes{margin-top:17px;padding:15px 17px;background:#f4f8f5;border-radius:9px}
+.unit-guide-outcomes strong,.unit-guide-list>strong,.unit-guide-reasoning strong{font-size:11px;color:#315a49}
+.unit-guide-outcomes ul,.unit-guide-final-card ul,.unit-guide-list ul,.study-summary-block ul{padding-left:19px;margin:9px 0 0}
+.unit-guide-outcomes li,.unit-guide-final-card li,.unit-guide-list li,.study-summary-block li{font-size:11px;line-height:1.85;color:#66776e;margin:4px 0}
+.unit-guide-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin:27px 0 11px}
+.unit-guide-heading h2{font:750 19px Manrope;color:#204639;margin:5px 0 0}
+.unit-guide-heading>span{font-size:10px;font-weight:750;color:#718078;background:#f0f5f1;padding:6px 9px;border-radius:6px}
+.unit-guide-sections{display:grid;gap:9px}
+.unit-guide-section{background:#fff;border:1px solid #e4eae5;border-radius:10px;overflow:hidden}
+.unit-guide-section>summary{display:flex;align-items:center;gap:12px;list-style:none;cursor:pointer;padding:15px 17px}
+.unit-guide-section>summary::-webkit-details-marker{display:none}
+.unit-guide-number{width:28px;height:28px;display:grid;place-items:center;flex:0 0 28px;background:#edf5ef;color:#367153;border-radius:8px;font-size:9px;font-weight:800}
+.unit-guide-section-title{font:700 12px Manrope;color:#2d4f40;flex:1}
+.unit-guide-chevron{font-size:17px;color:#8a9b91;transition:transform .18s}
+.unit-guide-section[open] .unit-guide-chevron{transform:rotate(180deg)}
+.unit-guide-section-body{padding:0 18px 19px 57px}
+.unit-guide-purpose{font-size:11px;line-height:1.8;color:#6d7c73;margin:0 0 13px}
+.unit-guide-list{padding:12px 0;border-top:1px solid #edf1ed}
+.unit-guide-list li{margin:5px 0}
+.unit-guide-reasoning{background:#f2f7f4;border:1px solid #e5efe8;padding:12px 14px;border-radius:8px;margin:10px 0}
+.unit-guide-reasoning p{font-size:11px;line-height:1.8;color:#60766a;margin:6px 0 0}
+.unit-guide-final-card{background:#fbfcfa}
+.unit-guide-final-card p{font-size:10px;line-height:1.7;color:#8a968f;margin:14px 0 0}
+.presentation-guide-intro{margin-top:20px}
+
+.materials-safety-note{display:flex;flex-direction:column;gap:5px;padding:13px 16px;border:1px solid #eadfca;background:#fffaf1;border-radius:9px;margin:16px 0}
+.materials-safety-note strong{font-size:11px;color:#725b32}
+.materials-safety-note span{font-size:10px;line-height:1.7;color:#88775b}
+.materials-layout{display:grid;grid-template-columns:minmax(280px,.88fr) minmax(340px,1.12fr);gap:15px;margin:17px 0}
+.materials-upload-card,.materials-library-card,.materials-detail-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:19px;min-width:0}
+.materials-upload-card h2,.materials-library-heading h2,.materials-detail-heading h2{font:750 18px Manrope;color:#21483d;margin:6px 0}
+.materials-upload-card>p{font-size:10px;line-height:1.7;color:#84918a;margin:0 0 16px}
+.materials-upload-card>label:not(.materials-file-picker),.study-question-input{display:grid;gap:7px;margin:11px 0;font-size:10px;font-weight:750;color:#4c6658}
+.materials-upload-card input,.materials-upload-card select,.study-question-input textarea{width:100%;min-height:40px;border:1px solid #dfe8e1;border-radius:7px;padding:10px 11px;background:#fff;color:#29483d;font-size:11px}
+.materials-file-picker{display:flex;align-items:center;gap:11px;padding:14px;border:1px dashed #cbd9ce;border-radius:8px;background:#fbfdfb;margin:14px 0;cursor:pointer}
+.materials-file-picker input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.materials-file-icon{width:34px;height:34px;border-radius:8px;background:#eaf4ed;color:#27745b;display:grid;place-items:center;font-size:19px}
+.materials-file-picker>span:nth-child(2){min-width:0;display:grid;gap:4px}
+.materials-file-picker strong{font-size:10px;color:#345a49;overflow-wrap:anywhere}
+.materials-file-picker small{font-size:9px;color:#89968e}
+.materials-action-button{width:100%;justify-content:center}
+.materials-processing-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+.materials-processing-steps span{background:#f1f5f2;color:#718077;padding:6px 8px;border-radius:5px;font-size:8px;font-weight:750}
+.materials-library-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.materials-library-heading h2 span{font:700 10px Manrope;background:#eff4ef;color:#648071;border-radius:15px;padding:4px 7px;vertical-align:middle}
+.materials-list{display:grid;gap:7px;max-height:390px;overflow:auto}
+.materials-list-item{display:flex;align-items:center;gap:5px;padding:10px;border:1px solid #edf1ed;border-radius:8px}
+.materials-list-item.selected{border-color:#c9ddcf;background:#f6faf7}
+.materials-select{display:flex;align-items:center;gap:10px;flex:1;min-width:0;border:0;background:transparent;text-align:left;padding:0;cursor:pointer}
+.materials-file-badge{width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;background:#edf5ef;color:#3a7655;border-radius:7px}
+.materials-item-copy{display:grid;gap:3px;min-width:0}
+.materials-item-copy strong{font-size:10px;color:#355644;overflow-wrap:anywhere}
+.materials-item-copy small,.materials-item-copy>span{font-size:8px;color:#85928a;line-height:1.5}
+.materials-delete{width:27px;height:27px;border:0;border-radius:6px;background:transparent;color:#9a827e;font-size:17px}
+.materials-delete:hover{background:#fff0ed;color:#a14b43}
+.materials-empty{min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:#89968e}
+.materials-empty>span{font-size:25px;color:#8da99a}
+.materials-empty strong{font-size:11px;color:#456352;margin-top:8px}
+.materials-empty p{font-size:10px;line-height:1.65;max-width:310px}
+.materials-detail-card{margin:18px 0}
+.materials-detail-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.materials-detail-heading h2{font-size:20px;overflow-wrap:anywhere}
+.materials-detail-heading>div:first-child p{font-size:9px;color:#84918a}
+.materials-detail-actions{display:flex;gap:7px;flex-wrap:wrap}
+.materials-detail-actions button{font-size:10px;white-space:nowrap}
+.materials-tabs{border-bottom:1px solid #e9eeea;padding-bottom:10px}
+.materials-tabs button{border-radius:6px}
+.materials-feedback{margin:12px 0}
+.study-summary{max-width:1000px}
+.study-summary-overview{padding:17px 18px;background:#f4f8f5;border:1px solid #e5efe8;border-radius:9px;margin:10px 0 16px}
+.study-summary-overview p{font-size:12px;line-height:1.85;color:#385a49;margin:7px 0 0}
+.study-summary-block{background:#fff;border:1px solid #e8ede9;border-radius:9px;padding:15px 17px;margin:12px 0}
+.study-summary-block h3,.study-summary-block h4{font:750 13px Manrope;color:#315743;margin:0 0 9px}
+.study-summary-sections{display:grid;gap:11px}
+.study-summary-section{padding:17px 18px;border:1px solid #e8ede9;border-radius:9px;background:#fff}
+.study-summary-section-heading{display:flex;align-items:center;gap:10px}
+.study-summary-section-heading>span{font-size:9px;color:#658d75;font-weight:800}
+.study-summary-section-heading h3{font:750 14px Manrope;color:#2c5240;margin:0}
+.study-summary-section>p{font-size:11px;line-height:1.9;color:#62736a;margin:10px 0}
+.study-source-locator{display:block;font-size:9px;color:#8b958e;margin-top:7px}
+.study-clinical-relevance,.study-high-yield,.study-supplementary{padding:11px 13px;background:#f5f8f5;border-radius:7px;margin-top:9px}
+.study-clinical-relevance strong,.study-high-yield strong,.study-supplementary strong{font-size:10px;color:#42664f}
+.study-clinical-relevance p,.study-supplementary p{font-size:10px;line-height:1.8;color:#67776d;margin:5px 0 0}
+.study-high-yield ul{margin-top:5px}
+.study-table-wrap{overflow-x:auto;margin:12px 0}
+.study-table-wrap>strong{font-size:10px;color:#496553}
+.study-table-wrap table{width:100%;border-collapse:collapse;margin-top:8px;font-size:9px}
+.study-table-wrap th,.study-table-wrap td{border:1px solid #e6ece7;padding:8px;text-align:left;vertical-align:top;line-height:1.6}
+.study-table-wrap th{background:#f3f7f4;color:#496553}
+.study-key-terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.study-key-terms>div{padding:10px;background:#f8faf8;border-radius:7px}
+.study-key-terms strong{font-size:10px;color:#3b604a}
+.study-key-terms p{font-size:9px;line-height:1.65;color:#718077;margin:5px 0 0}
+.study-summary-warnings{background:#fffaf1;border-color:#efe5d1}
+.study-summary-warnings h3,.study-summary-warnings strong{font:750 12px Manrope;color:#80633a}
+.study-summary-warnings li{color:#806c4e}
+.study-revision-question{padding:10px 0;border-top:1px solid #edf1ed}
+.study-revision-question summary{font-size:10px;color:#385b47;font-weight:700;cursor:pointer}
+.study-revision-question p{font-size:10px;line-height:1.8;color:#6b7b72;margin:8px 0 0}
+.study-summary-disclaimer{font-size:9px;line-height:1.7;color:#929b94;margin:14px 0}
+.study-tutor-panel{max-width:900px}
+.study-tutor-intro h3{font:750 16px Manrope;color:#2b503e;margin:6px 0}
+.study-tutor-intro p{font-size:10px;line-height:1.8;color:#78867e}
+.study-question-input textarea{min-height:88px;resize:vertical}
+.study-tutor-answer{padding:17px;border:1px solid #e5ece7;border-radius:9px;margin-top:16px;background:#fff}
+.study-answer-main{font-size:12px;line-height:1.9;color:#4c6658}
+.study-source-support{padding:10px 0;border-top:1px solid #edf1ed}
+.study-source-support strong{font-size:10px;color:#4e7059}
+.study-source-support p{font-size:10px;line-height:1.7;color:#6f7d75}
+.question-bank-source-banner,.flight-source-summary,.flight-material-prompt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;background:#f5f8f5;border:1px solid #e7eee8;border-radius:8px;margin:12px 0}
+.question-bank-source-banner>div{display:grid;gap:4px}
+.question-bank-source-banner strong,.flight-source-summary strong{font-size:10px;color:#41604d}
+.question-bank-source-banner span,.flight-source-summary span,.flight-material-prompt>span{font-size:9px;color:#7b8981;line-height:1.6}
+.question-bank-source-banner .secondary-button,.flight-source-summary .text-link,.flight-material-prompt button{font-size:9px;white-space:nowrap}
+.flight-source-controls{display:grid;grid-template-columns:1fr 1.3fr;gap:12px;margin:15px 0}
+.flight-source-controls label{display:grid;gap:6px;font-size:10px;font-weight:750;color:#50695b}
+.flight-source-controls select{height:40px;padding:8px 10px;border:1px solid #e0e9e2;border-radius:7px;background:#fff;color:#355444;font-size:10px}
+.flight-source-summary{flex-wrap:wrap}
+.flight-material-prompt{background:#fffaf0;border-color:#eee4d2}
+@media(max-width:850px){
+ .materials-layout{grid-template-columns:1fr}
+ .materials-detail-heading{flex-direction:column}
+ .materials-detail-actions{width:100%}
+ .unit-guide-section-body{padding-left:18px}
+}
+@media(max-width:600px){
+ .unit-guide-toolbar{display:grid}
+ .unit-guide-tabs button,.materials-tabs button{flex:1}
+ .unit-guide-heading{align-items:flex-start}
+ .unit-guide-heading h2{font-size:16px}
+ .materials-upload-card,.materials-library-card,.materials-detail-card{padding:14px}
+ .materials-detail-actions button{flex:1}
+ .study-key-terms{grid-template-columns:1fr}
+ .flight-source-controls{grid-template-columns:1fr}
+ .question-bank-source-banner,.flight-source-summary,.flight-material-prompt{align-items:flex-start;flex-direction:column}
+ .question-bank-source-banner button,.flight-material-prompt button{width:100%}
+ .unit-guide-section>summary{padding:12px}
+ .unit-guide-section-title{font-size:10px}
+}
