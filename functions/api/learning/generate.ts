@@ -20,9 +20,19 @@ export const onRequestPost = async (context: AppContext) => {
   if (!context.env.AI) return json({ error: "The AI engine is not connected yet. Add a Workers AI binding named AI to the ClerkMe Pages project, then redeploy." }, 503);
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; } catch { return json({ error: "Invalid request body." }, 400); }
-  const unit = clean(body.unit, 80);
-  const source = clean(body.sourceText, 42000);
-  const sourceTitle = clean(body.sourceTitle, 180) || "Uploaded lecture material";
+  const materialId = clean(body.materialId, 80);
+  let unit = clean(body.unit, 80);
+  let source = clean(body.sourceText, 42000);
+  let sourceTitle = clean(body.sourceTitle, 180) || "Uploaded lecture material";
+  if (materialId) {
+    const material = await context.env.DB.prepare(
+      "SELECT unit, source_name, content_text FROM learning_materials WHERE id = ? AND user_id = ?"
+    ).bind(materialId, user.id).first<{ unit: string; source_name: string; content_text: string }>();
+    if (!material) return json({ error: "This material could not be found in your private library." }, 404);
+    unit = material.unit;
+    source = material.content_text.slice(0, 42000);
+    sourceTitle = material.source_name;
+  }
   const rawCount = Number(body.count);
   const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(50, Math.floor(rawCount))) : 15;
   const level = clean(body.level, 40) || "Mixed";
@@ -57,7 +67,12 @@ ${source}
       };
     }).filter(q => q.question && q.options.length === 4 && q.options.every(Boolean) && Number.isInteger(q.answerIndex) && q.answerIndex >= 0 && q.answerIndex <= 3 && q.explanation);
     if (!questions.length) throw new Error("The AI could not create valid questions from this file. Try a clearer or more text-rich slide deck.");
-    return json({ questions, requested: count, generated: questions.length, unit, sourceTitle });
+    if (materialId) {
+      await context.env.DB.prepare(
+        "UPDATE learning_materials SET questions_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+      ).bind(JSON.stringify(questions), materialId, user.id).run();
+    }
+    return json({ questions, requested: count, generated: questions.length, unit, sourceTitle, materialId: materialId || null });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Question generation failed. Please try again." }, 502);
   }
