@@ -24,7 +24,13 @@
           "database_name": "clerkme-preview",
           "database_id": "9d6dcdd2-6c8c-43fa-a776-08f16ae286ac"
         }
-      ]
+      ],
+      "ai": {
+        "binding": "AI"
+      },
+      "vars": {
+        "GOOGLE_CLIENT_ID": "1001652725948-s7bjafldo8md4hgosnf0dpi4cros7tan.apps.googleusercontent.com"
+      }
     },
     "production": {
       "d1_databases": [
@@ -33,7 +39,13 @@
           "database_name": "clerkme",
           "database_id": "ccfafcf6-4ce7-43de-b406-fc2b1130f683"
         }
-      ]
+      ],
+      "ai": {
+        "binding": "AI"
+      },
+      "vars": {
+        "GOOGLE_CLIENT_ID": "1001652725948-s7bjafldo8md4hgosnf0dpi4cros7tan.apps.googleusercontent.com"
+      }
     }
   }
 }
