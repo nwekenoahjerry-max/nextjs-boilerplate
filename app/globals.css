@@ -614,3 +614,75 @@ button,input,textarea,select{font-family:inherit}
  .unit-guide-section>summary{padding:12px}
  .unit-guide-section-title{font-size:10px}
 }
+
+/* Interactive AI clinical simulation */
+.simulation-setup,.simulation-case-card,.simulation-interaction-card,.simulation-feedback-card,.simulation-empty{background:#fff;border:1px solid var(--line);border-radius:13px;padding:19px;margin:16px 0}
+.simulation-setup-copy h2,.simulation-case-top h2{font:750 18px Manrope;color:#23483a;margin:6px 0}
+.simulation-setup-copy p{font-size:10px;line-height:1.7;color:#7f8b83}
+.simulation-setup-controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:15px}
+.simulation-setup-controls label,.simulation-response-label{display:grid;gap:7px;font-size:10px;font-weight:750;color:#4e6859}
+.simulation-setup-controls select,.simulation-response-label textarea{width:100%;min-height:42px;border:1px solid #dfe8e1;border-radius:7px;padding:10px 11px;background:#fff;color:#29483d;font-size:10px}
+.simulation-setup-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #edf1ed;margin-top:14px;padding-top:12px}
+.simulation-setup-footer span{font-size:9px;color:#849188}
+.simulation-empty{text-align:center;padding:38px 18px}
+.simulation-empty-icon{width:49px;height:49px;border-radius:50%;display:grid;place-items:center;margin:0 auto 13px;background:#edf5ef;color:#397552;font-size:22px}
+.simulation-empty h2{font:750 18px Manrope;color:#294f3d}
+.simulation-empty p{max-width:530px;margin:8px auto 18px;font-size:10px;line-height:1.8;color:#7c8981}
+.simulation-case-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.simulation-stage-pill{flex:0 0 auto;padding:7px 9px;border-radius:6px;background:#eff5f0;color:#477458;font-size:9px;font-weight:800}
+.simulation-patient-brief{padding:16px 17px;background:#f5f8f5;border:1px solid #e8efe9;border-radius:9px;margin:15px 0}
+.simulation-patient-label{font-size:8px;font-weight:850;letter-spacing:.09em;color:#6f8b76}
+.simulation-patient-brief p{font-size:11px;line-height:1.9;color:#405f4b;margin:7px 0 0;white-space:pre-line}
+.simulation-case-update,.simulation-safety-note{padding:12px 14px;border-radius:8px;margin:10px 0}
+.simulation-case-update{background:#edf4fb;border:1px solid #e0eaf6}
+.simulation-case-update strong{font-size:10px;color:#45688f}
+.simulation-case-update p{font-size:10px;line-height:1.8;color:#627b96;margin:5px 0 0}
+.simulation-safety-note{background:#fff7e9;border:1px solid #efe2cb}
+.simulation-safety-note strong{font-size:10px;color:#886533}
+.simulation-safety-note p{font-size:10px;line-height:1.8;color:#806f53;margin:5px 0 0}
+.simulation-case-progress{display:flex;align-items:center;gap:10px;margin-top:15px}
+.simulation-case-progress>span,.simulation-case-progress>b{font-size:8px;color:#829087;font-weight:800;white-space:nowrap}
+.simulation-case-progress>div{height:5px;background:#edf1ed;border-radius:9px;flex:1;overflow:hidden}
+.simulation-case-progress i{display:block;height:100%;background:#619875;border-radius:9px;transition:width .25s}
+.simulation-interaction-card{border-color:#dfe9e1}
+.simulation-interaction-card h3{font:750 17px/1.5 Manrope;color:#2d503d;margin:7px 0 14px}
+.simulation-intent-switch{display:flex;gap:7px;margin:14px 0}
+.simulation-intent-switch button{border:1px solid #e2e9e3;border-radius:7px;background:#fff;color:#6a7d70;padding:9px 13px;font-size:9px;font-weight:800}
+.simulation-intent-switch button.active{background:#edf5ef;border-color:#c7ddcc;color:#2e6b4a}
+.simulation-response-label textarea{min-height:115px;resize:vertical;line-height:1.75}
+.simulation-response-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:13px}
+.simulation-response-actions>span{font-size:9px;line-height:1.6;color:#829087;max-width:390px}
+.simulation-response-actions button{white-space:nowrap;font-size:10px}
+.simulation-feedback-card{border-color:#e1eae2}
+.simulation-feedback-heading{display:flex;justify-content:space-between;align-items:center}
+.simulation-feedback-heading h3{font:750 17px Manrope;color:#305943;margin:5px 0}
+.simulation-score{display:flex;align-items:baseline;gap:3px;color:#4c825e}
+.simulation-score strong{font:800 28px Manrope}
+.simulation-score span{font-size:9px;color:#8a978e}
+.simulation-feedback-main{font-size:11px;line-height:1.9;color:#5a6f61}
+.simulation-feedback-group,.simulation-reasoning{padding:12px 14px;border-radius:8px;margin:10px 0}
+.simulation-feedback-group strong,.simulation-reasoning strong{font-size:10px;color:#416b4f}
+.simulation-feedback-group ul{margin:7px 0 0;padding-left:18px}
+.simulation-feedback-group li{font-size:10px;line-height:1.8;color:#697970;margin:4px 0}
+.simulation-feedback-group.positive{background:#f0f7f1}
+.simulation-feedback-group.corrections{background:#fff7ed}
+.simulation-feedback-group.corrections strong{color:#936f42}
+.simulation-reasoning{background:#f4f7f5}
+.simulation-reasoning p{font-size:10px;line-height:1.8;color:#66796c;margin:5px 0 0}
+.simulation-model-answer{border:1px solid #e8eee8;border-radius:8px;overflow:hidden;margin-top:12px}
+.simulation-model-answer>button{width:100%;display:flex;justify-content:space-between;padding:12px 14px;border:0;background:#fafcf9;color:#41644d;font-size:10px;font-weight:800}
+.simulation-model-answer>button span{font-size:15px}
+.simulation-model-answer>p{padding:0 14px 13px;margin:0;font-size:10px;line-height:1.85;color:#64756a;white-space:pre-line}
+.simulation-complete{padding:13px;background:#eef7ef;border-radius:8px;margin-top:12px}
+.simulation-complete strong{font-size:11px;color:#356c49}
+.simulation-complete p{font-size:10px;line-height:1.7;color:#617869}
+.simulation-footer-actions{display:flex;justify-content:space-between;gap:10px;padding:0 4px}
+.simulation-error{margin:12px 0}
+@media(max-width:650px){
+ .simulation-setup-controls{grid-template-columns:1fr}
+ .simulation-setup-footer,.simulation-response-actions{align-items:flex-start;flex-direction:column}
+ .simulation-response-actions button{width:100%;justify-content:center}
+ .simulation-case-top{flex-direction:column}
+ .simulation-intent-switch button{flex:1}
+ .simulation-footer-actions{flex-wrap:wrap}
+}
