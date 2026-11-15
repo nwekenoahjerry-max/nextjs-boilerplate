@@ -1,20 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { clinicalUnits, caseGuides } from "../lib/learning-content";
+import { clinicalUnits } from "../lib/learning-content";
 import { goodHistoryExamples } from "../lib/good-history";
 import { coreClerkingSections, unitClerkingFrameworks, type GuideSection } from "../lib/unit-clerking";
-
-const guideMap: Record<string, string[]> = {
-  "general-medicine": ["pain","fever","cough","abdominal-pain","headache","dyspnoea","vomiting","diarrhoea","seizure","weakness","jaundice","urinary"],
-  surgery: ["pain","abdominal-pain","trauma","vomiting","jaundice"],
-  paediatrics: ["pain","fever","cough","abdominal-pain","vomiting","diarrhoea","seizure","dyspnoea"],
-  "obstetrics-gynaecology": ["pain","fever","pv-bleeding","vaginal-discharge","headache","vomiting"],
-  emergency: ["pain","fever","dyspnoea","seizure","trauma","weakness","vomiting"],
-  psychiatry: ["headache","weakness"],
-  "community-medicine": ["fever","cough","diarrhoea","pain"],
-  orthopaedics: ["pain","trauma","weakness"]
-};
+import { getUnitPresentationPathways, type PresentingComplaintPathway } from "../lib/presentation-pathways";
+import { caseGuides } from "../lib/learning-content";
 
 function BulletGroup({ title, items }: { title: string; items: string[] }) {
   if (!items?.length) return null;
@@ -43,27 +34,60 @@ function SectionCard({ item, index, open = false }: { item: GuideSection; index:
 
 export default function ClinicalGuides() {
   const [unit,setUnit] = useState("general-medicine");
-  const [view,setView] = useState<"pathway"|"presentations">("pathway");
-  const [selectedGuideId,setSelectedGuideId] = useState<string|null>(null);
+  const [view,setView] = useState<"pathway"|"presentations">("presentations");
+  const [selectedComplaintId,setSelectedComplaintId] = useState<string|null>(null);
+  const [search,setSearch] = useState("");
+  const [category,setCategory] = useState("All");
+  const [askedItems,setAskedItems] = useState<Record<string,boolean>>({});
   const framework = unitClerkingFrameworks[unit] || unitClerkingFrameworks["general-medicine"];
   const unitName = clinicalUnits.find(item=>item.id===unit)?.name || framework.title;
-  const relevantGuides = useMemo(
-    ()=>caseGuides.filter(item=>(guideMap[unit] || []).includes(item.id)),
-    [unit]
-  );
-  const selectedGuide = caseGuides.find(item=>item.id===selectedGuideId);
+  const pathways = useMemo(()=>getUnitPresentationPathways(unit),[unit]);
+  const categories = useMemo(()=>["All",...Array.from(new Set(pathways.map(item=>item.category)))],[pathways]);
+  const filteredPathways = useMemo(()=>{
+    const term=search.trim().toLowerCase();
+    return pathways.filter(item=>(category==="All"||item.category===category)&&(!term||item.title.toLowerCase().includes(term)||item.category.toLowerCase().includes(term)));
+  },[pathways,search,category]);
+  const selectedComplaint = pathways.find(item=>item.id===selectedComplaintId) || null;
+  const selectedGuide = selectedComplaint?.baseGuideId ? caseGuides.find(item=>item.id===selectedComplaint.baseGuideId) : null;
+  const allChecklistQuestions = selectedComplaint?.questionGroups.flatMap((group,groupIndex)=>group.questions.map((_,questionIndex)=>`${groupIndex}-${questionIndex}`)) || [];
+  const askedCount = allChecklistQuestions.filter(id=>askedItems[id]).length;
+  const totalQuestions = allChecklistQuestions.length;
+  const progress = totalQuestions ? Math.round((askedCount/totalQuestions)*100) : 0;
+
+  const chooseUnit=(nextUnit:string)=>{
+    setUnit(nextUnit);
+    setSelectedComplaintId(null);
+    setSearch("");
+    setCategory("All");
+    setAskedItems({});
+  };
+  const openComplaint=(id:string)=>{
+    setSelectedComplaintId(id);
+    setAskedItems({});
+  };
+  const copyChecklist=async(item:PresentingComplaintPathway)=>{
+    const text=[
+      `CLERKME · ${unitName.toUpperCase()} · ${item.title.toUpperCase()}`,
+      `Opening question: ${item.openingQuestion}`,
+      ...item.questionGroups.flatMap(group=>[`\n${group.title}`,...group.questions.map(question=>`☐ ${question}`)]),
+      `\nRed flags to screen for`,...item.redFlags.map(flag=>`• ${flag}`),
+      `\nExamination focus`,...item.examinationFocus.map(point=>`• ${point}`),
+      "\nEducational prompt only. Adapt to the patient and local clinical guidance."
+    ].join("\n");
+    try{await navigator.clipboard.writeText(text);}catch{window.prompt("Copy the clerking guide below:",text);}
+  };
 
   return (
     <div className="clinical-guides-workspace">
       <div className="page-intro">
         <div className="eyebrow">UNIT-BASED CLINICAL LEARNING</div>
         <h1>Clinical clerking guides</h1>
-        <p>Follow the full clerking sequence from patient approach and biodata to final case presentation. Each unit adds its own specialist history, examination and safety requirements.</p>
+        <p>Start with the patient’s presenting complaint. ClerkMe gives you a focused sequence of questions, specialty-specific prompts, red flags and examination priorities.</p>
       </div>
 
       <div className="learning-toolbar unit-guide-toolbar">
-        <label>My current clinical unit
-          <select value={unit} onChange={event=>{setUnit(event.target.value);setSelectedGuideId(null);}}>
+        <label>Choose your clinical unit
+          <select value={unit} onChange={event=>chooseUnit(event.target.value)}>
             {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
@@ -71,8 +95,8 @@ export default function ClinicalGuides() {
       </div>
 
       <div className="unit-guide-tabs">
-        <button className={view==="pathway"?"active":""} onClick={()=>{setView("pathway");setSelectedGuideId(null);}}>Complete clerking pathway</button>
-        <button className={view==="presentations"?"active":""} onClick={()=>{setView("presentations");setSelectedGuideId(null);}}>Presenting complaints</button>
+        <button className={view==="presentations"?"active":""} onClick={()=>{setView("presentations");setSelectedComplaintId(null);}}>Presenting complaint guide <span className="guide-tab-primary">START HERE</span></button>
+        <button className={view==="pathway"?"active":""} onClick={()=>{setView("pathway");setSelectedComplaintId(null);}}>Full clerking pathway</button>
       </div>
 
       {view==="pathway" && <>
@@ -119,29 +143,74 @@ export default function ClinicalGuides() {
       </>}
 
       {view==="presentations" && <>
-        <div className="page-intro presentation-guide-intro">
-          <div className="eyebrow">{framework.title.toUpperCase()} · PRESENTATION-BASED GUIDES</div>
-          <h2>Clerk common presentations</h2>
-          <p>Choose a presentation for focused symptom questions, an examination plan, differential diagnoses, investigations and common omissions.</p>
-        </div>
-        {!selectedGuide && <div className="guide-grid">
-          {relevantGuides.map((item,index)=><button className="guide-card" key={item.id} onClick={()=>setSelectedGuideId(item.id)}>
-            <span className="resource-number">{String(index+1).padStart(2,"0")} · {item.group}</span>
-            <h3>{item.title}</h3><p>{item.intro}</p><span className="card-action">Open focused guide →</span>
-          </button>)}
-        </div>}
-        {selectedGuide && <div className="guide-detail">
-          <button className="text-link" onClick={()=>setSelectedGuideId(null)}>← Back to {unitName} presentations</button>
-          <div className="page-intro"><div className="eyebrow">{selectedGuide.group.toUpperCase()} · CASE-BASED GUIDE</div><h2>How to clerk: {selectedGuide.title}</h2><p>{selectedGuide.intro}</p></div>
-          <section className="guide-section"><h3>Focused history — questions to ask</h3>
-            {selectedGuide.steps.map(([heading,body],index)=><div className="guide-step" key={heading}><strong>{String(index+1).padStart(2,"0")} · {heading}</strong><p>{body}</p></div>)}
+        {!selectedComplaint && <>
+          <div className="presentation-finder-heading">
+            <div><span className="eyebrow">{framework.title.toUpperCase()} · PRESENTATION-LED CLERKING</span><h2>What is the patient presenting with?</h2><p>Select the closest presenting complaint. You can search by symptom or browse by clinical category.</p></div>
+            <span className="presentation-count">{pathways.length} guides in this unit</span>
+          </div>
+          <div className="presentation-search-row">
+            <label className="presentation-search"><span>⌕</span><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search a complaint, e.g. chest pain, fever, bleeding…" aria-label="Search presenting complaints"/></label>
+            <label className="presentation-category-select"><span>Category</span><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
+          </div>
+          <div className="presentation-quick-categories">
+            {categories.map(item=><button key={item} className={category===item?"active":""} onClick={()=>setCategory(item)}>{item}</button>)}
+          </div>
+          {filteredPathways.length ? <div className="presentation-pathway-grid">
+            {filteredPathways.map((item,index)=><button className="presentation-pathway-card" key={item.id} onClick={()=>openComplaint(item.id)}>
+              <span className="presentation-card-top"><small>{String(index+1).padStart(2,"0")}</small><span>{item.category}</span></span>
+              <strong>{item.title}</strong>
+              <span className="presentation-card-desc">{item.openingQuestion}</span>
+              <span className="presentation-card-bottom"><span>{item.questionGroups.reduce((sum,group)=>sum+group.questions.length,0)} focused questions</span><b>Open guide →</b></span>
+            </button>)}
+          </div> : <div className="presentation-empty"><strong>No matching complaint in this unit.</strong><p>Try another search term or choose “All” categories.</p><button className="text-link" onClick={()=>{setSearch("");setCategory("All");}}>Clear filters</button></div>}
+        </>}
+
+        {selectedComplaint && <div className="presentation-detail">
+          <button className="presentation-back" onClick={()=>{setSelectedComplaintId(null);setAskedItems({});}}>← All {unitName} complaints</button>
+          <div className="presentation-detail-heading">
+            <div><span className="eyebrow">{unitName.toUpperCase()} · {selectedComplaint.category.toUpperCase()}</span><h2>How to clerk: {selectedComplaint.title}</h2><p>Use the prompts as a clinical conversation, not as a rigid questionnaire. Let the patient speak before narrowing the history.</p></div>
+            <div className="presentation-detail-actions"><button className="secondary-button" onClick={()=>copyChecklist(selectedComplaint)}>Copy questions</button><button className="secondary-button" onClick={()=>window.print()}>Print guide</button></div>
+          </div>
+
+          <section className="presentation-opening-question">
+            <span>START WITH AN OPEN QUESTION</span>
+            <p>{selectedComplaint.openingQuestion}</p>
+            <small>Listen without interruption first. Then follow the focused prompts below.</small>
           </section>
-          <section className="guide-section good-history-example"><h3>Illustrative clinical history write-up</h3><p>{goodHistoryExamples[selectedGuide.id] || "Write the history chronologically, preserving the patient's account, timing, relevant positive symptoms and important negative findings."}</p><small>Fictional teaching example. Never copy example findings into a real patient record unless they were actually elicited.</small><button className="text-link" onClick={()=>navigator.clipboard?.writeText(goodHistoryExamples[selectedGuide.id]||"")}>Copy example prose</button></section>
-          <section className="guide-section"><h3>Examination</h3><p>{selectedGuide.exam}</p></section>
-          <section className="guide-section"><h3>Differential diagnosis</h3><p>{selectedGuide.differentials}</p></section>
-          <section className="guide-section"><h3>Investigations and initial approach</h3><p>{selectedGuide.workup}</p></section>
-          <section className="guide-section guide-pitfalls"><h3>Common omissions and safety points</h3><p>{selectedGuide.pitfalls}</p></section>
-          <p className="guide-disclaimer">Educational framework only. Adapt to the patient, local protocols, available resources and senior clinical advice.</p>
+
+          <section className="presentation-checklist-panel">
+            <div className="presentation-checklist-heading"><div><span className="eyebrow">FOCUSED HISTORY</span><h3>Questions to ask during this clerking</h3><p>Tick each prompt as you cover it. Unticked items are a reminder, not a reason to ask irrelevant questions.</p></div><div className="presentation-progress"><strong>{askedCount}/{totalQuestions}</strong><span>covered</span><div><i style={{width:`${progress}%`}}/></div></div></div>
+            {selectedComplaint.questionGroups.map((group,groupIndex)=><div className="presentation-question-group" key={group.title}>
+              <h4><span>{String(groupIndex+1).padStart(2,"0")}</span>{group.title}</h4>
+              <div className="presentation-question-list">
+                {group.questions.map((question,questionIndex)=>{
+                  const id=`${groupIndex}-${questionIndex}`;
+                  return <label className={askedItems[id]?"asked":""} key={id}><input type="checkbox" checked={Boolean(askedItems[id])} onChange={event=>setAskedItems(current=>({...current,[id]:event.target.checked}))}/><span>{question}</span></label>;
+                })}
+              </div>
+            </div>)}
+          </section>
+
+          {selectedGuide && <section className="presentation-core-reference">
+            <div className="eyebrow">SYMPTOM ANALYSIS REFERENCE</div><h3>Work through the symptom systematically</h3>
+            <p>The general symptom guide below adds detail to the unit-specific questions. Adapt each item to the patient and avoid asking questions that are not clinically relevant.</p>
+            <div className="presentation-core-steps">{selectedGuide.steps.map(([heading,body],index)=><details key={heading}><summary><span>{String(index+1).padStart(2,"0")}</span><strong>{heading}</strong><b>＋</b></summary><p>{body}</p></details>)}</div>
+            <div className="presentation-reference-grid">
+              <div><h4>Examination focus</h4><p>{selectedGuide.exam}</p></div>
+              <div><h4>Differential considerations</h4><p>{selectedGuide.differentials}</p></div>
+              <div><h4>Investigations to consider</h4><p>{selectedGuide.workup}</p></div>
+              <div className="reference-pitfall"><h4>Common omissions</h4><p>{selectedGuide.pitfalls}</p></div>
+            </div>
+            {goodHistoryExamples[selectedGuide.id]&&<details className="presentation-example"><summary>View an illustrative history write-up</summary><p>{goodHistoryExamples[selectedGuide.id]}</p><small>Fictional teaching example. Never copy example findings into a real patient record unless they were actually elicited.</small></details>}
+          </section>}
+
+          <section className="presentation-redflags">
+            <div><span className="eyebrow">SAFETY SCREEN</span><h3>Red flags — do not miss</h3><p>Ask directly when relevant. If an immediate threat is suspected, pause routine clerking and escalate according to local emergency procedures.</p></div>
+            <ul>{selectedComplaint.redFlags.map((item,index)=><li key={index}>{item}</li>)}</ul>
+          </section>
+
+          <section className="presentation-exam-focus"><div className="eyebrow">AFTER THE HISTORY</div><h3>Examination priorities</h3><ul>{selectedComplaint.examinationFocus.map((item,index)=><li key={index}>{item}</li>)}</ul></section>
+          <div className="presentation-footer-note">Educational framework only. Adapt to the patient’s age, pregnancy status, comorbidities, clinical setting and local guidance. Do not delay urgent assessment or escalation to complete this checklist.</div>
         </div>}
       </>}
     </div>
