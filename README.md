@@ -2,16 +2,25 @@
 
 ClerkMe is a clinical clerking and learning platform for medical students and clinical trainees, designed for African training contexts.
 
-## Implemented backend foundation
+## Learning and clerking features
 
-- Google Identity Services sign-in with server-side ID-token verification against the configured Google OAuth client ID.
-- Server-issued, HTTP-only, Secure, SameSite=Lax session cookie.
-- Session records stored as SHA-256 token hashes in the existing D1 `sessions` table.
-- Reuses the existing `student_profiles` and `google_identities` account schema; does not replace existing account or payment records.
-- D1-backed case creation, listing, retrieval, editing and soft deletion.
-- Per-account case ownership checks on every case endpoint.
-- Audit events for case creation, edits and deletion.
-- Health endpoint for checking the API/database binding.
+- Extensive core clerking pathway from preparation and biodata through presenting complaints, history, examination, summary, differential diagnoses, investigations, management, progress notes and final case presentation.
+- Specialty-specific clerking modules for General Medicine, Surgery, Paediatrics, Obstetrics & Gynaecology, Emergency Medicine, Psychiatry, Community Medicine and Orthopaedics.
+- Guided prompts, documentation examples, clinical reasoning, red flags, common omissions and final quality checks.
+- Presentation-based guides that reuse the unit-specific clinical case library.
+- Private, account-scoped study-material library. Students can upload PDF, PPTX, DOCX, TXT, MD and CSV files, select a unit and organise their materials.
+- AI-generated structured summaries with learning objectives, clear explanatory sections, clinical relevance, high-yield points, tables, key terms, revision questions and topics to verify.
+- Source-grounded AI tutor for questions about a selected uploaded document. The tutor separates source-supported content from supplementary explanation and reports limitations.
+- Question-bank generation from uploaded study materials. Generated questions are retained against the material and served by the selected clinical unit.
+- Unit- and material-adaptive Flight Academy game.
+- Interactive AI clinical simulation with fictional cases, staged questions, answer assessment, corrections, reasoning and direct tutor-style question answering.
+- Existing case records, student activity tracking and account-specific access controls.
+
+## AI and document handling
+
+The browser extracts readable text from supported documents before sending it to the authenticated ClerkMe API. The current materials feature retains the extracted text, structured summary and generated questions; it does not retain the original binary file. Text-based PDFs are supported. Scanned image-only documents may need OCR or a text-based copy.
+
+Workers AI is used for summaries, source-grounded Q&A, question generation and clinical simulation. AI outputs are educational material, may contain errors and must be checked against the original source, current local guidelines and clinical supervision. The simulation uses fictional scenarios and is not a diagnostic or prescribing service.
 
 ## API routes
 
@@ -20,20 +29,45 @@ ClerkMe is a clinical clerking and learning platform for medical students and cl
 - `POST /api/auth/google`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
+- `GET /api/profile`
+- `PATCH /api/profile`
 - `GET /api/cases`
 - `POST /api/cases`
 - `GET /api/cases/:id`
 - `PATCH /api/cases/:id`
 - `DELETE /api/cases/:id`
+- `GET /api/activity`
+- `POST /api/activity`
+- `GET /api/learning/materials`
+- `POST /api/learning/materials`
+- `DELETE /api/learning/materials`
+- `POST /api/learning/summarise`
+- `POST /api/learning/ask`
+- `POST /api/learning/generate`
+- `POST /api/learning/organise`
+- `POST /api/learning/simulate`
 
 ## Cloudflare requirements
 
-The Pages project must have:
-- D1 binding named `DB` pointing to the existing ClerkMD database.
-- Environment variable `GOOGLE_CLIENT_ID` set to the OAuth Web Client ID.
-- The Google Identity Services authorised JavaScript origin must include the deployed ClerkMe/ClerkMD site origin.
+The Pages project requires:
+- D1 binding named `DB`.
+- Workers AI binding named `AI`.
+- `GOOGLE_CLIENT_ID` configured as a Pages environment variable.
+- The Google Identity Services authorised JavaScript origin must include the deployment origin used for sign-in.
 
-The additive case and audit schema is in `migrations/0001_clerkme_core.sql`. It references the existing `student_profiles` table. The migration has been applied to the connected D1 database.
+The `clerkmd` Pages project has a dedicated, empty `clerkme-preview` D1 database attached to the preview environment. The production environment remains attached to the existing `clerkme` database. Preview database setup does not copy production student records.
+
+## Database migrations
+
+Apply migrations in numerical order:
+
+1. `0000_student_auth.sql` creates the modern student profile, Google identity, hashed-session and authentication rate-limit tables. It preserves legacy account/payment tables, maps existing `users` and `google_accounts` into the new identity schema, and renames the old session table to `sessions_legacy` so existing records are retained.
+2. `0001_clerkme_core.sql` creates case and audit tables.
+3. `0002_student_activity.sql` creates activity-day tracking.
+4. `0003_learning_materials.sql` creates the private learning-material store.
+5. `0004_expand_case_specialties.sql` extends case records to every supported clinical unit while preserving existing case rows.
+
+The preview database has been provisioned with the equivalent schema for isolated testing. The production migrations have not been applied as part of this preview work.
 
 ## Local development
 
@@ -42,16 +76,13 @@ npm install
 npm run dev
 ```
 
-Cloudflare Pages Functions require a Pages-compatible local runtime to test D1 bindings. Do not test authenticated endpoints against production with real patient data.
+Cloudflare Pages Functions require a Pages-compatible local runtime to test D1 and Workers AI bindings. Do not test authenticated endpoints against production with real patient data.
 
-## Clinical data and safety
+## Clinical data, privacy and safety
 
-- Use a non-identifying case reference. Do not store patient names, hospital numbers, addresses, phone numbers or other direct identifiers.
-- This service is not yet approved for identifiable patient health information or unsupervised clinical care.
-- ClerkMe is a learning and documentation aid, not an autonomous diagnostic or prescribing system.
+- Upload study resources, not identifiable patient records.
+- Use a non-identifying case reference. Do not store patient names, hospital numbers, addresses, phone numbers or other direct identifiers in learning cases.
+- This service is not approved for identifiable patient health information or unsupervised clinical care.
+- AI summaries, answers, questions and simulated feedback are learning aids, not authoritative clinical guidance.
 - Clinical decisions remain the responsibility of qualified healthcare professionals.
-- Before production use with real patient records, complete security review, privacy/legal review for each operating jurisdiction, retention/deletion policy, backup and restore testing, monitoring, rate limiting, and penetration testing.
-
-## Product areas still to implement
-
-The authenticated case API is the first persistent workflow. Full specialty-specific clerking forms, case-detail editing UI, AI-assisted learning, clinical guides, OSCE/Viva simulation, question bank, subscription/payment workflows and admin tools require their own implementation and tests. They must not be presented as available until working end to end.
+- Before production use with real patient records, complete security review, privacy/legal review for each operating jurisdiction, retention/deletion policy, backup and restore testing, monitoring, rate limiting and penetration testing.
