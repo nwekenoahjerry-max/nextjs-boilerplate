@@ -102,7 +102,6 @@ export default function Home() {
           <span className="brand-mark">C<span>+</span></span>
           <span><strong>clerk<span>me</span></strong><small>CLINICAL COMPANION</small></span>
         </a>
-        <div className="workspace-label">WORKSPACE</div>
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">WORKSPACE</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
@@ -128,7 +127,7 @@ export default function Home() {
       <nav className="mobile-dock" aria-label="Main navigation">
         {navItems.filter(([,id])=>["overview","clerking","guides","patients"].includes(id)).map(([label,id,icon])=>(
           <button key={id} className={active===id?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection(id)}>
-            <span>{icon}</span><small>{id==="clerking"?"Clerk":id==="patients"?"Cases":label}</small>
+            <span>{icon}</span><small>{id==="clerking"?"Clerk":id==="patients"?"Cases":id==="guides"?"Guides":label}</small>
           </button>
         ))}
         <button className={moreOpen||navItems.slice(0,5).every(([,id])=>id!==active)?"mobile-dock-item more-active":"mobile-dock-item"} onClick={()=>setMoreOpen(value=>!value)} aria-expanded={moreOpen}>
