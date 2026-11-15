@@ -8,6 +8,7 @@ import MaterialsPanel from "./materials-panel";
 import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
+import InstallAppButton from "./install-app-button";
 
 const navItems = [
   ["Overview", "overview", "⌂"],
@@ -31,6 +32,8 @@ const templates = [
 
 export default function Home() {
   const [active, setActive] = useState("overview");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const selectSection = (id: string) => { setActive(id); setShowNew(id === "clerking"); setMoreOpen(false); };
 
   const [osceUnit, setOsceUnit] = useState("general-medicine");
   const [osceIndex, setOsceIndex] = useState(0);
@@ -100,19 +103,50 @@ export default function Home() {
           <span><strong>clerk<span>me</span></strong><small>CLINICAL COMPANION</small></span>
         </a>
         <div className="workspace-label">WORKSPACE</div>
-        <nav className="nav-list">
-          {navItems.map(([label, id, icon]) => (
-            <button key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => { setActive(id); setShowNew(id === "clerking"); }}>
-              <span className="nav-icon">{icon}</span>{label}
+        <nav className="nav-list" aria-label="Workspace navigation">
+          <div className="nav-section-label">WORKSPACE</div>
+          {navItems.slice(0,5).map(([label, id, icon]) => (
+            <button key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)}>
+              <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
               {id === "clerking" && <span className="nav-plus">+</span>}
+            </button>
+          ))}
+          <div className="nav-section-label nav-section-spaced">LEARN & PRACTISE</div>
+          {navItems.slice(5).map(([label, id, icon]) => (
+            <button key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)}>
+              <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="upgrade-card"><div className="upgrade-icon">✦</div><strong>Learn with confidence</strong><p>Build your clinical skills, one patient at a time.</p><button onClick={() => setActive("guides")}>Explore guides <span>↗</span></button></div>
+          <div className="upgrade-card"><div className="upgrade-icon">✦</div><strong>Learn with confidence</strong><p>Build your clinical skills, one patient at a time.</p><button onClick={() => selectSection("guides")}>Explore guides <span>↗</span></button></div>
+          <InstallAppButton/>
           <a className="profile profile-link" href="/profile"><div className="avatar">{authUser?.name?.[0] || "C"}</div><div><strong>{authUser?.name || "Medical student"}</strong><small>View and edit profile</small></div><span className="profile-dots">↗</span></a>
         </div>
       </aside>
+
+      <nav className="mobile-dock" aria-label="Main navigation">
+        {navItems.filter(([,id])=>["overview","clerking","guides","patients"].includes(id)).map(([label,id,icon])=>(
+          <button key={id} className={active===id?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection(id)}>
+            <span>{icon}</span><small>{id==="clerking"?"Clerk":id==="patients"?"Cases":label}</small>
+          </button>
+        ))}
+        <button className={moreOpen||navItems.slice(0,5).every(([,id])=>id!==active)?"mobile-dock-item more-active":"mobile-dock-item"} onClick={()=>setMoreOpen(value=>!value)} aria-expanded={moreOpen}>
+          <span>•••</span><small>More</small>
+        </button>
+      </nav>
+      {moreOpen && <div className="mobile-more-scrim" onClick={()=>setMoreOpen(false)}>
+        <div className="mobile-more-panel" onClick={event=>event.stopPropagation()}>
+          <div className="mobile-more-heading"><div><strong>More from ClerkMe</strong><small>Study tools and your account</small></div><button onClick={()=>setMoreOpen(false)} aria-label="Close menu">×</button></div>
+          {navItems.filter(([,id])=>!["overview","clerking","guides","patients"].includes(id)).map(([label,id,icon])=>(
+            <button key={id} className={active===id?"mobile-more-link active":"mobile-more-link"} onClick={()=>selectSection(id)}>
+              <span>{icon}</span><strong>{label}</strong><b>→</b>
+            </button>
+          ))}
+          <a className="mobile-more-link" href="/profile"><span>◉</span><strong>My profile</strong><b>→</b></a>
+          <InstallAppButton variant="menu"/>
+        </div>
+      </div>}
 
       <section className="main-area">
         <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>+</span></span><strong>clerk<span>me</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
