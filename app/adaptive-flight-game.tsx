@@ -56,9 +56,11 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     return rows.flatMap(item=>(item.questions||[]).map((q,i)=>({...q,id:item.id+"-"+i,source:item.title})));
   },[unitMaterials,chosenMaterial,materialId]);
   const builtInQuestions = useMemo(()=>fallbackQuestions.filter(item=>item.unit===unit),[unit]);
-  const activeQuestions = uploadedQuestions.length ? uploadedQuestions : builtInQuestions.map(item=>({
-    question:item.q,options:item.o,answerIndex:item.a,explanation:item.e,topic:item.topic,difficulty:item.level,source:"ClerkMe core bank",id:item.id
-  }));
+  const activeQuestions = materialId !== "all" && chosenMaterial
+    ? uploadedQuestions
+    : uploadedQuestions.length ? uploadedQuestions : builtInQuestions.map(item=>({
+        question:item.q,options:item.o,answerIndex:item.a,explanation:item.e,topic:item.topic,difficulty:item.level,source:"ClerkMe core bank",id:item.id
+      }));
   const question = activeQuestions.length ? activeQuestions[index%activeQuestions.length] : null;
   const selectedMaterialNeedsQuestions = !!chosenMaterial && !(chosenMaterial.questions||[]).length;
 
@@ -129,7 +131,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             <svg viewBox="0 0 120 150" role="img" aria-label="Silver jet pointing upwards"><defs><linearGradient id="adaptiveJetMetal" x1="0" x2="1"><stop offset="0" stopColor="#647d91"/><stop offset=".48" stopColor="#f5fbff"/><stop offset="1" stopColor="#526b80"/></linearGradient></defs><path d="M60 7 C69 28 72 57 75 83 L109 111 L108 122 L72 108 L68 137 L52 137 L48 108 L12 122 L11 111 L45 83 C48 57 51 28 60 7Z" fill="url(#adaptiveJetMetal)" stroke="#d9e8f1" strokeWidth="2"/><path d="M60 24 C66 42 66 54 64 66 L60 74 L56 66 C54 54 54 42 60 24Z" fill="#76d9f5"/></svg>
           </div>
           <div className="sky-coordinate coord-two">CLIMB RATE <b>{selected===null?"READY":question&&selected===question.answerIndex?"+250":"−300"}</b></div>
-          {(!started||gameOver)&&<div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>{gameOver?"Flight complete":"Ready for take-off?"}</strong><p>{gameOver?"Review the feedback and launch another round.":"Answer questions from your selected unit and materials."}</p><button className="flight-launch-button" onClick={reset}>{gameOver?"Restart flight":"Start your flight"} <span>→</span></button></div>}
+          {(!started||gameOver)&&<div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>{gameOver?"Flight complete":"Ready for take-off?"}</strong><p>{gameOver?"Review the feedback and launch another round.":"Answer questions from your selected unit and materials."}</p><button className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length}>{gameOver?"Restart flight":"Start your flight"} <span>→</span></button></div>}
         </div>
         <div className="flight-metrics"><div><span>CORRECT</span><strong>{correct}</strong></div><div><span>WRONG ANSWERS LEFT</span><strong>{Math.max(0,3-wrong)}</strong></div><div><span>QUESTIONS ANSWERED</span><strong>{index+(selected!==null?1:0)}</strong></div></div>
       </div>
