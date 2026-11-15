@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS google_identities (
   created_at INTEGER NOT NULL
 );
 
+-- The legacy sessions table stores raw legacy session IDs and has a different shape.
+-- Retain it for audit/rollback purposes; new users receive modern hashed-token sessions.
+ALTER TABLE sessions RENAME TO sessions_legacy;
+
 CREATE TABLE IF NOT EXISTS sessions (
   token_hash TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
