@@ -90,8 +90,8 @@ export default function ClinicalSimulation() {
     <section className="simulation-setup">
       <div className="simulation-setup-copy"><div className="eyebrow">PERSONALISE YOUR CASE</div><h2>Choose your clinical unit</h2><p>The case, examiner prompts and feedback are aligned to your current rotation.</p></div>
       <div className="simulation-setup-controls">
-        <label>Clinical unit<select value={unit} onChange={event=>{setUnit(event.target.value);setMaterialId("");setCurrent(null);setHistory([]);setTurnCount(0);setError("");}}>{clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-        <label>Study source (optional)<select value={materialId} onChange={event=>setMaterialId(event.target.value)}><option value="">Use unit curriculum and general clinical knowledge</option>{unitMaterials.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label>Clinical unit<select value={unit} onChange={event=>{setUnit(event.target.value);setMaterialId("");setCurrent(null);setHistory([]);setTurnCount(0);setInput("");setIntent("answer");setError("");}}>{clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+        <label>Study source (optional)<select value={materialId} onChange={event=>{setMaterialId(event.target.value);setCurrent(null);setHistory([]);setTurnCount(0);setInput("");setIntent("answer");setError("");}}><option value="">Use unit curriculum and general clinical knowledge</option>{unitMaterials.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
       </div>
       <div className="simulation-setup-footer"><span>{unitMaterials.length} uploaded resource{unitMaterials.length===1?"":"s"} available in {unitName}</span><button className="text-link" onClick={()=>window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"materials"}}))}>Manage my materials ↗</button></div>
     </section>
