@@ -107,7 +107,7 @@ export default function MaterialsPanel() {
       setTab("summary");
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not summarise this material.");
-      setNotice("Your uploaded material is saved. The summary can be retried when the AI service is available.");
+      setNotice("Your uploaded material is saved. The summary can be retried when the study service is available.");
     } finally { setWorking(false); }
   };
 
@@ -198,7 +198,7 @@ export default function MaterialsPanel() {
         <section className="materials-upload-card">
           <div className="eyebrow">ADD A RESOURCE</div>
           <h2>Upload learning material</h2>
-          <p>One source can power your summary, tutor questions, question bank and unit-specific games.</p>
+          <p>Use one source for structured summaries, study questions and unit-specific practice.</p>
           <label>Clinical unit
             <select value={unit} onChange={event=>setUnit(event.target.value)}>
               {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
@@ -277,11 +277,11 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.revisionQuestions?.length&&<section className="study-summary-block"><h3>Quick revision questions</h3>{selectedMaterial.summary.revisionQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
-          </div> : <div className="materials-empty"><span>✧</span><strong>No summary has been created</strong><p>Ask ClerkMe to organise the uploaded source into an explained, structured revision document.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create structured summary →</button></div>}
+          </div> : <div className="materials-empty"><span>•</span><strong>No summary has been created</strong><p>Ask ClerkMe to organise the uploaded source into an explained, structured revision document.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create structured summary →</button></div>}
         </>}
 
         {tab==="ask" && <div className="study-tutor-panel">
-          <div className="study-tutor-intro"><div className="eyebrow">SOURCE-GROUNDED AI TUTOR</div><h3>Ask questions about {selectedMaterial.title}</h3><p>ClerkMe will use this material first, explain the answer and identify where the source supports it. It will tell you when the document does not contain enough information.</p></div>
+          <div className="study-tutor-intro"><div className="eyebrow">SOURCE-GROUNDED STUDY SUPPORT</div><h3>Ask questions about {selectedMaterial.title}</h3><p>ClerkMe will use this material first, explain the answer and identify where the source supports it. It will tell you when the document does not contain enough information.</p></div>
           <label className="study-question-input">Your question
             <textarea rows={3} value={question} onChange={event=>{setQuestion(event.target.value);setAnswer(null);}} placeholder="e.g. Explain the pathophysiology of left ventricular failure using this lecture…"/>
           </label>
