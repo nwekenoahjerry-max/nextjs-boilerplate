@@ -50,12 +50,17 @@ export default function ClinicalSimulation() {
   const runTurn=async (nextIntent:"start"|Intent,studentInput="")=>{
     setLoading(true);setError("");setShowModelAnswer(false);
     try{
-      const previousHistory=nextIntent==="start"?[]:history;
+      const previousPrompt=current
+        ? "Current case: "+current.caseTitle+".\\nPatient information: "+current.patientBrief+"\\nStage: "+current.stage+"\\nTask: "+current.nextQuestion
+        : "Continue the clinical simulation.";
+      const conversationHistory:Turn[]=nextIntent==="start"
+        ? []
+        : [...history,{role:"assistant",content:previousPrompt},{role:"user",content:studentInput}];
       const response=await fetch("/api/learning/simulate",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({
           unit,intent:nextIntent,studentInput,
-          history:previousHistory,
+          history:conversationHistory,
           materialId:materialId||undefined
         })
       });
@@ -66,10 +71,7 @@ export default function ClinicalSimulation() {
         setHistory([]);
         setTurnCount(0);
       }else{
-        const previousPrompt=current
-          ? "Current case: "+current.caseTitle+".\nPatient information: "+current.patientBrief+"\nStage: "+current.stage+"\nTask: "+current.nextQuestion
-          : "Continue the clinical simulation.";
-        setHistory([...history,{role:"assistant",content:previousPrompt},{role:"user",content:studentInput}]);
+        setHistory(conversationHistory);
         setTurnCount(value=>value+1);
       }
       setCurrent(next);
