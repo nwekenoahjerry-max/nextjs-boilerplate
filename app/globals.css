@@ -1218,3 +1218,23 @@ a,button,input,select,textarea{outline-offset:3px}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behaviour:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Final typography consistency and mobile wordmark */
+body,.app-shell,.app-shell h1,.app-shell h2,.app-shell h3,.app-shell h4,.app-shell p,
+.app-shell a,.app-shell button,.app-shell input,.app-shell textarea,.app-shell select,
+.app-shell label,.app-shell span,.app-shell strong,.app-shell small,.app-shell li,
+.app-shell summary,.auth-card h1{
+  font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif!important;
+}
+.mobile-brand{display:none}
+@media(max-width:700px){
+  .mobile-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:#252942;flex:0 0 auto}
+  .mobile-brand .brand-mark{width:31px;height:31px;border-radius:9px;font-size:16px}
+  .mobile-brand strong{font-size:19px;font-weight:800;letter-spacing:-.8px;color:#252942}
+  .mobile-brand strong span{color:#6746c7}
+  .topbar{justify-content:space-between}
+  .breadcrumb{display:none}
+  .top-actions{margin-left:auto}
+  .top-actions .profile-top-link{display:none}
+}
