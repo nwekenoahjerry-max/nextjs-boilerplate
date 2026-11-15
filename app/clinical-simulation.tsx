@@ -50,12 +50,9 @@ export default function ClinicalSimulation() {
   const runTurn=async (nextIntent:"start"|Intent,studentInput="")=>{
     setLoading(true);setError("");setShowModelAnswer(false);
     try{
-      const previousPrompt=current
-        ? "Current case: "+current.caseTitle+".\\nPatient information: "+current.patientBrief+"\\nStage: "+current.stage+"\\nTask: "+current.nextQuestion
-        : "Continue the clinical simulation.";
       const conversationHistory:Turn[]=nextIntent==="start"
         ? []
-        : [...history,{role:"assistant",content:previousPrompt},{role:"user",content:studentInput}];
+        : [...history,{role:"user",content:studentInput}];
       const response=await fetch("/api/learning/simulate",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({
@@ -68,10 +65,10 @@ export default function ClinicalSimulation() {
       if(!response.ok)throw new Error(data.error||"The simulation could not continue.");
       const next=data as SimulationResult;
       if(nextIntent==="start"){
-        setHistory([]);
+        setHistory([{role:"assistant",content:JSON.stringify(next)}]);
         setTurnCount(0);
       }else{
-        setHistory(conversationHistory);
+        setHistory([...conversationHistory,{role:"assistant",content:JSON.stringify(next)}]);
         setTurnCount(value=>value+1);
       }
       setCurrent(next);
