@@ -110,7 +110,7 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
     }
     text=pages.join("\n\n");
   } else {
-    throw new Error("Use a .pptx, .pdf, .docx, .txt or .md file. Older .ppt files should first be saved as .pptx.");
+    throw new Error("Use a .pptx, .pdf, .docx, .txt, .md or .csv file. Older .ppt files should first be saved as .pptx.");
   }
   text=text.replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();
   if(text.length<100) throw new Error("Very little selectable text was found. This may be a scanned/image-only slide deck. Upload a text-based file or paste the slide text.");

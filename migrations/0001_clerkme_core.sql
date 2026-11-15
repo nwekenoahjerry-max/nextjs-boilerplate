@@ -1,5 +1,5 @@
 -- Additive ClerkMe case-record schema.
--- Existing student_profiles, google_identities and sessions tables are retained.
+-- Requires the modern account schema created by 0000_student_auth.sql.
 CREATE TABLE IF NOT EXISTS cases (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,

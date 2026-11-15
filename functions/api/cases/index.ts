@@ -1,5 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, writeAudit, type AppContext, MAX_CASE_TEXT } from "../../_lib/auth";
-const allowedSpecialties = new Set(["general-medicine", "paediatrics", "obstetrics-gynaecology", "surgery", "emergency", "other"]);
+const allowedSpecialties = new Set(["general-medicine", "surgery", "paediatrics", "obstetrics-gynaecology", "emergency", "psychiatry", "community-medicine", "orthopaedics", "other"]);
 const section = (value: unknown) => {
   if (value === undefined) return "{}";
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Each clerking section must be a structured object.");
