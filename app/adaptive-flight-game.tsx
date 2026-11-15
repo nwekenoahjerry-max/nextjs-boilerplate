@@ -78,7 +78,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({materialId:chosenMaterial.id,count:25,level:"Mixed"})
       });
-      const data=await response.json().catch(()=>({error:"The AI service returned an unreadable response."}));
+      const data=await response.json().catch(()=>({error:"The question service returned an unreadable response."}));
       if(!response.ok) throw new Error(data.error||"Could not create questions from this material.");
       await reload();setStarted(false);setIndex(0);setSelected(null);
     } catch(e) { setError(e instanceof Error?e.message:"Question generation failed."); }
