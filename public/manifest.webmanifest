@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "ClerkMe — Clinical Clerking Companion",
+  "short_name": "ClerkMe",
+  "description": "A complaint-led clinical clerking and learning companion for medical students.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f6fc",
+  "theme_color": "#4b328c",
+  "categories": ["education", "medical"],
+  "icons": [
+    {
+      "src": "/clerkme-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
