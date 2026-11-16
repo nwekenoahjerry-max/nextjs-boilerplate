@@ -46,11 +46,12 @@ export const onRequestPost = async (context: AppContext) => {
         {
           role: "user",
           content: `Clinical unit: ${material.unit}. Document title: ${material.title}. Source filename: ${material.source_name}.
-Create a comprehensive, detailed and understandable study guide from the uploaded document. It must be useful for learning the topic for the first time and revising it before medical school examinations. Do not reduce the lecture to a brief abstract. Cover every major topic and preserve clinically important nuance. Explain the "what", "why" and "how" in connected prose; then reinforce with concise high-yield points. Use the selected unit to choose clinically relevant framing without adding facts that the source does not support.
+Create comprehensive High-Yield Points and a detailed teaching guide from the uploaded document. This is NOT a short summary or abstract. It must be substantial enough to teach the topic and support serious medical-school examination revision. Cover every major topic and preserve clinically important nuance. Explain the what, why and how in connected prose, then reinforce the explanations with specific, exam-relevant high-yield points. Use the selected clinical unit to choose relevant framing without adding facts that the source does not support.
 
 Return a JSON object with this exact shape:
 {
   "overview": "A clear 2-4 sentence orientation to the topic and why it matters.",
+  "highYieldPoints": ["12-20 important exam-relevant points drawn from the source. Each point should be explanatory, not merely a keyword or fragment: state the key fact, mechanism, distinction or criterion and briefly explain its clinical or examination significance. Preserve source-supported exceptions and caveats."],
   "learningObjectives": ["Specific things the student should be able to explain, recognise or apply after studying."],
   "sections": [
     {
@@ -87,6 +88,8 @@ Return a JSON object with this exact shape:
 }
 
 Quality requirements:
+- The highYieldPoints array is a core deliverable, not an optional add-on. Aim for 12-20 high-value points when the source contains enough material. Make each point useful on its own: include the key fact plus the reason, mechanism, clinical implication, distinguishing feature or examination trap. Avoid vague fragments such as a diagnosis name without an explanation.
+- This must read like a compact but substantial high-yield teaching chapter, not a shortened lecture summary. A student should be able to learn the central concepts from these notes, understand the mechanisms and use the notes for revision without losing important detail.
 - Include enough major sections to cover all headings and important subtopics in the source. Do not merge unrelated topics into one broad section.
 - For every major section, create focused subsections that explain the topic in depth. Use as many as the source requires; usually 2-6 meaningful subsections where appropriate. A subsection should teach the concept, not merely name it.
 - Where supported by the source, organise subsections around definitions, classification, aetiology and risk factors, pathophysiology, clinical features, investigations, diagnostic approach, management principles, complications, prognosis, prevention and relevant special situations. Omit categories that are not relevant or not covered by the source.
@@ -125,6 +128,7 @@ ${material.content_text}
     const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
     const summary = {
       overview: clean(parsed.overview, 2200),
+      highYieldPoints: asStrings(parsed.highYieldPoints, 24, 850),
       learningObjectives: asStrings(parsed.learningObjectives, 16, 500),
       sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
         const item = value as Record<string, unknown>;
@@ -184,14 +188,20 @@ ${material.content_text}
       disclaimer: clean(parsed.disclaimer, 700) || "These notes are based on the uploaded source. Check current local guidance where relevant."
     };
 
+    if (!summary.highYieldPoints.length) {
+      summary.highYieldPoints = Array.from(new Set([
+        ...examFocus.mustKnow,
+        ...summary.sections.flatMap(section => section.highYieldPoints)
+      ])).slice(0, 24);
+    }
     if (!summary.overview || !summary.sections.length) {
-      throw new Error("The AI did not return a complete structured summary. Please retry or upload a clearer document.");
+      throw new Error("The AI did not return a complete High-Yield Points study guide. Please retry or upload a clearer document.");
     }
     await context.env.DB.prepare(
       "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(JSON.stringify(summary), material.id, user.id).run();
     return json({ materialId: material.id, summary });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Could not summarise this material." }, 502);
+    return json({ error: error instanceof Error ? error.message : "Could not prepare High-Yield Points for this material." }, 502);
   }
 };
