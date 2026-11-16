@@ -52,6 +52,7 @@ Return a JSON object with this exact shape:
 {
   "overview": "A clear 2-4 sentence orientation to the topic and why it matters.",
   "highYieldPoints": ["12-20 important exam-relevant points drawn from the source. Each point should be explanatory, not merely a keyword or fragment: state the key fact, mechanism, distinction or criterion and briefly explain its clinical or examination significance. Preserve source-supported exceptions and caveats."],
+  "visualAids": [{"title":"A concise illustration title","caption":"What the visual teaches and how it relates to the source","altText":"A precise description of the intended image for screen-reader users","sourceSection":"The matching section heading","visualPrompt":"A detailed image-generation prompt for a medically responsible textbook-style schematic. No text, labels, lettering, numbers or watermarks."}],
   "learningObjectives": ["Specific things the student should be able to explain, recognise or apply after studying."],
   "sections": [
     {
@@ -98,6 +99,9 @@ Quality requirements:
 - Avoid thin summaries: do not reduce a full lecture to a few bullet points. Aim for a usable revision chapter that a student can study from, while clearly marking content that the source does not provide.
 - Make useful comparison tables for genuine contrasts such as classifications, differentials, investigations or treatment options. Do not invent tables just to fill space.
 - Include flowcharts only for processes or pathways that genuinely have an order; do not invent a clinical algorithm.
+- Provide up to 2 visual aids only when a picture would genuinely improve understanding. Prioritise a major anatomical relationship, physiological mechanism, pathophysiological sequence or clinically relevant process that is actually described in the source. Do not force an illustration for a topic that is better taught in words or a table.
+- Write each visualPrompt for a clean, professional undergraduate medical textbook schematic on a light background. Keep the anatomy or mechanism simple and source-grounded; use clear visual separation, restrained colours and a coherent composition. Do not ask the image model to render text, labels, arrows with words, letters, numbers, legends, logos or watermarks; ClerkMe will display the title and explanation separately.
+- Do not request a fabricated X-ray, MRI, CT, ECG tracing, histology slide, laboratory result or patient photograph. Do not depict unsupported anatomy, findings, treatment devices or disease mechanisms. Prefer conceptual schematic illustrations over apparent diagnostic evidence.
 - Create 3-5 video suggestions for the most difficult or high-value topics. Use only the channel names listed in the schema. Do not return URLs; ClerkMe will create safe YouTube search links for these topics.
 - Include exam-focus material only when it can be grounded in the uploaded source. Do not claim to predict the actual examination.
 - Use empty arrays when a category is not relevant. Never fill a section with unsupported general medical knowledge.
@@ -129,6 +133,16 @@ ${material.content_text}
     const summary = {
       overview: clean(parsed.overview, 2200),
       highYieldPoints: asStrings(parsed.highYieldPoints, 24, 850),
+      visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
+        const item = value as Record<string, unknown>;
+        return {
+          title: clean(item.title, 160),
+          caption: clean(item.caption, 650),
+          altText: clean(item.altText, 500),
+          sourceSection: clean(item.sourceSection, 180),
+          visualPrompt: clean(item.visualPrompt, 1800)
+        };
+      }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
       learningObjectives: asStrings(parsed.learningObjectives, 16, 500),
       sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
         const item = value as Record<string, unknown>;
