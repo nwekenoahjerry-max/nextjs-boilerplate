@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -216,6 +216,6 @@ ${material.content_text}
     ).bind(JSON.stringify(summary), material.id, user.id).run();
     return json({ materialId: material.id, summary });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Could not prepare High-Yield Points for this material." }, 502);
+    return aiFailureResponse(error, "Could not prepare High-Yield Points right now. Your uploaded material is still saved; please try again later.");
   }
 };
