@@ -76,6 +76,8 @@ function formatTimer(seconds:number) {
   const safe = Math.max(0,Math.floor(seconds));
   return String(Math.floor(safe/60)).padStart(2,"0")+":"+String(safe%60).padStart(2,"0");
 }
+const ACTIVE_LIVE_MATERIAL_KEY = "clerkme:live-test:active-material";
+const liveSessionKey = (materialId:string) => "clerkme:live-test:"+materialId;
 
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
@@ -101,6 +103,7 @@ export default function MaterialsPanel() {
   const [remainingSeconds,setRemainingSeconds] = useState(20*60);
   const [liveElapsedSeconds,setLiveElapsedSeconds] = useState(0);
   const [liveTimedOut,setLiveTimedOut] = useState(false);
+  const [sessionHydratedFor,setSessionHydratedFor] = useState("");
   const [question,setQuestion] = useState("");
   const [answer,setAnswer] = useState<TutorAnswer|null>(null);
   const [answering,setAnswering] = useState(false);
@@ -125,11 +128,88 @@ export default function MaterialsPanel() {
     const data = await readResponse(response);
     const next = Array.isArray(data.materials) ? data.materials as StudyMaterial[] : [];
     setMaterials(next);
-    if (!preserveId || !next.some(item=>item.id===selectedId)) setSelectedId(next[0]?.id || "");
+    if (!preserveId || !next.some(item=>item.id===selectedId)) {
+      let savedMaterialId = "";
+      try { savedMaterialId = window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY) || ""; } catch {}
+      const savedMaterialExists = savedMaterialId && next.some(item=>item.id===savedMaterialId);
+      if (savedMaterialId && !savedMaterialExists) {
+        try { window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY); } catch {}
+      }
+      setSelectedId(savedMaterialExists ? savedMaterialId : next[0]?.id || "");
+    }
     return next;
   };
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
+
+  useEffect(()=>{
+    if (!selectedId) return;
+    let restored = false;
+    try {
+      const raw = window.sessionStorage.getItem(liveSessionKey(selectedId));
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string,unknown>;
+        const deadline = Number(saved.deadline);
+        const startedAt = Number(saved.startedAt);
+        const durationSeconds = Number(saved.durationSeconds);
+        if (Number.isFinite(deadline) && deadline>0 && Number.isFinite(startedAt) && startedAt>0 &&
+            Number.isInteger(durationSeconds) && durationSeconds>=5*60 && durationSeconds<=180*60) {
+          const savedIndex = Number(saved.questionIndex);
+          const safeIndex = Number.isInteger(savedIndex) ? Math.max(0,Math.min(Math.max(0,activeQuestions.length-1),savedIndex)) : 0;
+          const sourceAnswers = saved.answers && typeof saved.answers==="object" ? saved.answers as Record<string,unknown> : {};
+          const safeAnswers:Record<number,number> = {};
+          for (const [key,value] of Object.entries(sourceAnswers)) {
+            const questionNumber = Number(key);
+            if (Number.isInteger(questionNumber) && questionNumber>=0 && questionNumber<activeQuestions.length &&
+                Number.isInteger(value) && Number(value)>=0 && Number(value)<4) {
+              safeAnswers[questionNumber] = Number(value);
+            }
+          }
+          setQuizMode("live");
+          setQuestionIndex(safeIndex);
+          setQuestionAnswers(safeAnswers);
+          setQuizFinished(false);
+          setLiveTimedOut(false);
+          setLiveStartedAt(startedAt);
+          setLiveDurationSeconds(durationSeconds);
+          setLiveDeadline(deadline);
+          setRemainingSeconds(Math.max(0,Math.ceil((deadline-Date.now())/1000)));
+          setLiveElapsedSeconds(Math.min(durationSeconds,Math.max(0,Math.floor((Date.now()-startedAt)/1000))));
+          setTab("questions");
+          restored = true;
+        } else {
+          window.sessionStorage.removeItem(liveSessionKey(selectedId));
+          if (window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY)===selectedId) window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
+        }
+      }
+    } catch {
+      try {
+        window.sessionStorage.removeItem(liveSessionKey(selectedId));
+        if (window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY)===selectedId) window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
+      } catch {}
+    }
+    setSessionHydratedFor(selectedId);
+    if (!restored) setQuizMode("practice");
+  },[selectedId]);
+
+  useEffect(()=>{
+    if (!selectedId || sessionHydratedFor!==selectedId) return;
+    try {
+      if (quizMode==="live" && liveDeadline!==null && liveStartedAt!==null && !quizFinished) {
+        window.sessionStorage.setItem(ACTIVE_LIVE_MATERIAL_KEY,selectedId);
+        window.sessionStorage.setItem(liveSessionKey(selectedId),JSON.stringify({
+          deadline:liveDeadline,
+          startedAt:liveStartedAt,
+          durationSeconds:liveDurationSeconds,
+          questionIndex,
+          answers:questionAnswers
+        }));
+      } else {
+        window.sessionStorage.removeItem(liveSessionKey(selectedId));
+        if (window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY)===selectedId) window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
+      }
+    } catch {}
+  },[selectedId,sessionHydratedFor,quizMode,liveDeadline,liveStartedAt,liveDurationSeconds,questionIndex,questionAnswers,quizFinished]);
 
   useEffect(()=>{
     if (quizMode!=="live" || liveDeadline===null || quizFinished) return;
@@ -138,7 +218,7 @@ export default function MaterialsPanel() {
       setRemainingSeconds(secondsLeft);
       if (secondsLeft===0) {
         setLiveTimedOut(true);
-        setLiveElapsedSeconds(liveStartedAt===null ? liveDurationSeconds : Math.min(liveDurationSeconds,Math.max(0,Math.floor((Date.now()-liveStartedAt)/1000))));
+        setLiveElapsedSeconds(liveDurationSeconds);
         setQuizFinished(true);
         setLiveDeadline(null);
       }
@@ -434,7 +514,7 @@ export default function MaterialsPanel() {
             {quizMode==="live" && liveDeadline===null && !quizFinished && <section className="study-live-setup">
               <div className="eyebrow">EXAM SIMULATION SETTINGS</div>
               <h3>Set your time before you begin</h3>
-              <p>This is the total time for the entire question set, not time per question. You can move between questions and change your selected answers until you submit or the timer reaches zero.</p>
+              <p>This is the total time for the entire question set, not time per question. You can move between questions and change your selected answers until you submit or the timer reaches zero. The clock continues if you move to another ClerkMe section and return.</p>
               <div className="study-live-setup-fields">
                 <label>Total time allowed
                   <select value={durationChoice} onChange={event=>setDurationChoice(event.target.value)}>
