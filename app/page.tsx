@@ -30,6 +30,61 @@ const templates = [
 ];
 
 
+const publicFeatureCards = [
+  {number:"01",title:"Structured clinical clerking",description:"Work from biodata through presenting complaint, history, examination, assessment and case presentation.",detail:"A complete, guided workflow"},
+  {number:"02",title:"Clinical guides",description:"Find specialty- and presenting-complaint-based questions, red flags and examination priorities.",detail:"Eight clinical units"},
+  {number:"03",title:"Clinical simulation",description:"Practise patient interviews with interactive responses, optional voice exchange and examiner-style feedback.",detail:"Patient interview practice"},
+  {number:"04",title:"OSCE and Viva",description:"Prepare for practical stations and oral examinations with focused prompts and teaching points.",detail:"Practical exam preparation"},
+  {number:"05",title:"Question bank",description:"Revise with clinical questions organised by topic, unit and difficulty.",detail:"Active recall"},
+  {number:"06",title:"Flight Academy",description:"Turn revision into a responsive question-led game with automatic progression and a three-failure limit.",detail:"Learn while you play"},
+  {number:"07",title:"Your study materials",description:"Upload lecture notes and slides, build structured summaries and generate questions directly from your sources.",detail:"Your own lectures become practice"},
+  {number:"08",title:"Private case library",description:"Keep your learning cases, clerking records and progress together in your personal workspace.",detail:"Account-protected workspace"},
+];
+
+function ClerkMeBrand({caption="CLINICAL LEARNING WORKSPACE"}:{caption?:string}) {
+  return <a className="brand public-brand" href="/" aria-label="ClerkME home"><span className="brand-mark">C<span>M</span></span><span><strong>Clerk<span>ME</span></strong><small>{caption}</small></span></a>;
+}
+
+function PublicLanding() {
+  return <main className="public-landing">
+    <header className="public-header">
+      <ClerkMeBrand/>
+      <nav aria-label="Public navigation"><a href="#features">Explore features</a><a href="#how-it-works">How it works</a></nav>
+      <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
+    </header>
+    <section className="public-hero">
+      <div className="public-hero-copy">
+        <span className="public-eyebrow"><i/> CLINICAL LEARNING, BUILT AROUND YOU</span>
+        <h1>Build clinical confidence.<br/><em>One patient at a time.</em></h1>
+        <p>ClerkME brings guided clerking, clinical learning, examination practice and interactive simulation into one focused workspace for medical students.</p>
+        <div className="public-hero-actions"><a className="public-primary-cta" href="/login">Enter your workspace <span>→</span></a><a className="public-secondary-cta" href="#features">Explore what’s inside</a></div>
+        <div className="public-trust-line"><span>CLERK</span><b>·</b><span>LEARN</span><b>·</b><span>PRACTISE</span><b>·</b><span>IMPROVE</span></div>
+      </div>
+      <div className="public-hero-visual" aria-label="ClerkME learning workflow preview">
+        <div className="public-preview-card">
+          <div className="public-preview-top"><span className="public-preview-dot"/> YOUR CLINICAL WORKSPACE <span>PREVIEW</span></div>
+          <div className="public-preview-title">From first question to confident presentation.</div>
+          <div className="public-preview-step"><span>01</span><div><strong>Clerk with structure</strong><small>History · Examination · Assessment</small></div><b>✓</b></div>
+          <div className="public-preview-step"><span>02</span><div><strong>Learn from your materials</strong><small>Lecture notes · Summaries · Question sets</small></div><b>✓</b></div>
+          <div className="public-preview-step"><span>03</span><div><strong>Practise and improve</strong><small>OSCE · Viva · Simulation · Flight Academy</small></div><b>✓</b></div>
+          <div className="public-preview-foot"><span>CLERKME</span><strong>LEARN WITH PURPOSE</strong></div>
+        </div>
+        <div className="public-floating-note"><span>✦</span> Your learning, in one place</div>
+      </div>
+    </section>
+    <section className="public-feature-section" id="features">
+      <div className="public-section-heading"><div><span className="public-eyebrow">ONE WORKSPACE · MULTIPLE WAYS TO GROW</span><h2>Everything you need to practise with purpose.</h2></div><p>Explore the tools before signing in. Your personal workspace opens after authentication.</p></div>
+      <div className="public-feature-grid">{publicFeatureCards.map(item=><a className="public-feature-card" href="/login" key={item.number}><span className="public-feature-number">{item.number}</span><strong>{item.title}</strong><p>{item.description}</p><span className="public-feature-detail">{item.detail}</span><b>Sign in to access <i>→</i></b></a>)}</div>
+    </section>
+    <section className="public-how-section" id="how-it-works">
+      <div><span className="public-eyebrow">A SIMPLE LEARNING LOOP</span><h2>Prepare. Practise. Progress.</h2><p>Bring your study resources, work through structured clinical tasks and use feedback to identify what to improve next.</p></div>
+      <div className="public-how-steps"><div><span>01</span><strong>Sign in securely</strong><p>Open your account and private learning workspace.</p></div><div><span>02</span><strong>Choose your focus</strong><p>Select a clinical unit, guide, simulation or revision tool.</p></div><div><span>03</span><strong>Build your skills</strong><p>Practise, review your performance and keep learning.</p></div></div>
+    </section>
+    <section className="public-bottom-cta"><div><span className="public-eyebrow">READY TO GET STARTED?</span><h2>Your next clinical learning session starts here.</h2><p>Sign in to access the tools and your private materials.</p></div><a className="public-primary-cta" href="/login">Sign in to ClerkME <span>→</span></a></section>
+    <footer className="public-footer"><ClerkMeBrand caption="CLINICAL CLERKING & LEARNING"/><p>ClerkME is an educational learning companion. It does not replace clinical supervision, institutional protocols or professional judgement. Do not upload identifiable patient information.</p><span>© {new Date().getFullYear()} ClerkME</span></footer>
+  </main>;
+}
+
 export default function Home() {
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
@@ -50,6 +105,7 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{name:string;email:string}|null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
   const [caseList, setCaseList] = useState<Array<{id:string;title:string;case_reference:string;specialty:string;presenting_complaint:string;status:string;updated_at:string}>>([]);
   const [saving, setSaving] = useState(false);
@@ -66,7 +122,15 @@ export default function Home() {
   const [assessment, setAssessment] = useState("");
   const [differentials, setDifferentials] = useState("");
   const [plan, setPlan] = useState("");
-  useEffect(() => { fetch("/api/auth/me").then(r => r.ok ? r.json() : null).then(d => { if (d?.user) setAuthUser(d.user); }).catch(() => {}); }, []);
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/auth/me", {credentials:"same-origin",cache:"no-store"})
+      .then(response => response.ok ? response.json() : null)
+      .then(data => { if(mounted && data?.user) setAuthUser(data.user); })
+      .catch(() => {})
+      .finally(() => { if(mounted) setAuthLoading(false); });
+    return () => { mounted = false; };
+  }, []);
   useEffect(() => { if(!authUser)return; fetch("/api/activity",{method:"POST",credentials:"same-origin"}).then(r=>r.ok?r.json():null).then(d=>{if(d)setStreakData(d);}).catch(()=>{}); },[authUser]);
   useEffect(() => {
     const navigate = (event: Event) => {
@@ -95,12 +159,15 @@ export default function Home() {
     finally { setOrganiseLoading(false); }
   };
 
+  if(authLoading) return <main className="public-loading"><ClerkMeBrand/><span>Preparing your workspace…</span></main>;
+  if(!authUser) return <PublicLanding/>;
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <a className="brand" href="#overview" onClick={() => setActive("overview")}>
-          <span className="brand-mark">C<span>+</span></span>
-          <span><strong>clerk<span>me</span></strong><small>CLINICAL COMPANION</small></span>
+          <span className="brand-mark">C<span>M</span></span>
+          <span><strong>Clerk<span>ME</span></strong><small>CLINICAL COMPANION</small></span>
         </a>
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">WORKSPACE</div>
@@ -148,7 +215,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>+</span></span><strong>clerk<span>me</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
+        <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>M</span></span><strong>Clerk<span>ME</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>•</span> Learn • Practise • Improve</div></div>
@@ -164,7 +231,7 @@ export default function Home() {
               <button className="tool-card" onClick={() => setActive("simulation")}><span className="tool-icon lilac">◉</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Work through fictional cases and get examiner-style feedback.</span><span className="tool-arrow">↗</span></button>
               <button className="tool-card" onClick={() => setActive("game")}><span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Practise with questions adapted to your unit and study materials.</span><span className="tool-arrow">↗</span></button>
             </div>
-            <div className="lower-grid"><section className="panel"><div className="panel-heading"><div><h3>Popular clerking templates</h3><p>Choose a structure to guide your assessment.</p></div><button className="text-link" onClick={() => setActive("clerking")}>See all →</button></div><div className="template-list">{templates.map(t => <button className="template-row" key={t.title} onClick={startClerking}><span className="template-icon">{t.icon}</span><span className="template-info"><strong>{t.title}</strong><small>{t.detail}</small></span><span className="template-tag">{t.tag}</span><span className="row-arrow">↗</span></button>)}</div></section><section className="tip-panel"><div className="tip-symbol">◉</div><div className="eyebrow">CLINICAL PEARL</div><h3>Listen before you lead.</h3><p>Begin with an open question. Allow the patient to tell their story before narrowing the history with focused questions.</p><div className="tip-footer">THE ART OF CLINICAL CLERKING <span>01 / 05</span></div></section></div>
+            <div className="lower-grid"><section className="panel"><div className="panel-heading"><div><h3>Popular clerking templates</h3><p>Choose a structure to guide your assessment.</p></div><button className="text-link" onClick={() => setActive("clerking")}>See all →</button></div><div className="template-list">{templates.map(t => <button className="template-row" key={t.title} onClick={startClerking}><span className="template-icon">{t.icon}</span><span className="template-info"><strong>{t.title}</strong><small>{t.detail}</small></span><span className="template-tag">{t.tag}</span><span className="row-arrow">↗</span></button>)}</div></section></div>
             <footer className="footer-note">ClerkMe is a learning and documentation companion. Clinical decisions must always be made by a qualified healthcare professional.</footer>
           </>}
 

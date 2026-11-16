@@ -17,6 +17,23 @@ type ActiveCase = {
   setting: string;
   openingMessage: string;
 };
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<{ isFinal: boolean; 0?: { transcript: string } }>;
+};
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructorLike = new () => SpeechRecognitionLike;
+
 type CaseReview = {
   score: number;
   scoreLabel: string;
@@ -45,7 +62,13 @@ export default function ClinicalSimulation() {
   const [loadingMode, setLoadingMode] = useState<"start" | "ask" | "review" | "">("");
   const [error, setError] = useState("");
   const [turnCount, setTurnCount] = useState(0);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState("");
+  const [patientVoiceEnabled, setPatientVoiceEnabled] = useState(true);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const sessionEndedRef = useRef(false);
 
   const unitName = clinicalUnits.find(item => item.id === unit)?.name || unit;
   const unitCases = useMemo(() => simulationCaseOptions[unit] || [], [unit]);
@@ -66,7 +89,95 @@ export default function ClinicalSimulation() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [conversation, loading]);
 
+  const speakPatient = (content: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || !patientVoiceEnabled) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(content);
+    const availableVoices = window.speechSynthesis.getVoices();
+    const preferredVoice = availableVoices.find(voice => /^en(-|_)/i.test(voice.lang) && /female|woman|serena|susan|samantha|google uk english/i.test(`${voice.name} ${voice.lang}`))
+      || availableVoices.find(voice => /^en(-|_)/i.test(voice.lang));
+    if (preferredVoice) utterance.voice = preferredVoice;
+    utterance.lang = preferredVoice?.lang || "en-GB";
+    utterance.rate = 0.94;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopVoiceInput = () => {
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setIsListening(false);
+  };
+
+  const startVoiceInput = () => {
+    if (typeof window === "undefined") return;
+    const speechWindow = window as Window & {
+      SpeechRecognition?: SpeechRecognitionConstructorLike;
+      webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+    };
+    const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      setVoiceNotice("Voice input is not supported in this browser. You can still type your questions.");
+      return;
+    }
+    if (isListening) {
+      stopVoiceInput();
+      return;
+    }
+    try {
+      const recognition = new Recognition();
+      recognition.lang = "en-GB";
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results)
+          .slice(event.resultIndex)
+          .filter(result => result.isFinal)
+          .map(result => result[0]?.transcript || "")
+          .join(" ")
+          .trim();
+        if (transcript) {
+          setQuestion(current => `${current.trim()} ${transcript}`.trim());
+          setVoiceNotice("Voice captured. Review the transcript, then send it to the patient.");
+        }
+      };
+      recognition.onerror = event => {
+        const messages: Record<string, string> = {
+          "not-allowed": "Microphone access was blocked. Allow microphone access in your browser settings and try again.",
+          "no-speech": "No speech was detected. Please try again or type your question.",
+          "audio-capture": "No microphone was found. Connect a microphone or type your question.",
+          "network": "Voice recognition could not connect. Please type your question instead.",
+        };
+        setVoiceNotice(messages[event.error] || "Voice input stopped. You can try again or type your question.");
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+      setIsListening(true);
+      setVoiceNotice("Listening… Speak clearly, then stop or pause. Your transcript will appear in the question box.");
+    } catch {
+      setIsListening(false);
+      setVoiceNotice("The microphone could not be started. Check browser permissions and try again.");
+    }
+  };
+
+  const printCasePresentation = () => {
+    if (typeof window !== "undefined") {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      window.print();
+    }
+  };
+
   const resetSession = () => {
+    sessionEndedRef.current = false;
+    stopVoiceInput();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSessionEnded(false);
+    setVoiceNotice("");
     setActiveCase(null);
     setConversation([]);
     setQuestion("");
@@ -101,6 +212,8 @@ export default function ClinicalSimulation() {
     setError("");
     try {
       const data = await postSimulation({ unit, caseId: selectedCase.id, intent: "start", materialId: materialId || undefined });
+      sessionEndedRef.current = false;
+      setSessionEnded(false);
       setActiveCase({
         ...(data.case as Omit<ActiveCase, "openingMessage">),
         openingMessage: data.openingMessage as string,
@@ -109,6 +222,7 @@ export default function ClinicalSimulation() {
       setReview(null);
       setQuestion("");
       setTurnCount(0);
+      if (patientVoiceEnabled) speakPatient(data.openingMessage as string);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The case could not be started.");
     } finally {
@@ -133,9 +247,11 @@ export default function ClinicalSimulation() {
         history: conversation,
       });
       const reply = typeof data.patientReply === "string" ? data.patientReply : "I am not sure, doctor.";
+      if (sessionEndedRef.current) return;
       setConversation(current => [...current, { role: "student", content: prompt }, { role: "patient", content: reply }]);
       setQuestion("");
       setTurnCount(value => value + 1);
+      if (patientVoiceEnabled) speakPatient(reply);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The patient could not respond. Please try again.");
     } finally {
@@ -178,6 +294,17 @@ export default function ClinicalSimulation() {
       setLoading(false);
       setLoadingMode("");
     }
+  };
+
+  const endSession = async () => {
+    if (!activeCase) return;
+    sessionEndedRef.current = true;
+    setSessionEnded(true);
+    setQuestion("");
+    setVoiceNotice("");
+    stopVoiceInput();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    if (conversation.length >= 2 && !loading && !review) await requestReview();
   };
 
   const renderList = (items: string[]) => items.length
@@ -250,7 +377,9 @@ export default function ClinicalSimulation() {
               <p>{activeCase.sex} · {activeCase.role} · {activeCase.setting}</p>
             </div>
             <div className="simulation-case-banner-actions">
-              <span className="simulation-case-status">Interview in progress</span>
+              <span className={sessionEnded ? "simulation-case-status ended" : "simulation-case-status"}>{sessionEnded ? "Session ended" : "Interview in progress"}</span>
+              <button className="secondary-button" type="button" onClick={printCasePresentation}>Print case</button>
+              {!sessionEnded && <button className="simulation-end-button" type="button" onClick={endSession}>End session</button>}
               <button className="secondary-button" type="button" onClick={() => resetSession()}>Change case</button>
             </div>
           </section>
@@ -262,14 +391,14 @@ export default function ClinicalSimulation() {
             </div>
             <div className="simulation-chat-log" role="log" aria-live="polite" aria-relevant="additions text">
               <div className="simulation-chat-intro">
-                <span className="simulation-chat-person">{activeCase.role}</span>
+                <div className="simulation-chat-message-meta"><span className="simulation-chat-person">{activeCase.role}</span><button className="simulation-play-voice" type="button" onClick={() => speakPatient(activeCase.openingMessage)} disabled={!patientVoiceEnabled}>▶ Listen</button></div>
                 <p>{activeCase.openingMessage}</p>
               </div>
               {conversation.slice(1).map((turn, index) => (
                 <div className={turn.role === "student" ? "simulation-chat-row student" : "simulation-chat-row patient"} key={index}>
                   {turn.role === "patient" && <span className="simulation-chat-person">{activeCase.name.split(" ")[0]}</span>}
                   <div className="simulation-chat-bubble">
-                    <small>{turn.role === "student" ? "You" : activeCase.role}</small>
+                    <div className="simulation-chat-message-meta"><small>{turn.role === "student" ? "You" : activeCase.role}</small>{turn.role === "patient" && <button className="simulation-play-voice" type="button" onClick={() => speakPatient(turn.content)} disabled={!patientVoiceEnabled}>▶ Listen</button>}</div>
                     <p>{turn.content}</p>
                   </div>
                 </div>
@@ -278,15 +407,31 @@ export default function ClinicalSimulation() {
               <div ref={chatEndRef}/>
             </div>
 
-            <form className="simulation-question-form" onSubmit={event => { event.preventDefault(); askPatient(); }}>
-              <label htmlFor="patient-question">Ask the patient a question</label>
-              <textarea id="patient-question" rows={2} value={question} onChange={event => setQuestion(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); askPatient(); } }} placeholder="For example: When did the pain begin? Does it spread anywhere? What makes it worse?" disabled={loading}/>
+            {!sessionEnded ? <form className="simulation-question-form" onSubmit={event => { event.preventDefault(); askPatient(); }}>
+              <label htmlFor="patient-question">Ask or speak to the patient</label>
+              <textarea id="patient-question" rows={3} value={question} onChange={event => setQuestion(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); askPatient(); } }} placeholder="Type a question, or use the microphone to ask it aloud…" disabled={loading}/>
+              <div className="simulation-voice-controls">
+                <button className={isListening ? "simulation-voice-button listening" : "simulation-voice-button"} type="button" onClick={startVoiceInput} disabled={loading}>
+                  <span aria-hidden="true">{isListening ? "■" : "🎙"}</span> {isListening ? "Stop listening" : "Speak your question"}
+                </button>
+                <button className={patientVoiceEnabled ? "simulation-patient-voice-toggle active" : "simulation-patient-voice-toggle"} type="button" onClick={() => { if (patientVoiceEnabled && typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel(); setPatientVoiceEnabled(value => !value); }} aria-pressed={patientVoiceEnabled}>
+                  {patientVoiceEnabled ? "Patient voice: on" : "Patient voice: off"}
+                </button>
+                <span>Speak naturally. Your words are transcribed for review before sending.</span>
+              </div>
+              {voiceNotice && <p className="simulation-voice-notice" role="status">{voiceNotice}</p>}
               <div className="simulation-question-form-footer">
-                <span>Ask in your own words. Press Enter to send or Shift + Enter for a new line.</span>
+                <span>Type or speak your question. Press Enter to send or Shift + Enter for a new line.</span>
                 <button className="primary-button" type="submit" disabled={loading || question.trim().length < 2}>{loadingMode === "ask" ? "Waiting for patient…" : "Send question"} <span>→</span></button>
               </div>
-            </form>
-          </section>
+            </form> : <div className="simulation-ended-panel">
+              <div><span className="eyebrow">SESSION ENDED</span><h3>Your interview has ended</h3><p>{review ? "Your structured review is ready below. Print the case presentation whenever you are ready." : conversation.length < 2 ? "You ended the interview before enough questions were asked for a structured review. You can still print the case and transcript." : loading ? "Your structured review is being prepared." : "The interview has ended. You can print the case presentation or generate a review from the conversation."}</p></div>
+              <div className="simulation-ended-actions">
+                <button className="secondary-button" type="button" onClick={() => { sessionEndedRef.current = false; setSessionEnded(false); }}>Continue interview</button>
+                <button className="primary-button" type="button" onClick={printCasePresentation}>Print case presentation</button>
+              </div>
+            </div>}
+            </section>
 
           {review && <section className="simulation-review-card">
             <div className="simulation-review-heading"><div><div className="eyebrow">SUPERVISOR'S REVIEW</div><h3>{review.scoreLabel || "History-taking review"}</h3></div><div className="simulation-review-score"><strong>{review.score}</strong><span>/100</span></div></div>
@@ -301,16 +446,26 @@ export default function ClinicalSimulation() {
             {review.modelSummary && <div className="simulation-model-summary"><h4>Suggested history summary</h4><p>{review.modelSummary}</p></div>}
             {!!review.nextSteps.length && <div className="simulation-next-steps"><h4>What to do next</h4>{renderList(review.nextSteps)}</div>}
             {review.safetyNote && <p className="simulation-review-safety">{review.safetyNote}</p>}
-            <div className="simulation-review-actions"><button className="secondary-button" onClick={() => setReview(null)}>Continue interview</button><button className="primary-button" onClick={() => resetSession()}>Finish and choose another case →</button></div>
+            <div className="simulation-review-actions"><button className="secondary-button" onClick={printCasePresentation}>Print case presentation</button><button className="secondary-button" onClick={() => { sessionEndedRef.current = false; setSessionEnded(false); setReview(null); }}>Continue interview</button><button className="primary-button" onClick={() => resetSession()}>Finish and choose another case →</button></div>
           </section>}
 
           <div className="simulation-session-footer">
             <span>Fictional educational case · Do not enter identifiable real patient information</span>
-            <button className="text-link" onClick={requestReview} disabled={loading || conversation.length < 2}>
-              {loadingMode === "review" ? "Reviewing your history…" : "Review my history"} <span>→</span>
-            </button>
+            <div className="simulation-footer-actions"><button className="secondary-button" type="button" onClick={printCasePresentation}>Print case</button><button className="text-link" type="button" onClick={requestReview} disabled={loading || conversation.length < 2 || Boolean(review)}>
+              {loadingMode === "review" ? "Reviewing your history…" : review ? "Review complete" : "Review my history"} <span>→</span>
+            </button></div>
           </div>
           {error && <p className="auth-error simulation-error">{error}</p>}
+          <section className="simulation-print-report" aria-hidden="true">
+            <header><div className="print-brand">CLERKME</div><div>Clinical case presentation</div><small>Generated {new Date().toLocaleString("en-GB")}</small></header>
+            <h1>{activeCase.complaint}</h1>
+            <h2>Patient details</h2>
+            <dl className="simulation-print-details"><div><dt>Patient</dt><dd>{activeCase.name}</dd></div><div><dt>Age</dt><dd>{activeCase.age}</dd></div><div><dt>Sex</dt><dd>{activeCase.sex}</dd></div><div><dt>Informant / role</dt><dd>{activeCase.role}</dd></div><div><dt>Clinical unit</dt><dd>{unitName}</dd></div><div><dt>Setting</dt><dd>{activeCase.setting}</dd></div></dl>
+            <h2>Interview transcript</h2>
+            <ol className="simulation-print-transcript">{conversation.map((turn, index) => <li key={index}><strong>{turn.role === "student" ? "Student" : activeCase.name}</strong><p>{turn.content}</p></li>)}</ol>
+            {review ? <section className="simulation-print-review"><h2>Structured clerking review</h2><p><strong>Score:</strong> {review.score}/100 · {review.scoreLabel}</p><p>{review.feedback}</p><h3>What was covered well</h3><ul>{review.strengths.map((item,index)=><li key={index}>{item}</li>)}</ul><h3>Areas to improve</h3><ul>{review.corrections.map((item,index)=><li key={index}>{item}</li>)}</ul><h3>Safety questions not yet covered</h3><ul>{review.redFlagsMissed.map((item,index)=><li key={index}>{item}</li>)}</ul>{review.clinicalReasoning && <><h3>Clinical reasoning</h3><p>{review.clinicalReasoning}</p></>}{review.workingDiagnosis && <><h3>Working diagnosis</h3><p>{review.workingDiagnosis}</p></>}{review.differentialDiagnoses.length>0 && <><h3>Differential diagnoses</h3><ul>{review.differentialDiagnoses.map((item,index)=><li key={index}>{item}</li>)}</ul></>}{review.modelSummary && <><h3>Suggested case summary</h3><p>{review.modelSummary}</p></>}{review.nextSteps.length>0 && <><h3>Suggested next steps</h3><ul>{review.nextSteps.map((item,index)=><li key={index}>{item}</li>)}</ul></>}{review.safetyNote && <p>{review.safetyNote}</p>}</section> : <p className="simulation-print-note">A structured review was not generated for this interview.</p>}
+            <footer>Fictional educational case. This report is for learning and presentation practice only; verify all clinical information and follow local supervision and documentation requirements.</footer>
+          </section>
         </div>
       )}
 
