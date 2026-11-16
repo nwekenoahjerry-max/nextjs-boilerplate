@@ -17,7 +17,7 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   let raw = outer?.response ?? outer?.result?.response ?? value;
   if (typeof raw === "object" && raw !== null) return raw as Record<string, unknown>;
   if (typeof raw !== "string") throw new Error("The illustration planner returned an unexpected response.");
-  let text = raw.trim().replace(/^\`\`\`(?:json)?\\s*/i, "").replace(/\\s*\`\`\`$/i, "");
+  let text = raw.trim().replace(/^\`\`\`(?:json)?\s*/i, "").replace(/\s*\`\`\`$/i, "");
   const start = text.indexOf("{"), end = text.lastIndexOf("}");
   if (start >= 0 && end > start) text = text.slice(start, end + 1);
   return JSON.parse(text) as Record<string, unknown>;
@@ -47,7 +47,7 @@ function imagePrompt(aid: VisualAid) {
     "The illustration is for learning only and must not look like diagnostic evidence.",
     "Topic: " + aid.title,
     "Visual brief: " + aid.visualPrompt
-  ].join("\\n");
+  ].join("\n");
 }
 
 export const onRequestPost = async (context: AppContext) => {
@@ -146,7 +146,7 @@ ${material.content_text.slice(0, 22000)}
       if (typeof rawImage !== "string" || !rawImage.trim()) {
         throw new Error("The image model returned no image.");
       }
-      const image = rawImage.replace(/\\s/g, "");
+      const image = rawImage.replace(/\s/g, "");
       if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image)) {
         throw new Error("The image data was not valid.");
       }
