@@ -9,9 +9,9 @@ ClerkMe is a clinical clerking and learning platform for medical students and cl
 - Guided prompts, documentation examples, clinical reasoning, red flags, common omissions and final quality checks.
 - Presentation-based guides that reuse the unit-specific clinical case library.
 - Private, account-scoped study-material library. Students can upload PDF, PPTX, DOCX, TXT, MD and CSV files, select a unit and organise their materials.
-- AI-generated structured summaries with learning objectives, clear explanatory sections, clinical relevance, high-yield points, tables, key terms, revision questions and topics to verify.
+- AI-generated, exam-ready study guides with detailed explanations, learning objectives, high-yield facts, short-note themes, viva practice, comparison tables, visual process flows, topic-specific YouTube searches and source-coverage checks.
 - Source-grounded AI tutor for questions about a selected uploaded document. The tutor separates source-supported content from supplementary explanation and reports limitations.
-- Question-bank generation from uploaded study materials. Generated questions are retained against the material and served by the selected clinical unit.
+- Validated single-best-answer question generation from uploaded study materials, with configurable set size and difficulty, duplicate checks, a top-up attempt for incomplete sets and integration with the unit's core question bank.
 - Unit- and material-adaptive Flight Academy game.
 - Interactive AI clinical simulation with fictional cases, staged questions, answer assessment, corrections, reasoning and direct tutor-style question answering.
 - Existing case records, student activity tracking and account-specific access controls.

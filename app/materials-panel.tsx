@@ -22,6 +22,14 @@ type StudySummary = {
   revisionQuestions?: Array<{question:string;answer:string}>;
   unclearOrMissing?: string[];
   sourceCoverage?: string[];
+  examFocus?: {
+    mustKnow: string[];
+    likelyShortNotes: string[];
+    vivaQuestions: Array<{question:string;answer:string}>;
+    clinicalApplications: string[];
+  } | null;
+  flowcharts?: Array<{title:string;steps:string[];takeaway?:string}>;
+  videoSuggestions?: Array<{topic:string;whyWatch:string;channel:string}>;
   disclaimer?: string;
 };
 type MaterialQuestion = {
@@ -79,6 +87,8 @@ export default function MaterialsPanel() {
   const [question,setQuestion] = useState("");
   const [answer,setAnswer] = useState<TutorAnswer|null>(null);
   const [answering,setAnswering] = useState(false);
+  const [questionCount,setQuestionCount] = useState(25);
+  const [questionDifficulty,setQuestionDifficulty] = useState("Mixed");
 
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
@@ -141,11 +151,15 @@ export default function MaterialsPanel() {
     try {
       const response = await fetch("/api/learning/generate",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({materialId:selectedMaterial.id,count:25,level:"Mixed"})
+        body:JSON.stringify({materialId:selectedMaterial.id,count:questionCount,level:questionDifficulty})
       });
       const data = await readResponse(response);
       await loadMaterials(true);
-      setNotice(`Created ${data.generated || data.questions?.length || 0} questions from ${selectedMaterial.title}. They are now available in the Question Bank and Flight Game.`);
+      const generated = Number(data.generated || data.questions?.length || 0);
+      const requested = Number(data.requested || questionCount);
+      setNotice(data.complete === false
+        ? `Generated ${generated} of ${requested} requested questions from ${selectedMaterial.title}. ${data.warning || "Retry to complete the set."}`
+        : `Generated all ${generated} questions from ${selectedMaterial.title}. They are available in the Question Bank and Flight Game.`);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not create questions from this material.");
     } finally { setWorking(false); }
@@ -251,7 +265,19 @@ export default function MaterialsPanel() {
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
             <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>{selectedMaterial.summary?"Refresh summary":"Create summary"}</button>
-            <button className="primary-button" onClick={generateQuestions} disabled={working}>{selectedMaterial.questions?.length?"Regenerate questions":"Generate 25 questions"} <span>→</span></button>
+            <div className="materials-generation-controls">
+              <label>Number of questions
+                <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working}>
+                  <option value={10}>10 questions</option><option value={15}>15 questions</option><option value={25}>25 questions</option><option value={40}>40 questions</option>
+                </select>
+              </label>
+              <label>Difficulty
+                <select value={questionDifficulty} onChange={event=>setQuestionDifficulty(event.target.value)} disabled={working}>
+                  <option>Mixed</option><option>Easy</option><option>Moderate</option><option>Hard</option>
+                </select>
+              </label>
+            </div>
+            <button className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
           </div>
         </div>
         <div className="materials-tabs">
@@ -263,6 +289,13 @@ export default function MaterialsPanel() {
           {selectedMaterial.summary ? <div className="study-summary">
             <section className="study-summary-overview"><div className="eyebrow">AT A GLANCE</div><p>{selectedMaterial.summary.overview}</p></section>
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
+            {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
+              <div className="eyebrow">EXAM REVISION</div><h3>What to know for your examinations</h3>
+              {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.likelyShortNotes?.length&&<div className="study-exam-subsection"><h4>Short-note themes to prepare</h4><ul>{selectedMaterial.summary.examFocus.likelyShortNotes.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
+            </section>}
             <div className="study-summary-sections">{selectedMaterial.summary.sections?.map((section,index)=><article className="study-summary-section" key={index}>
               <div className="study-summary-section-heading"><span>{String(index+1).padStart(2,"0")}</span><h3>{section.heading}</h3></div>
               {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
@@ -272,10 +305,13 @@ export default function MaterialsPanel() {
             </article>)}</div>
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
+            {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
+            {!!selectedMaterial.summary.videoSuggestions?.length&&<section className="study-summary-block study-video-resources"><h3>Watch a related lecture</h3><p className="study-section-intro">Topic-specific YouTube searches from established medical-education channels. Open a result and check that its level and guidance match your course.</p><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><a className="study-video-link" key={index} href={"https://www.youtube.com/results?search_query="+encodeURIComponent(video.topic+" "+video.channel+" medical lecture")} target="_blank" rel="noopener noreferrer"><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}</span><b>↗</b></a>)}</div></section>}
             {!!selectedMaterial.summary.memoryAids?.length&&<section className="study-summary-block"><h3>Memory aids</h3><ul>{selectedMaterial.summary.memoryAids.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.commonPitfalls?.length&&<section className="study-summary-block study-summary-warnings"><h3>Common pitfalls</h3><ul>{selectedMaterial.summary.commonPitfalls.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.revisionQuestions?.length&&<section className="study-summary-block"><h3>Quick revision questions</h3>{selectedMaterial.summary.revisionQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
+            {!!selectedMaterial.summary.sourceCoverage?.length&&<section className="study-summary-block"><h3>Topics covered from your source</h3><ul>{selectedMaterial.summary.sourceCoverage.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
           </div> : <div className="materials-empty"><span>•</span><strong>No summary has been created</strong><p>Ask ClerkMe to organise the uploaded source into an explained, structured revision document.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create structured summary →</button></div>}
         </>}

@@ -2885,3 +2885,48 @@ button{font-size:15px}
 @media(prefers-reduced-motion:reduce){
   .flight-timer-track span{transition:none}
 }
+
+
+/* Exam-ready learning resources */
+.materials-generation-controls{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.materials-generation-controls label{display:grid;gap:6px;color:#4f6659;font-size:10px;font-weight:750}
+.materials-generation-controls select{min-width:132px;height:39px;padding:8px 10px;border:1px solid #dfe8e1;border-radius:7px;background:#fff;color:#355444;font:600 11px Manrope,Arial,sans-serif}
+.study-summary-overview p{font-size:13px;line-height:1.9;color:#43594d}
+.study-summary-section>p{font-size:12px;line-height:1.95;color:#596c60}
+.study-clinical-relevance p,.study-supplementary p{font-size:11px;line-height:1.85}
+.study-high-yield li,.study-summary-block li{font-size:11px;line-height:1.85}
+.study-table-wrap table{font-size:10px}
+.study-table-wrap th,.study-table-wrap td{padding:9px}
+.study-exam-focus{background:#f7faf7;border:1px solid #dfe9e1;border-radius:10px;padding:17px}
+.study-exam-focus>h3{margin:5px 0 14px}
+.study-exam-subsection{padding:12px 0;border-top:1px solid #e5ece6}
+.study-exam-subsection h4{margin:0 0 7px;color:#3a6049;font:750 12px Manrope,Arial,sans-serif}
+.study-exam-subsection ul{margin:5px 0 0;padding-left:19px}
+.study-section-intro{font-size:11px;line-height:1.7;color:#728078;margin:5px 0 14px}
+.study-flowcharts{display:grid;gap:12px}
+.study-flowchart{border:1px solid #e3ebe5;border-radius:9px;background:#fff;padding:14px}
+.study-flowchart>strong{display:block;color:#365a45;font:750 12px Manrope,Arial,sans-serif;margin-bottom:12px}
+.study-flowchart ol{list-style:none;counter-reset:flow;display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:9px;padding:0;margin:0}
+.study-flowchart li{position:relative;display:flex;align-items:flex-start;gap:8px;padding:10px;background:#f5f8f5;border:1px solid #e8eee9;border-radius:7px;min-height:64px}
+.study-flowchart li>span{display:grid;place-items:center;flex:0 0 23px;height:23px;border-radius:6px;background:#e4f0e7;color:#39704e;font-size:9px;font-weight:850}
+.study-flowchart li p{margin:0;color:#596c60;font-size:10px;line-height:1.7}
+.study-flowchart-takeaway{margin:10px 0 0;padding:9px 11px;background:#f7f5ed;border-radius:7px;color:#6d6248;font-size:10px;line-height:1.7}
+.study-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.study-video-link{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e4ebe5;border-radius:8px;background:#fff;text-decoration:none;transition:border-color .16s,transform .16s}
+.study-video-link:hover{border-color:#9abca5;transform:translateY(-1px)}
+.study-video-play{display:grid;place-items:center;flex:0 0 30px;height:30px;border-radius:50%;background:#fbeeee;color:#b34848;font-size:11px}
+.study-video-link>span:nth-child(2){flex:1;min-width:0}
+.study-video-link strong{display:block;color:#355845;font-size:11px;line-height:1.5}
+.study-video-link small{display:block;color:#7f8d83;font-size:9px;font-weight:800;letter-spacing:.4px;margin-top:4px}
+.study-video-link p{color:#748178;font-size:10px;line-height:1.65;margin:6px 0 0}
+.study-video-link>b{color:#829187;font-size:13px}
+@media(max-width:650px){
+  .materials-generation-controls{width:100%}
+  .materials-generation-controls label{flex:1;min-width:125px}
+  .materials-generation-controls select{width:100%;min-width:0}
+  .study-key-terms{grid-template-columns:1fr}
+  .study-video-grid{grid-template-columns:1fr}
+  .study-flowchart ol{grid-template-columns:1fr}
+  .study-summary-section{padding:14px}
+  .study-summary-section>p{font-size:12px}
+}

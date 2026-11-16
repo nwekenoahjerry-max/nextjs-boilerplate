@@ -32,7 +32,16 @@ export default function LearningQuestionBank() {
     .filter(item=>item.unit===unit).map(item=>({
       question:item.q,options:item.o,answerIndex:item.a,explanation:item.e,topic:item.topic,difficulty:item.level,id:item.id,source:"ClerkMe core bank",origin:"core" as const
     })),[unit]);
-  const questions=uploaded.length?uploaded:builtIn;
+  const questions=useMemo(()=>{
+    const combined=[...uploaded,...builtIn];
+    const seen=new Set<string>();
+    return combined.filter(item=>{
+      const key=item.question.toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+      if(!key||seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  },[uploaded,builtIn]);
   const q=questions.length?questions[index%questions.length]:null;
 
   const chooseUnit=(value:string)=>{setUnit(value);setIndex(0);setSelected(null);setError("");};
@@ -40,13 +49,13 @@ export default function LearningQuestionBank() {
   const shuffle=()=>{setIndex(questions.length>1?Math.floor(Math.random()*questions.length):0);setSelected(null);};
 
   return <div className="question-bank-workspace">
-    <div className="page-intro"><div className="eyebrow">ACTIVE RECALL · SOURCE-ALIGNED PRACTICE</div><h1>Clinical question bank</h1><p>Questions adapt to your selected clinical unit. When you have generated questions from uploaded lecture material, those take priority over the core set.</p></div>
+    <div className="page-intro"><div className="eyebrow">ACTIVE RECALL · SOURCE-ALIGNED PRACTICE</div><h1>Clinical question bank</h1><p>Questions adapt to your selected clinical unit. Uploaded lecture questions appear first, alongside the ClerkMe core question set.</p></div>
     <div className="learning-toolbar">
       <label>My current unit<select value={unit} onChange={event=>chooseUnit(event.target.value)}>{clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <p>{uploaded.length?(`${uploaded.length} question(s) from your uploaded materials`):(`${builtIn.length} core questions available for this unit`)}</p>
+      <p>{uploaded.length?(`${uploaded.length} uploaded + ${builtIn.length} core question(s) available`):(`${builtIn.length} core questions available for this unit`)}</p>
     </div>
     <div className="question-bank-source-banner">
-      <div><strong>{uploaded.length?"Your uploaded materials are driving this question set.":"No uploaded question set is available for this unit yet."}</strong><span>{uploaded.length?"Review the source material alongside each explanation.":"Use My Materials to upload lecture notes and generate a personalised question bank."}</span></div>
+      <div><strong>{uploaded.length?"Your generated questions are combined with the ClerkMe core bank.":"Start with the ClerkMe core questions, then add your own lecture-based questions."}</strong><span>{uploaded.length?"Uploaded questions appear first; matching core questions are deduplicated. Review explanations and revisit your lecture source.":"Upload lecture notes in My Materials to add source-specific questions to this unit."}</span></div>
       <button className="secondary-button" onClick={()=>window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"materials"}}))}>Open my materials ↗</button>
     </div>
     {error&&<p className="auth-error">{error}</p>}
