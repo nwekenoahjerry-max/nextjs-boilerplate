@@ -31,6 +31,8 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
   const [universitySelection, setUniversitySelection] = useState("");
+  const [universityDropdownOpen, setUniversityDropdownOpen] = useState(false);
+  const [universitySearch, setUniversitySearch] = useState("");
   const [level, setLevel] = useState("");
   const [futureSpecialty, setFutureSpecialty] = useState("");
   const [stateSelection, setStateSelection] = useState("");
@@ -43,6 +45,9 @@ export default function ProfilePage() {
 
   const isOutsideNigeria = stateSelection === "Outside Nigeria";
   const availableLgas = nigeriaLgasByState[stateSelection] || [];
+  const filteredUniversities = sortedNigerianUniversities.filter(item =>
+    item.toLocaleLowerCase("en").includes(universitySearch.trim().toLocaleLowerCase("en")),
+  ).slice(0, 80);
 
   useEffect(() => {
     fetch("/api/profile", { credentials: "same-origin", cache: "no-store" })
@@ -76,6 +81,8 @@ export default function ProfilePage() {
   const changeUniversity = (next: string) => {
     setUniversitySelection(next);
     setUniversity(next === "__other__" ? "" : next);
+    setUniversitySearch("");
+    setUniversityDropdownOpen(false);
   };
 
   const changeState = (next: string) => {
@@ -136,14 +143,88 @@ export default function ProfilePage() {
             <label>Full name <span className="required-mark">Required</span>
               <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Enter your full name"/>
             </label>
-            <label>University / institution <span className="required-mark">Required</span>
-              <select required value={universitySelection} onChange={event => changeUniversity(event.target.value)}>
-                <option value="">Select your university / institution</option>
-                <optgroup label="Nigerian universities and institutions">
-                  {sortedNigerianUniversities.map(item => <option key={item} value={item}>{item}</option>)}
-                </optgroup>
-                <option value="__other__">Other / international institution</option>
-              </select>
+            <label className="university-field">University / institution <span className="required-mark">Required</span>
+              <div
+                className="university-dropdown"
+                onBlur={event => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    setUniversityDropdownOpen(false);
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  className={`university-dropdown-trigger${universityDropdownOpen ? " is-open" : ""}`}
+                  aria-haspopup="listbox"
+                  aria-expanded={universityDropdownOpen}
+                  aria-controls="clerkme-university-options"
+                  onClick={() => {
+                    setUniversityDropdownOpen(open => !open);
+                    setUniversitySearch("");
+                  }}
+                >
+                  <span className={universitySelection ? "has-value" : "placeholder"}>
+                    {universitySelection === "__other__" ? "Other / international institution" : universitySelection || "Choose your university / institution"}
+                  </span>
+                  <span className="university-dropdown-chevron" aria-hidden="true">⌄</span>
+                </button>
+                {universityDropdownOpen && (
+                  <div className="university-dropdown-panel">
+                    <input
+                      type="search"
+                      className="university-dropdown-search"
+                      value={universitySearch}
+                      onChange={event => setUniversitySearch(event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setUniversityDropdownOpen(false);
+                        } else if (event.key === "ArrowDown") {
+                          event.preventDefault();
+                          (event.currentTarget.parentElement?.querySelector(".university-dropdown-options button") as HTMLButtonElement | null)?.focus();
+                        } else if (event.key === "Enter" && filteredUniversities.length === 1) {
+                          event.preventDefault();
+                          changeUniversity(filteredUniversities[0]);
+                        }
+                      }}
+                      placeholder="Type to search universities…"
+                      aria-label="Search universities"
+                      autoFocus
+                    />
+                    <div id="clerkme-university-options" className="university-dropdown-options" role="listbox" aria-label="Nigerian universities and institutions">
+                      {filteredUniversities.map(item => (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={universitySelection === item}
+                          className={universitySelection === item ? "is-selected" : ""}
+                          key={item}
+                          onClick={() => changeUniversity(item)}
+                          onKeyDown={event => {
+                            const options = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button[role="option"]') || []);
+                            const index = options.indexOf(event.currentTarget);
+                            if (event.key === "ArrowDown" && options[index + 1]) {
+                              event.preventDefault();
+                              options[index + 1].focus();
+                            } else if (event.key === "ArrowUp") {
+                              event.preventDefault();
+                              if (options[index - 1]) options[index - 1].focus();
+                              else (event.currentTarget.parentElement?.parentElement?.querySelector(".university-dropdown-search") as HTMLInputElement | null)?.focus();
+                            }
+                          }}
+                        >
+                          <span>{item}</span>
+                          {universitySelection === item && <span aria-hidden="true">✓</span>}
+                        </button>
+                      ))}
+                      {filteredUniversities.length === 0 && <p className="university-dropdown-empty">No matching institution found. Choose “Other / international institution” below if yours is not listed.</p>}
+                    </div>
+                    <button type="button" className="university-dropdown-other" onClick={() => changeUniversity("__other__")}>
+                      Other / international institution <span>Enter manually →</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               {universitySelection === "__other__" && (
                 <input
                   required
@@ -155,7 +236,7 @@ export default function ProfilePage() {
                   aria-label="Enter your university or institution name"
                 />
               )}
-              <small>Select from the list, or choose “Other / international institution” to enter an institution that is not listed.</small>
+              <small>Open the dropdown and type to find your university, then select it from the results.</small>
             </label>
             <label>Current level / year of study <span className="required-mark">Required</span>
               <input required list="clerkme-levels" maxLength={80} value={level} onChange={event => setLevel(event.target.value)} placeholder="Select or enter your current level"/>
