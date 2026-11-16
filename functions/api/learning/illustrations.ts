@@ -47,7 +47,7 @@ function imagePrompt(aid: VisualAid) {
     "The illustration is for learning only and must not look like diagnostic evidence.",
     "Topic: " + aid.title,
     "Visual brief: " + aid.visualPrompt
-  ].join("\n");
+  ].join("\n").slice(0, 2048);
 }
 
 export const onRequestPost = async (context: AppContext) => {
