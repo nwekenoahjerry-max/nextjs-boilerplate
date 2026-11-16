@@ -2657,3 +2657,90 @@ button{font-size:15px}
   .signout-confirm-dialog { animation: none; }
   .signout-confirm-actions button { transition: none; }
 }
+
+
+/* Clear, explicit template selection action */
+.template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.template-card-selected {
+  border-color: #6f9b83 !important;
+  box-shadow: 0 0 0 2px rgba(52, 116, 82, .10), 0 10px 28px rgba(25, 70, 46, .07);
+}
+.template-use-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: auto;
+  padding: 10px 14px;
+  border: 1px solid #176b5d;
+  border-radius: 9px;
+  background: #176b5d;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: .1px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.template-use-button:hover {
+  background: #104f44;
+  border-color: #104f44;
+  transform: translateY(-1px);
+}
+.template-use-button:focus-visible {
+  outline: 3px solid rgba(23, 107, 93, .22);
+  outline-offset: 3px;
+}
+.template-card-selected .template-use-button {
+  border-color: #dcebe1;
+  background: #edf5f0;
+  color: #176b5d;
+}
+.selected-template-context {
+  margin: 0 0 22px;
+  padding: 17px 18px;
+  border: 1px solid #dce9df;
+  border-left: 4px solid #3d8061;
+  border-radius: 11px;
+  background: #f5f9f5;
+}
+.selected-template-context > strong {
+  display: block;
+  color: #244d3d;
+  font-size: 14px;
+  font-weight: 800;
+}
+.selected-template-context > p {
+  margin: 7px 0 13px;
+  color: #62756b;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.selected-template-context > div > span {
+  color: #567263;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.selected-template-context ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 22px;
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: #53675c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.form-panel:focus { outline: none; }
+@media (max-width: 700px) {
+  .template-use-button { width: 100%; min-height: 46px; }
+  .selected-template-context { padding: 14px; }
+  .selected-template-context ul { grid-template-columns: 1fr; }
+}
