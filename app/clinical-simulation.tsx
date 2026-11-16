@@ -256,7 +256,7 @@ export default function ClinicalSimulation() {
     window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
   };
 
-  const openPrintOptions = () => setPrintOptionsOpen(value => !value);
+  const openPrintOptions = () => setPrintOptionsOpen(true);
 
   const patientStatements = conversation.filter(turn => turn.role === "patient").map(turn => turn.content);
   const presentationProse = review?.modelSummary?.trim() || `${activeCase?.name || "The patient"}, ${activeCase?.age || ""}, presented with ${activeCase?.complaint || "the selected complaint"}. During the simulated interview, the patient described: ${patientStatements.join(" ")}. Physical examination, investigations and management were not assessed in this interview.`;
@@ -486,13 +486,7 @@ export default function ClinicalSimulation() {
             </div>
             <div className="simulation-case-banner-actions">
               <span className={sessionEnded ? "simulation-case-status ended" : "simulation-case-status"}>{sessionEnded ? "Session ended" : "Interview in progress"}</span>
-              <div className="simulation-print-menu-wrap">
-                <button className="secondary-button" type="button" onClick={openPrintOptions} aria-expanded={printOptionsOpen} aria-haspopup="true">Print case ▾</button>
-                {printOptionsOpen && <div className="simulation-print-menu" role="group" aria-label="Choose print format">
-                  <button type="button" onClick={() => choosePrintMode("presentation")}><strong>Prose case presentation</strong><span>Concise narrative for oral presentation</span></button>
-                  <button type="button" onClick={() => choosePrintMode("full")}><strong>Full clerking report</strong><span>Structured headings, omissions and transcript</span></button>
-                </div>}
-              </div>
+              <button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button>
               {!sessionEnded && <button className="simulation-end-button" type="button" onClick={endSession}>End session</button>}
               <button className="secondary-button" type="button" onClick={() => resetSession()}>Change case</button>
             </div>
@@ -542,13 +536,7 @@ export default function ClinicalSimulation() {
               <div><span className="eyebrow">SESSION ENDED</span><h3>Your interview has ended</h3><p>{review ? "Your structured review is ready below. Print the case presentation whenever you are ready." : conversation.length < 2 ? "You ended the interview before enough questions were asked for a structured review. You can still print the case and transcript." : loading ? "Your structured review is being prepared." : "The interview has ended. You can print the case presentation or generate a review from the conversation."}</p></div>
               <div className="simulation-ended-actions">
                 <button className="secondary-button" type="button" onClick={() => { sessionEndedRef.current = false; setSessionEnded(false); }}>Continue interview</button>
-                <div className="simulation-print-menu-wrap">
-                  <button className="primary-button" type="button" onClick={openPrintOptions} aria-expanded={printOptionsOpen}>Print case ▾</button>
-                  {printOptionsOpen && <div className="simulation-print-menu" role="group" aria-label="Choose print format">
-                    <button type="button" onClick={() => choosePrintMode("presentation")}><strong>Prose case presentation</strong><span>Concise narrative for oral presentation</span></button>
-                    <button type="button" onClick={() => choosePrintMode("full")}><strong>Full clerking report</strong><span>Structured headings, omissions and transcript</span></button>
-                  </div>}
-                </div>
+                <button className="primary-button" type="button" onClick={openPrintOptions}>Print case</button>
               </div>
             </div>}
             </section>
@@ -566,7 +554,7 @@ export default function ClinicalSimulation() {
             {review.modelSummary && <div className="simulation-model-summary"><h4>Suggested history summary</h4><p>{review.modelSummary}</p></div>}
             {!!review.nextSteps.length && <div className="simulation-next-steps"><h4>What to do next</h4>{renderList(review.nextSteps)}</div>}
             {review.safetyNote && <p className="simulation-review-safety">{review.safetyNote}</p>}
-            <div className="simulation-review-actions"><div className="simulation-print-menu-wrap"><button className="secondary-button" type="button" onClick={openPrintOptions} aria-expanded={printOptionsOpen}>Print case ▾</button>{printOptionsOpen && <div className="simulation-print-menu" role="group" aria-label="Choose print format"><button type="button" onClick={() => choosePrintMode("presentation")}><strong>Prose case presentation</strong><span>Concise narrative for oral presentation</span></button><button type="button" onClick={() => choosePrintMode("full")}><strong>Full clerking report</strong><span>Structured headings, omissions and transcript</span></button></div>}</div><button className="secondary-button" onClick={() => { sessionEndedRef.current = false; setSessionEnded(false); setReview(null); }}>Continue interview</button><button className="primary-button" onClick={() => resetSession()}>Finish and choose another case →</button></div>
+            <div className="simulation-review-actions"><button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button><button className="secondary-button" onClick={() => { sessionEndedRef.current = false; setSessionEnded(false); setReview(null); }}>Continue interview</button><button className="primary-button" onClick={() => resetSession()}>Finish and choose another case →</button></div>
           </section>}
 
           <div className="simulation-session-footer">
@@ -611,6 +599,16 @@ export default function ClinicalSimulation() {
       )}
 
       {error && !activeCase && <p className="auth-error simulation-error">{error}</p>}
+      {printOptionsOpen && <div className="simulation-print-picker" role="presentation" onClick={() => setPrintOptionsOpen(false)}>
+        <section className="simulation-print-picker-card" role="dialog" aria-modal="true" aria-labelledby="simulation-print-picker-title" onClick={event => event.stopPropagation()}>
+          <span className="eyebrow">PRINT YOUR CASE</span>
+          <h3 id="simulation-print-picker-title">Choose a report format</h3>
+          <p>Select the format that best fits your next step.</p>
+          <button type="button" onClick={() => choosePrintMode("presentation")}><strong>Prose case presentation</strong><span>A concise, connected clinical narrative suitable for presenting to a supervisor.</span><b>Print prose report →</b></button>
+          <button type="button" onClick={() => choosePrintMode("full")}><strong>Full clerking report</strong><span>Structured clerking headings, assessment, omissions, review and the complete interview transcript.</span><b>Print full clerking →</b></button>
+          <button type="button" className="simulation-print-picker-cancel" onClick={() => setPrintOptionsOpen(false)}>Cancel</button>
+        </section>
+      </div>}
       <p className="learning-note">Fictional educational practice only. Do not enter identifiable information from real patients. For real clinical encounters, use your institution's approved documentation process and seek appropriate supervision.</p>
     </div>
   );

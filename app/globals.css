@@ -2503,3 +2503,22 @@ button{font-size:15px}
   .simulation-print-report.print-active .simulation-print-review li{margin:3px 0}
   .simulation-print-report.print-active footer{margin-top:22px;padding-top:9px;border-top:1px solid #cbd8ce;color:#59675e;font-size:9pt}
 }
+
+
+/* One accessible print-format chooser shared by every Print action */
+.simulation-print-picker{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:22px;background:rgba(13,34,24,.52);backdrop-filter:blur(5px)}
+.simulation-print-picker-card{display:grid;gap:13px;width:min(100%,500px);padding:clamp(22px,4vw,34px);border:1px solid #dce8df;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(12,38,24,.24)}
+.simulation-print-picker-card h3{margin:0;color:#183e2d;font-size:clamp(22px,4vw,28px);line-height:1.2}
+.simulation-print-picker-card>p{margin:0 0 4px!important;color:#637368;font-size:15px!important;line-height:1.65!important}
+.simulation-print-picker-card>button:not(.simulation-print-picker-cancel){display:grid;gap:6px;width:100%;padding:16px;border:1px solid #dce8df;border-radius:13px;background:#f8fbf8;color:#203d2e;text-align:left;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.simulation-print-picker-card>button:not(.simulation-print-picker-cancel):hover{background:#edf5ef;border-color:#a9c9b4;transform:translateY(-1px)}
+.simulation-print-picker-card>button>strong{font-size:16px;line-height:1.35}
+.simulation-print-picker-card>button>span{font-size:14px;line-height:1.6;color:#68796e}
+.simulation-print-picker-card>button>b{font-size:14px;color:#17623f}
+.simulation-print-picker-cancel{justify-self:end;margin-top:2px;padding:8px 12px;border:0;border-radius:8px;background:transparent;color:#65766a;font-size:14px;font-weight:700;cursor:pointer}
+.simulation-print-picker-cancel:hover{background:#f2f6f3;color:#244a34}
+@media(max-width:520px){
+ .simulation-print-picker{padding:14px;align-items:end}
+ .simulation-print-picker-card{width:100%;padding:22px 18px;border-radius:20px 20px 12px 12px}
+ .simulation-print-picker-card>button:not(.simulation-print-picker-cancel){padding:14px}
+}
