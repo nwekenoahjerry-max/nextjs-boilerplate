@@ -93,9 +93,13 @@ export default function ProfilePage() {
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSaving(true);
     setError("");
     setMessage("");
+    if (!university.trim()) {
+      setError("Please open the university dropdown and select your institution. Choose “Other / international institution” to enter it manually.");
+      return;
+    }
+    setSaving(true);
     const state = isOutsideNigeria ? `Outside Nigeria: ${otherState.trim()}` : stateSelection;
     try {
       const response = await fetch("/api/profile", {
@@ -155,6 +159,8 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   className={`university-dropdown-trigger${universityDropdownOpen ? " is-open" : ""}`}
+                  aria-label="Choose your university or institution"
+                  aria-required="true"
                   aria-haspopup="listbox"
                   aria-expanded={universityDropdownOpen}
                   aria-controls="clerkme-university-options"
