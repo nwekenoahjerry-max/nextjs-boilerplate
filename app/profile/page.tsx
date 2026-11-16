@@ -92,11 +92,17 @@ export default function ProfilePage() {
     // React state value if the browser's native select changed immediately
     // before submission (notably on mobile browsers and installed PWAs).
     const formData = new FormData(event.currentTarget);
-    const selectedUniversity = String(formData.get("universitySelection") || "").trim();
-    const manuallyEnteredUniversity = String(formData.get("universityOther") || "").trim();
-    const resolvedUniversity = selectedUniversity === "__other__"
-      ? manuallyEnteredUniversity
-      : selectedUniversity;
+    const submittedSelection = String(formData.get("universitySelection") || "").trim();
+    const submittedManualName = String(formData.get("universityOther") || "").trim();
+
+    // FormData is the primary source, but retain a controlled-state fallback.
+    // This covers browsers/webviews that expose a changed select visually but
+    // omit it from FormData during an immediate submit.
+    const effectiveSelection = submittedSelection || universitySelection;
+    const effectiveManualName = submittedManualName || university;
+    const resolvedUniversity = effectiveSelection === "__other__"
+      ? effectiveManualName.trim()
+      : (effectiveSelection || university).trim();
 
     if (resolvedUniversity.length < 2) {
       setError("Please select your university or enter its full name.");
@@ -169,6 +175,11 @@ export default function ProfilePage() {
                 <option value="__other__">Other / international institution</option>
               </select>
               <small>Tap the field to open the institution list. On a computer, type the first letters of your university to jump to it.</small>
+              <small className="university-selection-status" aria-live="polite">
+                {universitySelection === "__other__"
+                  ? (university.trim() ? `Institution entered: ${university.trim()}` : "Enter your institution name below.")
+                  : (universitySelection ? `Selected institution: ${universitySelection}` : "No institution selected yet.")}
+              </small>
             </label>
             {universitySelection === "__other__" && (
               <label className="university-manual-entry" htmlFor="clerkme-university-other">
