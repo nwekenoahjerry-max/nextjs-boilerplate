@@ -9,6 +9,7 @@ import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
 import InstallAppButton from "./install-app-button";
+import ClerkMeBrand from "../components/clerkme-brand";
 
 const navItems = [
   ["Overview", "overview", "⌂"],
@@ -40,10 +41,6 @@ const publicFeatureCards = [
   {number:"07",title:"Your study materials",description:"Upload lecture notes and slides, build structured summaries and generate questions directly from your sources.",detail:"Your own lectures become practice"},
   {number:"08",title:"Private case library",description:"Keep your learning cases, clerking records and progress together in your personal workspace.",detail:"Account-protected workspace"},
 ];
-
-function ClerkMeBrand({caption="CLINICAL LEARNING WORKSPACE"}:{caption?:string}) {
-  return <a className="brand public-brand" href="/" aria-label="ClerkME home"><span className="brand-mark">C<span>M</span></span><span><strong>Clerk<span>ME</span></strong><small>{caption}</small></span></a>;
-}
 
 function PublicLanding() {
   return <main className="public-landing">
