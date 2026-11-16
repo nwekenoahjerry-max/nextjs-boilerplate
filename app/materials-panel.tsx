@@ -110,6 +110,7 @@ export default function MaterialsPanel() {
   const [answering,setAnswering] = useState(false);
   const [questionCount,setQuestionCount] = useState(25);
   const [questionDifficulty,setQuestionDifficulty] = useState("Mixed");
+  const [expandedStudySections,setExpandedStudySections] = useState<number[]>([]);
 
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const activeQuestions = selectedMaterial?.questions || [];
@@ -124,6 +125,10 @@ export default function MaterialsPanel() {
   const liveInProgress = quizMode==="live" && liveDeadline!==null && !quizFinished;
   const timerUrgency = remainingSeconds<=60 ? "urgent" : remainingSeconds<=300 ? "warning" : "";
   const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
+  const studySectionCount = selectedMaterial?.summary?.sections?.length || 0;
+  const allStudySectionsExpanded = studySectionCount>0 && Array.from({length:studySectionCount},(_,index)=>index).every(index=>expandedStudySections.includes(index));
+  const toggleStudySection = (index:number) => setExpandedStudySections(current=>current.includes(index)?current.filter(item=>item!==index):[...current,index]);
+  const toggleAllStudySections = () => setExpandedStudySections(allStudySectionsExpanded?[]:Array.from({length:studySectionCount},(_,index)=>index));
   const topHighYieldPoints = selectedMaterial?.summary?.highYieldPoints?.length
     ? selectedMaterial.summary.highYieldPoints
     : selectedMaterial?.summary?.examFocus?.mustKnow || [];
@@ -149,6 +154,7 @@ export default function MaterialsPanel() {
   };
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
+  useEffect(()=>{ setExpandedStudySections([]); },[selectedId]);
 
   useEffect(()=>{
     if (!selectedId) return;
@@ -489,14 +495,30 @@ export default function MaterialsPanel() {
               {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
             </section>}
-            <div className="study-summary-sections"><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div>{selectedMaterial.summary.sections?.map((section,index)=><article id={`study-section-${index+1}`} className="study-summary-section" key={index}>
-              <div className="study-summary-section-heading"><span>{String(index+1).padStart(2,"0")}</span><h3>{section.heading}</h3></div>
-              {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
-              <p className="study-section-lead">{section.summary}</p>
-              {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}><h4>{subsection.heading}</h4><p>{subsection.explanation}</p>{!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}</section>)}</div>}
-              {section.clinicalRelevance&&<div className="study-clinical-relevance"><strong>Clinical relevance</strong><p>{section.clinicalRelevance}</p></div>}
-              {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>High-yield points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
-            </article>)}</div>
+            <div className="study-summary-sections">
+              <div className="study-section-accordion-toolbar">
+                <div><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div><p>Open any topic to read its full explanation, clinical relevance and examination points.</p></div>
+                <button type="button" className="study-expand-all-button" onClick={toggleAllStudySections}>{allStudySectionsExpanded?"Collapse all":"Expand all"} <span aria-hidden="true">{allStudySectionsExpanded?"⌃":"⌄"}</span></button>
+              </div>
+              {selectedMaterial.summary.sections?.map((section,index)=>{
+                const expanded=expandedStudySections.includes(index);
+                return <article id={`study-section-${index+1}`} className={"study-summary-section study-expandable-section"+(expanded?" is-expanded":"")} key={index}>
+                  <div className="study-expandable-section-header">
+                    <div className="study-summary-section-heading"><span>{String(index+1).padStart(2,"0")}</span><h3>{section.heading}</h3></div>
+                    <button type="button" className="study-section-toggle" aria-expanded={expanded} aria-controls={`study-section-details-${index+1}`} onClick={()=>toggleStudySection(index)}>
+                      <span>{expanded?"Hide details":"View full notes"}</span><span className="study-section-toggle-icon" aria-hidden="true">{expanded?"⌃":"⌄"}</span>
+                    </button>
+                  </div>
+                  <p className="study-section-lead">{section.summary}</p>
+                  {expanded&&<div id={`study-section-details-${index+1}`} className="study-section-expanded-content">
+                    {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
+                    {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}><h4>{subsection.heading}</h4><p>{subsection.explanation}</p>{!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}</section>)}</div>}
+                    {section.clinicalRelevance&&<div className="study-clinical-relevance"><strong>Clinical relevance</strong><p>{section.clinicalRelevance}</p></div>}
+                    {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>High-yield points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
+                  </div>}
+                </article>;
+              })}
+            </div>
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
