@@ -2744,3 +2744,63 @@ button{font-size:15px}
   .selected-template-context { padding: 14px; }
   .selected-template-context ul { grid-template-columns: 1fr; }
 }
+
+
+/* Subtle workspace motion: welcoming on entry, quiet during clinical work */
+.welcome-row > div:first-child {
+  animation: clerkme-welcome-rise .52s cubic-bezier(.2,.75,.25,1) both;
+}
+.welcome-row .date-chip {
+  animation: clerkme-welcome-rise .52s .1s cubic-bezier(.2,.75,.25,1) both;
+}
+.hero-card {
+  animation: clerkme-welcome-rise .62s .08s cubic-bezier(.2,.75,.25,1) both;
+}
+.tool-grid > .tool-card {
+  animation: clerkme-welcome-rise .48s cubic-bezier(.2,.75,.25,1) both;
+}
+.tool-grid > .tool-card:nth-child(2) { animation-delay: .05s; }
+.tool-grid > .tool-card:nth-child(3) { animation-delay: .1s; }
+.tool-grid > .tool-card:nth-child(4) { animation-delay: .15s; }
+.tool-grid > .tool-card:nth-child(5) { animation-delay: .2s; }
+.tool-grid > .tool-card:nth-child(6) { animation-delay: .25s; }
+.tool-grid > .tool-card:nth-child(7) { animation-delay: .3s; }
+.hero-art .medical-cross {
+  transform-origin: center;
+  animation: clerkme-cross-breathe 5.5s ease-in-out infinite;
+}
+.hero-art .orbit-one {
+  animation: clerkme-orbit-one 32s linear infinite;
+}
+.hero-art .orbit-two {
+  animation: clerkme-orbit-two 38s linear infinite;
+}
+@keyframes clerkme-welcome-rise {
+  from { opacity: 0; transform: translateY(11px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes clerkme-cross-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 60px #b8d8ca25; }
+  50% { transform: scale(1.035); box-shadow: 0 0 70px #b8d8ca38; }
+}
+@keyframes clerkme-orbit-one {
+  from { transform: rotate(-25deg); }
+  to { transform: rotate(335deg); }
+}
+@keyframes clerkme-orbit-two {
+  from { transform: rotate(35deg); }
+  to { transform: rotate(-325deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-row > div:first-child,
+  .welcome-row .date-chip,
+  .hero-card,
+  .tool-grid > .tool-card,
+  .hero-art .medical-cross,
+  .hero-art .orbit-one,
+  .hero-art .orbit-two {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
