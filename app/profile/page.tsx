@@ -22,11 +22,15 @@ const specialtySuggestions = [
   "Otorhinolaryngology (ENT)","Orthopaedics and Trauma","Neurology","Cardiology","Oncology",
   "Psychiatry","Other / undecided",
 ];
+const sortedNigerianUniversities = [...nigerianUniversities].sort((a, b) =>
+  a.localeCompare(b, "en", { sensitivity: "base" }),
+);
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
+  const [universitySelection, setUniversitySelection] = useState("");
   const [level, setLevel] = useState("");
   const [futureSpecialty, setFutureSpecialty] = useState("");
   const [stateSelection, setStateSelection] = useState("");
@@ -52,7 +56,12 @@ export default function ProfilePage() {
         if (!value) return;
         setProfile(value);
         setName(value.name || "");
-        setUniversity(value.university || "");
+        const savedUniversity = value.university || "";
+        const listedUniversity = nigerianUniversities.find(
+          item => item.toLocaleLowerCase("en") === savedUniversity.toLocaleLowerCase("en"),
+        );
+        setUniversity(listedUniversity || savedUniversity);
+        setUniversitySelection(listedUniversity || (savedUniversity ? "__other__" : ""));
         setLevel(value.level === "Clinical year 1" && !value.university ? "" : (value.level || ""));
         setFutureSpecialty(value.futureSpecialty || "");
         setLga(value.lga || "");
@@ -63,6 +72,11 @@ export default function ProfilePage() {
       .catch(reason => setError(reason instanceof Error ? reason.message : "Could not load your profile."))
       .finally(() => setLoading(false));
   }, []);
+
+  const changeUniversity = (next: string) => {
+    setUniversitySelection(next);
+    setUniversity(next === "__other__" ? "" : next);
+  };
 
   const changeState = (next: string) => {
     setStateSelection(next);
@@ -78,17 +92,25 @@ export default function ProfilePage() {
     const state = isOutsideNigeria ? `Outside Nigeria: ${otherState.trim()}` : stateSelection;
     try {
       const response = await fetch("/api/profile", {
-        method: "PATCH", credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, university, level, futureSpecialty, state, lga }),
+        method: "PATCH",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ name: name.trim(), university: university.trim(), level: level.trim(), futureSpecialty: futureSpecialty.trim(), state, lga: lga.trim() }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not save your changes.");
+      const responseText = await response.text();
+      let data: { error?: string; profile?: Profile } = {};
+      try {
+        data = responseText ? JSON.parse(responseText) as typeof data : {};
+      } catch {
+        throw new Error(`The server returned an unexpected response (${response.status}). Please try again.`);
+      }
+      if (!response.ok) throw new Error(data.error || `Could not save your changes (error ${response.status}).`);
+      if (!data.profile) throw new Error("The server did not confirm that your profile was saved. Please try again.");
       setProfile(data.profile);
-      setMessage("Your student profile has been saved.");
-      window.setTimeout(() => window.location.assign("/"), 650);
+      setMessage("Your student profile has been saved successfully.");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Could not save your changes.");
+      setError(reason instanceof Error ? reason.message : "Could not save your changes. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -115,9 +137,25 @@ export default function ProfilePage() {
               <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Enter your full name"/>
             </label>
             <label>University / institution <span className="required-mark">Required</span>
-              <input required list="clerkme-universities" maxLength={150} autoComplete="organization" value={university} onChange={event => setUniversity(event.target.value)} placeholder="Search or enter your university"/>
-              <datalist id="clerkme-universities">{nigerianUniversities.map(item => <option key={item} value={item}/>)}</datalist>
-              <small>Choose a suggestion or enter your institution if it is not listed.</small>
+              <select required value={universitySelection} onChange={event => changeUniversity(event.target.value)}>
+                <option value="">Select your university / institution</option>
+                <optgroup label="Nigerian universities and institutions">
+                  {sortedNigerianUniversities.map(item => <option key={item} value={item}>{item}</option>)}
+                </optgroup>
+                <option value="__other__">Other / international institution</option>
+              </select>
+              {universitySelection === "__other__" && (
+                <input
+                  required
+                  maxLength={150}
+                  autoComplete="organization"
+                  value={university}
+                  onChange={event => setUniversity(event.target.value)}
+                  placeholder="Enter your university or institution name"
+                  aria-label="Enter your university or institution name"
+                />
+              )}
+              <small>Select from the list, or choose “Other / international institution” to enter an institution that is not listed.</small>
             </label>
             <label>Current level / year of study <span className="required-mark">Required</span>
               <input required list="clerkme-levels" maxLength={80} value={level} onChange={event => setLevel(event.target.value)} placeholder="Select or enter your current level"/>
@@ -160,11 +198,14 @@ export default function ProfilePage() {
             <small>This is the email linked to your Google sign-in and cannot be changed here.</small>
           </label>
 
-          <button className="primary-button profile-save-button" type="submit" disabled={saving || !name.trim() || !university.trim() || !level.trim() || !stateSelection || !lga.trim() || (isOutsideNigeria && !otherState.trim())}>
+          <button className="primary-button profile-save-button" type="submit" disabled={saving}>
             {saving ? "Saving profile…" : "Save student profile"} <span>→</span>
           </button>
         </form>
-        {message && <p className="auth-message" role="status">{message}</p>}
+        {message && <div className="auth-message profile-save-success" role="status">
+          <p>{message}</p>
+          <a href="/">Return to your ClerkME workspace →</a>
+        </div>}
         {error && <p className="auth-error" role="alert">{error}</p>}
       </section>
     </main>
