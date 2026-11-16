@@ -98,6 +98,7 @@ export default function Home() {
   const [organisedClerkingProse,setOrganisedClerkingProse]=useState("");
   const [organiseLoading,setOrganiseLoading]=useState(false);
   const [organiseError,setOrganiseError]=useState("");
+  const [copyNotice,setCopyNotice]=useState("");
   const [organiseMissing,setOrganiseMissing]=useState<string[]>([]);
   const [organiseUnclear,setOrganiseUnclear]=useState<string[]>([]);
   const [streakData,setStreakData]=useState<{streak:number;bestStreak:number;activeDays:number;todayActive:boolean}>({streak:0,bestStreak:0,activeDays:0,todayActive:false});
@@ -135,7 +136,11 @@ export default function Home() {
   useEffect(() => {
     const navigate = (event: Event) => {
       const section = (event as CustomEvent<{section?: string}>).detail?.section;
-      if (section) setActive(section);
+      if (section && navItems.some(([, id]) => id === section)) {
+        setActive(section);
+        setShowNew(section === "clerking");
+        setMoreOpen(false);
+      }
     };
     window.addEventListener("clerkme:navigate", navigate);
     return () => window.removeEventListener("clerkme:navigate", navigate);
@@ -159,6 +164,18 @@ export default function Home() {
     finally { setOrganiseLoading(false); }
   };
 
+  const copyOrganisedProse = async () => {
+    if (!organisedClerkingProse) return;
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable.");
+      await navigator.clipboard.writeText(organisedClerkingProse);
+      setCopyNotice("Organised history copied to your clipboard.");
+    } catch {
+      window.prompt("Copy the organised clinical history below:", organisedClerkingProse);
+      setCopyNotice("Use the copy prompt to copy your organised history.");
+    }
+  };
+
   if(authLoading) return <main className="public-loading"><ClerkMeBrand/><span>Preparing your workspace…</span></main>;
   if(!authUser) return <PublicLanding/>;
 
@@ -172,14 +189,14 @@ export default function Home() {
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">WORKSPACE</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
-            <button key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
               {id === "clerking" && <span className="nav-plus">+</span>}
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">LEARN & PRACTISE</div>
           {navItems.slice(5).map(([label, id, icon]) => (
-            <button key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
           ))}
@@ -193,7 +210,7 @@ export default function Home() {
 
       <nav className="mobile-dock" aria-label="Main navigation">
         {navItems.filter(([,id])=>["overview","clerking","guides","patients"].includes(id)).map(([label,id,icon])=>(
-          <button key={id} className={active===id?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection(id)}>
+          <button type="button" key={id} className={active===id?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection(id)} aria-current={active===id?"page":undefined}>
             <span>{icon}</span><small>{id==="clerking"?"Clerk":id==="patients"?"Cases":id==="guides"?"Guides":label}</small>
           </button>
         ))}
@@ -215,16 +232,16 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>M</span></span><strong>Clerk<span>ME</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button className="help-button" onClick={async()=>{await fetch("/api/auth/logout",{method:"POST"});window.location.reload();}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
+        <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>M</span></span><strong>Clerk<span>ME</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={async()=>{try{const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!response.ok)throw new Error("Sign out could not be completed. Please try again.");window.location.assign("/login");}catch(error){setApiError(error instanceof Error?error.message:"Sign out could not be completed.");}}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>•</span> Learn • Practise • Improve</div></div>
             <div className="activity-streak-card"><div className="streak-flame">◉</div><div><strong>{streakData.streak} day learning streak</strong><span>{authUser?(streakData.todayActive?"You have checked in today. Keep learning tomorrow.":"Your learning activity will update when you open ClerkMe."):"Sign in to track your daily learning streak."}</span></div><div className="streak-record"><small>PERSONAL BEST</small><b>{streakData.bestStreak} days</b></div></div>
             <div className="hero-card"><div className="hero-copy"><span className="hero-kicker">YOUR NEXT PATIENT STARTS HERE</span><h2>Every great diagnosis<br/>begins with a good history.</h2><p>Capture the story. Examine with purpose. Organise your findings. Practise clinical reasoning with a clear structure.</p><button className="primary-button" onClick={startClerking}>Start a new clerking <span>→</span></button></div><div className="hero-art"><div className="orbit orbit-one"></div><div className="orbit orbit-two"></div><div className="medical-cross">✚</div><div className="art-note note-one"><span>01</span> History</div><div className="art-note note-two"><span>02</span> Examination</div><div className="art-note note-three"><span>03</span> Assessment</div></div></div>
-            <div className="section-heading"><div><h2>Your clinical workspace</h2><p>Move from structured clerking to active recall, simulation and independent learning.</p></div><button className="text-link" onClick={() => setActive("guides")}>Explore clinical guides <span>→</span></button></div>
+            <div className="section-heading"><div><h2>Your clinical workspace</h2><p>Move from structured clerking to active recall, simulation and independent learning.</p></div><button type="button" className="text-link" onClick={() => selectSection("guides")}>Explore clinical guides <span>→</span></button></div>
             <div className="tool-grid">
               <button className="tool-card" onClick={startClerking}><span className="tool-icon mint">＋</span><span className="tool-title">Clinical clerking</span><span className="tool-desc">Take a complete, organised patient history.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("guides")}><span className="tool-icon sand">▤</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh key concepts and examination steps.</span><span className="tool-arrow">↗</span></button>
+              <button type="button" className="tool-card" onClick={() => selectSection("guides")}><span className="tool-icon sand">▤</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh key concepts and examination steps.</span><span className="tool-arrow">↗</span></button>
               <button className="tool-card" onClick={() => setActive("osce")}><span className="tool-icon lilac">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Prepare for practical and oral examinations.</span><span className="tool-arrow">↗</span></button>
               <button className="tool-card" onClick={() => setActive("qbank")}><span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Test your knowledge with clinical questions.</span><span className="tool-arrow">↗</span></button>
               <button className="tool-card" onClick={() => setActive("materials")}><span className="tool-icon mint">▧</span><span className="tool-title">My materials</span><span className="tool-desc">Upload lectures, build clear summaries and ask source-based questions.</span><span className="tool-arrow">↗</span></button>
@@ -241,7 +258,7 @@ export default function Home() {
               <label>Paste or edit your raw clerking notes<textarea rows={7} value={rawClerkingNotes} onChange={e=>setRawClerkingNotes(e.target.value)} placeholder="Paste your rough notes here: presenting complaint, chronology, associated symptoms, relevant negatives, past history, medications, examination and assessment…"/></label>
               <button className="primary-button" onClick={organiseClerking} disabled={organiseLoading||rawClerkingNotes.trim().length<30}>{organiseLoading?"Organising your clerking…":"Organise into clinical prose"} <span>→</span></button>
               {organiseError&&<p className="auth-error">{organiseError}</p>}
-              {organisedClerkingProse&&<div className="organised-prose"><div className="panel-heading"><h3>Organised clinical history</h3><button className="text-link" onClick={()=>navigator.clipboard?.writeText(organisedClerkingProse)}>Copy prose</button></div><pre>{organisedClerkingProse}</pre>{organiseMissing.length>0&&<div className="prose-followups"><strong>Information still to obtain</strong><ul>{organiseMissing.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}{organiseUnclear.length>0&&<div className="prose-followups"><strong>Unclear or conflicting details to verify</strong><ul>{organiseUnclear.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}<small>Check every sentence against the original notes before using or saving this write-up. ClerkMe does not add missing clinical facts.</small></div>}
+              {organisedClerkingProse&&<div className="organised-prose"><div className="panel-heading"><h3>Organised clinical history</h3><button type="button" className="text-link" onClick={copyOrganisedProse}>Copy prose</button></div><pre>{organisedClerkingProse}</pre>{copyNotice&&<p className="copy-status" role="status">{copyNotice}</p>}{organiseMissing.length>0&&<div className="prose-followups"><strong>Information still to obtain</strong><ul>{organiseMissing.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}{organiseUnclear.length>0&&<div className="prose-followups"><strong>Unclear or conflicting details to verify</strong><ul>{organiseUnclear.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}<small>Check every sentence against the original notes before using or saving this write-up. ClerkMe does not add missing clinical facts.</small></div>}
             </div>
             <label>Patient study identifier<input value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="e.g. Case 001"/></label><label>Presenting complaint<input value={complaint} onChange={e => setComplaint(e.target.value)} placeholder="e.g. Fever for 5 days"/></label>
             <div className="clerking-section-title">01 · HISTORY OF PRESENTING COMPLAINT</div>

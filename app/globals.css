@@ -2161,3 +2161,135 @@ input::placeholder,textarea::placeholder{color:#89958d!important;opacity:1}
  .flight-question-panel h3{font-size:15px!important}
  .flight-option{font-size:12px}
 }
+
+/* ClerkME readability pass — applied after component and breakpoint rules */
+.nav-item{font-size:14px!important;line-height:1.35!important}
+.nav-item .nav-icon{font-size:19px!important}
+.upgrade-card button,.text-link{font-size:14px!important}
+.topbar .breadcrumb{font-size:13px}
+.help-button{min-width:36px;min-height:36px}
+.install-app-trigger{font-size:13px;min-height:46px}
+.install-app-card .install-app-trigger small{font-size:12px}
+.content .page-intro p,.content .subheading{font-size:16px!important;line-height:1.7!important}
+.content p:not(.eyebrow){font-size:max(14px,1em);line-height:1.75}
+.content li{font-size:max(14px,1em);line-height:1.75}
+.content small{font-size:max(12px,1em)}
+.content label{font-size:max(14px,1em);line-height:1.5}
+.content .primary-button,.content .secondary-button,.content .text-link{font-size:14px!important}
+.content .primary-button,.content .secondary-button{min-height:44px}
+.content .tool-desc,.content .template-info small{font-size:14px!important;line-height:1.6!important}
+.content .template-tag{font-size:11px!important}
+.content .learning-toolbar label,.content .learning-toolbar p{font-size:14px!important}
+.content .learning-toolbar select{font-size:16px!important;min-height:48px}
+.content .form-panel label,.content .materials-upload-card label,.content .study-question-input{font-size:14px!important}
+.content .form-panel input,.content .form-panel textarea,.content .form-panel select,
+.content .materials-upload-card input,.content .materials-upload-card select,
+.content .study-question-input textarea{font-size:16px!important}
+.content .unit-guide-tabs button,.content .materials-tabs button{font-size:14px!important;min-height:44px}
+.content .unit-guide-outcomes strong,.content .unit-guide-list>strong,.content .unit-guide-reasoning strong{font-size:14px!important}
+.content .unit-guide-outcomes li,.content .unit-guide-final-card li,.content .unit-guide-list li{font-size:14px!important;line-height:1.8!important}
+.content .unit-guide-section-title{font-size:16px!important;line-height:1.4}
+.content .unit-guide-purpose,.content .unit-guide-reasoning p{font-size:14px!important;line-height:1.8!important}
+.content .unit-guide-final-card p{font-size:13px!important;line-height:1.7!important}
+.content .materials-item-copy strong{font-size:14px!important}
+.content .materials-item-copy small,.content .materials-item-copy>span{font-size:12px!important;line-height:1.5}
+.content .materials-upload-card>p,.content .materials-safety-note span{font-size:14px!important;line-height:1.7!important}
+.content .study-summary-section>p,.content .study-summary-overview p,.content .study-answer-main{font-size:15px!important;line-height:1.8!important}
+.content .study-clinical-relevance p,.content .study-supplementary p,.content .study-source-support p{font-size:14px!important;line-height:1.75!important}
+.content .study-source-locator,.content .study-summary-disclaimer{font-size:12px!important;line-height:1.6!important}
+.content .qbank-option{font-size:15px!important;line-height:1.55!important}
+.content .qbank-actions>span{font-size:13px!important;line-height:1.55}
+.content .osce-instruction{font-size:15px!important;line-height:1.75!important}
+
+/* Complaint guide actions and supporting material */
+.presentation-pathway-card{min-height:194px}
+.presentation-card-top>span{font-size:11px!important}
+.presentation-card-bottom b{font-size:14px!important}
+.presentation-opening-question>span{font-size:11px!important}
+.presentation-opening-question small{font-size:13px!important;line-height:1.6}
+.presentation-checklist-heading p,.presentation-core-reference>p,.presentation-redflags>div>p{font-size:14px!important;line-height:1.7!important}
+.presentation-progress>span{font-size:12px!important}
+.presentation-question-group h4{font-size:14px!important}
+.presentation-question-list label{font-size:14px!important;line-height:1.7!important}
+.presentation-core-steps summary strong{font-size:14px!important}
+.presentation-core-steps details>p,.presentation-reference-grid p,.presentation-example p{font-size:14px!important;line-height:1.75!important}
+.presentation-reference-grid h4,.presentation-example summary{font-size:14px!important}
+.presentation-example small{font-size:12px!important;line-height:1.6}
+.presentation-redflags li,.presentation-exam-focus li{font-size:14px!important;line-height:1.7!important}
+.presentation-footer-note{font-size:12px!important;line-height:1.7!important}
+.presentation-detail-actions .secondary-button{min-height:44px;font-size:14px!important}
+.presentation-back{min-height:40px;font-size:14px!important}
+.presentation-copy-status,.copy-status{padding:9px 12px;border-radius:9px;background:#edf5ef;color:#236343;font-size:13px!important;line-height:1.55!important}
+
+/* Public landing: increase feature copy without flattening the design hierarchy */
+.public-eyebrow{font-size:11px}
+.public-header nav a,.public-header-signin{font-size:14px}
+.public-section-heading>p,.public-bottom-cta p{font-size:14px}
+.public-feature-card>strong{font-size:16px}
+.public-feature-card p{font-size:14px;line-height:1.7}
+.public-feature-detail{font-size:12px}
+.public-feature-card>b{font-size:13px}
+.public-how-steps strong{font-size:14px}
+.public-how-steps p{font-size:13px;line-height:1.65}
+.public-footer>p{font-size:12px;line-height:1.65}
+.public-footer>span{font-size:11px}
+
+/* Flight Academy: readable prompts with a compact aircraft visual */
+.flight-quiz .flight-source-controls label{font-size:13px}
+.flight-quiz .flight-source-controls select{font-size:14px;min-height:44px}
+.flight-source-summary span,.flight-material-prompt>span{font-size:13px;line-height:1.6}
+.flight-source-summary .text-link,.flight-material-prompt button{font-size:13px!important}
+.flight-question-panel h3{font-size:19px}
+.flight-option,.flight-playing .flight-option{font-size:15px}
+.flight-feedback strong{font-size:14px}
+.flight-feedback p{font-size:14px!important;line-height:1.7!important}
+.flight-auto-advance{font-size:12px}
+.flight-howto p{font-size:13px!important}
+.flight-generation-message{font-size:13px}
+@media(max-width:700px){
+  .nav-item{font-size:11px!important;line-height:1.18!important;gap:3px}
+  .nav-item .nav-icon{font-size:18px!important}
+  .content .page-intro p,.content .subheading{font-size:15px!important}
+  .content .section-heading p{font-size:14px!important}
+  .content .tool-desc,.content .template-info small{font-size:13px!important}
+  .content .unit-guide-section-title{font-size:15px!important}
+  .content .unit-guide-purpose,.content .unit-guide-list li,
+  .content .unit-guide-outcomes li,.content .unit-guide-final-card li{font-size:14px!important}
+  .presentation-finder-heading p,.presentation-detail-heading p,
+  .presentation-checklist-heading p,.presentation-core-reference>p,
+  .presentation-redflags>div>p{font-size:14px!important;line-height:1.65!important}
+  .presentation-pathway-card>strong{font-size:18px!important}
+  .presentation-card-desc{font-size:14px!important;line-height:1.6!important}
+  .presentation-card-bottom span{font-size:12px!important}
+  .presentation-question-list label{font-size:14px!important;padding:12px!important;line-height:1.65!important}
+  .presentation-checklist-heading h3{font-size:18px!important}
+  .presentation-progress>span{font-size:11px!important}
+  .presentation-core-steps summary strong,.presentation-core-steps details>p,
+  .presentation-reference-grid p,.presentation-redflags li,.presentation-exam-focus li{font-size:14px!important}
+  .presentation-footer-note{font-size:12px!important}
+  .presentation-quick-categories button{font-size:13px!important;min-height:40px}
+  .flight-quiz-heading p{font-size:12px!important;line-height:1.55!important}
+  .flight-quiz .flight-source-controls label{font-size:12px!important}
+  .flight-quiz .flight-source-controls select{font-size:13px!important;min-height:42px}
+  .flight-source-summary span,.flight-material-prompt>span{font-size:12px!important;line-height:1.55}
+  .flight-source-summary .text-link,.flight-material-prompt button{font-size:13px!important;min-height:42px}
+  .question-topline,.question-difficulty{font-size:10px!important}
+  .flight-question-panel h3{font-size:17px!important}
+  .flight-option,.flight-playing .flight-option{font-size:14px!important;min-height:48px}
+  .flight-feedback strong{font-size:13px!important}
+  .flight-feedback p{font-size:13px!important;line-height:1.6!important}
+  .flight-auto-advance{font-size:11px}
+  .flight-start-overlay strong{font-size:14px}
+  .flight-start-overlay p{font-size:11px;line-height:1.45}
+  .flight-launch-button{font-size:12px;min-height:40px}
+  .flight-metrics span{font-size:8px}
+  .flight-quiz-footer{font-size:9px}
+  .public-section-heading>p,.public-how-steps p{font-size:13px}
+  .public-feature-card p{font-size:14px;line-height:1.65}
+  .public-feature-card>b{font-size:12px}
+}
+@media(max-width:390px){
+  .presentation-pathway-card{min-height:0}
+  .flight-question-panel h3{font-size:16px!important}
+  .flight-option{font-size:13px!important}
+}

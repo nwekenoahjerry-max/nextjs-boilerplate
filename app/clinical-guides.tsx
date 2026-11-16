@@ -39,6 +39,7 @@ export default function ClinicalGuides() {
   const [search,setSearch] = useState("");
   const [category,setCategory] = useState("All");
   const [askedItems,setAskedItems] = useState<Record<string,boolean>>({});
+  const [copyNotice,setCopyNotice] = useState("");
   const framework = unitClerkingFrameworks[unit] || unitClerkingFrameworks["general-medicine"];
   const unitName = clinicalUnits.find(item=>item.id===unit)?.name || framework.title;
   const pathways = useMemo(()=>getUnitPresentationPathways(unit),[unit]);
@@ -62,8 +63,12 @@ export default function ClinicalGuides() {
     setAskedItems({});
   };
   const openComplaint=(id:string)=>{
+    setView("presentations");
+    setSearch("");
+    setCategory("All");
     setSelectedComplaintId(id);
     setAskedItems({});
+    setCopyNotice("");
   };
   const copyChecklist=async(item:PresentingComplaintPathway)=>{
     const text=[
@@ -74,7 +79,14 @@ export default function ClinicalGuides() {
       `\nExamination focus`,...item.examinationFocus.map(point=>`• ${point}`),
       "\nEducational prompt only. Adapt to the patient and local clinical guidance."
     ].join("\n");
-    try{await navigator.clipboard.writeText(text);}catch{window.prompt("Copy the clerking guide below:",text);}
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard access is unavailable.");
+      await navigator.clipboard.writeText(text);
+      setCopyNotice("Guide questions copied to your clipboard.");
+    } catch {
+      window.prompt("Copy the clerking guide below:",text);
+      setCopyNotice("Use the copy prompt to copy the guide questions.");
+    }
   };
 
   return (
@@ -95,8 +107,8 @@ export default function ClinicalGuides() {
       </div>
 
       <div className="unit-guide-tabs">
-        <button className={view==="presentations"?"active":""} onClick={()=>{setView("presentations");setSelectedComplaintId(null);}}>Presenting complaint guide <span className="guide-tab-primary">START HERE</span></button>
-        <button className={view==="pathway"?"active":""} onClick={()=>{setView("pathway");setSelectedComplaintId(null);}}>Full clerking pathway</button>
+        <button type="button" className={view==="presentations"?"active":""} onClick={()=>{setView("presentations");setSelectedComplaintId(null);setCopyNotice("");}}>Presenting complaint guide <span className="guide-tab-primary">START HERE</span></button>
+        <button type="button" className={view==="pathway"?"active":""} onClick={()=>{setView("pathway");setSelectedComplaintId(null);setCopyNotice("");}}>Full clerking pathway</button>
       </div>
 
       {view==="pathway" && <>
@@ -153,23 +165,24 @@ export default function ClinicalGuides() {
             <label className="presentation-category-select"><span>Category</span><select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item} value={item}>{item}</option>)}</select></label>
           </div>
           <div className="presentation-quick-categories">
-            {categories.map(item=><button key={item} className={category===item?"active":""} onClick={()=>setCategory(item)}>{item}</button>)}
+            {categories.map(item=><button type="button" key={item} className={category===item?"active":""} onClick={()=>setCategory(item)} aria-pressed={category===item}>{item}</button>)}
           </div>
           {filteredPathways.length ? <div className="presentation-pathway-grid">
-            {filteredPathways.map((item,index)=><button className="presentation-pathway-card" key={item.id} onClick={()=>openComplaint(item.id)}>
+            {filteredPathways.map((item,index)=><button type="button" className="presentation-pathway-card" key={item.id} onClick={()=>openComplaint(item.id)} aria-label={`See guide for ${item.title}`} title={`See guide for ${item.title}`}>
               <span className="presentation-card-top"><small>{String(index+1).padStart(2,"0")}</small><span>{item.category}</span></span>
               <strong>{item.title}</strong>
               <span className="presentation-card-desc">{item.openingQuestion}</span>
-              <span className="presentation-card-bottom"><span>{item.questionGroups.reduce((sum,group)=>sum+group.questions.length,0)} focused questions</span><b>Open guide →</b></span>
+              <span className="presentation-card-bottom"><span>{item.questionGroups.reduce((sum,group)=>sum+group.questions.length,0)} focused questions</span><b>See guide →</b></span>
             </button>)}
-          </div> : <div className="presentation-empty"><strong>No matching complaint in this unit.</strong><p>Try another search term or choose “All” categories.</p><button className="text-link" onClick={()=>{setSearch("");setCategory("All");}}>Clear filters</button></div>}
+          </div> : <div className="presentation-empty"><strong>No matching complaint in this unit.</strong><p>Try another search term or choose “All” categories.</p><button type="button" className="text-link" onClick={()=>{setSearch("");setCategory("All");}}>Clear filters</button></div>}
         </>}
 
-        {selectedComplaint && <div className="presentation-detail">
-          <button className="presentation-back" onClick={()=>{setSelectedComplaintId(null);setAskedItems({});}}>← All {unitName} complaints</button>
+        {selectedComplaint && <div className="presentation-detail" id="clinical-guide-detail" aria-live="polite">
+          <button type="button" className="presentation-back" onClick={()=>{setSelectedComplaintId(null);setAskedItems({});setCopyNotice("");}}>← All {unitName} complaints</button>
           <div className="presentation-detail-heading">
             <div><span className="eyebrow">{unitName.toUpperCase()} · {selectedComplaint.category.toUpperCase()}</span><h2>How to clerk: {selectedComplaint.title}</h2><p>Use the prompts as a clinical conversation, not as a rigid questionnaire. Let the patient speak before narrowing the history.</p></div>
-            <div className="presentation-detail-actions"><button className="secondary-button" onClick={()=>copyChecklist(selectedComplaint)}>Copy questions</button><button className="secondary-button" onClick={()=>window.print()}>Print guide</button></div>
+            <div className="presentation-detail-actions"><button type="button" className="secondary-button" onClick={()=>copyChecklist(selectedComplaint)}>Copy questions</button><button type="button" className="secondary-button" onClick={()=>window.print()}>Print guide</button></div>
+            {copyNotice&&<p className="presentation-copy-status" role="status">{copyNotice}</p>}
           </div>
 
           <section className="presentation-opening-question">
