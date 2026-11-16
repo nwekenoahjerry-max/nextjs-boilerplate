@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const ALLOWED_UNITS = ["general-medicine","surgery","paediatrics","obstetrics-gynaecology","emergency","psychiatry","community-medicine","orthopaedics"];
@@ -182,6 +182,6 @@ export const onRequestPost = async (context:AppContext) => {
     if(!response.feedback) throw new Error("The history review was incomplete. Please try again.");
     return json(response);
   }catch(error){
-    return json({error:error instanceof Error?error.message:"The patient interview could not continue. Please try again."},502);
+    return aiFailureResponse(error, "The patient interview is temporarily unavailable. Please try again later.");
   }
 };
