@@ -140,7 +140,7 @@ ${material.content_text}
           caption: clean(item.caption, 650),
           altText: clean(item.altText, 500),
           sourceSection: clean(item.sourceSection, 180),
-          visualPrompt: clean(item.visualPrompt, 1800)
+          visualPrompt: clean(item.visualPrompt, 1100)
         };
       }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
       learningObjectives: asStrings(parsed.learningObjectives, 16, 500),
