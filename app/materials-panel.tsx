@@ -112,6 +112,7 @@ export default function MaterialsPanel() {
 
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const activeQuestions = selectedMaterial?.questions || [];
+  const activeQuestionCount = activeQuestions.length;
   const answeredCount = Object.keys(questionAnswers).length;
   const correctCount = activeQuestions.reduce((total,item,index)=>total+(questionAnswers[index]===item.answerIndex?1:0),0);
   const currentQuestion = activeQuestions[questionIndex] || null;
@@ -133,7 +134,10 @@ export default function MaterialsPanel() {
       try { savedMaterialId = window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY) || ""; } catch {}
       const savedMaterialExists = savedMaterialId && next.some(item=>item.id===savedMaterialId);
       if (savedMaterialId && !savedMaterialExists) {
-        try { window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY); } catch {}
+        try {
+          window.sessionStorage.removeItem(liveSessionKey(savedMaterialId));
+          window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
+        } catch {}
       }
       setSelectedId(savedMaterialExists ? savedMaterialId : next[0]?.id || "");
     }
@@ -155,12 +159,12 @@ export default function MaterialsPanel() {
         if (Number.isFinite(deadline) && deadline>0 && Number.isFinite(startedAt) && startedAt>0 &&
             Number.isInteger(durationSeconds) && durationSeconds>=5*60 && durationSeconds<=180*60) {
           const savedIndex = Number(saved.questionIndex);
-          const safeIndex = Number.isInteger(savedIndex) ? Math.max(0,Math.min(Math.max(0,activeQuestions.length-1),savedIndex)) : 0;
+          const safeIndex = Number.isInteger(savedIndex) ? Math.max(0,Math.min(Math.max(0,activeQuestionCount-1),savedIndex)) : 0;
           const sourceAnswers = saved.answers && typeof saved.answers==="object" ? saved.answers as Record<string,unknown> : {};
           const safeAnswers:Record<number,number> = {};
           for (const [key,value] of Object.entries(sourceAnswers)) {
             const questionNumber = Number(key);
-            if (Number.isInteger(questionNumber) && questionNumber>=0 && questionNumber<activeQuestions.length &&
+            if (Number.isInteger(questionNumber) && questionNumber>=0 && questionNumber<activeQuestionCount &&
                 Number.isInteger(value) && Number(value)>=0 && Number(value)<4) {
               safeAnswers[questionNumber] = Number(value);
             }
@@ -190,7 +194,7 @@ export default function MaterialsPanel() {
     }
     setSessionHydratedFor(selectedId);
     if (!restored) setQuizMode("practice");
-  },[selectedId]);
+  },[selectedId,activeQuestionCount]);
 
   useEffect(()=>{
     if (!selectedId || sessionHydratedFor!==selectedId) return;
