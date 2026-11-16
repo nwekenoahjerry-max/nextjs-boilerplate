@@ -14,6 +14,7 @@ type SummarySection = {
 };
 type StudySummary = {
   overview: string;
+  highYieldPoints?: string[];
   learningObjectives?: string[];
   sections: SummarySection[];
   keyTerms?: Array<{term:string;meaning:string}>;
@@ -123,6 +124,9 @@ export default function MaterialsPanel() {
   const liveInProgress = quizMode==="live" && liveDeadline!==null && !quizFinished;
   const timerUrgency = remainingSeconds<=60 ? "urgent" : remainingSeconds<=300 ? "warning" : "";
   const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
+  const topHighYieldPoints = selectedMaterial?.summary?.highYieldPoints?.length
+    ? selectedMaterial.summary.highYieldPoints
+    : selectedMaterial?.summary?.examFocus?.mustKnow || [];
 
   const loadMaterials = async (preserveId = true) => {
     const response = await fetch("/api/learning/materials",{credentials:"same-origin",cache:"no-store"});
@@ -270,7 +274,7 @@ export default function MaterialsPanel() {
   };
 
   const summarise = async (materialId:string) => {
-    setWorking(true); setError(""); setNotice("Creating a structured summary from the uploaded source…");
+    setWorking(true); setError(""); setNotice("Building detailed High-Yield Points from your uploaded source…");
     try {
       const response = await fetch("/api/learning/summarise",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
@@ -278,11 +282,11 @@ export default function MaterialsPanel() {
       });
       const data = await readResponse(response);
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:data.summary}:item));
-      setNotice("Summary prepared. Review the source and the highlighted areas that need verification.");
+      setNotice("High-Yield Points are ready. Review the explanations and verify any flagged areas against your source.");
       setTab("summary");
     } catch(e) {
-      setError(e instanceof Error?e.message:"Could not summarise this material.");
-      setNotice("Your uploaded material is saved. The summary can be retried when the study service is available.");
+      setError(e instanceof Error?e.message:"Could not prepare High-Yield Points for this material.");
+      setNotice("Your uploaded material is saved. High-Yield Points can be generated again when the study service is available.");
     } finally { setWorking(false); }
   };
 
@@ -303,7 +307,7 @@ export default function MaterialsPanel() {
       setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
       setTitle(""); setFile(null);
-      setNotice("Material uploaded and saved to your private library. Preparing its summary…");
+      setNotice("Material uploaded and saved to your private library. Preparing its High-Yield Points…");
       await summarise(material.id);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not upload this material.");
@@ -334,7 +338,7 @@ export default function MaterialsPanel() {
       if (generated > 0) setTab("questions");
       setNotice(data.complete === false
         ? `Generated ${generated} of ${requested} requested questions from ${selectedMaterial.title}. ${data.warning || "You can start practising the questions generated so far."}`
-        : `Your ${generated} questions from ${selectedMaterial.title} are ready. You can start answering now or read the structured summary first.`);
+        : `Your ${generated} questions from ${selectedMaterial.title} are ready. You can start answering now or study the detailed High-Yield Points first.`);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not create questions from this material.");
     } finally { setWorking(false); }
@@ -356,7 +360,7 @@ export default function MaterialsPanel() {
   };
 
   const remove = async (materialId:string) => {
-    if (!window.confirm("Remove this material and its generated summary and questions from your private library?")) return;
+    if (!window.confirm("Remove this material, its High-Yield Points and its generated questions from your private library?")) return;
     setError(""); setNotice("");
     try {
       await readResponse(await fetch("/api/learning/materials",{
@@ -375,12 +379,12 @@ export default function MaterialsPanel() {
       <div className="page-intro">
         <div className="eyebrow">YOUR PRIVATE STUDY LIBRARY</div>
         <h1>My study materials</h1>
-        <p>Upload lecture notes, presentations and study documents. ClerkMe organises each source into clear revision notes, answers questions from the material and builds practice questions for the selected unit.</p>
+        <p>Upload lecture notes, presentations and study documents. ClerkMe organises each source into detailed, exam-focused High-Yield Points, answers questions from the material and builds practice questions for the selected unit.</p>
       </div>
 
       <div className="materials-safety-note">
         <strong>Upload learning resources, not identifiable patient records.</strong>
-        <span>Remove patient names, hospital numbers, contact details and other identifying information. This version retains the extracted text, summary and generated questions, not the original binary file. Scanned image-only files may need OCR or a text-based copy.</span>
+        <span>Remove patient names, hospital numbers, contact details and other identifying information. This version retains the extracted text, High-Yield Points and generated questions, not the original binary file. Scanned image-only files may need OCR or a text-based copy.</span>
       </div>
 
       <div className="materials-layout">
@@ -407,10 +411,10 @@ export default function MaterialsPanel() {
             <input type="file" accept=".pdf,.pptx,.docx,.txt,.md,.csv" onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
           </label>
           <button className="primary-button materials-action-button" onClick={upload} disabled={!file||uploading}>
-            {uploading?"Uploading and preparing summary…":"Upload and organise material"} <span>→</span>
+            {uploading?"Uploading and preparing High-Yield Points…":"Upload and organise material"} <span>→</span>
           </button>
           <div className="materials-processing-steps">
-            <span>01 · Extract text</span><span>02 · Organise summary</span><span>03 · Generate practice</span>
+            <span>01 · Extract text</span><span>02 · Build High-Yield Points</span><span>03 · Generate practice</span>
           </div>
         </section>
 
@@ -424,7 +428,7 @@ export default function MaterialsPanel() {
               {materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
                 <button className="materials-select" disabled={liveInProgress} onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
                   <span className="materials-file-badge">▤</span>
-                  <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"Summary ready":"Summary not yet generated"} · {item.questions?.length||0} questions</span></span>
+                  <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
                 </button>
                 <button className="materials-delete" title="Remove material" disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
               </div>)}
@@ -439,7 +443,7 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{selectedMaterial.summary?"Refresh summary":"Create summary"}</button>
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -456,7 +460,7 @@ export default function MaterialsPanel() {
           </div>
         </div>
         <div className="materials-tabs">
-          <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study summary</button>
+          <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>High-Yield Points</button>
           <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length||0}</span></button>
           <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
@@ -471,16 +475,21 @@ export default function MaterialsPanel() {
               </div>
             </div>
             {!!selectedMaterial.summary.sections?.length&&<nav className="study-contents" aria-label="Study guide contents"><strong>In this guide</strong><div>{selectedMaterial.summary.sections.map((section,index)=><a key={index} href={`#study-section-${index+1}`}>{String(index+1).padStart(2,"0")} · {section.heading}</a>)}</div></nav>}
-            <section className="study-summary-overview"><div className="eyebrow">AT A GLANCE</div><p>{selectedMaterial.summary.overview}</p></section>
+            <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
+            {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
+              <div className="eyebrow">HIGH-YIELD POINTS</div><h3>Core facts, mechanisms and distinctions to master</h3>
+              <p className="study-section-intro">These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow.</p>
+              <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
+            </section>}
             {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
-              <div className="eyebrow">EXAM REVISION</div><h3>What to know for your examinations</h3>
+              <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
               {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.likelyShortNotes?.length&&<div className="study-exam-subsection"><h4>Short-note themes to prepare</h4><ul>{selectedMaterial.summary.examFocus.likelyShortNotes.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
             </section>}
-            <div className="study-summary-sections">{selectedMaterial.summary.sections?.map((section,index)=><article id={`study-section-${index+1}`} className="study-summary-section" key={index}>
+            <div className="study-summary-sections"><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div>{selectedMaterial.summary.sections?.map((section,index)=><article id={`study-section-${index+1}`} className="study-summary-section" key={index}>
               <div className="study-summary-section-heading"><span>{String(index+1).padStart(2,"0")}</span><h3>{section.heading}</h3></div>
               {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
               <p className="study-section-lead">{section.summary}</p>
@@ -498,7 +507,7 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.sourceCoverage?.length&&<section className="study-summary-block"><h3>Topics covered from your source</h3><ul>{selectedMaterial.summary.sourceCoverage.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
-          </div> : <div className="materials-empty"><span>•</span><strong>No summary has been created</strong><p>Ask ClerkMe to organise the uploaded source into an explained, structured revision document.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create structured summary →</button></div>}
+          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create High-Yield Points →</button></div>}
         </>}
 
 
@@ -507,7 +516,7 @@ export default function MaterialsPanel() {
           {activeQuestions.length>0 ? <>
             <div className="study-mcq-heading">
               <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: MCQ practice</h3><p>Choose Practice for immediate teaching feedback, or Live test for a timed examination simulation with all answers and explanations revealed after submission.</p></div>
-              <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")} disabled={liveInProgress}>← Read summary</button></div>
+              <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")} disabled={liveInProgress}>← Read High-Yield Points</button></div>
             </div>
 
             <div className="study-mcq-mode-switch" role="group" aria-label="Choose MCQ mode">
@@ -569,7 +578,7 @@ export default function MaterialsPanel() {
                   : "You answered "+answeredCount+" of "+activeQuestions.length+" questions. Review the explanations below, revisit the study guide, or try the set again."}</p>
                 <div className="study-mcq-result-actions">
                   <button type="button" className="primary-button" onClick={()=>{setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);if(quizMode==="live")setRemainingSeconds(liveDurationMinutes*60);}}>Try again</button>
-                  <button type="button" className="secondary-button" onClick={()=>setTab("summary")}>Return to summary</button>
+                  <button type="button" className="secondary-button" onClick={()=>setTab("summary")}>Return to High-Yield Points</button>
                   {quizMode==="live"&&<button type="button" className="text-link" onClick={()=>switchQuizMode("practice")}>Switch to practice</button>}
                 </div>
                 <div className="study-mcq-review-list"><h4>Answer review and explanations</h4>{activeQuestions.map((item,index)=><details key={index} className="study-mcq-review-item"><summary><span>Q{index+1}</span>{item.question}<b className={questionAnswers[index]===item.answerIndex?"review-correct":questionAnswers[index]===undefined?"review-unanswered":"review-wrong"}>{questionAnswers[index]===undefined?"Not answered":questionAnswers[index]===item.answerIndex?"Correct":"Incorrect"}</b></summary><p><strong>Your answer:</strong> {questionAnswers[index]===undefined?"Not answered":item.options[questionAnswers[index]]}</p><p><strong>Best answer:</strong> {item.options[item.answerIndex]}</p><p><strong>Explanation:</strong> {item.explanation}</p></details>)}</div>
@@ -604,7 +613,7 @@ export default function MaterialsPanel() {
                   : <button type="button" className="study-mcq-finish-link" onClick={()=>{const unanswered=activeQuestions.length-answeredCount;if(unanswered>0&&!window.confirm("You have "+unanswered+" unanswered question(s). Submit your test now?"))return;finishLiveTest(false);}}>Submit live test and reveal feedback</button>}
               </>}
             </>}
-          </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the summary at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
+          </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the High-Yield Points at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
         </div>}
 
         {tab==="ask" && <div className="study-tutor-panel">
@@ -624,7 +633,7 @@ export default function MaterialsPanel() {
           </div>}
         </div>}
       </section>}
-      {!selectedMaterial && materials.length>0 && <p className="learning-note">Select a resource to view its summary, ask questions or generate a unit-specific question set.</p>}
+      {!selectedMaterial && materials.length>0 && <p className="learning-note">Select a resource to study its High-Yield Points, ask questions or generate a unit-specific question set.</p>}
     </div>
   );
 }
