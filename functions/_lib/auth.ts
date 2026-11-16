@@ -44,7 +44,7 @@ export function aiFailureResponse(error: unknown, fallback: string): Response {
     : error instanceof Error ? error.message
     : error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message ?? "")
     : "";
-  const dailyLimitReached = /\\b4006\\b|daily free allocation|10,000 neurons|used up.{0,80}(?:neurons|quota|allocation)|(?:neurons|quota|allocation).{0,80}(?:daily|limit|exhausted)/i.test(detail);
+  const dailyLimitReached = /4006|daily free allocation|10,000 neurons|used up.{0,80}(?:neurons|quota|allocation)|(?:neurons|quota|allocation).{0,80}(?:daily|limit|exhausted)/i.test(detail);
   if (dailyLimitReached) {
     return json({
       error: "ClerkMe's AI service has reached its daily usage allowance. Your saved materials are safe. Please try again after the allowance resets.",
