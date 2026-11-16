@@ -510,12 +510,12 @@ export default function MaterialsPanel() {
                     </button>
                   </div>
                   <p className="study-section-lead">{section.summary}</p>
-                  {expanded&&<div id={`study-section-details-${index+1}`} className="study-section-expanded-content">
+                  <div id={`study-section-details-${index+1}`} className="study-section-expanded-content" hidden={!expanded}>
                     {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
                     {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}><h4>{subsection.heading}</h4><p>{subsection.explanation}</p>{!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}</section>)}</div>}
                     {section.clinicalRelevance&&<div className="study-clinical-relevance"><strong>Clinical relevance</strong><p>{section.clinicalRelevance}</p></div>}
                     {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>High-yield points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
-                  </div>}
+                  </div>
                 </article>;
               })}
             </div>
