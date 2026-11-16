@@ -39,6 +39,23 @@ export async function requireUser(context: AppContext): Promise<AppUser | Respon
   if (!row) return json({ error: "Session expired. Please sign in again." }, 401, { "Set-Cookie": clearSessionCookie() });
   return row;
 }
+export function aiFailureResponse(error: unknown, fallback: string): Response {
+  const detail = typeof error === "string" ? error
+    : error instanceof Error ? error.message
+    : error && typeof error === "object" && "message" in error ? String((error as { message?: unknown }).message ?? "")
+    : "";
+  const dailyLimitReached = /\\b4006\\b|daily free allocation|10,000 neurons|used up.{0,80}(?:neurons|quota|allocation)|(?:neurons|quota|allocation).{0,80}(?:daily|limit|exhausted)/i.test(detail);
+  if (dailyLimitReached) {
+    return json({
+      error: "ClerkMe's AI service has reached its daily usage allowance. Your saved materials are safe. Please try again after the allowance resets.",
+      code: "AI_DAILY_LIMIT"
+    }, 429);
+  }
+  return json({
+    error: fallback,
+    code: "AI_TEMPORARILY_UNAVAILABLE"
+  }, 502);
+}
 export function isResponse(value: AppUser | Response): value is Response { return value instanceof Response; }
 export function validSameOrigin(request: Request): boolean {
   const origin = request.headers.get("Origin");
