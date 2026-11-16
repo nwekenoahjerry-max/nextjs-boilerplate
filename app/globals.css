@@ -3105,3 +3105,11 @@ button{font-size:15px}
   .study-live-timer-note{max-width:135px;font-size:10px}
   .study-live-result-time{display:grid;grid-template-columns:1fr 1fr}
 }
+
+/* High-Yield Points: make the core examination facts easy to scan without flattening the explanations. */
+.study-high-yield-overview{border-color:#dce9df;background:#f7faf7}
+.study-high-yield-overview>h3{margin:5px 0 8px}
+.study-high-yield-overview ol{display:grid;gap:9px;margin:10px 0 0;padding-left:22px}
+.study-high-yield-overview ol li{padding-left:4px;color:#425d4c;font-size:11px;line-height:1.85}
+.study-high-yield-overview ol li::marker{color:#62866d;font-weight:800}
+.study-detailed-notes-label{padding:3px 2px;color:#547461;font-weight:800;letter-spacing:.12em}
