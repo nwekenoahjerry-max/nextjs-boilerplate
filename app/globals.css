@@ -2524,9 +2524,14 @@ button{font-size:15px}
 }
 
 
-/* Searchable university dropdown: consistent on profile setup and profile editing */
-.student-profile-form .university-field{position:relative;z-index:4}
-.university-dropdown{position:relative;width:100%;min-width:0}
+/* Searchable university dropdown: reliable normal-flow menu on every screen */
+.student-profile-form .university-field{
+  display:grid;gap:8px;min-width:0;color:#40584a;font-size:15px!important;font-weight:700;line-height:1.45
+}
+.university-field-heading{display:block;color:#40584a;font-size:15px!important;font-weight:700;line-height:1.45}
+.university-field-heading .required-mark{margin-left:6px}
+.university-dropdown{display:grid;gap:8px;width:100%;min-width:0}
+.profile-form-section{overflow:visible}
 .university-dropdown-trigger{
   display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;
   width:100%!important;min-height:56px!important;padding:14px 16px!important;
@@ -2543,9 +2548,9 @@ button{font-size:15px}
 .university-dropdown-chevron{flex:0 0 auto;color:#547463;font-size:23px;line-height:1;transform:translateY(-2px);transition:transform .16s}
 .university-dropdown-trigger.is-open .university-dropdown-chevron{transform:rotate(180deg) translateY(-2px)}
 .university-dropdown-panel{
-  position:absolute;top:calc(100% + 7px);left:0;right:0;z-index:60;
-  display:grid;gap:8px;padding:10px;border:1px solid #d4e1d8;border-radius:13px;
-  background:#fff;box-shadow:0 18px 42px rgba(20,50,34,.18)
+  position:relative;z-index:2;display:grid;gap:8px;width:100%;min-width:0;
+  max-height:390px;padding:10px;border:1px solid #d4e1d8;border-radius:13px;
+  background:#fff;box-shadow:0 12px 28px rgba(20,50,34,.12)
 }
 .student-profile-form .university-dropdown-search{
   width:100%;min-height:48px;padding:11px 13px;border:1px solid #cbd9cf;border-radius:9px;
@@ -2575,4 +2580,15 @@ button{font-size:15px}
   .university-dropdown-panel{max-height:min(68vh,420px);padding:8px}
   .university-dropdown-options{max-height:min(38vh,250px)}
   .university-dropdown-options button{font-size:13.5px!important;min-height:42px!important}
+}
+
+.university-dropdown-trigger,.university-dropdown-options button,.university-dropdown-other{
+  pointer-events:auto!important;touch-action:manipulation!important
+}
+.student-profile-form .university-manual-entry{
+  display:grid;gap:8px;margin:0;color:#40584a;font-size:14px!important;font-weight:700
+}
+@media(max-width:700px){
+  .university-dropdown-panel{max-height:none}
+  .university-dropdown-options{max-height:230px}
 }
