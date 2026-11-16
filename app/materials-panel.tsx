@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 import { extractStudyFile } from "../lib/file-text";
 
+type StudyVisualAid = { title:string; caption:string; altText:string; sourceSection:string; visualPrompt:string; };
+type GeneratedStudyIllustration = StudyVisualAid & { imageDataUri:string; };
 type SummarySection = {
   heading: string;
   summary: string;
@@ -14,6 +16,7 @@ type SummarySection = {
 };
 type StudySummary = {
   overview: string;
+  visualAids?: StudyVisualAid[];
   highYieldPoints?: string[];
   learningObjectives?: string[];
   sections: SummarySection[];
@@ -79,6 +82,7 @@ function formatTimer(seconds:number) {
 }
 const ACTIVE_LIVE_MATERIAL_KEY = "clerkme:live-test:active-material";
 const liveSessionKey = (materialId:string) => "clerkme:live-test:"+materialId;
+const illustrationSessionKey = (materialId:string) => "clerkme:illustrations:"+materialId;
 
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
@@ -110,6 +114,9 @@ export default function MaterialsPanel() {
   const [answering,setAnswering] = useState(false);
   const [questionCount,setQuestionCount] = useState(25);
   const [questionDifficulty,setQuestionDifficulty] = useState("Mixed");
+  const [illustrationsByMaterial,setIllustrationsByMaterial] = useState<Record<string,GeneratedStudyIllustration[]>>({});
+  const [illustratingMaterialId,setIllustratingMaterialId] = useState("");
+  const [illustrationErrors,setIllustrationErrors] = useState<Record<string,string>>({});
   const [expandedStudySections,setExpandedStudySections] = useState<number[]>([]);
 
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
@@ -154,6 +161,15 @@ export default function MaterialsPanel() {
   };
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
+  useEffect(()=>{
+    if (!selectedId) return;
+    try {
+      const raw = window.sessionStorage.getItem(illustrationSessionKey(selectedId));
+      if (!raw) return;
+      const cached = JSON.parse(raw) as unknown;
+      if (Array.isArray(cached)) setIllustrationsByMaterial(current=>({...current,[selectedId]:cached as GeneratedStudyIllustration[]}));
+    } catch {}
+  },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([]); },[selectedId]);
 
   useEffect(()=>{
@@ -279,6 +295,45 @@ export default function MaterialsPanel() {
     if (timedOut) setRemainingSeconds(0);
   };
 
+  const generateIllustrations = async (materialId:string, force=false) => {
+    if (!force && illustrationsByMaterial[materialId]?.length) return illustrationsByMaterial[materialId];
+    if (illustratingMaterialId) return [];
+    setIllustratingMaterialId(materialId);
+    setIllustrationErrors(current=>({...current,[materialId]:""}));
+    setNotice("Preparing source-specific visual illustrations…");
+    try {
+      const response = await fetch("/api/learning/illustrations",{
+        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+        body:JSON.stringify({materialId})
+      });
+      const data = await readResponse(response);
+      const generated = Array.isArray(data.illustrations) ? data.illustrations as GeneratedStudyIllustration[] : [];
+      const visualAids = Array.isArray(data.visualAids) ? data.visualAids as StudyVisualAid[] : [];
+      if (visualAids.length) {
+        setMaterials(current=>current.map(item=>item.id===materialId&&item.summary
+          ? {...item,summary:{...item.summary,visualAids}}
+          : item));
+      }
+      if (generated.length) {
+        setIllustrationsByMaterial(current=>({...current,[materialId]:generated}));
+        try { window.sessionStorage.setItem(illustrationSessionKey(materialId),JSON.stringify(generated)); } catch {}
+        setNotice(data.message || "Your topic illustrations are ready.");
+      } else {
+        const message = data.message || "No suitable illustration was generated for this topic.";
+        setIllustrationErrors(current=>({...current,[materialId]:message}));
+        setNotice("Your High-Yield Points are ready. The written notes and visual learning pathways remain available.");
+      }
+      return generated;
+    } catch(e) {
+      const message = e instanceof Error?e.message:"Could not generate the illustrations.";
+      setIllustrationErrors(current=>({...current,[materialId]:message}));
+      setNotice("Your High-Yield Points are saved. You can retry the visual illustrations from the study guide.");
+      return [];
+    } finally {
+      setIllustratingMaterialId("");
+    }
+  };
+
   const summarise = async (materialId:string) => {
     setWorking(true); setError(""); setNotice("Building detailed High-Yield Points from your uploaded source…");
     try {
@@ -288,8 +343,9 @@ export default function MaterialsPanel() {
       });
       const data = await readResponse(response);
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:data.summary}:item));
-      setNotice("High-Yield Points are ready. Review the explanations and verify any flagged areas against your source.");
+      setNotice("High-Yield Points are ready. Preparing topic illustrations…");
       setTab("summary");
+      await generateIllustrations(materialId);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not prepare High-Yield Points for this material.");
       setNotice("Your uploaded material is saved. High-Yield Points can be generated again when the study service is available.");
@@ -488,6 +544,26 @@ export default function MaterialsPanel() {
               <p className="study-section-intro">These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow.</p>
               <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
             </section>}
+            <section className="study-summary-block study-visual-illustrations">
+              <div className="study-visual-illustrations-toolbar">
+                <div><div className="eyebrow">VISUAL LEARNING</div><h3>Illustrated concepts</h3><p>Topic-specific medical schematics selected from the uploaded material to make difficult anatomy and mechanisms easier to understand.</p></div>
+                <button type="button" className="study-illustration-action" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>
+                  {illustratingMaterialId===selectedMaterial.id?"Generating…":(illustrationsByMaterial[selectedMaterial.id]?.length?"Regenerate illustrations":"Generate illustrations")} <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+              {illustratingMaterialId===selectedMaterial.id&&<div className="study-illustration-loading" role="status"><span className="study-illustration-spinner"/><span>Creating source-specific textbook illustrations…</span></div>}
+              {!!illustrationsByMaterial[selectedMaterial.id]?.length&&<div className="study-illustration-grid">
+                {illustrationsByMaterial[selectedMaterial.id].map((illustration,index)=><figure className="study-illustration-card" key={index}>
+                  <img src={illustration.imageDataUri} alt={illustration.altText} loading="lazy" decoding="async"/>
+                  <figcaption><strong>{illustration.title}</strong><p>{illustration.caption}</p>{illustration.sourceSection&&<small>Related topic: {illustration.sourceSection}</small>}</figcaption>
+                </figure>)}
+              </div>}
+              {!illustrationsByMaterial[selectedMaterial.id]?.length&&!illustratingMaterialId&&<p className="study-illustration-empty">{selectedMaterial.summary.visualAids?.length
+                ? "Illustration plans are ready. Select Generate illustrations to create the visual aids."
+                : "Generate up to two useful visual aids for this lecture. ClerkMe will not force an image where a table or written explanation is clearer."}</p>}
+              {!!illustrationErrors[selectedMaterial.id]&&<p className="study-illustration-error" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
+              <p className="study-illustration-disclaimer">AI-generated educational schematics are illustrative, may simplify anatomical detail and are not diagnostic images or a substitute for verified clinical references.</p>
+            </section>
             {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
               <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
               {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
@@ -506,7 +582,7 @@ export default function MaterialsPanel() {
                   <div className="study-expandable-section-header">
                     <div className="study-summary-section-heading"><span>{String(index+1).padStart(2,"0")}</span><h3>{section.heading}</h3></div>
                     <button type="button" className="study-section-toggle" aria-expanded={expanded} aria-controls={`study-section-details-${index+1}`} onClick={()=>toggleStudySection(index)}>
-                      <span>{expanded?"Hide details":"View full notes"}</span><span className="study-section-toggle-icon" aria-hidden="true">{expanded?"⌃":"⌄"}</span>
+                      <span>{expanded?"Hide details":"View detailed notes"}</span><span className="study-section-toggle-icon" aria-hidden="true">{expanded?"⌃":"⌄"}</span>
                     </button>
                   </div>
                   <p className="study-section-lead">{section.summary}</p>
