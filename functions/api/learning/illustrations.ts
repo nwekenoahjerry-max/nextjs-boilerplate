@@ -32,7 +32,7 @@ function sanitiseVisualAids(value: unknown): VisualAid[] {
       caption: clean(item.caption, 650),
       altText: clean(item.altText, 500),
       sourceSection: clean(item.sourceSection, 180),
-      visualPrompt: clean(item.visualPrompt, 1800)
+      visualPrompt: clean(item.visualPrompt, 1100)
     };
   }).filter(item => item.title && item.caption && item.altText && item.visualPrompt);
 }
@@ -61,6 +61,7 @@ export const onRequestPost = async (context: AppContext) => {
   catch { return json({ error: "Invalid request body." }, 400); }
 
   const materialId = clean(body.materialId, 80);
+  const force = body.force === true;
   if (!materialId) return json({ error: "Select a study material first." }, 400);
 
   const material = await context.env.DB.prepare(`
@@ -79,7 +80,9 @@ export const onRequestPost = async (context: AppContext) => {
     catch { return json({ error: "The saved study guide could not be read. Refresh its High-Yield Points and try again." }, 422); }
 
     let visualAids = sanitiseVisualAids(summary.visualAids);
-    if (!visualAids.length) {
+    const visualAidsReviewed = summary.visualAidsReviewed === true;
+    if (!visualAids.length && force) summary.visualAidsReviewed = false;
+    if (!visualAids.length && (!visualAidsReviewed || force)) {
       const planResult = await context.env.AI.run(TEXT_MODEL, {
         messages: [
           {
@@ -124,6 +127,7 @@ ${material.content_text.slice(0, 22000)}
       });
       visualAids = sanitiseVisualAids(parseAIResult(planResult).visualAids);
       summary.visualAids = visualAids;
+      summary.visualAidsReviewed = true;
       await context.env.DB.prepare(
         "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
       ).bind(JSON.stringify(summary), material.id, user.id).run();
