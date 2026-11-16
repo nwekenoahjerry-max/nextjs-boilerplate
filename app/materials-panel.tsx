@@ -72,6 +72,10 @@ function formatDate(timestamp:number) {
   if (!timestamp) return "Date unavailable";
   return new Intl.DateTimeFormat("en-GB",{dateStyle:"medium"}).format(new Date(timestamp*1000));
 }
+function formatTimer(seconds:number) {
+  const safe = Math.max(0,Math.floor(seconds));
+  return String(Math.floor(safe/60)).padStart(2,"0")+":"+String(safe%60).padStart(2,"0");
+}
 
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
@@ -88,6 +92,15 @@ export default function MaterialsPanel() {
   const [questionIndex,setQuestionIndex] = useState(0);
   const [questionAnswers,setQuestionAnswers] = useState<Record<number,number>>({});
   const [quizFinished,setQuizFinished] = useState(false);
+  const [quizMode,setQuizMode] = useState<"practice"|"live">("practice");
+  const [durationChoice,setDurationChoice] = useState("20");
+  const [customDuration,setCustomDuration] = useState("30");
+  const [liveDeadline,setLiveDeadline] = useState<number|null>(null);
+  const [liveStartedAt,setLiveStartedAt] = useState<number|null>(null);
+  const [liveDurationSeconds,setLiveDurationSeconds] = useState(20*60);
+  const [remainingSeconds,setRemainingSeconds] = useState(20*60);
+  const [liveElapsedSeconds,setLiveElapsedSeconds] = useState(0);
+  const [liveTimedOut,setLiveTimedOut] = useState(false);
   const [question,setQuestion] = useState("");
   const [answer,setAnswer] = useState<TutorAnswer|null>(null);
   const [answering,setAnswering] = useState(false);
@@ -101,6 +114,10 @@ export default function MaterialsPanel() {
   const currentQuestion = activeQuestions[questionIndex] || null;
   const currentAnswer = questionAnswers[questionIndex] ?? null;
   const scorePercent = activeQuestions.length ? Math.round(correctCount/activeQuestions.length*100) : 0;
+  const requestedMinutes = durationChoice==="custom" ? Number(customDuration) : Number(durationChoice);
+  const liveDurationMinutes = Number.isFinite(requestedMinutes) ? Math.max(5,Math.min(180,Math.round(requestedMinutes))) : 20;
+  const liveInProgress = quizMode==="live" && liveDeadline!==null && !quizFinished;
+  const timerUrgency = remainingSeconds<=60 ? "urgent" : remainingSeconds<=300 ? "warning" : "";
   const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
 
   const loadMaterials = async (preserveId = true) => {
@@ -113,6 +130,60 @@ export default function MaterialsPanel() {
   };
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
+
+  useEffect(()=>{
+    if (quizMode!=="live" || liveDeadline===null || quizFinished) return;
+    const updateCountdown = () => {
+      const secondsLeft = Math.max(0,Math.ceil((liveDeadline-Date.now())/1000));
+      setRemainingSeconds(secondsLeft);
+      if (secondsLeft===0) {
+        setLiveTimedOut(true);
+        setLiveElapsedSeconds(liveStartedAt===null ? liveDurationSeconds : Math.min(liveDurationSeconds,Math.max(0,Math.floor((Date.now()-liveStartedAt)/1000))));
+        setQuizFinished(true);
+        setLiveDeadline(null);
+      }
+    };
+    updateCountdown();
+    const interval = window.setInterval(updateCountdown,1000);
+    return ()=>window.clearInterval(interval);
+  },[quizMode,liveDeadline,liveStartedAt,liveDurationSeconds,quizFinished]);
+
+  const switchQuizMode = (mode:"practice"|"live") => {
+    if (liveInProgress) return;
+    setQuizMode(mode);
+    setQuestionIndex(0);
+    setQuestionAnswers({});
+    setQuizFinished(false);
+    setLiveDeadline(null);
+    setLiveStartedAt(null);
+    setLiveElapsedSeconds(0);
+    setLiveTimedOut(false);
+    setRemainingSeconds(liveDurationMinutes*60);
+  };
+
+  const startLiveTest = () => {
+    const seconds = liveDurationMinutes*60;
+    const startedAt = Date.now();
+    setQuizMode("live");
+    setQuestionIndex(0);
+    setQuestionAnswers({});
+    setQuizFinished(false);
+    setLiveTimedOut(false);
+    setLiveElapsedSeconds(0);
+    setLiveDurationSeconds(seconds);
+    setRemainingSeconds(seconds);
+    setLiveStartedAt(startedAt);
+    setLiveDeadline(startedAt+seconds*1000);
+  };
+
+  const finishLiveTest = (timedOut=false) => {
+    const elapsed = liveStartedAt===null ? 0 : Math.min(liveDurationSeconds,Math.max(0,Math.floor((Date.now()-liveStartedAt)/1000)));
+    setLiveElapsedSeconds(elapsed);
+    setLiveTimedOut(timedOut);
+    setQuizFinished(true);
+    setLiveDeadline(null);
+    if (timedOut) setRemainingSeconds(0);
+  };
 
   const summarise = async (materialId:string) => {
     setWorking(true); setError(""); setNotice("Creating a structured summary from the uploaded source…");
@@ -171,6 +242,11 @@ export default function MaterialsPanel() {
       setQuestionIndex(0);
       setQuestionAnswers({});
       setQuizFinished(false);
+      setQuizMode("practice");
+      setLiveDeadline(null);
+      setLiveStartedAt(null);
+      setLiveElapsedSeconds(0);
+      setLiveTimedOut(false);
       if (generated > 0) setTab("questions");
       setNotice(data.complete === false
         ? `Generated ${generated} of ${requested} requested questions from ${selectedMaterial.title}. ${data.warning || "You can start practising the questions generated so far."}`
@@ -262,7 +338,7 @@ export default function MaterialsPanel() {
           {materials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No study materials yet</strong><p>Upload your first lecture or revision document. It will appear here after it has been saved.</p></div> :
             <div className="materials-list">
               {materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
-                <button className="materials-select" onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setError("");}}>
+                <button className="materials-select" onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
                   <span className="materials-file-badge">▤</span>
                   <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"Summary ready":"Summary not yet generated"} · {item.questions?.length||0} questions</span></span>
                 </button>
@@ -296,9 +372,9 @@ export default function MaterialsPanel() {
           </div>
         </div>
         <div className="materials-tabs">
-          <button className={tab==="summary"?"active":""} onClick={()=>{setTab("summary");setError("");}}>Study summary</button>
+          <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study summary</button>
           <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length||0}</span></button>
-          <button className={tab==="ask"?"active":""} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
+          <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
 
         {tab==="summary" && <>
@@ -342,36 +418,107 @@ export default function MaterialsPanel() {
         </>}
 
 
+
         {tab==="questions" && <div className="study-mcq-panel">
           {activeQuestions.length>0 ? <>
             <div className="study-mcq-heading">
-              <div><div className="eyebrow">ACTIVE RECALL · GENERATED FROM THIS SOURCE</div><h3>{selectedMaterial.title}: MCQ practice</h3><p>Answer each single-best-answer question. Your explanation appears immediately after you choose an option. You can move between questions and keep your answers.</p></div>
-              <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")}>← Read summary</button><button type="button" className="secondary-button" onClick={()=>{setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);}}>Reset attempt</button></div>
+              <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: MCQ practice</h3><p>Choose Practice for immediate teaching feedback, or Live test for a timed examination simulation with all answers and explanations revealed after submission.</p></div>
+              <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")} disabled={liveInProgress}>← Read summary</button></div>
             </div>
-            <div className="study-mcq-stats">
-              <div><span>Question set</span><strong>{activeQuestions.length}</strong></div>
-              <div><span>Answered</span><strong>{answeredCount}/{activeQuestions.length}</strong></div>
-              <div><span>Correct so far</span><strong>{correctCount}</strong></div>
+
+            <div className="study-mcq-mode-switch" role="group" aria-label="Choose MCQ mode">
+              <button type="button" className={quizMode==="practice"?"active":""} aria-pressed={quizMode==="practice"} disabled={liveInProgress} onClick={()=>switchQuizMode("practice")}><strong>Practice</strong><span>Instant feedback after each answer</span></button>
+              <button type="button" className={quizMode==="live"?"active":""} aria-pressed={quizMode==="live"} disabled={liveInProgress} onClick={()=>switchQuizMode("live")}><strong>Live test</strong><span>Timed · answers revealed at the end</span></button>
             </div>
-            {quizFinished ? <section className="study-mcq-results">
-              <div className="eyebrow">PRACTICE COMPLETE</div>
-              <div className="study-mcq-result-score">{scorePercent}<span>%</span></div>
-              <h3>{correctCount} correct out of {activeQuestions.length}</h3>
-              <p>You answered {answeredCount} of {activeQuestions.length} questions. Review the explanations below, revisit the study guide, or try the set again.</p>
-              <div className="study-mcq-result-actions"><button type="button" className="primary-button" onClick={()=>{setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);}}>Try again</button><button type="button" className="secondary-button" onClick={()=>setTab("summary")}>Return to summary</button></div>
-              <div className="study-mcq-review-list"><h4>Answer review</h4>{activeQuestions.map((item,index)=><details key={index} className="study-mcq-review-item"><summary><span>Q{index+1}</span>{item.question}<b className={questionAnswers[index]===item.answerIndex?"review-correct":questionAnswers[index]===undefined?"review-unanswered":"review-wrong"}>{questionAnswers[index]===undefined?"Not answered":questionAnswers[index]===item.answerIndex?"Correct":"Incorrect"}</b></summary><p><strong>Your answer:</strong> {questionAnswers[index]===undefined?"Not answered":item.options[questionAnswers[index]]}</p><p><strong>Best answer:</strong> {item.options[item.answerIndex]}</p><p>{item.explanation}</p></details>)}</div>
-            </section> : currentQuestion && <>
-              <div className="study-mcq-progress-row"><span>QUESTION {questionIndex+1} OF {activeQuestions.length}</span><span>{currentQuestion.topic} · {currentQuestion.difficulty}</span></div>
-              <div className="study-mcq-progress"><span style={{width:((questionIndex+1)/activeQuestions.length*100)+"%"}}/></div>
-              <article className="study-mcq-question-card">
-                <span className="study-mcq-question-label">SINGLE BEST ANSWER</span>
-                <h3>{currentQuestion.question}</h3>
-                <div className="study-mcq-options">{currentQuestion.options.map((option,optionIndex)=><button key={optionIndex} type="button" disabled={currentAnswer!==null} aria-pressed={currentAnswer===optionIndex} className={"study-mcq-option"+(currentAnswer===null?"":optionIndex===currentQuestion.answerIndex?" is-correct":optionIndex===currentAnswer?" is-wrong":" is-muted")} onClick={()=>{setQuestionAnswers(previous=>({...previous,[questionIndex]:optionIndex}));fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});}}><span>{String.fromCharCode(65+optionIndex)}</span><b>{option}</b><i>{currentAnswer!==null&&optionIndex===currentQuestion.answerIndex?"✓":currentAnswer===optionIndex?"×":""}</i></button>)}</div>
-                {currentAnswer!==null&&<div className={"study-mcq-feedback"+(currentAnswer===currentQuestion.answerIndex?" is-correct":" is-wrong")} role="status"><strong>{currentAnswer===currentQuestion.answerIndex?"Correct — well done.":"Not quite. Review the concept."}</strong><p><b>Best answer: {currentQuestion.options[currentQuestion.answerIndex]}.</b> {currentQuestion.explanation}</p></div>}
-                <div className="study-mcq-navigation"><button type="button" className="secondary-button" disabled={questionIndex===0} onClick={()=>setQuestionIndex(index=>index-1)}>← Previous</button><span>{currentAnswer===null?"Choose one answer to see the explanation.":"Answer saved for this attempt."}</span><button type="button" className="primary-button" onClick={()=>questionIndex===activeQuestions.length-1?setQuizFinished(true):setQuestionIndex(index=>index+1)}>{questionIndex===activeQuestions.length-1?"Finish practice":"Next question →"}</button></div>
-              </article>
-              <div className="study-mcq-question-map"><strong>Jump to a question</strong><div>{activeQuestions.map((item,index)=><button type="button" key={index} aria-label={"Go to question "+(index+1)} aria-current={questionIndex===index?"step":undefined} className={(questionIndex===index?"is-current ":"")+(questionAnswers[index]!==undefined?"is-answered":"")} onClick={()=>setQuestionIndex(index)}>{index+1}</button>)}</div></div>
-              <button type="button" className="study-mcq-finish-link" onClick={()=>setQuizFinished(true)}>Finish and review this attempt</button>
+
+            {quizMode==="live" && liveDeadline===null && !quizFinished && <section className="study-live-setup">
+              <div className="eyebrow">EXAM SIMULATION SETTINGS</div>
+              <h3>Set your time before you begin</h3>
+              <p>This is the total time for the entire question set, not time per question. You can move between questions and change your selected answers until you submit or the timer reaches zero.</p>
+              <div className="study-live-setup-fields">
+                <label>Total time allowed
+                  <select value={durationChoice} onChange={event=>setDurationChoice(event.target.value)}>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                    <option value="120">120 minutes</option>
+                    <option value="custom">Custom time</option>
+                  </select>
+                </label>
+                {durationChoice==="custom" && <label>Custom time (5–180 minutes)
+                  <input type="number" min={5} max={180} step={5} value={customDuration} onChange={event=>setCustomDuration(event.target.value)}/>
+                </label>}
+              </div>
+              <div className="study-live-setup-summary"><span>{activeQuestions.length} questions</span><b>·</b><span>{liveDurationMinutes} minutes total</span><b>·</b><span>Feedback at the end</span></div>
+              <div className="study-live-setup-actions"><button type="button" className="primary-button" onClick={startLiveTest}>Start live test <span>→</span></button><span>The timer starts only when you press Start.</span></div>
+            </section>}
+
+            {(quizMode==="practice" || liveInProgress || quizFinished) && <>
+              {quizMode==="live" && liveInProgress && <section className={"study-live-timer "+(timerUrgency?"is-"+timerUrgency:"")} aria-live="polite">
+                <div className="study-live-timer-top"><div><span>TIME REMAINING</span><strong>{formatTimer(remainingSeconds)}</strong></div><span className="study-live-timer-note">Your answers are not marked until you submit.</span></div>
+                <div className="study-live-timer-track"><span style={{width:Math.max(0,Math.min(100,(remainingSeconds/liveDurationSeconds)*100))+"%"}}/></div>
+                {remainingSeconds<=300 && <p>{remainingSeconds<=60?"One minute or less remaining. Review your unanswered questions.":"Five minutes or less remaining. Check your progress and unanswered questions."}</p>}
+              </section>}
+
+              <div className="study-mcq-stats">
+                <div><span>Question set</span><strong>{activeQuestions.length}</strong></div>
+                <div><span>Answered</span><strong>{answeredCount}/{activeQuestions.length}</strong></div>
+                {quizMode==="live" && !quizFinished
+                  ? <div><span>Unanswered</span><strong>{activeQuestions.length-answeredCount}</strong></div>
+                  : <div><span>Correct</span><strong>{correctCount}</strong></div>}
+              </div>
+
+              {quizFinished ? <section className="study-mcq-results">
+                <div className="eyebrow">{quizMode==="live"?"LIVE TEST RESULTS":"PRACTICE COMPLETE"}</div>
+                <div className="study-mcq-result-score">{scorePercent}<span>%</span></div>
+                <h3>{correctCount} correct out of {activeQuestions.length}</h3>
+                {quizMode==="live" ? <div className="study-live-result-time"><span>Time allowed <strong>{formatTimer(liveDurationSeconds)}</strong></span><span>Time used <strong>{formatTimer(liveElapsedSeconds)}</strong></span></div> : null}
+                <p>{quizMode==="live"
+                  ? liveTimedOut
+                    ? "Time expired and your answers were submitted automatically. Review every explanation below."
+                    : "Your live test has been submitted. Your answers and explanations are now available for review."
+                  : "You answered "+answeredCount+" of "+activeQuestions.length+" questions. Review the explanations below, revisit the study guide, or try the set again."}</p>
+                <div className="study-mcq-result-actions">
+                  <button type="button" className="primary-button" onClick={()=>{setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);if(quizMode==="live")setRemainingSeconds(liveDurationMinutes*60);}}>Try again</button>
+                  <button type="button" className="secondary-button" onClick={()=>setTab("summary")}>Return to summary</button>
+                  {quizMode==="live"&&<button type="button" className="text-link" onClick={()=>switchQuizMode("practice")}>Switch to practice</button>}
+                </div>
+                <div className="study-mcq-review-list"><h4>Answer review and explanations</h4>{activeQuestions.map((item,index)=><details key={index} className="study-mcq-review-item"><summary><span>Q{index+1}</span>{item.question}<b className={questionAnswers[index]===item.answerIndex?"review-correct":questionAnswers[index]===undefined?"review-unanswered":"review-wrong"}>{questionAnswers[index]===undefined?"Not answered":questionAnswers[index]===item.answerIndex?"Correct":"Incorrect"}</b></summary><p><strong>Your answer:</strong> {questionAnswers[index]===undefined?"Not answered":item.options[questionAnswers[index]]}</p><p><strong>Best answer:</strong> {item.options[item.answerIndex]}</p><p><strong>Explanation:</strong> {item.explanation}</p></details>)}</div>
+              </section> : currentQuestion && <>
+                <div className="study-mcq-progress-row"><span>QUESTION {questionIndex+1} OF {activeQuestions.length}</span><span>{currentQuestion.topic} · {currentQuestion.difficulty}</span></div>
+                <div className="study-mcq-progress"><span style={{width:((questionIndex+1)/activeQuestions.length*100)+"%"}}/></div>
+                <article className="study-mcq-question-card">
+                  <span className="study-mcq-question-label">{quizMode==="live"?"LIVE TEST · SINGLE BEST ANSWER":"PRACTICE · SINGLE BEST ANSWER"}</span>
+                  <h3>{currentQuestion.question}</h3>
+                  <div className="study-mcq-options">{currentQuestion.options.map((option,optionIndex)=>{
+                    const selectedOption = currentAnswer===optionIndex;
+                    const optionClass = quizMode==="live"
+                      ? (selectedOption?" is-selected":"")
+                      : (currentAnswer===null?"":optionIndex===currentQuestion.answerIndex?" is-correct":selectedOption?" is-wrong":" is-muted");
+                    return <button key={optionIndex} type="button" disabled={quizMode==="practice"&&currentAnswer!==null} aria-pressed={selectedOption} className={"study-mcq-option"+optionClass} onClick={()=>{setQuestionAnswers(previous=>({...previous,[questionIndex]:optionIndex}));fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});}}><span>{String.fromCharCode(65+optionIndex)}</span><b>{option}</b><i>{quizMode==="live"?(selectedOption?"●":""):(currentAnswer!==null&&optionIndex===currentQuestion.answerIndex?"✓":selectedOption?"×":"")}</i></button>;
+                  })}</div>
+                  {quizMode==="practice"&&currentAnswer!==null&&<div className={"study-mcq-feedback"+(currentAnswer===currentQuestion.answerIndex?" is-correct":" is-wrong")} role="status"><strong>{currentAnswer===currentQuestion.answerIndex?"Correct — well done.":"Not quite. Review this concept."}</strong><p><b>Best answer: {currentQuestion.options[currentQuestion.answerIndex]}.</b> {currentQuestion.explanation}</p></div>}
+                  {quizMode==="live"&&<p className="study-live-answer-note">{currentAnswer===null?"Choose one answer. You can change it before submitting.":"Answer selected. You can change it at any time before submission."}</p>}
+                  <div className="study-mcq-navigation">
+                    <button type="button" className="secondary-button" disabled={questionIndex===0} onClick={()=>setQuestionIndex(index=>index-1)}>← Previous</button>
+                    <span>{quizMode==="live"?answeredCount+" of "+activeQuestions.length+" answered":currentAnswer===null?"Choose one answer to see the explanation.":"Answer recorded for this practice question."}</span>
+                    {quizMode==="live"
+                      ? questionIndex===activeQuestions.length-1
+                        ? <button type="button" className="primary-button" onClick={()=>{const unanswered=activeQuestions.length-answeredCount;if(unanswered>0&&!window.confirm("You have "+unanswered+" unanswered question(s). Submit your test now?"))return;finishLiveTest(false);}}>Submit live test</button>
+                        : <button type="button" className="primary-button" onClick={()=>setQuestionIndex(index=>index+1)}>Next question →</button>
+                      : <button type="button" className="primary-button" disabled={currentAnswer===null} onClick={()=>questionIndex===activeQuestions.length-1?setQuizFinished(true):setQuestionIndex(index=>index+1)}>{questionIndex===activeQuestions.length-1?"Finish practice":"Next question →"}</button>}
+                  </div>
+                </article>
+                <div className="study-mcq-question-map"><strong>Jump to a question</strong><div>{activeQuestions.map((item,index)=><button type="button" key={index} aria-label={"Go to question "+(index+1)} aria-current={questionIndex===index?"step":undefined} className={(questionIndex===index?"is-current ":"")+(questionAnswers[index]!==undefined?"is-answered":"")} onClick={()=>setQuestionIndex(index)}>{index+1}</button>)}</div></div>
+                {quizMode==="practice"
+                  ? <button type="button" className="study-mcq-finish-link" onClick={()=>setQuizFinished(true)}>Finish and review this attempt</button>
+                  : <button type="button" className="study-mcq-finish-link" onClick={()=>{const unanswered=activeQuestions.length-answeredCount;if(unanswered>0&&!window.confirm("You have "+unanswered+" unanswered question(s). Submit your test now?"))return;finishLiveTest(false);}}>Submit live test and reveal feedback</button>}
+              </>}
             </>}
           </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the summary at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
         </div>}
