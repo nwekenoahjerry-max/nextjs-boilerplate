@@ -3113,3 +3113,24 @@ button{font-size:15px}
 .study-high-yield-overview ol li{padding-left:4px;color:#425d4c;font-size:11px;line-height:1.85}
 .study-high-yield-overview ol li::marker{color:#62866d;font-weight:800}
 .study-detailed-notes-label{padding:3px 2px;color:#547461;font-weight:800;letter-spacing:.12em}
+
+/* Expandable High-Yield topic sections */
+.study-section-accordion-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 2px;padding:4px 2px}
+.study-section-accordion-toolbar>div>p{margin:5px 0 0;color:#78877e;font-size:11px;line-height:1.65}
+.study-expand-all-button,.study-section-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid #dce7de;border-radius:8px;background:#fff;color:#365b45;font:700 11px Manrope,Arial,sans-serif;padding:9px 12px;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.study-expand-all-button:hover,.study-section-toggle:hover{background:#f1f7f2;border-color:#b9d0bf}
+.study-expandable-section{overflow:hidden;transition:border-color .18s ease,box-shadow .18s ease}
+.study-expandable-section.is-expanded{border-color:#bfd3c3;box-shadow:0 5px 20px rgba(38,75,50,.055)}
+.study-expandable-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.study-section-toggle{flex:0 0 auto;padding:7px 10px;font-size:10px}
+.study-section-toggle-icon{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px;background:#edf4ee;font-size:14px;line-height:1}
+.study-section-expanded-content{padding-top:4px;animation:study-section-reveal .2s ease both}
+@keyframes study-section-reveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:560px){
+ .study-section-accordion-toolbar{align-items:flex-start}
+ .study-expand-all-button{padding:8px 9px;white-space:nowrap}
+ .study-expandable-section-header{align-items:flex-start}
+ .study-section-toggle{font-size:9px;gap:5px;padding:7px 8px}
+ .study-summary-section-heading h3{line-height:1.45}
+}
+@media(prefers-reduced-motion:reduce){.study-expandable-section,.study-section-expanded-content,.study-expand-all-button,.study-section-toggle{animation:none;transition:none}}
