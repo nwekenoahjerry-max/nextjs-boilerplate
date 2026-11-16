@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -105,6 +105,11 @@ export default function Home() {
   const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number}|null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
+  const signOutTriggerRef = useRef<HTMLButtonElement>(null);
+  const confirmSignOutButtonRef = useRef<HTMLButtonElement>(null);
   const [caseList, setCaseList] = useState<Array<{id:string;title:string;case_reference:string;specialty:string;presenting_complaint:string;status:string;updated_at:string}>>([]);
   const [saving, setSaving] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState("general-medicine");
@@ -130,6 +135,42 @@ export default function Home() {
     return () => { mounted = false; };
   }, []);
   useEffect(() => { if(!authUser)return; fetch("/api/activity",{method:"POST",credentials:"same-origin"}).then(r=>r.ok?r.json():null).then(d=>{if(d)setStreakData(d);}).catch(()=>{}); },[authUser]);
+  useEffect(() => {
+    if (!showSignOutConfirm) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowSignOutConfirm(false);
+        setSignOutError("");
+      }
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscape);
+    confirmSignOutButtonRef.current?.focus();
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = previousOverflow;
+      signOutTriggerRef.current?.focus();
+    };
+  }, [showSignOutConfirm]);
+
+  const confirmSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    setSignOutError("");
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new Error("Sign out could not be completed. Please try again.");
+      window.location.assign("/login");
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : "Sign out could not be completed. Please try again.");
+      setSigningOut(false);
+    }
+  };
+
   useEffect(() => {
     const navigate = (event: Event) => {
       const section = (event as CustomEvent<{section?: string}>).detail?.section;
@@ -227,7 +268,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={async()=>{try{const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!response.ok)throw new Error("Sign out could not be completed. Please try again.");window.location.assign("/login");}catch(error){setApiError(error instanceof Error?error.message:"Sign out could not be completed.");}}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button ref={signOutTriggerRef} type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>•</span> Learn • Practise • Improve</div></div>
@@ -278,6 +319,51 @@ export default function Home() {
           {active === "qbank" && <LearningQuestionBank/>}
         </div>
       </section>
+      {showSignOutConfirm && (
+        <div
+          className="signout-confirm-backdrop"
+          role="presentation"
+          onMouseDown={event => {
+            if (event.target === event.currentTarget && !signingOut) {
+              setShowSignOutConfirm(false);
+              setSignOutError("");
+            }
+          }}
+        >
+          <section
+            className="signout-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="signout-confirm-title"
+            aria-describedby="signout-confirm-description"
+          >
+            <div className="signout-confirm-icon" aria-hidden="true">↪</div>
+            <span className="eyebrow">ACCOUNT</span>
+            <h2 id="signout-confirm-title">Do you want to sign out?</h2>
+            <p id="signout-confirm-description">You will need to sign in again to access your ClerkME workspace and saved learning materials.</p>
+            {signOutError && <p className="signout-confirm-error" role="alert">{signOutError}</p>}
+            <div className="signout-confirm-actions">
+              <button
+                type="button"
+                className="signout-cancel-button"
+                disabled={signingOut}
+                onClick={() => { setShowSignOutConfirm(false); setSignOutError(""); }}
+              >
+                Cancel
+              </button>
+              <button
+                ref={confirmSignOutButtonRef}
+                type="button"
+                className="signout-accept-button"
+                disabled={signingOut}
+                onClick={confirmSignOut}
+              >
+                {signingOut ? "Signing out…" : "Yes, sign out"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
