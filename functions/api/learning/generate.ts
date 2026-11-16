@@ -47,7 +47,8 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  if (!context.env.AI) return json({ error: "The AI engine is not connected yet. Add a Workers AI binding named AI to the ClerkMe Pages project, then redeploy." }, 503);
+  const ai = context.env.AI;
+  if (!ai) return json({ error: "The AI engine is not connected yet. Add a Workers AI binding named AI to the ClerkMe Pages project, then redeploy." }, 503);
 
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; }
@@ -81,7 +82,7 @@ export const onRequestPost = async (context: AppContext) => {
       const exclusionNote = exclude.length
         ? "\nDo not repeat or closely paraphrase these questions:\n" + exclude.map((item, index) => (index + 1) + ". " + item).join("\n")
         : "";
-      const result = await context.env.AI.run(MODEL, {
+      const result = await ai.run(MODEL, {
         messages: [
           {
             role: "system",
