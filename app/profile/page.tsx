@@ -53,21 +53,21 @@ export default function ProfilePage() {
         <a className="auth-back" href="/">← Back to ClerkMe workspace</a>
         <div className="auth-brand">
           <a className="brand" href="/" style={{ padding: 0 }}>
-            <span className="brand-mark">C<span>+</span></span>
-            <span><strong>clerk<span>me</span></strong><small>STUDENT PROFILE</small></span>
+            <span className="brand-mark">C<span>M</span></span>
+            <span><strong>Clerk<span>ME</span></strong><small>STUDENT PROFILE</small></span>
           </a>
         </div>
         <div className="eyebrow">YOUR ACCOUNT</div>
         <h1>Student profile</h1>
         <p>Keep your academic details up to date. You can edit your name, institution and current level at any time.</p>
-        {profile && <div style={{ background: "#f5f1ff", borderRadius: 10, padding: 14, marginBottom: 20 }}>
-          <strong style={{ display: "block", fontSize: 12, color: "#35245f" }}>{profile.name}</strong>
-          <span style={{ fontSize: 11, color: "#786f89" }}>{profile.email}</span>
+        {profile && <div style={{ background: "#edf5ef", borderRadius: 10, padding: 14, marginBottom: 20 }}>
+          <strong style={{ display: "block", fontSize: 12, color: "#174a34" }}>{profile.name}</strong>
+          <span style={{ fontSize: 11, color: "#607568" }}>{profile.email}</span>
         </div>}
         <form onSubmit={save}>
-          <label style={{ display: "block", fontSize: 11, fontWeight: 700, margin: "16px 0", color: "#59447f" }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 700, margin: "16px 0", color: "#315b45" }}>
             Full name
-            <input required minLength={2} maxLength={100} value={name} onChange={event => setName(event.target.value)} style={{ display: "block", width: "100%", marginTop: 7, padding: 12, border: "1px solid #e4def0", borderRadius: 7, fontSize: 12 }} />
+            <input required minLength={2} maxLength={100} value={name} onChange={event => setName(event.target.value)} style={{ display: "block", width: "100%", marginTop: 7, padding: 12, border: "1px solid #d8e6dc", borderRadius: 7, fontSize: 12 }} />
           </label>
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, margin: "16px 0", color: "#425b50" }}>
             University / institution
@@ -79,8 +79,8 @@ export default function ProfilePage() {
           </label>
           <label style={{ display: "block", fontSize: 11, fontWeight: 700, margin: "16px 0", color: "#425b50" }}>
             Email address
-            <input value={profile?.email || ""} disabled style={{ display: "block", width: "100%", marginTop: 7, padding: 12, border: "1px solid #ebe6f4", borderRadius: 7, fontSize: 12, background: "#faf9fd", color: "#788680" }} />
-            <span style={{ display: "block", marginTop: 5, color: "#8b819b", fontSize: 9 }}>Email is linked to your Google sign-in and cannot be changed here.</span>
+            <input value={profile?.email || ""} disabled style={{ display: "block", width: "100%", marginTop: 7, padding: 12, border: "1px solid #ebe6f4", borderRadius: 7, fontSize: 12, background: "#f6faf7", color: "#788680" }} />
+            <span style={{ display: "block", marginTop: 5, color: "#6b7d71", fontSize: 9 }}>Email is linked to your Google sign-in and cannot be changed here.</span>
           </label>
           <button className="primary-button" type="submit" disabled={saving || !name.trim()}>{saving ? "Saving…" : "Save profile changes"} <span>→</span></button>
         </form>
