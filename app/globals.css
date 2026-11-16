@@ -2930,3 +2930,119 @@ button{font-size:15px}
   .study-summary-section{padding:14px}
   .study-summary-section>p{font-size:12px}
 }
+
+
+/* Lecture study workflow: detailed reading, then interactive source-specific MCQs */
+.materials-tabs{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.materials-tabs button{display:inline-flex;align-items:center;gap:8px}
+.materials-tab-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#edf3ee;color:#315c42;font-size:10px;font-weight:850}
+.materials-tabs button.active .materials-tab-count{background:#ddd5f8;color:#573bad}
+.study-guide-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:16px 0;padding:17px 19px;border:1px solid #e3e9e3;border-radius:13px;background:linear-gradient(120deg,#f7faf7,#fbfaff)}
+.study-guide-toolbar>div:first-child{min-width:0}
+.study-guide-toolbar .eyebrow{color:#52745f}
+.study-guide-toolbar p{margin:5px 0 0;color:#6e7b72;font-size:12px;line-height:1.6}
+.study-guide-toolbar-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.study-guide-toolbar-actions button{white-space:nowrap}
+.study-contents{display:grid;gap:10px;margin:16px 0 20px;padding:16px 18px;border:1px solid #e5eae5;border-radius:12px;background:#fff}
+.study-contents>strong{font:800 12px Manrope,Arial,sans-serif;color:#344d3b}
+.study-contents>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
+.study-contents a{color:#5d6e62;font-size:12px;line-height:1.5;text-decoration:none}
+.study-contents a:hover{color:#5d43b5;text-decoration:underline}
+.study-summary-section{scroll-margin-top:90px}
+.study-section-lead{white-space:pre-line;font-size:14px!important;line-height:1.9!important;color:#536458}
+.study-topic-subsections{display:grid;gap:13px;margin:17px 0}
+.study-topic-subsection{padding:16px 18px;border-left:3px solid #c8d9cc;border-radius:0 10px 10px 0;background:#f8faf8}
+.study-topic-subsection h4{margin:0 0 8px;color:#385845;font:800 14px/1.4 Manrope,Arial,sans-serif}
+.study-topic-subsection p{margin:0;color:#596a5f;font-size:13px!important;line-height:1.85!important;white-space:pre-line}
+.study-topic-subsection ul{margin:9px 0 0;padding-left:19px}
+.study-topic-subsection li{margin:5px 0;color:#596a5f;font-size:12px!important;line-height:1.75!important}
+.study-mcq-panel{display:grid;gap:16px;max-width:1040px;margin:4px auto 0}
+.study-mcq-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:19px 21px;border:1px solid #e2eae3;border-radius:13px;background:#f8faf8}
+.study-mcq-heading .eyebrow{color:#577662}
+.study-mcq-heading h3{margin:6px 0;color:#2f4637;font:850 21px/1.3 Manrope,Arial,sans-serif}
+.study-mcq-heading p{margin:0;color:#6b796f;font-size:13px!important;line-height:1.7!important}
+.study-mcq-heading-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.study-mcq-heading-actions .text-link{white-space:nowrap}
+.study-mcq-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.study-mcq-stats>div{display:grid;gap:5px;padding:13px 15px;border:1px solid #e5eae5;border-radius:10px;background:#fff}
+.study-mcq-stats span{color:#819087;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.6px}
+.study-mcq-stats strong{color:#334e3d;font:850 21px Manrope,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.study-mcq-progress-row{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#75857a;font-size:10px;font-weight:850;letter-spacing:.6px}
+.study-mcq-progress{height:7px;overflow:hidden;border-radius:99px;background:#e9eee9}
+.study-mcq-progress span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6b55c5,#83ab8a);transition:width .2s ease}
+.study-mcq-question-card{padding:23px;border:1px solid #e2e8e3;border-radius:15px;background:#fff;box-shadow:0 10px 28px rgba(31,58,39,.06)}
+.study-mcq-question-label{display:inline-flex;padding:6px 9px;border-radius:7px;background:#f0effa;color:#6250a5;font-size:9px;font-weight:850;letter-spacing:.8px}
+.study-mcq-question-card h3{margin:15px 0 19px;color:#2b3d32;font:800 20px/1.55 Manrope,Arial,sans-serif}
+.study-mcq-options{display:grid;gap:10px}
+.study-mcq-option{display:grid;grid-template-columns:34px minmax(0,1fr) 22px;align-items:center;gap:12px;width:100%;min-height:58px;padding:12px 15px;border:1px solid #e0e7e1;border-radius:11px;background:#fff;color:#405448;text-align:left;transition:border-color .15s,background .15s}
+.study-mcq-option:not(:disabled):hover{border-color:#9c8ad8;background:#faf9ff}
+.study-mcq-option>span{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#f0f3f0;color:#52685a;font-size:12px;font-weight:850}
+.study-mcq-option>b{font-size:13px;font-weight:650;line-height:1.65}
+.study-mcq-option>i{font-size:16px;font-style:normal;font-weight:900;text-align:center}
+.study-mcq-option.is-correct{border-color:#80b48a;background:#f1f8f1;color:#28583a}
+.study-mcq-option.is-correct>span{background:#dceedd;color:#28613b}
+.study-mcq-option.is-wrong{border-color:#dc9b91;background:#fff4f2;color:#93473e}
+.study-mcq-option.is-wrong>span{background:#fbe3df;color:#a34e43}
+.study-mcq-option.is-muted{opacity:.6}
+.study-mcq-feedback{margin-top:16px;padding:15px 17px;border:1px solid;border-radius:11px}
+.study-mcq-feedback.is-correct{border-color:#c9e4ce;background:#f3faf4;color:#2c6840}
+.study-mcq-feedback.is-wrong{border-color:#f0d0ca;background:#fff6f4;color:#8c493f}
+.study-mcq-feedback strong{font-size:13px}
+.study-mcq-feedback p{margin:7px 0 0;color:#53645a;font-size:13px!important;line-height:1.8!important}
+.study-mcq-navigation{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;margin-top:20px}
+.study-mcq-navigation>span{color:#7a877d;font-size:11px;line-height:1.5;text-align:center}
+.study-mcq-question-map{display:grid;gap:9px;padding:15px 17px;border:1px solid #e5eae5;border-radius:11px;background:#fff}
+.study-mcq-question-map>strong{color:#526457;font-size:11px}
+.study-mcq-question-map>div{display:flex;gap:7px;flex-wrap:wrap}
+.study-mcq-question-map button{width:34px;height:34px;border:1px solid #dfe6df;border-radius:8px;background:#fff;color:#6d7a70;font-size:11px;font-weight:800}
+.study-mcq-question-map button.is-current{border-color:#8f7bd0;background:#f0edfb;color:#583daf}
+.study-mcq-question-map button.is-answered{border-color:#b7d4bc;background:#eef7ef;color:#32623d}
+.study-mcq-question-map button.is-current.is-answered{border-color:#8f7bd0;background:#f0edfb;color:#583daf}
+.study-mcq-finish-link{justify-self:end;border:0;background:none;color:#786aab;font-size:11px;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.study-mcq-results{padding:23px;border:1px solid #dfe9e1;border-radius:14px;background:#f8fbf8}
+.study-mcq-results>.eyebrow{color:#52745f}
+.study-mcq-result-score{margin:8px 0 0;color:#3e7650;font:900 52px/1 Manrope,Arial,sans-serif;font-variant-numeric:tabular-nums}
+.study-mcq-result-score span{font-size:24px}
+.study-mcq-results>h3{margin:9px 0;color:#304737;font:850 20px Manrope,Arial,sans-serif}
+.study-mcq-results>p{color:#68786c;font-size:13px!important;line-height:1.7!important}
+.study-mcq-result-actions{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0 22px}
+.study-mcq-review-list{display:grid;gap:9px}
+.study-mcq-review-list>h4{margin:0;color:#3c5544;font:800 14px Manrope,Arial,sans-serif}
+.study-mcq-review-item{padding:12px 14px;border:1px solid #e1e9e2;border-radius:10px;background:#fff}
+.study-mcq-review-item summary{display:flex;align-items:center;gap:10px;cursor:pointer;color:#42564a;font-size:12px;font-weight:700;line-height:1.6;list-style:none}
+.study-mcq-review-item summary::-webkit-details-marker{display:none}
+.study-mcq-review-item summary>span{flex:0 0 28px;color:#8a968d;font-size:10px}
+.study-mcq-review-item summary>b{flex:0 0 auto;margin-left:auto;font-size:9px;text-transform:uppercase}
+.review-correct{color:#357548}.review-wrong{color:#b14f43}.review-unanswered{color:#8a938d}
+.study-mcq-review-item>p{margin:8px 0 0;color:#607066;font-size:12px!important;line-height:1.75!important}
+.study-mcq-review-item>p:first-of-type{margin-top:12px}
+@media(max-width:760px){
+  .study-guide-toolbar,.study-mcq-heading{display:grid;grid-template-columns:1fr}
+  .study-guide-toolbar-actions{width:100%}
+  .study-guide-toolbar-actions button{flex:1}
+  .study-contents>div{grid-template-columns:1fr}
+  .study-mcq-heading-actions{justify-content:space-between}
+  .study-mcq-stats{gap:7px}
+  .study-mcq-stats>div{padding:11px}
+  .study-mcq-stats span{font-size:9px}
+  .study-mcq-question-card{padding:16px}
+  .study-mcq-question-card h3{font-size:17px}
+  .study-mcq-option{grid-template-columns:30px minmax(0,1fr) 18px;gap:9px;padding:10px;min-height:53px}
+  .study-mcq-option>span{width:28px;height:28px}
+  .study-mcq-option>b{font-size:12px}
+  .study-mcq-navigation{grid-template-columns:1fr 1fr}
+  .study-mcq-navigation>span{grid-column:1/-1;grid-row:1;text-align:left}
+  .study-mcq-navigation button{width:100%}
+  .study-mcq-results{padding:17px}
+}
+@media print{
+  body{background:#fff!important}
+  .sidebar,.topbar,.materials-upload-card,.materials-library-card,.materials-safety-note,.materials-tabs,.materials-detail-actions,.study-guide-toolbar-actions,.materials-feedback,.study-tutor-panel,.study-mcq-panel{display:none!important}
+  .main-area{margin:0!important;width:100%!important}
+  .content{padding:0!important}
+  .materials-detail-card{border:0!important;box-shadow:none!important;padding:0!important}
+  .study-summary{max-width:none!important}
+  .study-summary-section,.study-summary-block,.study-topic-subsection{break-inside:avoid;box-shadow:none!important}
+  .study-summary-section>p,.study-topic-subsection p{font-size:10pt!important;line-height:1.6!important}
+  .study-contents a{color:#222!important}
+}
