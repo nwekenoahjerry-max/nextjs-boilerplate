@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell";
@@ -177,6 +177,6 @@ ${material.content_text.slice(0, 22000)}
         : "The illustration service could not create an image just now. Your detailed notes remain available; please try again."
     });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Could not generate study illustrations." }, 502);
+    return aiFailureResponse(error, "Illustrations are temporarily unavailable. Your High-Yield Points remain available; please try again later.");
   }
 };
