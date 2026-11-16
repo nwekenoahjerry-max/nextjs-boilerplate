@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 function parseAIResult(value: unknown): Record<string, unknown> {
@@ -46,6 +46,6 @@ ${notes}
     if (!prose) throw new Error("The AI did not return an organised history. Please try again with clearer notes.");
     return json({ prose, missingInformation: missing, unclearOrContradictory: unclear });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Could not organise the clerking notes." }, 502);
+    return aiFailureResponse(error, "Clerking-note organisation is temporarily unavailable. Please try again later.");
   }
 };
