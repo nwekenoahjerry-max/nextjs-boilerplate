@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -94,6 +94,6 @@ ${material.summary_json || "No summary available."}
       followUpQuestions: strings(parsed.followUpQuestions, 8, 400)
     });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "The tutor could not answer this question." }, 502);
+    return aiFailureResponse(error, "The study tutor is temporarily unavailable. Please try again later.");
   }
 };
