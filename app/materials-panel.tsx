@@ -333,16 +333,16 @@ export default function MaterialsPanel() {
         <section className="materials-library-card">
           <div className="materials-library-heading">
             <div><div className="eyebrow">YOUR RESOURCES</div><h2>Study library <span>{materials.length}</span></h2></div>
-            <button className="text-link" onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
+            <button className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
           {materials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No study materials yet</strong><p>Upload your first lecture or revision document. It will appear here after it has been saved.</p></div> :
             <div className="materials-list">
               {materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
-                <button className="materials-select" onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
+                <button className="materials-select" disabled={liveInProgress} onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
                   <span className="materials-file-badge">▤</span>
                   <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"Summary ready":"Summary not yet generated"} · {item.questions?.length||0} questions</span></span>
                 </button>
-                <button className="materials-delete" title="Remove material" onClick={()=>remove(item.id)}>×</button>
+                <button className="materials-delete" title="Remove material" disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
               </div>)}
             </div>}
         </section>
@@ -355,20 +355,20 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>{selectedMaterial.summary?"Refresh summary":"Create summary"}</button>
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{selectedMaterial.summary?"Refresh summary":"Create summary"}</button>
             <div className="materials-generation-controls">
               <label>Number of questions
-                <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working}>
+                <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
                   <option value={10}>10 questions</option><option value={15}>15 questions</option><option value={25}>25 questions</option><option value={40}>40 questions</option>
                 </select>
               </label>
               <label>Difficulty
-                <select value={questionDifficulty} onChange={event=>setQuestionDifficulty(event.target.value)} disabled={working}>
+                <select value={questionDifficulty} onChange={event=>setQuestionDifficulty(event.target.value)} disabled={working||liveInProgress}>
                   <option>Mixed</option><option>Easy</option><option>Moderate</option><option>Hard</option>
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
+            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
           </div>
         </div>
         <div className="materials-tabs">
