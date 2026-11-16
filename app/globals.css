@@ -1831,3 +1831,115 @@ input::placeholder,textarea::placeholder{color:#89958d!important;opacity:1}
   .unit-guide-tabs{background:rgba(242,246,243,.97)!important}
   .unit-guide-tabs button.active{box-shadow:inset 0 -2px var(--gold)!important}
 }
+
+
+/* ClerkMe simulation refinement: readable type, voice exchange and print presentation */
+.clinical-simulation-workspace{max-width:1180px;margin-inline:auto;color:var(--ink)}
+.clinical-simulation-workspace .page-intro{margin-bottom:26px}
+.clinical-simulation-workspace .page-intro h1{font-size:clamp(2rem,4vw,2.7rem)!important;line-height:1.12!important;letter-spacing:-.04em!important;margin:8px 0 12px!important}
+.clinical-simulation-workspace .page-intro p{max-width:780px;font-size:16px!important;line-height:1.75!important;color:#53665a!important}
+.clinical-simulation-workspace .simulation-selector-card,.clinical-simulation-workspace .simulation-case-banner,.clinical-simulation-workspace .simulation-conversation-card,.clinical-simulation-workspace .simulation-review-card{border-radius:20px!important;box-shadow:0 12px 34px rgba(14,54,35,.055)!important}
+.clinical-simulation-workspace .simulation-selector-card{padding:26px!important}
+.clinical-simulation-workspace .simulation-selector-heading h2{font-size:clamp(1.45rem,3vw,1.9rem)!important;line-height:1.2!important;letter-spacing:-.025em}
+.clinical-simulation-workspace .simulation-selector-heading p{font-size:15px!important;line-height:1.7!important;max-width:720px}
+.clinical-simulation-workspace .simulation-setup-controls label{font-size:14px!important;font-weight:750}
+.clinical-simulation-workspace .simulation-setup-controls select{min-height:48px;font-size:15px!important;border-radius:11px}
+.clinical-simulation-workspace .simulation-case-option{min-height:160px;padding:17px;border-radius:15px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.clinical-simulation-workspace .simulation-case-option:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(14,54,35,.08)}
+.clinical-simulation-workspace .simulation-case-option strong{font-size:16px!important;line-height:1.4}
+.clinical-simulation-workspace .simulation-case-option small,.clinical-simulation-workspace .simulation-case-option-setting{font-size:13px!important;line-height:1.55}
+.clinical-simulation-workspace .simulation-start-row p{font-size:14px!important;line-height:1.7}
+.clinical-simulation-workspace .primary-button,.clinical-simulation-workspace .secondary-button,.clinical-simulation-workspace .simulation-end-button{min-height:44px;font-size:14px!important;font-weight:750;border-radius:11px;padding:11px 16px}
+.clinical-simulation-workspace .simulation-case-banner{padding:22px 24px;gap:16px}
+.clinical-simulation-workspace .simulation-patient-avatar{width:58px;height:58px;flex-basis:58px;font-size:18px}
+.clinical-simulation-workspace .simulation-patient-identity h2{font-size:24px!important;letter-spacing:-.025em}
+.clinical-simulation-workspace .simulation-patient-identity p{font-size:14px!important;line-height:1.6}
+.clinical-simulation-workspace .simulation-case-banner-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.clinical-simulation-workspace .simulation-case-status{font-size:12px!important;padding:8px 11px;border-radius:999px;background:#eaf3ed;color:#17623f;font-weight:800}
+.clinical-simulation-workspace .simulation-case-status.ended{background:#f3f0e7;color:#806326}
+.clinical-simulation-workspace .simulation-end-button{border:1px solid #ead2d0;background:#fff6f5;color:#a33c35;cursor:pointer}
+.clinical-simulation-workspace .simulation-end-button:hover{background:#fce9e7}
+.clinical-simulation-workspace .simulation-conversation-heading{padding:22px 24px}
+.clinical-simulation-workspace .simulation-conversation-heading h3{font-size:20px!important;line-height:1.3}
+.clinical-simulation-workspace .simulation-turn-count strong{font-size:25px}
+.clinical-simulation-workspace .simulation-turn-count span{font-size:12px}
+.clinical-simulation-workspace .simulation-chat-log{padding:24px;gap:18px;background:#f6f9f6;max-height:58vh}
+.clinical-simulation-workspace .simulation-chat-intro{padding:17px 19px;border-radius:5px 17px 17px 17px}
+.clinical-simulation-workspace .simulation-chat-intro p,.clinical-simulation-workspace .simulation-chat-bubble p{font-size:16px!important;line-height:1.75!important}
+.clinical-simulation-workspace .simulation-chat-person{font-size:12px}
+.clinical-simulation-workspace .simulation-chat-bubble{padding:14px 17px;border-radius:16px}
+.clinical-simulation-workspace .simulation-chat-bubble small{font-size:12px!important}
+.simulation-chat-message-meta{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:6px}
+.simulation-chat-message-meta .simulation-chat-person{margin:0}
+.simulation-play-voice{border:0;background:#eef5f0;color:#17623f;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.simulation-play-voice:disabled{opacity:.45;cursor:not-allowed}
+.clinical-simulation-workspace .simulation-question-form{padding:22px 24px 24px}
+.clinical-simulation-workspace .simulation-question-form label{font-size:15px;margin-bottom:10px}
+.clinical-simulation-workspace .simulation-question-form textarea{min-height:104px;padding:15px 16px;border:1px solid #cbd9cf;border-radius:13px;font-size:16px!important;line-height:1.65}
+.simulation-voice-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px}
+.simulation-voice-button,.simulation-patient-voice-toggle{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:9px 13px;border:1px solid #cbd9cf;border-radius:10px;background:#f4f8f5;color:#24553a;font-size:13px;font-weight:800;cursor:pointer}
+.simulation-voice-button.listening{background:#fff0ee;border-color:#e7b9b5;color:#a33c35}
+.simulation-patient-voice-toggle.active{background:#e8f1eb;border-color:#c6dacc;color:#17623f}
+.simulation-voice-controls>span{flex:1 1 260px;color:#718176;font-size:12px;line-height:1.5}
+.simulation-voice-notice{margin:10px 0 0!important;padding:9px 12px;border-radius:9px;background:#f0f6f1;color:#3d654b!important;font-size:13px!important;line-height:1.5!important}
+.clinical-simulation-workspace .simulation-question-form-footer{margin-top:15px}
+.clinical-simulation-workspace .simulation-question-form-footer span{font-size:13px;line-height:1.5}
+.simulation-ended-panel{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 24px;border-top:1px solid var(--line);background:#f6faf7}
+.simulation-ended-panel h3{margin:5px 0 7px;color:var(--ink);font-size:19px}
+.simulation-ended-panel p{max-width:680px;margin:0;color:#586b60;font-size:14px;line-height:1.65}
+.simulation-ended-actions{display:flex;gap:9px;flex-wrap:wrap}
+.simulation-footer-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.clinical-simulation-workspace .simulation-review-card{padding:24px}
+.clinical-simulation-workspace .simulation-review-heading h3{font-size:22px}
+.clinical-simulation-workspace .simulation-review-feedback{font-size:16px!important;line-height:1.75!important}
+.clinical-simulation-workspace .simulation-review-grid h4,.clinical-simulation-workspace .simulation-model-summary h4,.clinical-simulation-workspace .simulation-next-steps h4{font-size:15px}
+.clinical-simulation-workspace .simulation-review-grid li,.clinical-simulation-workspace .simulation-next-steps li,.clinical-simulation-workspace .simulation-review-grid>div>p{font-size:14px!important;line-height:1.7!important}
+.simulation-print-report{display:none}
+@media(max-width:900px){
+ .clinical-simulation-workspace .simulation-case-banner{align-items:flex-start}
+ .clinical-simulation-workspace .simulation-case-banner-actions{justify-content:flex-start;flex-basis:100%}
+}
+@media(max-width:700px){
+ .clinical-simulation-workspace .page-intro h1{font-size:clamp(1.85rem,8vw,2.35rem)!important}
+ .clinical-simulation-workspace .page-intro p{font-size:15px!important}
+ .clinical-simulation-workspace .simulation-selector-card{padding:18px!important}
+ .clinical-simulation-workspace .simulation-case-banner{padding:17px}
+ .clinical-simulation-workspace .simulation-case-banner-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .clinical-simulation-workspace .simulation-case-status{grid-column:1/-1;justify-self:start}
+ .clinical-simulation-workspace .simulation-case-banner-actions button{width:100%}
+ .clinical-simulation-workspace .simulation-chat-log{padding:16px;gap:14px}
+ .clinical-simulation-workspace .simulation-chat-intro,.clinical-simulation-workspace .simulation-chat-bubble{max-width:94%}
+ .clinical-simulation-workspace .simulation-chat-intro p,.clinical-simulation-workspace .simulation-chat-bubble p{font-size:15px!important}
+ .clinical-simulation-workspace .simulation-question-form{padding:17px}
+ .simulation-voice-controls{align-items:stretch}
+ .simulation-voice-controls button{flex:1 1 145px}
+ .simulation-voice-controls>span{flex-basis:100%}
+ .simulation-ended-panel{align-items:stretch;flex-direction:column;padding:18px}
+ .simulation-ended-actions{display:grid;grid-template-columns:1fr}
+ .simulation-footer-actions{justify-content:space-between;width:100%}
+}
+@media print{
+ @page{size:A4;margin:18mm}
+ body *{visibility:hidden!important}
+ .simulation-print-report,.simulation-print-report *{visibility:visible!important}
+ .simulation-print-report{display:block!important;position:absolute!important;inset:0 auto auto 0!important;width:100%!important;padding:0!important;margin:0!important;background:#fff!important;color:#111!important;font:11pt/1.55 Arial,Helvetica,sans-serif!important}
+ .simulation-print-report header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding-bottom:12px;border-bottom:2px solid #174b34;font-size:11pt}
+ .simulation-print-report header small{font-size:9pt;color:#555}
+ .simulation-print-report .print-brand{font-size:16pt;font-weight:800;letter-spacing:1px;color:#174b34}
+ .simulation-print-report h1{margin:18px 0 14px;font-size:22pt;line-height:1.2;color:#173f2e}
+ .simulation-print-report h2{margin:19px 0 9px;padding-bottom:5px;border-bottom:1px solid #cbd8ce;font-size:14pt;color:#174b34}
+ .simulation-print-report h3{margin:13px 0 5px;font-size:11pt;color:#174b34}
+ .simulation-print-details{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 16px;margin:0}
+ .simulation-print-details>div{padding:7px 0;border-bottom:1px solid #e5e9e5}
+ .simulation-print-details dt{font-size:8.5pt;color:#5a6b60;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+ .simulation-print-details dd{margin:2px 0 0;font-weight:600}
+ .simulation-print-transcript{padding-left:22px}
+ .simulation-print-transcript li{padding:0 0 9px 4px;break-inside:avoid}
+ .simulation-print-transcript li strong{color:#174b34}
+ .simulation-print-transcript li p{margin:3px 0 0;white-space:pre-wrap}
+ .simulation-print-review{break-inside:auto}
+ .simulation-print-review p{margin:5px 0}
+ .simulation-print-review li{margin:3px 0}
+ .simulation-print-note{padding:10px;background:#f3f6f3}
+ .simulation-print-report footer{margin-top:22px;padding-top:9px;border-top:1px solid #cbd8ce;color:#59675e;font-size:9pt}
+}
