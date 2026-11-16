@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; topic: string; difficulty: string };
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
@@ -140,6 +140,6 @@ export const onRequestPost = async (context: AppContext) => {
       materialId: materialId || null
     });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Question generation failed. Please try again." }, 502);
+    return aiFailureResponse(error, "Question generation is temporarily unavailable. Your study material remains saved; please try again later.");
   }
 };
