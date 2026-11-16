@@ -147,15 +147,9 @@ export default function ProfilePage() {
             <label>Full name <span className="required-mark">Required</span>
               <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Enter your full name"/>
             </label>
-            <label className="university-field">University / institution <span className="required-mark">Required</span>
-              <div
-                className="university-dropdown"
-                onBlur={event => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                    setUniversityDropdownOpen(false);
-                  }
-                }}
-              >
+            <div className="university-field">
+              <div className="university-field-heading">University / institution <span className="required-mark">Required</span></div>
+              <div className="university-dropdown">
                 <button
                   type="button"
                   className={`university-dropdown-trigger${universityDropdownOpen ? " is-open" : ""}`}
@@ -232,18 +226,21 @@ export default function ProfilePage() {
                 )}
               </div>
               {universitySelection === "__other__" && (
-                <input
-                  required
-                  maxLength={150}
-                  autoComplete="organization"
-                  value={university}
-                  onChange={event => setUniversity(event.target.value)}
-                  placeholder="Enter your university or institution name"
-                  aria-label="Enter your university or institution name"
-                />
+                <label className="university-manual-entry" htmlFor="clerkme-university-other">
+                  Enter your institution name
+                  <input
+                    id="clerkme-university-other"
+                    required
+                    maxLength={150}
+                    autoComplete="organization"
+                    value={university}
+                    onChange={event => setUniversity(event.target.value)}
+                    placeholder="Enter your university or institution name"
+                  />
+                </label>
               )}
               <small>Open the dropdown and type to find your university, then select it from the results.</small>
-            </label>
+            </div>
             <label>Current level / year of study <span className="required-mark">Required</span>
               <input required list="clerkme-levels" maxLength={80} value={level} onChange={event => setLevel(event.target.value)} placeholder="Select or enter your current level"/>
               <datalist id="clerkme-levels">{levelSuggestions.map(item => <option key={item} value={item}/>)}</datalist>
