@@ -412,7 +412,7 @@ export default function ClinicalSimulation() {
               <textarea id="patient-question" rows={3} value={question} onChange={event => setQuestion(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); askPatient(); } }} placeholder="Type a question, or use the microphone to ask it aloud…" disabled={loading}/>
               <div className="simulation-voice-controls">
                 <button className={isListening ? "simulation-voice-button listening" : "simulation-voice-button"} type="button" onClick={startVoiceInput} disabled={loading}>
-                  <span aria-hidden="true">{isListening ? "■" : "🎙"}</span> {isListening ? "Stop recording" : "Record voice question"}
+                  <span aria-hidden="true">{isListening ? "■" : "🎙"}</span> {isListening ? "Stop listening" : "Speak your question"}
                 </button>
                 <button className={patientVoiceEnabled ? "simulation-patient-voice-toggle active" : "simulation-patient-voice-toggle"} type="button" onClick={() => { if (patientVoiceEnabled && typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel(); setPatientVoiceEnabled(value => !value); }} aria-pressed={patientVoiceEnabled}>
                   {patientVoiceEnabled ? "Patient voice: on" : "Patient voice: off"}
@@ -431,7 +431,7 @@ export default function ClinicalSimulation() {
                 <button className="primary-button" type="button" onClick={printCasePresentation}>Print case presentation</button>
               </div>
             </div>}
-
+            </section>
 
           {review && <section className="simulation-review-card">
             <div className="simulation-review-heading"><div><div className="eyebrow">SUPERVISOR'S REVIEW</div><h3>{review.scoreLabel || "History-taking review"}</h3></div><div className="simulation-review-score"><strong>{review.score}</strong><span>/100</span></div></div>
