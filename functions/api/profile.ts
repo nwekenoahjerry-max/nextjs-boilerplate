@@ -47,14 +47,19 @@ export const onRequestPatch = async (context: AppContext) => {
 
   const readText = (value: unknown) => typeof value === "string" ? value.trim() : "";
   const name = readText(body.name);
-  const university = readText(body.university);
+  // Accept the canonical resolved value from the client, with a safe
+  // fallback to the explicit selector fields for older cached clients.
+  const universitySelection = readText(body.universitySelection);
+  const universityOther = readText(body.universityOther);
+  const university = readText(body.university) ||
+    (universitySelection === "__other__" ? universityOther : universitySelection);
   const level = readText(body.level);
   const futureSpecialty = readText(body.futureSpecialty);
   const state = readText(body.state);
   const lga = readText(body.lga);
 
   if (name.length < 2 || name.length > 100) return json({ error: "Full name must be between 2 and 100 characters." }, 400);
-  if (university.length < 2 || university.length > 150) return json({ error: "Select your university or enter its full name." }, 400);
+  if (university === "__other__" || university.length < 2 || university.length > 150) return json({ error: "Please select your university or enter its full name." }, 400);
   if (level.length < 1 || level.length > 80) return json({ error: "Select or enter your current level." }, 400);
   if (futureSpecialty.length > 120) return json({ error: "Future area of specialisation must be 120 characters or fewer." }, 400);
   if (!state || state.length > 120) return json({ error: "Select or enter your state / province." }, 400);
