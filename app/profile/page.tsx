@@ -87,10 +87,22 @@ export default function ProfilePage() {
     event.preventDefault();
     setError("");
     setMessage("");
-    if (!university.trim()) {
-      setError("Please select your university or choose “Other / international institution” and enter its name.");
+
+    // Read the live form controls at submit time. This avoids sending a stale
+    // React state value if the browser's native select changed immediately
+    // before submission (notably on mobile browsers and installed PWAs).
+    const formData = new FormData(event.currentTarget);
+    const selectedUniversity = String(formData.get("universitySelection") || "").trim();
+    const manuallyEnteredUniversity = String(formData.get("universityOther") || "").trim();
+    const resolvedUniversity = selectedUniversity === "__other__"
+      ? manuallyEnteredUniversity
+      : selectedUniversity;
+
+    if (resolvedUniversity.length < 2) {
+      setError("Please select your university or enter its full name.");
       return;
     }
+    setUniversity(resolvedUniversity);
     setSaving(true);
     const state = isOutsideNigeria ? `Outside Nigeria: ${otherState.trim()}` : stateSelection;
     try {
@@ -99,7 +111,7 @@ export default function ProfilePage() {
         credentials: "same-origin",
         cache: "no-store",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ name: name.trim(), university: university.trim(), level: level.trim(), futureSpecialty: futureSpecialty.trim(), state, lga: lga.trim() }),
+        body: JSON.stringify({ name: name.trim(), university: resolvedUniversity, level: level.trim(), futureSpecialty: futureSpecialty.trim(), state, lga: lga.trim() }),
       });
       const responseText = await response.text();
       let data: { error?: string; profile?: Profile } = {};
@@ -143,6 +155,7 @@ export default function ProfilePage() {
               University / institution <span className="required-mark">Required</span>
               <select
                 id="clerkme-university"
+                name="universitySelection"
                 className="university-native-select"
                 value={universitySelection}
                 onChange={event => changeUniversity(event.target.value)}
@@ -162,6 +175,7 @@ export default function ProfilePage() {
                 Enter your institution name
                 <input
                   id="clerkme-university-other"
+                  name="universityOther"
                   required
                   maxLength={150}
                   autoComplete="organization"
