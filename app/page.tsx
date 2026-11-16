@@ -102,7 +102,7 @@ export default function Home() {
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
-  const [authUser, setAuthUser] = useState<{name:string;email:string}|null>(null);
+  const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number}|null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
   const [caseList, setCaseList] = useState<Array<{id:string;title:string;case_reference:string;specialty:string;presenting_complaint:string;status:string;updated_at:string}>>([]);
@@ -175,14 +175,12 @@ export default function Home() {
 
   if(authLoading) return <main className="public-loading"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><span>Preparing your workspace…</span></main>;
   if(!authUser) return <PublicLanding/>;
+  if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#overview" onClick={() => setActive("overview")}>
-          <span className="brand-mark">C<span>M</span></span>
-          <span><strong>Clerk<span>ME</span></strong><small>CLINICAL COMPANION</small></span>
-        </a>
+        <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">WORKSPACE</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
@@ -229,7 +227,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><a className="mobile-brand" href="#overview" onClick={() => setActive("overview")}><span className="brand-mark">C<span>M</span></span><strong>Clerk<span>ME</span></strong></a><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={async()=>{try{const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!response.ok)throw new Error("Sign out could not be completed. Please try again.");window.location.assign("/login");}catch(error){setApiError(error instanceof Error?error.message:"Sign out could not be completed.");}}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={async()=>{try{const response=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!response.ok)throw new Error("Sign out could not be completed. Please try again.");window.location.assign("/login");}catch(error){setApiError(error instanceof Error?error.message:"Sign out could not be completed.");}}}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
             <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good day. Ready to sharpen<br className="desktop-break"/> your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>•</span> Learn • Practise • Improve</div></div>
