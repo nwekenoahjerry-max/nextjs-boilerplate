@@ -304,7 +304,7 @@ export default function MaterialsPanel() {
     try {
       const response = await fetch("/api/learning/illustrations",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({materialId})
+        body:JSON.stringify({materialId,force})
       });
       const data = await readResponse(response);
       const generated = Array.isArray(data.illustrations) ? data.illustrations as GeneratedStudyIllustration[] : [];
@@ -317,6 +317,7 @@ export default function MaterialsPanel() {
       if (generated.length) {
         setIllustrationsByMaterial(current=>({...current,[materialId]:generated}));
         try { window.sessionStorage.setItem(illustrationSessionKey(materialId),JSON.stringify(generated)); } catch {}
+        setIllustrationErrors(current=>({...current,[materialId]:typeof data.warning==="string"?data.warning:""}));
         setNotice(data.message || "Your topic illustrations are ready.");
       } else {
         const message = data.message || "No suitable illustration was generated for this topic.";
