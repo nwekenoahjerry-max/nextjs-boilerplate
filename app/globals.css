@@ -2552,3 +2552,108 @@ button{font-size:15px}
   font-size: 14px !important;
   font-weight: 700;
 }
+
+
+/* Sign-out confirmation dialog */
+.signout-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(9, 28, 22, .54);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.signout-confirm-dialog {
+  width: min(100%, 440px);
+  padding: 30px;
+  border: 1px solid #e3ebe5;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 90px rgba(8, 35, 25, .24);
+  color: #183b32;
+  animation: signout-dialog-enter .18s ease-out;
+}
+.signout-confirm-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  background: #edf5f0;
+  color: #176b5d;
+  font-size: 23px;
+  font-weight: 700;
+}
+.signout-confirm-dialog h2 {
+  margin: 9px 0 8px;
+  color: #173b36;
+  font: 800 25px/1.2 Manrope, Inter, sans-serif;
+  letter-spacing: -.7px;
+}
+.signout-confirm-dialog > p {
+  margin: 0;
+  color: #718078;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.signout-confirm-dialog .signout-confirm-error {
+  margin-top: 14px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: #fff1ee;
+  color: #a34132;
+  font-size: 13px;
+}
+.signout-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 26px;
+}
+.signout-confirm-actions button {
+  min-height: 46px;
+  padding: 0 17px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: 700 14px Inter, sans-serif;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.signout-confirm-actions button:focus-visible {
+  outline: 3px solid rgba(23, 107, 93, .22);
+  outline-offset: 2px;
+}
+.signout-confirm-actions button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+.signout-cancel-button {
+  border-color: #dce7df !important;
+  background: #fff;
+  color: #365247;
+}
+.signout-cancel-button:hover:not(:disabled) { background: #f4f7f4; }
+.signout-accept-button {
+  background: #a43d32;
+  color: #fff;
+}
+.signout-accept-button:hover:not(:disabled) { background: #873126; }
+@keyframes signout-dialog-enter {
+  from { opacity:  0; transform: translateY(8px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 520px) {
+  .signout-confirm-backdrop { align-items: end; padding: 12px; }
+  .signout-confirm-dialog { width: 100%; padding: 24px 20px; border-radius: 18px; }
+  .signout-confirm-dialog h2 { font-size: 23px; }
+  .signout-confirm-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .signout-confirm-actions button { padding: 0 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signout-confirm-dialog { animation: none; }
+  .signout-confirm-actions button { transition: none; }
+}
