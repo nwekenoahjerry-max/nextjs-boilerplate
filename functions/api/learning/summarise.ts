@@ -55,7 +55,14 @@ Return a JSON object with this exact shape:
   "sections": [
     {
       "heading": "A logical topic heading",
-      "summary": "Detailed, plain-language explanation with definitions, mechanisms and important relationships. Expand abbreviations at first mention.",
+      "summary": "A concise orientation to this section. Do not use this field as a substitute for the detailed subsections below.",
+      "subsections": [
+        {
+          "heading": "A specific subtopic heading",
+          "explanation": "A thorough, connected explanation. Define the concept, explain why it occurs and how it works, and show important cause-and-effect relationships. Keep useful detail rather than reducing it to a one-line note.",
+          "keyPoints": ["Important distinctions, mechanisms, criteria or facts stated in the source."]
+        }
+      ],
       "clinicalRelevance": "Explain the clinical significance and how the concept connects with presentation, examination, diagnosis or management, only where supported by the source.",
       "highYieldPoints": ["Exam-ready facts, distinctions, thresholds or caveats present in the source."],
       "sourceLocator": "Page, slide or heading where available; otherwise an empty string."
@@ -80,8 +87,12 @@ Return a JSON object with this exact shape:
 }
 
 Quality requirements:
-- Include enough sections to cover all major headings and important subtopics in the source.
+- Include enough major sections to cover all headings and important subtopics in the source. Do not merge unrelated topics into one broad section.
+- For every major section, create focused subsections that explain the topic in depth. Use as many as the source requires; usually 2-6 meaningful subsections where appropriate. A subsection should teach the concept, not merely name it.
+- Where supported by the source, organise subsections around definitions, classification, aetiology and risk factors, pathophysiology, clinical features, investigations, diagnostic approach, management principles, complications, prognosis, prevention and relevant special situations. Omit categories that are not relevant or not covered by the source.
+- Distinguish core explanations from examination checkpoints. Explain abbreviations, important terms and the reasoning behind steps. Preserve important exceptions, contraindications, distinctions and numerical criteria found in the document.
 - For difficult mechanisms, explain the sequence and cause-and-effect rather than listing terms.
+- Avoid thin summaries: do not reduce a full lecture to a few bullet points. Aim for a usable revision chapter that a student can study from, while clearly marking content that the source does not provide.
 - Make useful comparison tables for genuine contrasts such as classifications, differentials, investigations or treatment options. Do not invent tables just to fill space.
 - Include flowcharts only for processes or pathways that genuinely have an order; do not invent a clinical algorithm.
 - Create 3-5 video suggestions for the most difficult or high-value topics. Use only the channel names listed in the schema. Do not return URLs; ClerkMe will create safe YouTube search links for these topics.
@@ -95,7 +106,7 @@ ${material.content_text}
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 8200
+      max_tokens: 9600
     });
 
     const parsed = parseAIResult(result);
@@ -117,14 +128,23 @@ ${material.content_text}
       learningObjectives: asStrings(parsed.learningObjectives, 16, 500),
       sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
         const item = value as Record<string, unknown>;
+        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 8).map(value => {
+          const subsection = value as Record<string, unknown>;
+          return {
+            heading: clean(subsection.heading, 180),
+            explanation: clean(subsection.explanation, 2600),
+            keyPoints: asStrings(subsection.keyPoints, 12, 500)
+          };
+        }).filter(subsection => subsection.heading && subsection.explanation) : [];
         return {
           heading: clean(item.heading, 180),
-          summary: clean(item.summary, 6000),
-          clinicalRelevance: clean(item.clinicalRelevance, 1800),
-          highYieldPoints: asStrings(item.highYieldPoints, 15, 600),
+          summary: clean(item.summary, 3000),
+          subsections,
+          clinicalRelevance: clean(item.clinicalRelevance, 2200),
+          highYieldPoints: asStrings(item.highYieldPoints, 18, 600),
           sourceLocator: clean(item.sourceLocator, 160)
         };
-      }).filter(item => item.heading && item.summary) : [],
+      }).filter(item => item.heading && (item.summary || item.subsections.length)) : [],
       keyTerms: Array.isArray(parsed.keyTerms) ? parsed.keyTerms.slice(0, 45).map(value => {
         const item = value as Record<string, unknown>;
         return { term: clean(item.term, 120), meaning: clean(item.meaning, 800) };
