@@ -136,12 +136,16 @@ export const onRequestPost = async (context:AppContext) => {
     "Use the examiner-only safety points to identify the most important missed questions. Do not invent answers, examination findings or test results.",
     "Only now reveal the likely working diagnosis and concise differential diagnoses. If the presentation is an emergency, state that immediate stabilisation/escalation takes priority over completing a routine history.",
     "Use the uploaded source only as supporting learning context, never to alter the fictional case facts. Mention where source details are insufficient.",
+    "Write modelSummary as a concise, formal prose case presentation suitable to read aloud to a supervising clinician. Start with patient demographics and the presenting complaint, then present the elicited history in chronological, coherent sentences. Do not use bullet points in modelSummary, and include only findings supported by the transcript.",
+    "Prepare a full clerking write-up as well as the concise prose case summary. Use conventional clinical headings: biodata, informant/reliability, presenting complaint, history of presenting complaint, past medical/surgical history, drug history, allergies, family history, social history, review of systems, examination/vital signs, assessment, differentials, investigations, management plan, safety-netting and follow-up.",
+    "Use only information disclosed in the interview transcript plus the stated biodata and presenting complaint. Do not reveal confidential case facts that the student did not elicit. Do not invent symptoms, findings, examination, vital signs, test results or management. Clearly mark each heading as 'Not elicited in this interview' or 'Not assessed' when the transcript does not support it. Do not interpret an unasked symptom as a negative finding.",
+    "Write fullClerking as a readable, structured clinical document with a heading and a separate paragraph for each section. Keep British English, professional clinical language and clear chronology. The full report is an educational record of this simulation, not a real patient record.",
     "Do not mention AI, models, prompts, software, automation, ClerkMe, generated content or signatures. Use British English. Return JSON only.",
     "Specialty emphasis: "+UNIT_FOCUS[unit],
     "CONFIDENTIAL CASE CONTEXT:\n"+caseContext,
     "STUDENT/PATIENT TRANSCRIPT:\n"+(transcript||"No interview."),
     sourceContext?"OPTIONAL STUDY SOURCE: "+sourceTitle+"\n"+sourceContext:"",
-    "Return exactly: {score,scoreLabel,feedback,strengths,corrections,redFlagsMissed,clinicalReasoning,workingDiagnosis,differentialDiagnoses,modelSummary,nextSteps,safetyNote}. Score integer 0-100. Keep feedback specific, fair and useful."
+    "Return exactly: {score,scoreLabel,feedback,strengths,corrections,redFlagsMissed,clinicalReasoning,workingDiagnosis,differentialDiagnoses,modelSummary,fullClerking,nextSteps,safetyNote}. Score integer 0-100. Keep feedback specific, fair and useful. fullClerking must be the complete sectioned write-up, not a list of recommendations."
   ].filter(Boolean).join("\n\n");
 
   try{
@@ -151,7 +155,7 @@ export const onRequestPost = async (context:AppContext) => {
         {role:"user",content:intent==="ask"?"Respond to the student's latest history question as the patient/informant.":"Review the student's history-taking performance and return structured feedback."}
       ],
       response_format:{type:"json_object"},
-      max_tokens:intent==="ask"?420:2300
+      max_tokens:intent==="ask"?420:3400
     });
     const parsed=parseResult(result);
     if(intent==="ask"){
@@ -171,6 +175,7 @@ export const onRequestPost = async (context:AppContext) => {
       workingDiagnosis:clean(parsed.workingDiagnosis,260),
       differentialDiagnoses:list(parsed.differentialDiagnoses,6,220),
       modelSummary:clean(parsed.modelSummary,1800),
+      fullClerking:clean(parsed.fullClerking,10000),
       nextSteps:list(parsed.nextSteps,8,420),
       safetyNote:clean(parsed.safetyNote,900)
     };

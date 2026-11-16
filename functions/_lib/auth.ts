@@ -1,6 +1,10 @@
 export interface WorkersAI { run(model: string, input: Record<string, unknown>): Promise<unknown>; }
 export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; AI?: WorkersAI; }
-export interface AppUser { id: string; email: string; name: string; picture: string | null; role: string; }
+export interface AppUser {
+  id: string; email: string; name: string; picture: string | null; role: string;
+  university: string; level: string; futureSpecialty: string; state: string; lga: string;
+  profileComplete: number;
+}
 export interface D1Database { prepare(sql: string): D1PreparedStatement; }
 export interface D1PreparedStatement { bind(...values: unknown[]): D1PreparedStatement; first<T = Record<string, unknown>>(): Promise<T | null>; all<T = Record<string, unknown>>(): Promise<{ results: T[] }>; run(): Promise<unknown>; }
 export interface AppContext { request: Request; env: Env; params: Record<string, string>; }
@@ -21,7 +25,14 @@ export async function requireUser(context: AppContext): Promise<AppUser | Respon
   let decoded: string; try { decoded = decodeURIComponent(token); } catch { return json({ error: "Invalid session." }, 401); }
   const tokenHash = await sha256(decoded);
   const row = await context.env.DB.prepare(`
-    SELECT p.id, p.email, p.full_name AS name, NULL AS picture, 'student' AS role
+    SELECT p.id, p.email, p.full_name AS name, NULL AS picture, 'student' AS role,
+      p.school AS university, p.level, p.future_specialty AS futureSpecialty, p.state, p.lga,
+      CASE WHEN LENGTH(TRIM(COALESCE(p.full_name,''))) >= 2
+        AND LENGTH(TRIM(COALESCE(p.school,''))) >= 2
+        AND LENGTH(TRIM(COALESCE(p.level,''))) >= 1
+        AND LENGTH(TRIM(COALESCE(p.state,''))) >= 1
+        AND LENGTH(TRIM(COALESCE(p.lga,''))) >= 1
+      THEN 1 ELSE 0 END AS profileComplete
     FROM sessions s JOIN student_profiles p ON p.id = s.user_id
     WHERE s.token_hash = ? AND s.expires_at > unixepoch()
   `).bind(tokenHash).first<AppUser>();

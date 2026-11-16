@@ -48,7 +48,7 @@ function ClerkMeBrand({caption="CLINICAL LEARNING WORKSPACE"}:{caption?:string})
 function PublicLanding() {
   return <main className="public-landing">
     <header className="public-header">
-      <ClerkMeBrand/>
+      <ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/>
       <nav aria-label="Public navigation"><a href="#features">Explore features</a><a href="#how-it-works">How it works</a></nav>
       <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
     </header>
@@ -176,7 +176,7 @@ export default function Home() {
     }
   };
 
-  if(authLoading) return <main className="public-loading"><ClerkMeBrand/><span>Preparing your workspace…</span></main>;
+  if(authLoading) return <main className="public-loading"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><span>Preparing your workspace…</span></main>;
   if(!authUser) return <PublicLanding/>;
 
   return (

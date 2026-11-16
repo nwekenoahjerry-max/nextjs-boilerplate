@@ -1,6 +1,7 @@
 "use client";
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
+import ClerkMeBrand from "../../components/clerkme-brand";
 
 declare global {
   interface Window {
@@ -37,7 +38,7 @@ export default function LoginPage() {
   return <main className="auth-page">
     <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setScriptReady(true)} />
     <section className="auth-card">
-      <a className="brand auth-brand" href="/"><span className="brand-mark">C<span>M</span></span><span><strong>Clerk<span>ME</span></strong><small>CLINICAL COMPANION</small></span></a>
+      <ClerkMeBrand caption="CLINICAL COMPANION" className="auth-brand"/>
       <div className="eyebrow">WELCOME TO CLERKME</div>
       <h1>Sign in to your<br/>clinical workspace.</h1>
       <p>Your saved cases and learning progress stay connected to your account.</p>
