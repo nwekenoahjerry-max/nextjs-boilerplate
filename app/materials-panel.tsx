@@ -16,6 +16,7 @@ type SummarySection = {
 };
 type StudySummary = {
   overview: string;
+  quickPreview?: boolean;
   visualAids?: StudyVisualAid[];
   highYieldPoints?: string[];
   learningObjectives?: string[];
@@ -491,13 +492,18 @@ export default function MaterialsPanel() {
       });
       const started = await readResponse(response);
       let summary = started.summary as StudySummary|undefined;
+      if (started.preview && typeof started.preview === "object") {
+        const preview = started.preview as StudySummary;
+        setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
+        setNotice("Quick source outline ready. Your complete, detailed study guide is still being generated in the background…");
+      }
 
       if (!summary && typeof started.jobId === "string") {
         const jobId = started.jobId;
         const startedAt = Date.now();
         const maximumWaitMs = 12 * 60 * 1000;
         while (Date.now() - startedAt < maximumWaitMs) {
-          await new Promise(resolve=>window.setTimeout(resolve,4000));
+          await new Promise(resolve=>window.setTimeout(resolve,2000));
           const statusResponse = await fetch(
             "/api/learning/summarise?jobId="+encodeURIComponent(jobId),
             {credentials:"same-origin",cache:"no-store"}
@@ -518,14 +524,14 @@ export default function MaterialsPanel() {
               : "Your study guide is still being generated in the background. Your uploaded material is safe; ClerkMe is continuing the same job.");
         }
         if (!summary) {
-          setNotice("Your study guide is still processing in the background. Your uploaded material is safe. Press Refresh High-Yield Points to resume checking the same job.");
+          setNotice("Your quick source outline is ready. The complete guide is still processing; press Refresh High-Yield Points to resume checking the same job.");
           return;
         }
       }
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary}:item));
-      setNotice("Your detailed High-Yield Points are ready. Visual illustrations are loading separately…");
+      setNotice("Your complete, detailed High-Yield Points are ready. Visual illustrations are loading separately…");
       setTab("summary");
       void generateIllustrations(materialId);
     } catch(e) {
@@ -680,7 +686,7 @@ export default function MaterialsPanel() {
               {visibleMaterials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No notes in this unit yet</strong><p>Upload a lecture or study document and select this clinical unit. Its notes and study guide will appear here.</p></div> : visibleMaterials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
                 <button className="materials-select" disabled={liveInProgress} onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
                   <span className="materials-file-badge">▤</span>
-                  <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
+                  <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Quick outline ready · full guide processing":item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
                 </button>
                 <button className="materials-delete" title="Remove material" disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
               </div>)}
@@ -723,7 +729,7 @@ export default function MaterialsPanel() {
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary">
             <div className="study-guide-toolbar">
-              <div><span className="eyebrow">YOUR EXAM-READY REVISION GUIDE</span><p>Read the topic in sequence, revise the high-yield points, then test yourself with the generated MCQs.</p></div>
+              <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR EXAM-READY REVISION GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, revise the high-yield points, then test yourself with the generated MCQs."}</p></div>
               <div className="study-guide-toolbar-actions">
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>Start MCQ practice <span>→</span></button>}
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
@@ -733,8 +739,8 @@ export default function MaterialsPanel() {
             <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
-              <div className="eyebrow">HIGH-YIELD POINTS</div><h3>Core facts, mechanisms and distinctions to master</h3>
-              <p className="study-section-intro">These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow.</p>
+              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"HIGH-YIELD POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
+              <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
               <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
             </section>}
             <section className="study-summary-block study-visual-illustrations">
