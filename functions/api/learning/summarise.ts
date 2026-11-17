@@ -312,6 +312,9 @@ export const onRequestGet = async (context: AppContext) => {
       error: job.error_message || "ClerkMe could not complete this study guide. Your uploaded material is safe; please try again."
     }, 502);
   }
+  if (job.status === "queued" || job.interaction_id.startsWith("pending:")) {
+    return json({ status: "processing", providerStatus: "queued", retryAfterMs: 2000 });
+  }
 
   try {
     const response = await fetch(
@@ -654,65 +657,91 @@ ${material.content_text}
         }
       };
 
-      let startResponse: Response | null = null;
-      let startData: GeminiResponseData = {};
-      for (let attempt = 0; attempt < 2; attempt++) {
-        startResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Api-Revision": "2026-05-20",
-            "x-goog-api-key": context.env.GEMINI_API_KEY
-          },
-          body: JSON.stringify(geminiPayload),
-          signal: AbortSignal.timeout(25000)
-        });
-        startData = await startResponse.json().catch(() => ({})) as GeminiResponseData;
-        if (startResponse.ok || !GEMINI_TRANSIENT_STATUSES.has(startResponse.status) || attempt === 1) break;
-        await new Promise(resolve => setTimeout(resolve, 900));
-      }
-
-      if (!startResponse?.ok) {
-        const providerMessage = clean(startData.error?.message || startData.error?.status, 500);
-        console.error("[ClerkMe] Gemini background study job could not be started.", {
-          status: startResponse?.status ?? 0,
-          providerMessage
-        });
-        if (startResponse?.status === 429) {
-          return json({ error: "ClerkMe’s study service is busy right now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_SERVICE_BUSY", retryable: true }, 429);
-        }
-        return json({
-          error: "ClerkMe could not start your study guide just now. Your uploaded material is safe. Please try again shortly.",
-          code: "STUDY_JOB_START_FAILED",
-          retryable: true
-        }, 502);
-      }
-
-      const interactionId = clean(startData.id, 180);
-      if (!interactionId) {
-        console.error("[ClerkMe] Gemini accepted a background request without returning an interaction ID.");
-        return json({
-          error: "ClerkMe could not confirm that your study guide had started. Your uploaded material is safe; please try again.",
-          code: "STUDY_JOB_ID_MISSING",
-          retryable: true
-        }, 502);
-      }
-
       const jobId = crypto.randomUUID();
+      const pendingInteractionId = "pending:" + jobId;
       const now = Math.floor(Date.now() / 1000);
       await context.env.DB.prepare(`
         INSERT INTO study_generation_jobs
           (id, user_id, material_id, interaction_id, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, 'in_progress', ?, ?)
-      `).bind(jobId, user.id, material.id, interactionId, now, now).run();
+        VALUES (?, ?, ?, ?, 'queued', ?, ?)
+      `).bind(jobId, user.id, material.id, pendingInteractionId, now, now).run();
 
-      console.info("[ClerkMe] Background study guide started.", {
-        materialId: material.id,
-        jobId,
-        providerStatus: clean(startData.status, 40) || "in_progress"
-      });
+      const startGeminiJob = (async () => {
+        try {
+          let startResponse: Response | null = null;
+          let startData: GeminiResponseData = {};
+          for (let attempt = 0; attempt < 2; attempt++) {
+            startResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Api-Revision": "2026-05-20",
+                "x-goog-api-key": context.env.GEMINI_API_KEY as string
+              },
+              body: JSON.stringify(geminiPayload),
+              signal: AbortSignal.timeout(12000)
+            });
+            startData = await startResponse.json().catch(() => ({})) as GeminiResponseData;
+            if (startResponse.ok || !GEMINI_TRANSIENT_STATUSES.has(startResponse.status) || attempt === 1) break;
+            await new Promise(resolve => setTimeout(resolve, 650));
+          }
+
+          if (!startResponse?.ok) {
+            const providerMessage = clean(startData.error?.message || startData.error?.status, 500);
+            console.error("[ClerkMe] Gemini background study job could not be started.", {
+              status: startResponse?.status ?? 0,
+              providerMessage
+            });
+            const message = startResponse?.status === 429
+              ? "ClerkMe’s study service is busy right now. Your uploaded material is safe; please try again shortly."
+              : "ClerkMe could not start your detailed study guide. Your uploaded material is safe; please try again.";
+            await context.env.DB.prepare(
+              "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+            ).bind(message, jobId, user.id).run();
+            return;
+          }
+
+          const interactionId = clean(startData.id, 180);
+          if (!interactionId) {
+            const message = "ClerkMe could not confirm that your detailed study guide had started. Your uploaded material is safe; please try again.";
+            await context.env.DB.prepare(
+              "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+            ).bind(message, jobId, user.id).run();
+            console.error("[ClerkMe] Gemini accepted a background request without returning an interaction ID.");
+            return;
+          }
+
+          await context.env.DB.prepare(
+            "UPDATE study_generation_jobs SET interaction_id = ?, status = 'in_progress', updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+          ).bind(interactionId, jobId, user.id).run();
+
+          console.info("[ClerkMe] Background study guide started.", {
+            materialId: material.id,
+            jobId,
+            providerStatus: clean(startData.status, 40) || "in_progress"
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "Unknown background job start error.";
+          console.error("[ClerkMe] Background study job start failed:", detail.slice(0, 400));
+          await context.env.DB.prepare(
+            "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+          ).bind(
+            "ClerkMe could not start your detailed study guide. Your uploaded material is safe; please try again.",
+            jobId,
+            user.id
+          ).run().catch(() => undefined);
+        }
+      })();
+
+      if (context.waitUntil) {
+        context.waitUntil(startGeminiJob);
+      } else {
+        await startGeminiJob;
+      }
+
       return json({ jobId, status: "processing", preview: quickPreview }, 202);
+
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
         messages: messages.map(message => ({ role: message.role, content: message.content })),
