@@ -2,6 +2,47 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
+const GEMINI_TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
+
+type GeminiResponseData = {
+  status?: string;
+  steps?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+  outputs?: Array<{ type?: string; text?: string }>;
+  error?: { message?: string; status?: string; code?: number };
+};
+
+async function requestGeminiWithRetry(
+  apiKey: string,
+  model: string,
+  payload: Record<string, unknown>,
+  attempts = 2
+): Promise<{ response: Response; data: GeminiResponseData }> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Api-Revision": "2026-05-20",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({ ...payload, model }),
+      signal: AbortSignal.timeout(110000)
+    });
+    const data = await response.json().catch(() => ({})) as GeminiResponseData;
+    if (response.ok || !GEMINI_TRANSIENT_STATUSES.has(response.status) || attempt === attempts - 1) {
+      return { response, data };
+    }
+
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(3000, Math.max(700, retryAfter * 1000))
+      : Math.min(3000, 700 * (2 ** attempt) + Math.floor(Math.random() * 250));
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+  }
+  throw new Error("Gemini request could not be completed.");
+}
 const SUMMARY_RESPONSE_SCHEMA = {
   type: "object",
   required: ["overview", "highYieldPoints", "sections"],
@@ -137,37 +178,31 @@ ${material.content_text}
 
     let result: unknown;
     if (context.env.GEMINI_API_KEY) {
-      const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Api-Revision": "2026-05-20",
-          "x-goog-api-key": context.env.GEMINI_API_KEY
+      const geminiPayload: Record<string, unknown> = {
+        system_instruction: messages[0].content,
+        input: messages[1].content,
+        store: false,
+        response_format: {
+          type: "text",
+          mime_type: "application/json",
+          schema: SUMMARY_RESPONSE_SCHEMA
         },
-        body: JSON.stringify({
-          model: GEMINI_MODEL,
-          system_instruction: messages[0].content,
-          input: messages[1].content,
-          store: false,
-          response_format: {
-            type: "text",
-            mime_type: "application/json",
-            schema: SUMMARY_RESPONSE_SCHEMA
-          },
-          generation_config: {
-            max_output_tokens: 14000,
-            thinking_level: "medium"
-          }
-        }),
-        signal: AbortSignal.timeout(110000)
-      });
-      const geminiData = await geminiResponse.json().catch(() => ({})) as {
-        status?: string;
-        steps?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
-        outputs?: Array<{ type?: string; text?: string }>;
-        error?: { message?: string; status?: string; code?: number };
+        generation_config: {
+          max_output_tokens: 14000,
+          thinking_level: "medium"
+        }
       };
+
+      let activeModel = GEMINI_MODEL;
+      let geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_MODEL, geminiPayload);
+      if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
+        console.warn("[ClerkMe] Primary Gemini model temporarily unavailable; switching to fallback:", GEMINI_MODEL, geminiResult.response.status);
+        activeModel = GEMINI_FALLBACK_MODEL;
+        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, geminiPayload);
+      }
+
+      const geminiResponse = geminiResult.response;
+      const geminiData = geminiResult.data;
       if (!geminiResponse.ok) {
         const providerMessage = clean(geminiData.error?.message || geminiData.error?.status, 700);
         if (geminiResponse.status === 429) {
@@ -179,8 +214,14 @@ ${material.content_text}
         if (geminiResponse.status === 400) {
           return json({ error: "Google rejected the Gemini summary request. This is a request/model/schema error, not a problem with your uploaded file. " + providerMessage, code: "GEMINI_REQUEST_REJECTED" }, 502);
         }
-        if (geminiResponse.status >= 500) {
-          return json({ error: "Google's Gemini service is temporarily unavailable (" + geminiResponse.status + "). Your uploaded material is safe; please retry shortly.", code: "GEMINI_PROVIDER_UNAVAILABLE" }, 502);
+        if (GEMINI_TRANSIENT_STATUSES.has(geminiResponse.status)) {
+          console.error("[ClerkMe] Both Gemini models were unavailable after retries.", {
+            primaryModel: GEMINI_MODEL,
+            fallbackModel: GEMINI_FALLBACK_MODEL,
+            status: geminiResponse.status,
+            providerMessage
+          });
+          return json({ error: "Google's Gemini service is temporarily overloaded. ClerkMe retried the request and tried a second Gemini model, but Google could not complete it yet. Your uploaded material is safe. Please try again shortly.", code: "GEMINI_PROVIDER_UNAVAILABLE", retryable: true }, 502);
         }
         return json({ error: "Gemini request failed (" + geminiResponse.status + "). " + providerMessage, code: "GEMINI_REQUEST_FAILED" }, 502);
       }
@@ -193,11 +234,12 @@ ${material.content_text}
       const legacyOutputTexts = (geminiData.outputs || [])
         .filter(output => output.type === "text")
         .map(output => output.text || "");
-      const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim();
+      const outputText = [...stepTexts, ...legacyOutputTexts].join("\\n").trim();
       if (!outputText) {
         const state = clean(geminiData.status, 80) || "unknown";
         throw new Error("Gemini returned no text output (provider status: " + state + "). The request may have been blocked or stopped before a response was produced.");
       }
+      console.info("[ClerkMe] Study guide generated with Gemini model:", activeModel);
       result = { response: outputText };
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
