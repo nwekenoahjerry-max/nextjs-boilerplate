@@ -22,6 +22,7 @@ type StudySummary = {
   sections: SummarySection[];
   keyTerms?: Array<{term:string;meaning:string}>;
   comparisonTables?: Array<{title:string;columns:string[];rows:string[][]}>;
+  mnemonics?: Array<{title:string;mnemonic:string;expansion:string[];whyItWorks?:string;caution?:string}>;
   memoryAids?: string[];
   commonPitfalls?: string[];
   revisionQuestions?: Array<{question:string;answer:string}>;
@@ -133,6 +134,7 @@ export default function MaterialsPanel() {
   const [youtubeLoading,setYoutubeLoading] = useState(false);
   const [youtubeError,setYoutubeError] = useState("");
   const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
+  const autoRecommendedVideoKeyRef = useRef("");
   const youtubePlayerRef = useRef<HTMLDivElement>(null);
   const [youtubeLink,setYoutubeLink] = useState("");
   const [videoSaving,setVideoSaving] = useState(false);
@@ -287,6 +289,14 @@ export default function MaterialsPanel() {
   },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([0,1,2]); },[selectedId]);
   useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
+  useEffect(()=>{
+    const recommendation = selectedMaterial?.summary?.videoSuggestions?.[0];
+    if (!selectedId || !recommendation?.topic) return;
+    const key = selectedId + ":" + recommendation.topic + ":" + recommendation.channel;
+    if (autoRecommendedVideoKeyRef.current === key) return;
+    autoRecommendedVideoKeyRef.current = key;
+    void searchYouTube(recommendation.topic + " " + recommendation.channel + " medical lecture", false);
+  },[selectedId,selectedMaterial?.summary?.videoSuggestions]);
 
   useEffect(()=>{
     if (tab!=="source" || !selectedId || sourceTextByMaterial[selectedId]) return;
@@ -755,7 +765,7 @@ export default function MaterialsPanel() {
 
 
 
-              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Videos found</strong><span>{youtubeVideos.length} results</span></div><div className="study-video-grid">{youtubeVideos.map(video=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span><strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
+              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Recommended YouTube videos</strong><span>{youtubeVideos.length} relevant results</span></div><div className="study-video-grid">{youtubeVideos.map(video=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span>{index===0&&<em className="study-video-best-match">TOP RECOMMENDATION</em>}<strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
 
               <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>{youtubeLoading&&youtubeQuery===video.topic+" "+video.channel+" medical lecture"?"Finding a playable lecture…":"▶ Play recommended video here"}</button></span></article>)}</div></div>
 
