@@ -6,6 +6,7 @@ type Props = {
   materialId: string;
   fileName: string;
   mimeType: string | null;
+  originalSizeBytes?: number | null;
 };
 
 type ViewerMode = "pdf" | "powerpoint" | "word" | "text" | "image" | "download";
@@ -16,7 +17,7 @@ function formatBytes(bytes?: number | null) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-export default function SourceFileViewer({ materialId, fileName, mimeType }: Props) {
+export default function SourceFileViewer({ materialId, fileName, mimeType, originalSizeBytes }: Props) {
   const [textContent, setTextContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +63,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType }: Pro
         <div>
           <span className="eyebrow">ORIGINAL UPLOADED FILE</span>
           <strong>{fileName}</strong>
-          <small>{formatBytes((window as any).__CLERKME_SOURCE_SIZE__) || "Original file"} · Stored privately; source file is not converted or overwritten</small>
+          <small>{formatBytes(originalSizeBytes) || "Original file"} · Stored privately; source file is not converted or overwritten</small>
         </div>
         <a className="secondary-button source-download-button" href={downloadUrl} download={fileName}>Download original</a>
       </div>

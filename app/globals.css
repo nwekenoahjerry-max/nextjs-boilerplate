@@ -3823,3 +3823,12 @@ body{background:var(--paper);color:var(--ink)}
   .source-powerpoint-frame,.source-word-frame{height:68vh;min-height:420px}
   .source-pdf-frame{height:68vh;min-height:440px}
 }
+
+
+.source-office-file-preview{display:flex;align-items:flex-start;gap:18px;padding:26px;border:1px solid #e1e8e2;border-radius:12px;background:linear-gradient(135deg,#fbfdfb,#f3f7f3)}
+.source-office-file-preview>div:last-child{display:grid;gap:10px;min-width:0}
+.source-office-file-preview strong{color:#304737;font-size:16px}
+.source-office-file-preview p{margin:0;color:#637568;font-size:13px;line-height:1.75}
+.source-office-file-icon{display:grid;place-items:center;flex:0 0 64px;height:76px;border-radius:9px;background:#b84e42;color:#fff;font-size:17px;font-weight:850;letter-spacing:.04em;box-shadow:0 5px 12px rgba(67,45,36,.12)}
+.source-word-file-icon{background:#3d6eac}
+@media(max-width:650px){.source-office-file-preview{align-items:flex-start;gap:12px;padding:16px}.source-office-file-icon{flex-basis:52px;height:62px;font-size:14px}}
