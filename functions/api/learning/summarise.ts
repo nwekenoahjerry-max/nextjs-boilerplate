@@ -43,6 +43,83 @@ async function requestGeminiWithRetry(
   }
   throw new Error("Gemini request could not be completed.");
 }
+
+async function requestGeminiGenerateContentFallback(
+  apiKey: string,
+  model: string,
+  systemInstruction: string,
+  input: string,
+  schema: Record<string, unknown>,
+  attempts = 2
+): Promise<{ response: Response; data: GeminiResponseData }> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    let response: Response;
+    let raw: {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+        finishReason?: string;
+      }>;
+      error?: { message?: string; status?: string; code?: number };
+    } = {};
+    try {
+      response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: "user", parts: [{ text: input }] }],
+            generationConfig: {
+              responseMimeType: "application/json",
+              responseSchema: schema,
+              maxOutputTokens: 11000,
+              thinkingConfig: { thinkingLevel: "LOW" }
+            }
+          }),
+          signal: AbortSignal.timeout(60000)
+        }
+      );
+      raw = await response.json().catch(() => ({})) as typeof raw;
+    } catch (error) {
+      if (attempt === attempts - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 650 * (attempt + 1)));
+      continue;
+    }
+
+    const candidate = raw.candidates?.[0];
+    const outputText = (candidate?.content?.parts || [])
+      .map(part => typeof part.text === "string" ? part.text : "")
+      .filter(Boolean)
+      .join("\\n")
+      .trim();
+    const finishReason = cleanFinishReason(candidate?.finishReason);
+    const data: GeminiResponseData = {
+      status: finishReason === "MAX_TOKENS" ? "incomplete" : response.ok && outputText ? "completed" : "failed",
+      steps: outputText ? [{ type: "model_output", content: [{ type: "text", text: outputText }] }] : [],
+      error: raw.error
+    };
+
+    if (response.ok || !GEMINI_TRANSIENT_STATUSES.has(response.status) || attempt === attempts - 1) {
+      return { response, data };
+    }
+
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(2500, Math.max(500, retryAfter * 1000))
+      : 650 * (attempt + 1);
+    await new Promise(resolve => setTimeout(resolve, waitMs));
+  }
+  throw new Error("Gemini content generation fallback could not be completed.");
+}
+function cleanFinishReason(value: unknown): string {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
+
 const SUMMARY_RESPONSE_SCHEMA = {
   type: "object",
   required: ["overview", "highYieldPoints", "sections", "videoSuggestions", "mnemonics"],
@@ -201,15 +278,30 @@ ${material.content_text}
       };
 
       let activeModel = GEMINI_MODEL;
-      let geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_MODEL, geminiPayload);
+      let geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_MODEL, geminiPayload, 2);
       if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
-        console.warn("[ClerkMe] Primary Gemini model temporarily unavailable; switching to fallback:", GEMINI_MODEL, geminiResult.response.status);
+        console.warn("[ClerkMe] Primary Gemini Interactions request temporarily unavailable; switching model:", GEMINI_MODEL, geminiResult.response.status);
         activeModel = GEMINI_FALLBACK_MODEL;
         const fallbackPayload = {
           ...geminiPayload,
           generation_config: { max_output_tokens: 11000, thinking_level: "minimal" }
         };
-        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, fallbackPayload);
+        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, fallbackPayload, 2);
+      }
+      if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
+        console.warn("[ClerkMe] Gemini Interactions API remains temporarily unavailable; trying GenerateContent API fallback:", {
+          model: GEMINI_MODEL,
+          status: geminiResult.response.status
+        });
+        activeModel = GEMINI_MODEL + " (GenerateContent fallback)";
+        geminiResult = await requestGeminiGenerateContentFallback(
+          context.env.GEMINI_API_KEY,
+          GEMINI_MODEL,
+          messages[0].content,
+          messages[1].content,
+          SUMMARY_RESPONSE_SCHEMA,
+          2
+        );
       }
 
       const geminiResponse = geminiResult.response;
