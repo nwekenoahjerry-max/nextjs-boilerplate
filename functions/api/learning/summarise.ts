@@ -2,8 +2,8 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const GEMINI_MODEL = "gemini-3.6-flash";
-const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
+const GEMINI_FALLBACK_MODEL = "gemini-flash-lite-latest";
+const GEMINI_TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504]);
 
 type GeminiResponseData = {
   status?: string;
@@ -198,7 +198,11 @@ ${material.content_text}
       if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
         console.warn("[ClerkMe] Primary Gemini model temporarily unavailable; switching to fallback:", GEMINI_MODEL, geminiResult.response.status);
         activeModel = GEMINI_FALLBACK_MODEL;
-        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, geminiPayload);
+        const fallbackPayload = {
+          ...geminiPayload,
+          generation_config: { max_output_tokens: 11000, thinking_level: "minimal" }
+        };
+        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, fallbackPayload);
       }
 
       const geminiResponse = geminiResult.response;
