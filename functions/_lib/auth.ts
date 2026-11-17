@@ -1,5 +1,5 @@
 export interface WorkersAI { run(model: string, input: Record<string, unknown>): Promise<unknown>; }
-export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; YOUTUBE_API_KEY?: string; GEMINI_API_KEY?: string; AI?: WorkersAI; }
+export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; YOUTUBE_API_KEY?: string; GEMINI_API_KEY?: string; ZAI_API_KEY?: string; AI?: WorkersAI; }
 export interface AppUser {
   id: string; email: string; name: string; picture: string | null; role: string;
   university: string; level: string; futureSpecialty: string; state: string; lga: string;
