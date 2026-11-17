@@ -134,6 +134,10 @@ export default function MaterialsPanel() {
   const [youtubeError,setYoutubeError] = useState("");
   const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
   const [youtubeLink,setYoutubeLink] = useState("");
+  const [videoSaving,setVideoSaving] = useState(false);
+  const [savedYoutubeVideoIds,setSavedYoutubeVideoIds] = useState<string[]>([]);
+  const [videoSaveNotice,setVideoSaveNotice] = useState("");
+  const [videoSaveError,setVideoSaveError] = useState("");
 
   const visibleMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
@@ -188,6 +192,31 @@ export default function MaterialsPanel() {
     } catch(e) {
       setYoutubeError(e instanceof Error?e.message:"Video search is temporarily unavailable. Paste a video link to play it here.");
     } finally { setYoutubeLoading(false); }
+  };
+
+  const saveActiveYoutubeVideo = async () => {
+    if (!activeYoutubeVideo || !selectedMaterial) return;
+    setVideoSaving(true);
+    setVideoSaveNotice("");
+    setVideoSaveError("");
+    try {
+      const response = await fetch("/api/learning/saved-videos", {
+        method:"POST", headers:{"Content-Type":"application/json"}, credentials:"same-origin",
+        body:JSON.stringify({
+          videoId:activeYoutubeVideo.id,
+          title:activeYoutubeVideo.title,
+          description:activeYoutubeVideo.description,
+          channelTitle:activeYoutubeVideo.channelTitle,
+          thumbnailUrl:activeYoutubeVideo.thumbnailUrl,
+          folder:unitName(selectedMaterial.unit)
+        })
+      });
+      const data = await readResponse(response);
+      setSavedYoutubeVideoIds(current=>current.includes(activeYoutubeVideo.id)?current:[...current,activeYoutubeVideo.id]);
+      setVideoSaveNotice("Saved to "+unitName(selectedMaterial.unit)+" in your video library.");
+    } catch(e) {
+      setVideoSaveError(e instanceof Error?e.message:"Could not save this lecture.");
+    } finally { setVideoSaving(false); }
   };
 
   const parseYouTubeVideoId = (value:string):string|null => {
@@ -725,6 +754,14 @@ export default function MaterialsPanel() {
                 <div className="study-video-player-heading"><div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeYoutubeVideo.title}</strong><small>{activeYoutubeVideo.channelTitle}</small></div><button type="button" onClick={()=>setActiveYoutubeVideo(null)} aria-label="Close video player">Close player ×</button></div>
                 <div className="study-video-player-frame"><iframe src={"https://www.youtube-nocookie.com/embed/"+activeYoutubeVideo.id+"?rel=0&playsinline=1"} title={activeYoutubeVideo.title+" — YouTube video player"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen loading="lazy"/></div>
                 <p className="study-video-player-note">Video playback is provided by YouTube. Some videos may still be unavailable here because of age restrictions or the uploader’s embedding settings.</p>
+                <div className="study-video-save-actions">
+                  <button type="button" className="study-video-save-button" onClick={()=>void saveActiveYoutubeVideo()} disabled={videoSaving||!activeYoutubeVideo||savedYoutubeVideoIds.includes(activeYoutubeVideo.id)}>
+                    {videoSaving?"Saving lecture…":activeYoutubeVideo&&savedYoutubeVideoIds.includes(activeYoutubeVideo.id)?"✓ Saved to your library":"＋ Save to my video library"}
+                  </button>
+                  <span>Collection: {unitName(selectedMaterial.unit)}</span>
+                </div>
+                {!!videoSaveNotice&&<p className="study-video-save-notice" role="status">{videoSaveNotice}</p>}
+                {!!videoSaveError&&<p className="study-video-save-error" role="alert">{videoSaveError}</p>}
               </div>}
             </section>}
             {!!selectedMaterial.summary.memoryAids?.length&&<section className="study-summary-block"><h3>Memory aids</h3><ul>{selectedMaterial.summary.memoryAids.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
