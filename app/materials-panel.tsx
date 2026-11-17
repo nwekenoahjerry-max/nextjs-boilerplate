@@ -783,6 +783,17 @@ export default function MaterialsPanel() {
                 {!!videoSaveError&&<p className="study-video-save-error" role="alert">{videoSaveError}</p>}
               </div>}
             </section>}
+            {!!selectedMaterial.summary.mnemonics?.length&&<section className="study-summary-block study-mnemonics">
+              <div className="eyebrow">MEMORY TOOLS</div><h3>Mnemonics worth remembering</h3>
+              <p className="study-section-intro">Understand the concept first, then use these accurate recall aids to retrieve the important details.</p>
+              <div className="study-mnemonic-grid">{selectedMaterial.summary.mnemonics.map((item,index)=><article className="study-mnemonic-card" key={index}>
+                <span className="study-mnemonic-label">MNEMONIC {String(index+1).padStart(2,"0")}</span>
+                <h4>{item.title}</h4><strong className="study-mnemonic-word">{item.mnemonic}</strong>
+                <ol>{item.expansion.map((part,partIndex)=><li key={partIndex}>{part}</li>)}</ol>
+                {item.whyItWorks&&<p>{item.whyItWorks}</p>}
+                {item.caution&&<small>{item.caution}</small>}
+              </article>)}</div>
+            </section>}
             {!!selectedMaterial.summary.memoryAids?.length&&<section className="study-summary-block"><h3>Memory aids</h3><ul>{selectedMaterial.summary.memoryAids.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.commonPitfalls?.length&&<section className="study-summary-block study-summary-warnings"><h3>Common pitfalls</h3><ul>{selectedMaterial.summary.commonPitfalls.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.revisionQuestions?.length&&<section className="study-summary-block"><h3>Quick revision questions</h3>{selectedMaterial.summary.revisionQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
