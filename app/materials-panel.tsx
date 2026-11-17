@@ -134,8 +134,6 @@ export default function MaterialsPanel() {
   const [youtubeError,setYoutubeError] = useState("");
   const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
   const youtubePlayerRef = useRef<HTMLDivElement>(null);
-  const [geminiChecking,setGeminiChecking] = useState(false);
-  const [geminiCheckMessage,setGeminiCheckMessage] = useState<{kind:"success"|"error";message:string}|null>(null);
   const [youtubeLink,setYoutubeLink] = useState("");
   const [videoSaving,setVideoSaving] = useState(false);
   const [savedYoutubeVideoIds,setSavedYoutubeVideoIds] = useState<string[]>([]);
@@ -464,31 +462,6 @@ export default function MaterialsPanel() {
     }
   };
 
-  const checkGeminiConnection = async () => {
-    setGeminiChecking(true);
-    setGeminiCheckMessage(null);
-    try {
-      const response = await fetch("/api/learning/gemini-check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({})
-      });
-      const data = await readResponse(response);
-      setGeminiCheckMessage({
-        kind: "success",
-        message: (data.message || "Gemini is responding.") + " Model: " + (data.model || "Gemini Flash") + "."
-      });
-    } catch (error) {
-      setGeminiCheckMessage({
-        kind: "error",
-        message: error instanceof Error ? error.message : "Could not verify the Gemini connection."
-      });
-    } finally {
-      setGeminiChecking(false);
-    }
-  };
-
   const summarise = async (materialId:string) => {
     setWorking(true); setError(""); setNotice("Building detailed High-Yield Points from your uploaded source…");
     try {
@@ -498,9 +471,9 @@ export default function MaterialsPanel() {
       });
       const data = await readResponse(response);
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:data.summary}:item));
-      setNotice("High-Yield Points are ready. Preparing topic illustrations…");
+      setNotice("Your detailed High-Yield Points are ready. Visual illustrations are loading separately…");
       setTab("summary");
-      await generateIllustrations(materialId);
+      void generateIllustrations(materialId);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not prepare High-Yield Points for this material.");
       setNotice("Your uploaded material is saved. High-Yield Points can be generated again when the study service is available.");
@@ -668,9 +641,7 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
-            <button type="button" className="secondary-button gemini-connection-button" onClick={()=>void checkGeminiConnection()} disabled={geminiChecking||working||liveInProgress}>{geminiChecking?"Checking Gemini…":"Test Gemini connection"}</button>
-            {geminiCheckMessage&&<p className={geminiCheckMessage.kind==="success"?"gemini-connection-status success":"gemini-connection-status error"} role={geminiCheckMessage.kind==="success"?"status":"alert"}>{geminiCheckMessage.message}</p>}
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{working?"Building your study guide…":selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -808,7 +779,7 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.sourceCoverage?.length&&<section className="study-summary-block"><h3>Topics covered from your source</h3><ul>{selectedMaterial.summary.sourceCoverage.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
-          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>Create High-Yield Points →</button></div>}
+          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>{working?"Building your study guide…":"Create High-Yield Points →"}</button></div>}
         </>}
 
 
