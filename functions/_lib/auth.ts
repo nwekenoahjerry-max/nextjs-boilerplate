@@ -7,7 +7,7 @@ export interface AppUser {
 }
 export interface D1Database { prepare(sql: string): D1PreparedStatement; }
 export interface D1PreparedStatement { bind(...values: unknown[]): D1PreparedStatement; first<T = Record<string, unknown>>(): Promise<T | null>; all<T = Record<string, unknown>>(): Promise<{ results: T[] }>; run(): Promise<unknown>; }
-export interface AppContext { request: Request; env: Env; params: Record<string, string>; }
+export interface AppContext { request: Request; env: Env; params: Record<string, string>; waitUntil?: (promise: Promise<unknown>) => void; }
 const SESSION_COOKIE = "__Host-clerkme_session";
 export async function sha256(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
