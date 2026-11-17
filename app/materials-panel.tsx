@@ -211,7 +211,7 @@ export default function MaterialsPanel() {
           folder:unitName(selectedMaterial.unit)
         })
       });
-      const data = await readResponse(response);
+      await readResponse(response);
       setSavedYoutubeVideoIds(current=>current.includes(activeYoutubeVideo.id)?current:[...current,activeYoutubeVideo.id]);
       setVideoSaveNotice("Saved to "+unitName(selectedMaterial.unit)+" in your video library.");
     } catch(e) {
