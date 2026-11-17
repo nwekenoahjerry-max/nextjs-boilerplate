@@ -1,7 +1,7 @@
 export type ExtractedStudyFile = { name: string; text: string };
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const MAX_EXTRACTED_CHARS = 42000;
+const MAX_EXTRACTED_CHARS = 120000;
 
 async function unzipTextFiles(buffer: ArrayBuffer, predicate: (name: string) => boolean): Promise<Array<{name:string;text:string}>> {
   const bytes = new Uint8Array(buffer);
@@ -112,7 +112,10 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
   } else {
     throw new Error("Use a .pptx, .pdf, .docx, .txt, .md or .csv file. Older .ppt files should first be saved as .pptx.");
   }
-  text=text.replace(/\u0000/g," ").replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").trim();
-  if(text.length<100) throw new Error("Very little selectable text was found. This may be a scanned/image-only slide deck. Upload a text-based file or paste the slide text.");
-  return {name,text:text.slice(0,MAX_EXTRACTED_CHARS)};
+  // Preserve extracted wording and line breaks. Do not silently rewrite whitespace
+  // or discard the end of the lecture before it reaches the private study library.
+  text=text.replace(/\\u0000/g," ");
+  if(text.trim().length<100) throw new Error("Very little selectable text was found. This may be a scanned/image-only slide deck. Upload a text-based file or paste the slide text.");
+  if(text.length>MAX_EXTRACTED_CHARS) throw new Error("This document contains more than 120,000 extracted characters. Split it into smaller files so ClerkMe can preserve and analyse the complete source.");
+  return {name,text};
 }
