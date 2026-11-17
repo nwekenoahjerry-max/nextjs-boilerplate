@@ -163,7 +163,7 @@ export default function MaterialsPanel() {
     ? selectedMaterial.summary.highYieldPoints
     : selectedMaterial?.summary?.examFocus?.mustKnow || [];
 
-  const searchYouTube = async (query:string) => {
+  const searchYouTube = async (query:string, playFirstResult=false) => {
     const cleanQuery=query.trim();
     if(!cleanQuery) return;
     setYoutubeQuery(cleanQuery);
@@ -179,9 +179,14 @@ export default function MaterialsPanel() {
       const data=await readResponse(response);
       const videos=Array.isArray(data.videos)?data.videos as YouTubeVideo[]:[];
       setYoutubeVideos(videos);
-      if(!videos.length) setYoutubeError("No embeddable videos were found for this search. Try a shorter topic or paste a video link below.");
+      if(playFirstResult && videos[0]) {
+        setActiveYoutubeVideo(videos[0]);
+        setYoutubeError("");
+      } else if(!videos.length) {
+        setYoutubeError("No embeddable videos were found for this topic. Try another recommended topic or paste a video link.");
+      }
     } catch(e) {
-      setYoutubeError(e instanceof Error?e.message:"Video search is temporarily unavailable. Paste a YouTube video link to play it here.");
+      setYoutubeError(e instanceof Error?e.message:"Video search is temporarily unavailable. Paste a video link to play it here.");
     } finally { setYoutubeLoading(false); }
   };
 
@@ -710,15 +715,17 @@ export default function MaterialsPanel() {
 
               {!!youtubeError&&<p className="study-video-status" role="status">{youtubeError}</p>}
 
+
+
+              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Videos found</strong><span>{youtubeVideos.length} results</span></div><div className="study-video-grid">{youtubeVideos.map(video=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span><strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
+
+              <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>▶ Play recommended video here</button></span></article>)}</div></div>
+
               {activeYoutubeVideo&&<div className="study-video-player-panel">
                 <div className="study-video-player-heading"><div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeYoutubeVideo.title}</strong><small>{activeYoutubeVideo.channelTitle}</small></div><button type="button" onClick={()=>setActiveYoutubeVideo(null)} aria-label="Close video player">Close player ×</button></div>
                 <div className="study-video-player-frame"><iframe src={"https://www.youtube-nocookie.com/embed/"+activeYoutubeVideo.id+"?rel=0&playsinline=1"} title={activeYoutubeVideo.title+" — YouTube video player"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen loading="lazy"/></div>
                 <p className="study-video-player-note">Video playback is provided by YouTube. Some videos may still be unavailable here because of age restrictions or the uploader’s embedding settings.</p>
               </div>}
-
-              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Videos found</strong><span>{youtubeVideos.length} results</span></div><div className="study-video-grid">{youtubeVideos.map(video=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span><strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
-
-              <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended topics from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture")}>Find videos &amp; watch here <span>→</span></button></span></article>)}</div></div>
             </section>}
             {!!selectedMaterial.summary.memoryAids?.length&&<section className="study-summary-block"><h3>Memory aids</h3><ul>{selectedMaterial.summary.memoryAids.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.commonPitfalls?.length&&<section className="study-summary-block study-summary-warnings"><h3>Common pitfalls</h3><ul>{selectedMaterial.summary.commonPitfalls.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
