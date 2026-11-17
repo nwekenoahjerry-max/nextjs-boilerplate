@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ClerkME">
+  <rect width="512" height="512" rx="112" fill="#0b4a34"/>
+  <path d="M256 92c-90.6 0-164 73.4-164 164s73.4 164 164 164c56.2 0 105.8-28.3 135.4-71.4l-61.1-42c-17.2 25-43.7 40.4-74.3 40.4-50.2 0-91-40.8-91-91s40.8-91 91-91c30.6 0 57.1 15.4 74.3 40.4l61.1-42C361.8 120.3 312.2 92 256 92Z" fill="#fff" opacity=".98"/>
+  <path d="M344 144h66v66h-66z" fill="#e8a317"/>
+  <text x="355" y="362" font-family="Arial,Helvetica,sans-serif" font-size="150" font-weight="800" fill="#fff" text-anchor="middle">M</text>
+  <path d="M112 398h288" stroke="#e8a317" stroke-width="14" stroke-linecap="round"/>
+</svg>
