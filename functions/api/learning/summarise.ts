@@ -45,7 +45,7 @@ async function requestGeminiWithRetry(
 }
 const SUMMARY_RESPONSE_SCHEMA = {
   type: "object",
-  required: ["overview", "highYieldPoints", "sections"],
+  required: ["overview", "highYieldPoints", "sections", "videoSuggestions", "mnemonics"],
   properties: {
     overview: { type: "string" },
     highYieldPoints: { type: "array", items: { type: "string" } },
