@@ -234,7 +234,7 @@ ${material.content_text}
       const legacyOutputTexts = (geminiData.outputs || [])
         .filter(output => output.type === "text")
         .map(output => output.text || "");
-      const outputText = [...stepTexts, ...legacyOutputTexts].join("\\n").trim();
+      const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim();
       if (!outputText) {
         const state = clean(geminiData.status, 80) || "unknown";
         throw new Error("Gemini returned no text output (provider status: " + state + "). The request may have been blocked or stopped before a response was produced.");
