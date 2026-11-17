@@ -47,12 +47,5 @@
         "GOOGLE_CLIENT_ID": "1001652725948-s7bjafldo8md4hgosnf0dpi4cros7tan.apps.googleusercontent.com"
       }
     }
-  },
-  "observability": {
-    "enabled": true,
-    "logs": {
-      "invocation_logs": true,
-      "head_sampling_rate": 1
-    }
   }
 }
