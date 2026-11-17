@@ -81,6 +81,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const studentTranscriptRef = useRef("");
   const patientTranscriptRef = useRef("");
   const patientHasSpokenOpeningRef = useRef(false);
+  const callAttemptRef = useRef(0);
 
   const updateStatus = (next: LiveCallStatus) => {
     setStatus(next);
@@ -125,6 +126,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   };
 
   const stopCall = (notifyParent = true): LivePatientTurn[] => {
+    callAttemptRef.current += 1;
     const pending = takePendingTurns();
     endingRef.current = true;
     setupCompleteRef.current = false;
@@ -167,6 +169,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
       return;
     }
 
+    const callAttempt = ++callAttemptRef.current;
     updateStatus("connecting");
     setNotice("Allow microphone access to start the patient call…");
     setElapsedSeconds(0);
@@ -180,11 +183,20 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
       });
+      if (callAttempt !== callAttemptRef.current || endingRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       streamRef.current = stream;
 
       const audioContext = new AudioContext({ latencyHint: "interactive" });
       audioContextRef.current = audioContext;
       await audioContext.resume();
+      if (callAttempt !== callAttemptRef.current || endingRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        if (audioContext.state !== "closed") void audioContext.close();
+        return;
+      }
 
       const microphone = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(2048, 1, 1);
@@ -220,6 +232,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         body: JSON.stringify({ unit, caseId, intent: "live-token" })
       });
       const tokenData = await tokenResponse.json().catch(() => ({ error: "The live-call service returned an unreadable response." }));
+      if (callAttempt !== callAttemptRef.current || endingRef.current) return;
       if (!tokenResponse.ok || typeof tokenData.token !== "string" || !tokenData.token) {
         throw new Error(tokenData.error || "The live patient call could not be authorised.");
       }
@@ -327,6 +340,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         setNotice("The live call has disconnected. Your completed transcript is still available for review.");
       };
     } catch (reason) {
+      if (callAttempt !== callAttemptRef.current || endingRef.current) return;
       stopCall(false);
       const name = reason instanceof DOMException ? reason.name : "";
       const messages: Record<string, string> = {
