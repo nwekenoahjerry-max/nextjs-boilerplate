@@ -76,7 +76,7 @@ export const onRequestPost = async (context: AppContext) => {
     const output = (data.steps || [])
       .filter(step => step.type === "model_output")
       .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""))
-      .join("\\n")
+      .join("\n")
       .trim();
     if (!output || data.status === "incomplete" || data.status === "budget_exceeded") {
       return json({ ok: false, code: "GEMINI_NO_OUTPUT", error: "Google accepted the request but did not return a completed text response. Provider status: " + (data.status || "unknown") + "." }, 502);
