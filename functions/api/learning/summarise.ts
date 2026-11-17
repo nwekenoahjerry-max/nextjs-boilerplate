@@ -4,6 +4,32 @@ const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const GEMINI_MODEL = "gemini-3.6-flash";
 const GEMINI_TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
+async function deleteGeminiInteraction(apiKey: string, interactionId: string): Promise<void> {
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(interactionId),
+      {
+        method: "DELETE",
+        headers: {
+          "Api-Revision": "2026-05-20",
+          "x-goog-api-key": apiKey
+        },
+        signal: AbortSignal.timeout(8000)
+      }
+    );
+    if (!response.ok && response.status !== 404) {
+      console.warn("[ClerkMe] Could not remove the completed Gemini interaction record.", {
+        status: response.status
+      });
+    }
+  } catch (error) {
+    console.warn("[ClerkMe] Gemini interaction cleanup did not complete.", {
+      message: error instanceof Error ? error.message.slice(0, 250) : "Unknown cleanup error."
+    });
+  }
+}
+
+
 type GeminiResponseData = {
   id?: string;
   output_text?: string;
@@ -236,6 +262,7 @@ export const onRequestGet = async (context: AppContext) => {
       await context.env.DB.prepare(
         "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
       ).bind(message, job.id, user.id).run();
+      await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
       return json({ status: "failed", error: message }, 502);
     }
 
@@ -244,6 +271,7 @@ export const onRequestGet = async (context: AppContext) => {
       await context.env.DB.prepare(
         "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
       ).bind(message, job.id, user.id).run();
+      await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
       return json({ status: "failed", error: message, code: "STUDY_OUTPUT_INCOMPLETE" }, 502);
     }
 
@@ -268,6 +296,7 @@ export const onRequestGet = async (context: AppContext) => {
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'completed', error_message = NULL, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(job.id, user.id).run();
+    await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
 
     console.info("[ClerkMe] Background study guide completed.", {
       materialId: job.material_id,
@@ -280,10 +309,12 @@ export const onRequestGet = async (context: AppContext) => {
     if (/abort|timeout/i.test(detail)) {
       return json({ status: "processing", retryAfterMs: 5000 });
     }
-    return json({
-      status: "failed",
-      error: "ClerkMe could not retrieve the study guide just now. Your uploaded material is safe; please try again."
-    }, 502);
+    const message = "ClerkMe could not retrieve the study guide just now. Your uploaded material is safe; please try again.";
+    await context.env.DB.prepare(
+      "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+    ).bind(message, job.id, user.id).run().catch(() => undefined);
+    await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
+    return json({ status: "failed", error: message }, 502);
   }
 };
 
@@ -518,7 +549,7 @@ ${material.content_text}
         system_instruction: messages[0].content,
         input: messages[1].content,
         background: true,
-        store: false,
+        store: true,
         response_format: {
           type: "text",
           mime_type: "application/json",
