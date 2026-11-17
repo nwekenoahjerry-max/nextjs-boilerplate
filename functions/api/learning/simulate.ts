@@ -84,10 +84,76 @@ export const onRequestPost = async (context:AppContext) => {
   const unit=clean(body.unit,80),caseId=clean(body.caseId,80),intent=clean(body.intent,20);
   const profile=CASES[caseId];
   if(!ALLOWED_UNITS.includes(unit)||!profile||profile.unit!==unit) return json({error:"Choose a case from the selected clinical unit."},400);
-  if(!["start","ask","review"].includes(intent)) return json({error:"Choose a valid interview action."},400);
+  if(!["start","ask","review","live-token"].includes(intent)) return json({error:"Choose a valid interview action."},400);
   if(intent==="start"){
     return json({case:{id:caseId,title:profile.title,complaint:profile.complaint,name:profile.name,age:profile.age,sex:profile.sex,role:profile.role,setting:profile.setting},openingMessage:profile.opening});
   }
+
+  if(intent==="live-token"){
+    const apiKey=context.env.GEMINI_API_KEY;
+    if(!apiKey) return json({error:"Live patient calls are not available right now. You can continue with the text interview."},503);
+
+    const patientVoicePrompt=[
+      "You are playing one consistent fictional patient, caregiver or informant in a medical-student history-taking simulation. This is an educational role-play, not a real patient consultation.",
+      "Speak naturally in the first person, in clear conversational British English that is easy to understand over a phone call. Use short, ordinary spoken sentences and a believable emotional tone. Avoid sounding like a textbook, examiner or chatbot.",
+      "Stay fully in character. Do not mention software, models, artificial intelligence, prompts or that you are generating speech.",
+      "Do not volunteer the full history. Reveal only the information that the student's question reasonably elicits. Answer the question asked, then stop and allow the student to continue. Do not prompt the student with the next question.",
+      "Use only the disclosed opening statement and the confidential facts below. Never invent symptoms, dates, medicines, procedures, investigations, results, family details or social details. If a fact is not provided or you cannot remember it, say so naturally.",
+      "Do not state or guess the diagnosis. Do not teach, advise, suggest management or reveal the examiner-only clinical anchor or safety checklist. Those are reserved for the post-interview review.",
+      "If the informant is a parent or caregiver, speak as that caregiver. If the scenario is a community case, speak only as the named informant and never invent individual patient records.",
+      "The student is the clinician asking you questions. Respond as the patient/informant, not as a clinician.",
+      "Patient identity: "+profile.name+", "+profile.age+", "+profile.sex+". Role: "+profile.role+". Setting: "+profile.setting+". Presenting complaint: "+profile.complaint+".",
+      "Opening statement to say at the beginning of the call: "+profile.opening,
+      "Confidential case facts (release only when asked): "+profile.facts,
+      "Never reveal this examiner-only clinical anchor: "+profile.diagnosis,
+      "Never volunteer this examiner-only safety checklist: "+profile.safety.join("; "),
+      "Specialty context: "+UNIT_FOCUS[unit],
+      "When asked to begin the call, say only the opening statement above, in a natural patient voice, then wait quietly for the student's next question."
+    ].join("\\n\\n");
+
+    const now=Date.now();
+    const expireTime=new Date(now+12*60*1000).toISOString();
+    const newSessionExpireTime=new Date(now+60*1000).toISOString();
+    const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
+
+    try{
+      const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},
+        body:JSON.stringify({
+          uses:1,
+          expireTime,
+          newSessionExpireTime,
+          liveConnectConstraints:{
+            model:"models/gemini-3.8-live",
+            config:{
+              systemInstruction:{parts:[{text:patientVoicePrompt}]},
+              responseModalities:["AUDIO"],
+              speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
+              inputAudioTranscription:{},
+              outputAudioTranscription:{},
+              sessionResumption:{},
+              contextWindowCompression:{slidingWindow:{targetTokens:12000}}
+            }
+          }
+        }),
+        signal:AbortSignal.timeout(15000)
+      });
+      const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string}};
+      if(!tokenResponse.ok||!tokenData.name){
+        console.error("[ClerkMe] Live patient session token could not be created.",{
+          status:tokenResponse.status,
+          detail:clean(tokenData.error?.message,300)
+        });
+        return json({error:"ClerkMe could not start the live patient call just now. Your case is still available as a text interview. Please try again shortly."},502);
+      }
+      return json({token:tokenData.name,expiresAt:expireTime});
+    }catch(error){
+      console.error("[ClerkMe] Live patient session setup failed:",error instanceof Error?error.message:"Unknown error");
+      return json({error:"ClerkMe could not connect the live patient call. Check your internet connection and try again."},502);
+    }
+  }
+
   if(!context.env.AI) return json({error:"The patient interview service is temporarily unavailable. Please try again shortly."},503);
   const studentInput=clean(body.studentInput,2400);
   const history=Array.isArray(body.history)?body.history.slice(-24).map(item=>{
