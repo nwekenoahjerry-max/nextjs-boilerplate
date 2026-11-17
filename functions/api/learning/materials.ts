@@ -15,7 +15,7 @@ export const onRequestGet = async (context: AppContext) => {
   const user = await requireUser(context);
   if (isResponse(user)) return user;
   const rows = await context.env.DB.prepare(`
-    SELECT id, title, source_name, unit, category, mime_type,
+    SELECT id, title, source_name, unit, category, mime_type, content_text,
            summary_json, questions_json, created_at, updated_at
     FROM learning_materials
     WHERE user_id = ?
@@ -23,7 +23,7 @@ export const onRequestGet = async (context: AppContext) => {
     LIMIT 100
   `).bind(user.id).all<{
     id:string; title:string; source_name:string; unit:string; category:string;
-    mime_type:string|null; summary_json:string|null; questions_json:string|null;
+    mime_type:string|null; content_text:string; summary_json:string|null; questions_json:string|null;
     created_at:number; updated_at:number;
   }>();
   const materials = rows.results.map(row => ({
@@ -33,6 +33,7 @@ export const onRequestGet = async (context: AppContext) => {
     unit: row.unit,
     category: row.category,
     mimeType: row.mime_type,
+    contentText: row.content_text,
     summary: parseStored(row.summary_json),
     questions: parseStored(row.questions_json) || [],
     createdAt: row.created_at,
@@ -73,7 +74,7 @@ export const onRequestPost = async (context: AppContext) => {
 
   return json({
     material: {
-      id, title, sourceName, unit, category, mimeType,
+      id, title, sourceName, unit, category, mimeType, contentText: content,
       summary: null, questions: [], createdAt: now, updatedAt: now
     }
   }, 201);
