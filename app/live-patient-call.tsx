@@ -102,11 +102,18 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     patientTranscriptRef.current = "";
     const turns: LivePatientTurn[] = [];
     if (student) turns.push({ role: "student", content: student });
-    if (patient && (student || patientHasSpokenOpeningRef.current)) {
-      turns.push({ role: "patient", content: patient });
-    } else if (patient && !patientHasSpokenOpeningRef.current) {
-      // The first spoken patient line repeats the opening message already shown in the chat.
-      patientHasSpokenOpeningRef.current = true;
+    if (patient) {
+      if (!patientHasSpokenOpeningRef.current) {
+        patientHasSpokenOpeningRef.current = true;
+        const simplify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const spokenStart = simplify(patient).slice(0, 80);
+        const openingStart = simplify(openingMessage).slice(0, 80);
+        const repeatsOpening = spokenStart.length >= 24 && openingStart.length >= 24
+          && (spokenStart.startsWith(openingStart.slice(0, 48)) || openingStart.startsWith(spokenStart.slice(0, 48)));
+        if (!repeatsOpening) turns.push({ role: "patient", content: patient });
+      } else {
+        turns.push({ role: "patient", content: patient });
+      }
     }
     return turns;
   };
