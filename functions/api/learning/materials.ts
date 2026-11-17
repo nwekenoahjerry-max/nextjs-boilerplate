@@ -1,6 +1,6 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-const MAX_TEXT = 42000;
+const MAX_TEXT = 120000;
 const ALLOWED_UNITS = [
   "general-medicine", "surgery", "paediatrics", "obstetrics-gynaecology",
   "emergency", "psychiatry", "community-medicine", "orthopaedics"
@@ -62,7 +62,7 @@ export const onRequestPost = async (context: AppContext) => {
   const unit = clean(body.unit, 80);
   const category = clean(body.category, 80) || "Lecture notes";
   const mimeType = clean(body.mimeType, 120) || null;
-  const content = clean(body.contentText, MAX_TEXT);
+  const content = typeof body.contentText === "string" ? body.contentText : "";
 
   if (!title || !sourceName) return json({ error: "Add a title and select a source file." }, 400);
   if (!ALLOWED_UNITS.includes(unit)) return json({ error: "Select a valid clinical unit." }, 400);
