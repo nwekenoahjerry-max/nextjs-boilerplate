@@ -1,6 +1,7 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
 const MAX_TEXT = 120000;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_UNITS = [
   "general-medicine", "surgery", "paediatrics", "obstetrics-gynaecology",
   "emergency", "psychiatry", "community-medicine", "orthopaedics"
@@ -10,6 +11,25 @@ function parseStored(value: string | null): unknown {
   if (!value) return null;
   try { return JSON.parse(value) as unknown; } catch { return null; }
 }
+function safeFileName(value: string): string {
+  const leaf = value.split(/[\\/]/).pop() || "uploaded-document";
+  return leaf.replace(/[\r\n\0]/g, "").slice(0, 180) || "uploaded-document";
+}
+function inferMimeType(fileName: string, supplied: string): string {
+  if (supplied && supplied !== "application/octet-stream") return supplied.slice(0, 120);
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const types: Record<string, string> = {
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ppt: "application/vnd.ms-powerpoint",
+    pdf: "application/pdf",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    doc: "application/msword",
+    txt: "text/plain",
+    md: "text/markdown",
+    csv: "text/csv"
+  };
+  return types[ext || ""] || "application/octet-stream";
+}
 
 export const onRequestGet = async (context: AppContext) => {
   const user = await requireUser(context);
@@ -17,13 +37,23 @@ export const onRequestGet = async (context: AppContext) => {
   const requestedId = clean(new URL(context.request.url).searchParams.get("id"), 80);
   if (requestedId) {
     const source = await context.env.DB.prepare(
-      "SELECT id, content_text FROM learning_materials WHERE id = ? AND user_id = ?"
-    ).bind(requestedId, user.id).first<{id:string;content_text:string}>();
+      "SELECT id, content_text, original_object_key, original_size_bytes, mime_type FROM learning_materials WHERE id = ? AND user_id = ?"
+    ).bind(requestedId, user.id).first<{
+      id:string; content_text:string; original_object_key:string|null;
+      original_size_bytes:number|null; mime_type:string|null;
+    }>();
     if (!source) return json({ error: "This material could not be found in your private library." }, 404);
-    return json({ material: { id: source.id, contentText: source.content_text } });
+    return json({ material: {
+      id: source.id,
+      contentText: source.content_text,
+      originalFileAvailable: Boolean(source.original_object_key),
+      originalSizeBytes: source.original_size_bytes,
+      mimeType: source.mime_type
+    } });
   }
   const rows = await context.env.DB.prepare(`
     SELECT id, title, source_name, unit, category, mime_type,
+           original_object_key, original_size_bytes,
            summary_json, questions_json, created_at, updated_at
     FROM learning_materials
     WHERE user_id = ?
@@ -31,7 +61,8 @@ export const onRequestGet = async (context: AppContext) => {
     LIMIT 100
   `).bind(user.id).all<{
     id:string; title:string; source_name:string; unit:string; category:string;
-    mime_type:string|null; summary_json:string|null; questions_json:string|null;
+    mime_type:string|null; original_object_key:string|null; original_size_bytes:number|null;
+    summary_json:string|null; questions_json:string|null;
     created_at:number; updated_at:number;
   }>();
   const materials = rows.results.map(row => ({
@@ -41,6 +72,8 @@ export const onRequestGet = async (context: AppContext) => {
     unit: row.unit,
     category: row.category,
     mimeType: row.mime_type,
+    originalFileAvailable: Boolean(row.original_object_key),
+    originalSizeBytes: row.original_size_bytes,
     summary: parseStored(row.summary_json),
     questions: parseStored(row.questions_json) || [],
     createdAt: row.created_at,
@@ -53,36 +86,67 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  let body: Record<string, unknown>;
-  try { body = await context.request.json() as Record<string, unknown>; }
-  catch { return json({ error: "Invalid request body." }, 400); }
+  if (!context.env.SOURCE_FILES) {
+    return json({
+      error: "Original-file storage is not connected. ClerkMe cannot save this upload yet. Please retry after the SOURCE_FILES R2 binding is deployed.",
+      code: "SOURCE_STORAGE_UNAVAILABLE"
+    }, 503);
+  }
 
-  const title = clean(body.title, 180);
-  const sourceName = clean(body.sourceName, 220);
-  const unit = clean(body.unit, 80);
-  const category = clean(body.category, 80) || "Lecture notes";
-  const mimeType = clean(body.mimeType, 120) || null;
-  const content = typeof body.contentText === "string" ? body.contentText : "";
+  let form: FormData;
+  try { form = await context.request.formData(); }
+  catch { return json({ error: "The uploaded document could not be read. Please try again." }, 400); }
+
+  const title = clean(form.get("title"), 180);
+  const sourceName = safeFileName(clean(form.get("sourceName"), 220));
+  const unit = clean(form.get("unit"), 80);
+  const category = clean(form.get("category"), 80) || "Lecture notes";
+  const originalFile = form.get("originalFile");
+  const contentValue = form.get("contentText");
+  const content = typeof contentValue === "string" ? contentValue : "";
 
   if (!title || !sourceName) return json({ error: "Add a title and select a source file." }, 400);
   if (!ALLOWED_UNITS.includes(unit)) return json({ error: "Select a valid clinical unit." }, 400);
-  if (content.length < 100) return json({ error: "The document contains too little readable text. Try a text-based PDF, DOCX, PPTX or text file." }, 400);
-  if (typeof body.contentText === "string" && body.contentText.length > MAX_TEXT) {
-    return json({ error: "The extracted document is too long. Split it into smaller files and upload each part separately." }, 413);
-  }
+  if (!(originalFile instanceof File)) return json({ error: "The original file was not included. Please select it again." }, 400);
+  if (!originalFile.size) return json({ error: "The selected file is empty." }, 400);
+  if (originalFile.size > MAX_FILE_BYTES) return json({ error: "This file is larger than 20 MB. Please compress it or split it into smaller parts." }, 413);
+  if (content.length < 100) return json({ error: "The document contains too little readable text for AI study generation. Try a text-based PDF, DOCX, PPTX or text file." }, 400);
+  if (content.length > MAX_TEXT) return json({ error: "The extracted document is too long. Split it into smaller files and upload each part separately." }, 413);
 
+  const fileName = safeFileName(originalFile.name || sourceName);
+  const mimeType = inferMimeType(fileName, originalFile.type);
   const id = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
-  await context.env.DB.prepare(`
-    INSERT INTO learning_materials
-      (id, user_id, title, source_name, unit, category, mime_type, content_text, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).bind(id, user.id, title, sourceName, unit, category, mimeType, content, now, now).run();
+  const objectKey = user.id + "/" + id + "/" + fileName;
+
+  try {
+    await context.env.SOURCE_FILES.put(objectKey, await originalFile.arrayBuffer(), {
+      httpMetadata: { contentType: mimeType },
+      customMetadata: { materialId: id, ownerId: user.id }
+    });
+    await context.env.DB.prepare(`
+      INSERT INTO learning_materials
+        (id, user_id, title, source_name, unit, category, mime_type, content_text,
+         original_object_key, original_size_bytes, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      id, user.id, title, fileName, unit, category, mimeType, content,
+      objectKey, originalFile.size, now, now
+    ).run();
+  } catch (error) {
+    await context.env.SOURCE_FILES.delete(objectKey).catch(() => undefined);
+    console.error("[ClerkMe] Original source upload failed.", {
+      materialId: id,
+      message: error instanceof Error ? error.message.slice(0, 250) : "Unknown storage error."
+    });
+    return json({ error: "ClerkMe could not save the original file. Your lecture has not been added. Please retry." }, 502);
+  }
 
   return json({
     material: {
-      id, title, sourceName, unit, category, mimeType, contentText: content,
-      summary: null, questions: [], createdAt: now, updatedAt: now
+      id, title, sourceName: fileName, unit, category, mimeType,
+      originalFileAvailable: true, originalSizeBytes: originalFile.size,
+      contentText: content, summary: null, questions: [], createdAt: now, updatedAt: now
     }
   }, 201);
 };
@@ -99,6 +163,18 @@ export const onRequestDelete = async (context: AppContext) => {
     id = clean(new URL(context.request.url).searchParams.get("id"), 80);
   }
   if (!id) return json({ error: "Choose a material to remove." }, 400);
+  const existing = await context.env.DB.prepare(
+    "SELECT original_object_key FROM learning_materials WHERE id = ? AND user_id = ?"
+  ).bind(id, user.id).first<{original_object_key:string|null}>();
+  if (!existing) return json({ deleted: false, changes: 0 });
+  if (existing.original_object_key && context.env.SOURCE_FILES) {
+    await context.env.SOURCE_FILES.delete(existing.original_object_key).catch(error => {
+      console.warn("[ClerkMe] Could not remove deleted material's original R2 object.", {
+        materialId: id,
+        message: error instanceof Error ? error.message.slice(0, 180) : "Unknown storage error."
+      });
+    });
+  }
   const result = await context.env.DB.prepare(
     "DELETE FROM learning_materials WHERE id = ? AND user_id = ?"
   ).bind(id, user.id).run();

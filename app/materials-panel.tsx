@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 import { extractStudyFile } from "../lib/file-text";
+import SourceFileViewer from "./source-file-viewer";
 
 type StudyVisualAid = { title:string; caption:string; altText:string; sourceSection:string; visualPrompt:string; };
 type GeneratedStudyIllustration = StudyVisualAid & { imageDataUri:string; };
@@ -54,6 +55,8 @@ type StudyMaterial = {
   unit:string;
   category:string;
   mimeType:string|null;
+  originalFileAvailable?:boolean;
+  originalSizeBytes?:number|null;
   summary:StudySummary|null;
   questions:MaterialQuestion[];
   createdAt:number;
@@ -545,12 +548,15 @@ export default function MaterialsPanel() {
     setUploading(true); setError(""); setNotice(""); setAnswer(null);
     try {
       const extracted = await extractStudyFile(file);
+      const uploadForm = new FormData();
+      uploadForm.append("title",title.trim() || file.name.replace(/\\.[^.]+$/,""));
+      uploadForm.append("sourceName",file.name);
+      uploadForm.append("unit",unit);
+      uploadForm.append("category",category);
+      uploadForm.append("contentText",extracted.text);
+      uploadForm.append("originalFile",file,file.name);
       const response = await fetch("/api/learning/materials",{
-        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({
-          title:title.trim() || file.name.replace(/\.[^.]+$/,""),
-          sourceName:file.name,unit,category,mimeType:file.type || null,contentText:extracted.text
-        })
+        method:"POST",credentials:"same-origin",body:uploadForm
       });
       const data = await readResponse(response);
       const material = data.material as StudyMaterial;
@@ -724,7 +730,18 @@ export default function MaterialsPanel() {
           <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
 
-        {tab==="source" && <section className="materials-source-viewer"><div className="eyebrow">EXTRACTED FROM YOUR UPLOAD</div><h3>{selectedMaterial.sourceName}</h3><p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {sourceTextByMaterial[selectedMaterial.id]?.length?.toLocaleString("en-GB") || 0} characters extracted</p>{sourceTextByMaterial[selectedMaterial.id] ? <pre>{sourceTextByMaterial[selectedMaterial.id]}</pre> : <div className="materials-empty"><strong>Source text is unavailable</strong><p>Refresh your study library. If this material was uploaded before source viewing was added, upload it again to make its extracted text available.</p></div>}</section>}
+        {tab==="source" && <section className="materials-source-viewer">
+          <div className="eyebrow">SOURCE MATERIAL</div>
+          <h3>{selectedMaterial.sourceName}</h3>
+          <p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {selectedMaterial.originalFileAvailable ? "Original file preserved" : "Older upload: original file not retained"}</p>
+          {selectedMaterial.originalFileAvailable
+            ? <SourceFileViewer materialId={selectedMaterial.id} fileName={selectedMaterial.sourceName} mimeType={selectedMaterial.mimeType}/>
+            : <div className="materials-empty"><strong>Original file unavailable for this older upload</strong><p>ClerkMe saved its extracted text before original-file storage was enabled. Upload the original file again to view it in its original format.</p></div>}
+          <details className="source-extracted-details">
+            <summary>View extracted text used by the AI</summary>
+            {sourceTextByMaterial[selectedMaterial.id] ? <pre>{sourceTextByMaterial[selectedMaterial.id]}</pre> : <p>Loading extracted text…</p>}
+          </details>
+        </section>}
 
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary">

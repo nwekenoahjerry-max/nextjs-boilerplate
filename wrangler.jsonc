@@ -33,6 +33,12 @@
       }
     },
     "production": {
+      "r2_buckets": [
+        {
+          "binding": "SOURCE_FILES",
+          "bucket_name": "clerkme-source-materials"
+        }
+      ],
       "d1_databases": [
         {
           "binding": "DB",

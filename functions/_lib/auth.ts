@@ -1,5 +1,27 @@
 export interface WorkersAI { run(model: string, input: Record<string, unknown>): Promise<unknown>; }
-export interface Env { DB: D1Database; GOOGLE_CLIENT_ID: string; YOUTUBE_API_KEY?: string; GEMINI_API_KEY?: string; ZAI_API_KEY?: string; AI?: WorkersAI; }
+export interface R2StoredObject {
+  body: ReadableStream;
+  size: number;
+  httpMetadata?: { contentType?: string };
+}
+export interface R2BucketLike {
+  put(
+    key: string,
+    value: ArrayBuffer | ArrayBufferView | Blob | ReadableStream | string,
+    options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }
+  ): Promise<unknown>;
+  get(key: string): Promise<R2StoredObject | null>;
+  delete(key: string): Promise<void>;
+}
+export interface Env {
+  DB: D1Database;
+  GOOGLE_CLIENT_ID: string;
+  YOUTUBE_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  ZAI_API_KEY?: string;
+  SOURCE_FILES?: R2BucketLike;
+  AI?: WorkersAI;
+}
 export interface AppUser {
   id: string; email: string; name: string; picture: string | null; role: string;
   university: string; level: string; futureSpecialty: string; state: string; lga: string;
