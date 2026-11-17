@@ -184,6 +184,100 @@ function parseAIResult(value: unknown): Record<string, unknown> {
 const asStrings = (value: unknown, maxItems: number, maxLength: number) =>
   Array.isArray(value) ? value.map(item => clean(item, maxLength)).filter(Boolean).slice(0, maxItems) : [];
 
+function buildQuickSourcePreview(material: { title: string; content_text: string }) {
+  const source = material.content_text.replace(/\\u0000/g, "").trim();
+  const lines = source.split(/\\r?\\n/).map(line => line.trim()).filter(Boolean);
+  const bulletLines = lines
+    .filter(line => /^(?:[•●▪◦*–—-]|\\d{1,2}[.)])\\s+/.test(line))
+    .map(line => line.replace(/^(?:[•●▪◦*–—-]|\\d{1,2}[.)])\\s+/, "").trim())
+    .filter(line => line.length >= 35 && line.length <= 650);
+  const looksLikeHeading = (line: string) => {
+    if (line.length < 3 || line.length > 100 || /[.!?]$/.test(line)) return false;
+    if (/^(?:\\d+(?:\\.\\d+)*[.)]?|[IVXLC]+[.)])\\s+\\S/.test(line)) return true;
+    const letters = line.replace(/[^A-Za-z]/g, "");
+    if (letters.length >= 4 && letters === letters.toUpperCase()) return true;
+    return /^(?:definition|introduction|classification|aetiology|etiology|risk factors|pathophysiology|clinical features|presentation|investigations|diagnosis|management|complications|prognosis|prevention|treatment|differential diagnosis|summary|types|causes|features)\\s*:??$/i.test(line);
+  };
+
+  const sections: Array<{ heading: string; text: string }> = [];
+  let heading = "";
+  let body: string[] = [];
+  const flush = () => {
+    const text = body.join(" ").replace(/\\s+/g, " ").trim();
+    if (text) sections.push({ heading: heading || "Source notes", text });
+    body = [];
+  };
+
+  for (const line of lines) {
+    if (looksLikeHeading(line) && body.join(" ").length > 90) {
+      flush();
+      heading = line.replace(/^(?:\\d+(?:\\.\\d+)*[.)]?|[IVXLC]+[.)])\\s+/, "").slice(0, 90);
+    } else if (looksLikeHeading(line) && !body.length) {
+      heading = line.replace(/^(?:\\d+(?:\\.\\d+)*[.)]?|[IVXLC]+[.)])\\s+/, "").slice(0, 90);
+    } else {
+      body.push(line);
+      if (body.join(" ").length >= 2400) flush();
+    }
+  }
+  flush();
+
+  if (!sections.length) {
+    const blocks = source.split(/\\n\\s*\\n/).map(block => block.replace(/\\s+/g, " ").trim()).filter(block => block.length > 60);
+    let current = "";
+    let number = 1;
+    for (const block of blocks) {
+      if (current && current.length + block.length > 2600) {
+        sections.push({ heading: "Lecture outline " + number++, text: current });
+        current = "";
+      }
+      current += (current ? " " : "") + block;
+    }
+    if (current) sections.push({ heading: "Lecture outline " + number, text: current });
+  }
+
+  const selectedSections = sections.slice(0, 8).map((section, index) => ({
+    heading: /^source notes$/i.test(section.heading) ? "Extracted source content " + (index + 1) : section.heading,
+    summary: section.text.slice(0, 2400),
+    subsections: [{
+      heading: "What your upload says",
+      explanation: section.text.slice(0, 5200),
+      keyPoints: []
+    }],
+    clinicalRelevance: "",
+    highYieldPoints: [],
+    sourceLocator: ""
+  }));
+
+  const highlights = Array.from(new Set(bulletLines)).slice(0, 12);
+  const sourceHighlights = highlights.length
+    ? highlights
+    : Array.from(new Set(
+        source.split(/(?<=[.!?])\\s+/).map(sentence => sentence.trim())
+          .filter(sentence => sentence.length >= 85 && sentence.length <= 420)
+      )).slice(0, 8);
+
+  return {
+    overview: "Quick source outline for " + material.title + ". This first view is extracted directly from your uploaded material so you can begin reviewing immediately. ClerkMe is still preparing the complete, detailed AI revision guide.",
+    highYieldPoints: sourceHighlights,
+    sections: selectedSections,
+    learningObjectives: [],
+    keyTerms: [],
+    comparisonTables: [],
+    examFocus: null,
+    flowcharts: [],
+    videoSuggestions: [],
+    mnemonics: [],
+    memoryAids: [],
+    commonPitfalls: [],
+    revisionQuestions: [],
+    unclearOrMissing: [],
+    sourceCoverage: selectedSections.map(section => section.heading),
+    disclaimer: "This is an instant source extraction, not the finished AI-generated teaching guide. Check the completed guide for explanations, clinical interpretation and exam prioritisation.",
+    quickPreview: true
+  };
+}
+
+
 
 export const onRequestGet = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
@@ -540,8 +634,9 @@ ${material.content_text}
         ORDER BY created_at DESC
         LIMIT 1
       `).bind(user.id, material.id).first<{id:string;status:string}>();
+      const quickPreview = buildQuickSourcePreview(material);
       if (existing) {
-        return json({ jobId: existing.id, status: "processing", resumed: true }, 202);
+        return json({ jobId: existing.id, status: "processing", resumed: true, preview: quickPreview }, 202);
       }
 
       const geminiPayload: Record<string, unknown> = {
@@ -619,7 +714,7 @@ ${material.content_text}
         jobId,
         providerStatus: clean(startData.status, 40) || "in_progress"
       });
-      return json({ jobId, status: "processing" }, 202);
+      return json({ jobId, status: "processing", preview: quickPreview }, 202);
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
         messages: messages.map(message => ({ role: message.role, content: message.content })),
