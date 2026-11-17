@@ -309,8 +309,10 @@ export default function Home() {
         </nav>
         <div className="sidebar-bottom">
           <div className="upgrade-card"><div className="upgrade-icon">◉</div><strong>Learn with confidence</strong><p>Build your clinical skills, one patient at a time.</p><button onClick={() => selectSection("guides")}>Explore guides <span>↗</span></button></div>
-          <InstallAppButton/>
-          <a className="profile profile-link" href="/profile"><div className="avatar">{authUser?.name?.[0] || "C"}</div><div><strong>{authUser?.name || "Medical student"}</strong><small>View and edit profile</small></div><span className="profile-dots">↗</span></a>
+          <button type="button" className="profile profile-link sidebar-account-button" onClick={() => selectSection("you")}>
+            <div className="avatar">{authUser?.name?.[0] || "C"}</div>
+            <div><strong>{authUser?.name || "Medical student"}</strong><small>Account settings</small></div>
+          </button>
         </div>
       </aside>
 
@@ -337,8 +339,7 @@ export default function Home() {
               <span>{icon}</span><strong>{label}</strong><b>→</b>
             </button>
           ))}
-          <a className="mobile-more-link" href="/profile"><span>◉</span><strong>My profile</strong><b>→</b></a>
-          <InstallAppButton variant="menu"/>
+
         </div>
       </div>}
 
