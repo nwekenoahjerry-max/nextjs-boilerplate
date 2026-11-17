@@ -66,6 +66,14 @@ type TutorAnswer = {
   limitations:string[];
   followUpQuestions:string[];
 };
+type YouTubeVideo = {
+  id:string;
+  title:string;
+  description:string;
+  channelTitle:string;
+  publishedAt:string;
+  thumbnailUrl:string;
+};
 
 async function readResponse(response: Response) {
   const data = await response.json().catch(()=>({error:"The server returned an unreadable response."}));
@@ -120,6 +128,12 @@ export default function MaterialsPanel() {
   const [illustratingMaterialId,setIllustratingMaterialId] = useState("");
   const [illustrationErrors,setIllustrationErrors] = useState<Record<string,string>>({});
   const [expandedStudySections,setExpandedStudySections] = useState<number[]>([]);
+  const [youtubeQuery,setYoutubeQuery] = useState("");
+  const [youtubeVideos,setYoutubeVideos] = useState<YouTubeVideo[]>([]);
+  const [youtubeLoading,setYoutubeLoading] = useState(false);
+  const [youtubeError,setYoutubeError] = useState("");
+  const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
+  const [youtubeLink,setYoutubeLink] = useState("");
 
   const visibleMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
@@ -148,6 +162,55 @@ export default function MaterialsPanel() {
   const topHighYieldPoints = selectedMaterial?.summary?.highYieldPoints?.length
     ? selectedMaterial.summary.highYieldPoints
     : selectedMaterial?.summary?.examFocus?.mustKnow || [];
+
+  const searchYouTube = async (query:string) => {
+    const cleanQuery=query.trim();
+    if(!cleanQuery) return;
+    setYoutubeQuery(cleanQuery);
+    setYoutubeLoading(true);
+    setYoutubeError("");
+    setYoutubeVideos([]);
+    setActiveYoutubeVideo(null);
+    try {
+      const response=await fetch("/api/learning/videos",{
+        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+        body:JSON.stringify({query:cleanQuery})
+      });
+      const data=await readResponse(response);
+      const videos=Array.isArray(data.videos)?data.videos as YouTubeVideo[]:[];
+      setYoutubeVideos(videos);
+      if(!videos.length) setYoutubeError("No embeddable videos were found for this search. Try a shorter topic or paste a video link below.");
+    } catch(e) {
+      setYoutubeError(e instanceof Error?e.message:"Video search is temporarily unavailable. Paste a YouTube video link to play it here.");
+    } finally { setYoutubeLoading(false); }
+  };
+
+  const parseYouTubeVideoId = (value:string):string|null => {
+    const input=value.trim();
+    if(/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+    try {
+      const url=new URL(input);
+      const host=url.hostname.toLowerCase().replace(/^www\\./,"");
+      let id="";
+      if(host==="youtu.be") id=url.pathname.split("/").filter(Boolean)[0]||"";
+      else if(["youtube.com","m.youtube.com","music.youtube.com","youtube-nocookie.com"].includes(host)) {
+        if(url.pathname==="/watch") id=url.searchParams.get("v")||"";
+        else id=url.pathname.match(/^\\/(?:embed|shorts|live)\\/([A-Za-z0-9_-]{11})/)?.[1]||"";
+      }
+      return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
+    } catch { return null; }
+  };
+
+  const playYouTubeLink = () => {
+    const id=parseYouTubeVideoId(youtubeLink);
+    if(!id) { setYoutubeError("That does not look like a valid YouTube video link. Use a youtube.com/watch, youtu.be, /shorts or /embed link."); return; }
+    setActiveYoutubeVideo({
+      id,title:"Selected lecture",description:"Playing a video link supplied by you.",
+      channelTitle:"YouTube",publishedAt:"",thumbnailUrl:"https://i.ytimg.com/vi/"+id+"/hqdefault.jpg"
+    });
+    setYoutubeVideos([]);
+    setYoutubeError("");
+  };
 
   const loadMaterials = async (preserveId = true) => {
     const response = await fetch("/api/learning/materials",{credentials:"same-origin",cache:"no-store"});
@@ -180,6 +243,7 @@ export default function MaterialsPanel() {
     } catch {}
   },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([]); },[selectedId]);
+  useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
 
   useEffect(()=>{
     if (tab!=="source" || !selectedId || sourceTextByMaterial[selectedId]) return;
@@ -630,7 +694,32 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
-            {!!selectedMaterial.summary.videoSuggestions?.length&&<section className="study-summary-block study-video-resources"><h3>Watch a related lecture</h3><p className="study-section-intro">Topic-specific YouTube searches from established medical-education channels. Open a result and check that its level and guidance match your course.</p><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><a className="study-video-link" key={index} href={"https://www.youtube.com/results?search_query="+encodeURIComponent(video.topic+" "+video.channel+" medical lecture")} target="_blank" rel="noopener noreferrer"><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}</span><b>↗</b></a>)}</div></section>}
+            {!!selectedMaterial.summary.videoSuggestions?.length&&<section className="study-summary-block study-video-resources">
+              <div className="study-video-heading"><div><div className="eyebrow">IN-APP VIDEO LEARNING</div><h3>Watch a related lecture</h3><p className="study-section-intro">Find a relevant video, select it and watch without leaving your ClerkMe study guide.</p></div><span className="study-video-app-badge">ClerkMe player</span></div>
+
+              <form className="study-video-search-form" onSubmit={event=>{event.preventDefault();void searchYouTube(youtubeQuery);}}>
+                <label htmlFor="clerkme-youtube-search">Search for a lecture</label>
+                <div className="study-video-search-controls"><input id="clerkme-youtube-search" value={youtubeQuery} onChange={event=>setYoutubeQuery(event.target.value)} placeholder="e.g. nephrotic syndrome pathophysiology" maxLength={120}/><button type="submit" disabled={youtubeLoading||!youtubeQuery.trim()}>{youtubeLoading?"Searching…":"Search videos"}</button></div>
+                <small>Search results are limited to videos that allow embedding.</small>
+              </form>
+
+              <form className="study-video-link-form" onSubmit={event=>{event.preventDefault();playYouTubeLink();}}>
+                <label htmlFor="clerkme-youtube-link">Already have a YouTube video link?</label>
+                <div className="study-video-search-controls"><input id="clerkme-youtube-link" type="url" value={youtubeLink} onChange={event=>setYoutubeLink(event.target.value)} placeholder="Paste a YouTube video or Shorts link here"/><button type="submit" className="study-video-secondary-button">Play inside ClerkMe</button></div>
+              </form>
+
+              {!!youtubeError&&<p className="study-video-status" role="status">{youtubeError}</p>}
+
+              {activeYoutubeVideo&&<div className="study-video-player-panel">
+                <div className="study-video-player-heading"><div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeYoutubeVideo.title}</strong><small>{activeYoutubeVideo.channelTitle}</small></div><button type="button" onClick={()=>setActiveYoutubeVideo(null)} aria-label="Close video player">Close player ×</button></div>
+                <div className="study-video-player-frame"><iframe src={"https://www.youtube-nocookie.com/embed/"+activeYoutubeVideo.id+"?rel=0&playsinline=1"} title={activeYoutubeVideo.title+" — YouTube video player"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen loading="lazy"/></div>
+                <p className="study-video-player-note">Video playback is provided by YouTube. Some videos may still be unavailable here because of age restrictions or the uploader’s embedding settings.</p>
+              </div>}
+
+              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Videos found</strong><span>{youtubeVideos.length} results</span></div><div className="study-video-grid">{youtubeVideos.map(video=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span><strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
+
+              <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended topics from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture")}>Find videos &amp; watch here <span>→</span></button></span></article>)}</div></div>
+            </section>}
             {!!selectedMaterial.summary.memoryAids?.length&&<section className="study-summary-block"><h3>Memory aids</h3><ul>{selectedMaterial.summary.memoryAids.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.commonPitfalls?.length&&<section className="study-summary-block study-summary-warnings"><h3>Common pitfalls</h3><ul>{selectedMaterial.summary.commonPitfalls.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.revisionQuestions?.length&&<section className="study-summary-block"><h3>Quick revision questions</h3>{selectedMaterial.summary.revisionQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>}
