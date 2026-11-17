@@ -276,7 +276,7 @@ export default function MaterialsPanel() {
       if (Array.isArray(cached)) setIllustrationsByMaterial(current=>({...current,[selectedId]:cached as GeneratedStudyIllustration[]}));
     } catch {}
   },[selectedId]);
-  useEffect(()=>{ setExpandedStudySections([]); },[selectedId]);
+  useEffect(()=>{ setExpandedStudySections([0,1,2]); },[selectedId]);
   useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
 
   useEffect(()=>{
