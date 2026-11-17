@@ -82,6 +82,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const patientTranscriptRef = useRef("");
   const patientHasSpokenOpeningRef = useRef(false);
   const callAttemptRef = useRef(0);
+  const transcriptFlushTimerRef = useRef<number|null>(null);
 
   const updateStatus = (next: LiveCallStatus) => {
     setStatus(next);
@@ -110,6 +111,24 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     return turns;
   };
 
+  const scheduleTranscriptFlush = () => {
+    if (transcriptFlushTimerRef.current !== null) {
+      window.clearTimeout(transcriptFlushTimerRef.current);
+    }
+    transcriptFlushTimerRef.current = window.setTimeout(() => {
+      transcriptFlushTimerRef.current = null;
+      const completedTurns = takePendingTurns();
+      if (completedTurns.length) onTurns(completedTurns);
+    }, 650);
+  };
+
+  const clearTranscriptFlush = () => {
+    if (transcriptFlushTimerRef.current !== null) {
+      window.clearTimeout(transcriptFlushTimerRef.current);
+      transcriptFlushTimerRef.current = null;
+    }
+  };
+
   const releaseMedia = () => {
     processorRef.current?.disconnect();
     processorRef.current = null;
@@ -127,6 +146,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
   const stopCall = (notifyParent = true): LivePatientTurn[] => {
     callAttemptRef.current += 1;
+    clearTranscriptFlush();
     const pending = takePendingTurns();
     endingRef.current = true;
     setupCompleteRef.current = false;
@@ -157,6 +177,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   useEffect(() => () => {
     endingRef.current = true;
     setupCompleteRef.current = false;
+    clearTranscriptFlush();
     try { socketRef.current?.close(); } catch {}
     socketRef.current = null;
     releaseMedia();
@@ -264,6 +285,15 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         try { message = JSON.parse(event.data) as Record<string, any>; }
         catch { return; }
 
+        if (message.inputTranscription?.text) {
+          studentTranscriptRef.current = appendText(studentTranscriptRef.current, String(message.inputTranscription.text));
+          scheduleTranscriptFlush();
+        }
+        if (message.outputTranscription?.text) {
+          patientTranscriptRef.current = appendText(patientTranscriptRef.current, String(message.outputTranscription.text));
+          scheduleTranscriptFlush();
+        }
+
         if (message.setupComplete) {
           setupCompleteRef.current = true;
           startedAtRef.current = Date.now();
@@ -288,13 +318,6 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         const serverContent = message.serverContent as Record<string, any> | undefined;
         if (!serverContent) return;
         if (serverContent.interrupted) clearPlayback();
-
-        if (serverContent.inputTranscription?.text) {
-          studentTranscriptRef.current = appendText(studentTranscriptRef.current, String(serverContent.inputTranscription.text));
-        }
-        if (serverContent.outputTranscription?.text) {
-          patientTranscriptRef.current = appendText(patientTranscriptRef.current, String(serverContent.outputTranscription.text));
-        }
 
         const parts = Array.isArray(serverContent.modelTurn?.parts) ? serverContent.modelTurn.parts : [];
         for (const part of parts) {
@@ -322,8 +345,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         }
 
         if (serverContent.turnComplete) {
-          const completedTurns = takePendingTurns();
-          if (completedTurns.length) onTurns(completedTurns);
+          scheduleTranscriptFlush();
           setNotice("Connected · Listening for your next question");
         }
       };
@@ -334,6 +356,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
       socket.onclose = () => {
         if (endingRef.current) return;
+        clearTranscriptFlush();
         const completedTurns = takePendingTurns();
         if (completedTurns.length) onTurns(completedTurns);
         stopCall(false);
