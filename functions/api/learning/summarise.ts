@@ -421,6 +421,9 @@ export const onRequestGet = async (context: AppContext) => {
     }
     return json({ error: "The completed study guide could not be loaded. Please refresh your study library.", code: "STUDY_RESULT_NOT_FOUND" }, 500);
   }
+  if (job.status === "in_progress" && job.error_message === "FALLBACK_IN_PROGRESS") {
+    return json({ status: "processing", providerStatus: "fallback", retryAfterMs: 3000 });
+  }
   if (job.status === "failed") {
     return json({
       status: "failed",
@@ -451,14 +454,13 @@ export const onRequestGet = async (context: AppContext) => {
       }
       const detail = clean(data.error?.message || data.error?.status, 500);
       const safeDetail = detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 300);
-      const message = safeDetail
-        ? "Gemini could not retrieve the generated guide: " + safeDetail + ". Your uploaded material is safe."
-        : "The study service could not retrieve the generated guide. Your uploaded material is safe; please retry.";
       console.error("[ClerkMe] Gemini study job status request failed.", { status: response.status, detail: safeDetail });
-      await context.env.DB.prepare(
-        "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
-      ).bind(message, job.id, user.id).run();
-      return json({ status: "failed", error: message }, 502);
+      return recoverStudyJobWithGenerateContent(
+        context,
+        user.id,
+        job,
+        "Gemini interaction status retrieval failed with HTTP " + response.status + ": " + safeDetail
+      );
     }
 
     const providerStatus = clean(data.status, 40).toLowerCase();
@@ -519,12 +521,12 @@ export const onRequestGet = async (context: AppContext) => {
     if (/abort|timeout/i.test(detail)) {
       return json({ status: "processing", retryAfterMs: 5000 });
     }
-    const message = "ClerkMe could not retrieve the study guide just now. Your uploaded material is safe; please try again.";
-    await context.env.DB.prepare(
-      "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
-    ).bind(message, job.id, user.id).run().catch(() => undefined);
-    await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
-    return json({ status: "failed", error: message }, 502);
+    return recoverStudyJobWithGenerateContent(
+      context,
+      user.id,
+      job,
+      "Primary Gemini result retrieval or parsing failed: " + detail.slice(0, 350)
+    );
   }
 };
 
@@ -767,7 +769,7 @@ ${material.content_text}
           schema: SUMMARY_RESPONSE_SCHEMA
         },
         generation_config: {
-          max_output_tokens: 16000,
+          max_output_tokens: 24000,
           thinking_level: "low"
         }
       };
