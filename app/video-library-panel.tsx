@@ -290,7 +290,7 @@ export default function VideoLibraryPanel() {
                     <div className="video-library-card-body">
                       <h3>{video.title}</h3>
                       <p className="video-library-channel">{video.channelTitle}</p>
-                      <p className="video-library-meta">{[video.duration, compactNumber(video.viewCount) ? compactNumber(video.viewCount) + " views" : ""].filter(Boolean).join(" · ") || "YouTube lecture"}</p>
+                      <p className="video-library-meta">{[video.duration, compactNumber(video.viewCount) ? compactNumber(video.viewCount) + " views" : "", compactNumber(video.likeCount) ? compactNumber(video.likeCount) + " likes" : ""].filter(Boolean).join(" · ") || "YouTube lecture"}</p>
                       {video.description && <p className="video-library-description">{video.description}</p>}
                       <div className="video-library-card-actions">
                         <button type="button" className="video-library-play-button" onClick={() => setActiveVideo(video)}>Play in ClerkMe</button>
