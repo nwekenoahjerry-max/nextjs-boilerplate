@@ -3716,19 +3716,13 @@ body{background:var(--paper);color:var(--ink)}
 
 
 /* Inline Gemini health-check feedback */
-.materials-detail-actions .gemini-connection-button{
   border-color:#b7d1bf!important;background:#f5faf6!important;color:#236344!important;
 }
-.materials-detail-actions .gemini-connection-button:hover:not(:disabled){
   background:#eaf4ee!important;border-color:#80ad8d!important;
 }
-.gemini-connection-status{
   flex:1 0 100%;width:100%;margin:3px 0 0;padding:10px 12px;
   border:1px solid;border-radius:9px;font-size:12px!important;line-height:1.6!important;
 }
-.gemini-connection-status.success{border-color:#c9e2d0;background:#f1f8f3;color:#24623e}
-.gemini-connection-status.error{border-color:#efd3ce;background:#fff6f4;color:#984a3f}
-.gemini-connection-status:empty{display:none}
 .study-video-player-panel:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 .video-library-player:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 
