@@ -197,18 +197,18 @@ ${material.content_text}
       ? parsed.examFocus as Record<string, unknown>
       : {};
     const examFocus = {
-      mustKnow: asStrings(exam.mustKnow, 20, 600),
-      likelyShortNotes: asStrings(exam.likelyShortNotes, 16, 400),
+      mustKnow: asStrings(exam.mustKnow, 24, 900),
+      likelyShortNotes: asStrings(exam.likelyShortNotes, 20, 600),
       vivaQuestions: Array.isArray(exam.vivaQuestions) ? exam.vivaQuestions.slice(0, 16).map(value => {
         const item = value as Record<string, unknown>;
-        return { question: clean(item.question, 500), answer: clean(item.answer, 1200) };
+        return { question: clean(item.question, 500), answer: clean(item.answer, 2200) };
       }).filter(item => item.question && item.answer) : [],
-      clinicalApplications: asStrings(exam.clinicalApplications, 12, 600)
+      clinicalApplications: asStrings(exam.clinicalApplications, 16, 800)
     };
     const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
     const summary = {
-      overview: clean(parsed.overview, 2200),
-      highYieldPoints: asStrings(parsed.highYieldPoints, 24, 850),
+      overview: clean(parsed.overview, 3000),
+      highYieldPoints: asStrings(parsed.highYieldPoints, 32, 1400),
       visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
         const item = value as Record<string, unknown>;
         return {
@@ -219,23 +219,23 @@ ${material.content_text}
           visualPrompt: clean(item.visualPrompt, 1100)
         };
       }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
-      learningObjectives: asStrings(parsed.learningObjectives, 16, 500),
+      learningObjectives: asStrings(parsed.learningObjectives, 20, 700),
       sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
         const item = value as Record<string, unknown>;
-        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 8).map(value => {
+        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 10).map(value => {
           const subsection = value as Record<string, unknown>;
           return {
             heading: clean(subsection.heading, 180),
-            explanation: clean(subsection.explanation, 2600),
+            explanation: clean(subsection.explanation, 5200),
             keyPoints: asStrings(subsection.keyPoints, 12, 500)
           };
         }).filter(subsection => subsection.heading && subsection.explanation) : [];
         return {
           heading: clean(item.heading, 180),
-          summary: clean(item.summary, 3000),
+          summary: clean(item.summary, 4200),
           subsections,
-          clinicalRelevance: clean(item.clinicalRelevance, 2200),
-          highYieldPoints: asStrings(item.highYieldPoints, 18, 600),
+          clinicalRelevance: clean(item.clinicalRelevance, 3600),
+          highYieldPoints: asStrings(item.highYieldPoints, 20, 1000),
           sourceLocator: clean(item.sourceLocator, 160)
         };
       }).filter(item => item.heading && (item.summary || item.subsections.length)) : [],
@@ -254,8 +254,8 @@ ${material.content_text}
         const item = value as Record<string, unknown>;
         return {
           title: clean(item.title, 160),
-          steps: asStrings(item.steps, 10, 360),
-          takeaway: clean(item.takeaway, 600)
+          steps: asStrings(item.steps, 12, 500),
+          takeaway: clean(item.takeaway, 900)
         };
       }).filter(item => item.title && item.steps.length >= 2) : [],
       videoSuggestions: Array.isArray(parsed.videoSuggestions) ? parsed.videoSuggestions.slice(0, 6).map(value => {
@@ -267,14 +267,14 @@ ${material.content_text}
           channel: videoChannels.includes(suggestedChannel) ? suggestedChannel : "Osmosis"
         };
       }).filter(item => item.topic) : [],
-      memoryAids: asStrings(parsed.memoryAids, 12, 500),
-      commonPitfalls: asStrings(parsed.commonPitfalls, 20, 500),
+      memoryAids: asStrings(parsed.memoryAids, 16, 650),
+      commonPitfalls: asStrings(parsed.commonPitfalls, 24, 700),
       revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 30).map(value => {
         const item = value as Record<string, unknown>;
-        return { question: clean(item.question, 700), answer: clean(item.answer, 1400) };
+        return { question: clean(item.question, 1000), answer: clean(item.answer, 2400) };
       }).filter(item => item.question && item.answer) : [],
-      unclearOrMissing: asStrings(parsed.unclearOrMissing, 20, 500),
-      sourceCoverage: asStrings(parsed.sourceCoverage, 30, 300),
+      unclearOrMissing: asStrings(parsed.unclearOrMissing, 24, 700),
+      sourceCoverage: asStrings(parsed.sourceCoverage, 40, 450),
       disclaimer: clean(parsed.disclaimer, 700) || "These notes are based on the uploaded source. Check current local guidance where relevant."
     };
 
