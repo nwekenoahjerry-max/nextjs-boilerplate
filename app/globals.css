@@ -3788,3 +3788,12 @@ body{background:var(--paper);color:var(--ink)}
 .you-setting-action .install-app-trigger{padding:7px 9px;font-size:9px}
 @media(max-width:900px){.you-settings-actions{grid-template-columns:1fr}}
 @media(max-width:600px){.you-account-panel{flex-wrap:wrap;padding:15px}.you-account-details{min-width:calc(100% - 65px)}.you-profile-link{margin-left:60px}.you-setting-action{padding:10px}}
+
+/* Account controls live together in the You section */
+.sidebar-account-button{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.sidebar-account-button:hover{background:#f0f7f2}
+.you-action-label{display:inline-flex;align-items:center;flex:0 0 auto;padding:8px 11px;border:1px solid #dce9df;border-radius:8px;background:#f8fbf8;color:#176b5d;font-size:10px;font-weight:800;white-space:nowrap}
+.you-setting-action:hover .you-action-label{border-color:#bcd8c3;background:#edf5ef}
+.you-setting-action:disabled{opacity:.6;cursor:wait}
+.you-setting-action:focus-visible,.sidebar-account-button:focus-visible,.profile-top-link:focus-visible{outline:3px solid rgba(32,107,75,.2);outline-offset:3px}
+@media(max-width:600px){.you-action-label{padding:7px 9px;font-size:9px}}
