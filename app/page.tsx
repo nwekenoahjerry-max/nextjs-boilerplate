@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
