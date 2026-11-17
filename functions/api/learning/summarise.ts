@@ -104,7 +104,7 @@ async function requestGeminiGenerateContentFallback(
             generationConfig: {
               responseMimeType: "application/json",
               responseSchema: schema,
-              maxOutputTokens: 11000,
+              maxOutputTokens: 16000,
               thinkingConfig: { thinkingLevel: "LOW" }
             }
           }),
@@ -335,11 +335,15 @@ export const onRequestGet = async (context: AppContext) => {
         return json({ status: "processing", retryAfterMs: 5000 });
       }
       const detail = clean(data.error?.message || data.error?.status, 500);
-      console.error("[ClerkMe] Gemini study job status request failed.", { status: response.status, detail });
+      const safeDetail = detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 300);
+      const message = safeDetail
+        ? "Gemini could not retrieve the generated guide: " + safeDetail + ". Your uploaded material is safe."
+        : "The study service could not retrieve the generated guide. Your uploaded material is safe; please retry.";
+      console.error("[ClerkMe] Gemini study job status request failed.", { status: response.status, detail: safeDetail });
       await context.env.DB.prepare(
         "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
-      ).bind("The study service could not retrieve the generated guide. Please try again.", job.id, user.id).run();
-      return json({ status: "failed", error: "The study service could not retrieve the generated guide. Your uploaded material is safe; please try again." }, 502);
+      ).bind(message, job.id, user.id).run();
+      return json({ status: "failed", error: message }, 502);
     }
 
     const providerStatus = clean(data.status, 40).toLowerCase();
@@ -353,7 +357,12 @@ export const onRequestGet = async (context: AppContext) => {
         providerStatus,
         detail
       });
-      const message = "ClerkMe could not complete this study guide. Your uploaded material is safe; please try generating it again.";
+      const safeDetail = detail
+        ? detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 300)
+        : "";
+      const message = safeDetail
+        ? "Gemini could not finish this guide: " + safeDetail + ". Your uploaded material is safe; please retry once."
+        : "Gemini could not finish this study guide. Your uploaded material is safe; please retry once.";
       await context.env.DB.prepare(
         "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
       ).bind(message, job.id, user.id).run();
@@ -652,7 +661,7 @@ ${material.content_text}
           schema: SUMMARY_RESPONSE_SCHEMA
         },
         generation_config: {
-          max_output_tokens: 11000,
+          max_output_tokens: 16000,
           thinking_level: "low"
         }
       };
@@ -693,9 +702,14 @@ ${material.content_text}
               status: startResponse?.status ?? 0,
               providerMessage
             });
+            const safeProviderMessage = providerMessage
+              ? providerMessage.split(context.env.GEMINI_API_KEY as string).join("[redacted]").slice(0, 260)
+              : "";
             const message = startResponse?.status === 429
-              ? "ClerkMe’s study service is busy right now. Your uploaded material is safe; please try again shortly."
-              : "ClerkMe could not start your detailed study guide. Your uploaded material is safe; please try again.";
+              ? "Gemini is rate-limiting study-guide generation. Your uploaded material is safe; please try again shortly."
+              : safeProviderMessage
+                ? "Gemini could not start this study guide: " + safeProviderMessage + ". Your uploaded material is safe."
+                : "ClerkMe could not start your detailed study guide. Your uploaded material is safe; please try again.";
             await context.env.DB.prepare(
               "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
             ).bind(message, jobId, user.id).run();
