@@ -177,6 +177,16 @@ export default function MaterialsPanel() {
   const topHighYieldPoints = selectedMaterial?.summary?.highYieldPoints?.length
     ? selectedMaterial.summary.highYieldPoints
     : selectedMaterial?.summary?.examFocus?.mustKnow || [];
+  const recommendedVideoSuggestions = useMemo(() => {
+    const saved = selectedMaterial?.summary?.videoSuggestions || [];
+    if (saved.length) return saved;
+    if (!selectedMaterial) return [];
+    return [{
+      topic: selectedMaterial.title,
+      whyWatch: "Watch a focused overview of this lecture topic to reinforce the key concepts.",
+      channel: "Osmosis"
+    }];
+  }, [selectedMaterial]);
 
   const searchYouTube = async (query:string, playFirstResult=false) => {
     const cleanQuery=query.trim();
@@ -290,13 +300,13 @@ export default function MaterialsPanel() {
   useEffect(()=>{ setExpandedStudySections([0,1,2]); },[selectedId]);
   useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
   useEffect(()=>{
-    const recommendation = selectedMaterial?.summary?.videoSuggestions?.[0];
+    const recommendation = recommendedVideoSuggestions[0];
     if (!selectedId || !recommendation?.topic) return;
     const key = selectedId + ":" + recommendation.topic + ":" + recommendation.channel;
     if (autoRecommendedVideoKeyRef.current === key) return;
     autoRecommendedVideoKeyRef.current = key;
     void searchYouTube(recommendation.topic + " " + recommendation.channel + " medical lecture", false);
-  },[selectedId,selectedMaterial?.summary?.videoSuggestions]);
+  },[selectedId,recommendedVideoSuggestions]);
 
   useEffect(()=>{
     if (tab!=="source" || !selectedId || sourceTextByMaterial[selectedId]) return;
@@ -747,7 +757,7 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
-            {!!selectedMaterial.summary.videoSuggestions?.length&&<section className="study-summary-block study-video-resources">
+            {!!recommendedVideoSuggestions.length&&<section className="study-summary-block study-video-resources">
               <div className="study-video-heading"><div><div className="eyebrow">IN-APP VIDEO LEARNING</div><h3>Watch a related lecture</h3><p className="study-section-intro">Find a relevant video, select it and watch without leaving your ClerkMe study guide.</p></div><span className="study-video-app-badge">ClerkMe player</span></div>
 
               <form className="study-video-search-form" onSubmit={event=>{event.preventDefault();void searchYouTube(youtubeQuery);}}>
@@ -767,7 +777,7 @@ export default function MaterialsPanel() {
 
               {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Recommended YouTube videos</strong><span>{youtubeVideos.length} relevant results</span></div><div className="study-video-grid">{youtubeVideos.map((video,index)=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span>{index===0&&<em className="study-video-best-match">TOP RECOMMENDATION</em>}<strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
 
-              <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>{youtubeLoading&&youtubeQuery===video.topic+" "+video.channel+" medical lecture"?"Finding a playable lecture…":"▶ Play recommended video here"}</button></span></article>)}</div></div>
+              <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{recommendedVideoSuggestions.length}</span></div><div className="study-video-grid">{recommendedVideoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>{youtubeLoading&&youtubeQuery===video.topic+" "+video.channel+" medical lecture"?"Finding a playable lecture…":"▶ Play recommended video here"}</button></span></article>)}</div></div>
 
               {activeYoutubeVideo&&<div className="study-video-player-panel" ref={youtubePlayerRef} tabIndex={-1}>
                 <div className="study-video-player-heading"><div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeYoutubeVideo.title}</strong><small>{activeYoutubeVideo.channelTitle}</small></div><button type="button" onClick={()=>setActiveYoutubeVideo(null)} aria-label="Close video player">Close player ×</button></div>
