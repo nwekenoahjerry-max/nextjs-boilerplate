@@ -190,12 +190,12 @@ export default function MaterialsPanel() {
     if(/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
     try {
       const url=new URL(input);
-      const host=url.hostname.toLowerCase().replace(/^www\\./,"");
+      const host=url.hostname.toLowerCase().replace(/^www\./,"");
       let id="";
       if(host==="youtu.be") id=url.pathname.split("/").filter(Boolean)[0]||"";
       else if(["youtube.com","m.youtube.com","music.youtube.com","youtube-nocookie.com"].includes(host)) {
         if(url.pathname==="/watch") id=url.searchParams.get("v")||"";
-        else id=url.pathname.match(/^\\/(?:embed|shorts|live)\\/([A-Za-z0-9_-]{11})/)?.[1]||"";
+        else id=url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/)?.[1]||"";
       }
       return /^[A-Za-z0-9_-]{11}$/.test(id)?id:null;
     } catch { return null; }
