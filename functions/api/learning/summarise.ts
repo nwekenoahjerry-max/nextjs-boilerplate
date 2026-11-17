@@ -1,8 +1,8 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const GEMINI_MODEL = "gemini-3.8-flash";
-const GEMINI_FALLBACK_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_TRANSIENT_STATUSES = new Set([500, 502, 503, 504]);
 
 type GeminiResponseData = {
@@ -16,7 +16,7 @@ async function requestGeminiWithRetry(
   apiKey: string,
   model: string,
   payload: Record<string, unknown>,
-  attempts = 2
+  attempts = 1
 ): Promise<{ response: Response; data: GeminiResponseData }> {
   for (let attempt = 0; attempt < attempts; attempt++) {
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -28,7 +28,7 @@ async function requestGeminiWithRetry(
         "x-goog-api-key": apiKey
       },
       body: JSON.stringify({ ...payload, model }),
-      signal: AbortSignal.timeout(110000)
+      signal: AbortSignal.timeout(60000)
     });
     const data = await response.json().catch(() => ({})) as GeminiResponseData;
     if (response.ok || !GEMINI_TRANSIENT_STATUSES.has(response.status) || attempt === attempts - 1) {
@@ -83,7 +83,7 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  if (!context.env.GEMINI_API_KEY && !context.env.AI) return json({ error: "The study AI is not connected. Configure GEMINI_API_KEY in Cloudflare or enable the Workers AI binding." }, 503);
+  if (!context.env.GEMINI_API_KEY && !context.env.AI) return json({ error: "ClerkMe’s study service is temporarily unavailable. Your uploaded material is safe; please try again shortly.", code: "STUDY_SERVICE_UNAVAILABLE", retryable: true }, 503);
 
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; }
@@ -188,8 +188,8 @@ ${material.content_text}
           schema: SUMMARY_RESPONSE_SCHEMA
         },
         generation_config: {
-          max_output_tokens: 14000,
-          thinking_level: "medium"
+          max_output_tokens: 11000,
+          thinking_level: "low"
         }
       };
 
@@ -205,28 +205,21 @@ ${material.content_text}
       const geminiData = geminiResult.data;
       if (!geminiResponse.ok) {
         const providerMessage = clean(geminiData.error?.message || geminiData.error?.status, 700);
+        console.error("[ClerkMe] Study generation provider returned an error.", {
+          status: geminiResponse.status,
+          model: activeModel,
+          providerMessage
+        });
         if (geminiResponse.status === 429) {
-          return json({ error: "Gemini's current API quota or rate limit has been reached. Your uploaded material is safe. Check Google AI Studio → Usage and try again when the limit resets.", code: "GEMINI_RATE_LIMIT" }, 429);
-        }
-        if (geminiResponse.status === 401 || geminiResponse.status === 403) {
-          return json({ error: "Gemini rejected the configured API key or its permissions. In Google AI Studio, confirm that this key belongs to the intended project and that it is restricted to the Generative Language API. " + providerMessage, code: "GEMINI_API_KEY_OR_PERMISSION_ERROR" }, 502);
-        }
-        if (geminiResponse.status === 400) {
-          return json({ error: "Google rejected the Gemini summary request. This is a request/model/schema error, not a problem with your uploaded file. " + providerMessage, code: "GEMINI_REQUEST_REJECTED" }, 502);
+          return json({ error: "ClerkMe’s study service is busy right now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_SERVICE_BUSY", retryable: true }, 429);
         }
         if (GEMINI_TRANSIENT_STATUSES.has(geminiResponse.status)) {
-          console.error("[ClerkMe] Both Gemini models were unavailable after retries.", {
-            primaryModel: GEMINI_MODEL,
-            fallbackModel: GEMINI_FALLBACK_MODEL,
-            status: geminiResponse.status,
-            providerMessage
-          });
-          return json({ error: "Google's Gemini service is temporarily overloaded. ClerkMe retried the request and tried a second Gemini model, but Google could not complete it yet. Your uploaded material is safe. Please try again shortly.", code: "GEMINI_PROVIDER_UNAVAILABLE", retryable: true }, 502);
+          return json({ error: "ClerkMe couldn’t finish building this study guide just now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_GENERATION_TEMPORARILY_UNAVAILABLE", retryable: true }, 502);
         }
-        return json({ error: "Gemini request failed (" + geminiResponse.status + "). " + providerMessage, code: "GEMINI_REQUEST_FAILED" }, 502);
+        return json({ error: "ClerkMe couldn’t prepare this study guide right now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_GENERATION_FAILED", retryable: false }, 502);
       }
       if (geminiData.status === "incomplete" || geminiData.status === "budget_exceeded") {
-        return json({ error: "Gemini reached its output or thinking budget before completing the study guide. Try a shorter source document or split a long lecture into sections.", code: "GEMINI_OUTPUT_INCOMPLETE" }, 502);
+        return json({ error: "This lecture is too extensive to finish in one pass. Your material is safe; try splitting it into smaller sections and generating the guide again.", code: "STUDY_OUTPUT_INCOMPLETE" }, 502);
       }
       const stepTexts = (geminiData.steps || [])
         .filter(step => step.type === "model_output")
@@ -237,9 +230,9 @@ ${material.content_text}
       const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim();
       if (!outputText) {
         const state = clean(geminiData.status, 80) || "unknown";
-        throw new Error("Gemini returned no text output (provider status: " + state + "). The request may have been blocked or stopped before a response was produced.");
+        throw new Error("The study service returned no completed text output (status: " + state + ").");
       }
-      console.info("[ClerkMe] Study guide generated with Gemini model:", activeModel);
+      console.info("[ClerkMe] Study guide generation completed.", { model: activeModel });
       result = { response: outputText };
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
@@ -248,7 +241,7 @@ ${material.content_text}
         max_tokens: 9600
       });
     } else {
-      return json({ error: "No AI provider is configured for study summaries." }, 503);
+      return json({ error: "ClerkMe’s study service is not available right now. Your uploaded material is safe; please try again shortly.", code: "STUDY_SERVICE_UNAVAILABLE", retryable: true }, 503);
     }
 
     const parsed = parseAIResult(result);
@@ -352,15 +345,16 @@ ${material.content_text}
     return json({ materialId: material.id, summary });
   } catch (error) {
     if (context.env.GEMINI_API_KEY) {
-      const detail = error instanceof Error ? error.message : "Unknown Gemini integration error.";
+      const detail = error instanceof Error ? error.message : "Unknown study-generation error.";
       const safeDetail = detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 700);
-      console.error("[ClerkMe] Gemini summary failure:", safeDetail);
+      console.error("[ClerkMe] Study guide generation failed:", safeDetail);
       const timedOut = /abort|timeout/i.test(detail);
       return json({
         error: timedOut
-          ? "Gemini took too long to finish generating this detailed guide. Your uploaded material is safe. Try again or split a very long lecture into smaller documents."
-          : safeDetail || "Gemini could not generate the study guide. Your uploaded material is safe; please retry.",
-        code: timedOut ? "GEMINI_TIMEOUT" : "GEMINI_SUMMARY_FAILED"
+          ? "Your study guide is taking longer than expected. Your uploaded material is safe. Please try again, or split a very long lecture into smaller sections."
+          : "ClerkMe couldn’t complete your study guide right now. Your uploaded material is safe. Please try again shortly.",
+        code: timedOut ? "STUDY_GENERATION_TIMEOUT" : "STUDY_GENERATION_FAILED",
+        retryable: true
       }, 502);
     }
     return aiFailureResponse(error, "Could not prepare High-Yield Points right now. Your uploaded material is still saved; please try again later.");
