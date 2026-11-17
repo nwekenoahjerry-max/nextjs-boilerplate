@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 import { extractStudyFile } from "../lib/file-text";
 
@@ -133,11 +133,22 @@ export default function MaterialsPanel() {
   const [youtubeLoading,setYoutubeLoading] = useState(false);
   const [youtubeError,setYoutubeError] = useState("");
   const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
+  const youtubePlayerRef = useRef<HTMLDivElement>(null);
+  const [geminiChecking,setGeminiChecking] = useState(false);
+  const [geminiCheckMessage,setGeminiCheckMessage] = useState<{kind:"success"|"error";message:string}|null>(null);
   const [youtubeLink,setYoutubeLink] = useState("");
   const [videoSaving,setVideoSaving] = useState(false);
   const [savedYoutubeVideoIds,setSavedYoutubeVideoIds] = useState<string[]>([]);
   const [videoSaveNotice,setVideoSaveNotice] = useState("");
   const [videoSaveError,setVideoSaveError] = useState("");
+
+  useEffect(() => {
+    if (!activeYoutubeVideo) return;
+    const frame = window.requestAnimationFrame(() => {
+      youtubePlayerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeYoutubeVideo?.id]);
 
   const visibleMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
@@ -453,6 +464,31 @@ export default function MaterialsPanel() {
     }
   };
 
+  const checkGeminiConnection = async () => {
+    setGeminiChecking(true);
+    setGeminiCheckMessage(null);
+    try {
+      const response = await fetch("/api/learning/gemini-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({})
+      });
+      const data = await readResponse(response);
+      setGeminiCheckMessage({
+        kind: "success",
+        message: (data.message || "Gemini is responding.") + " Model: " + (data.model || "Gemini Flash") + "."
+      });
+    } catch (error) {
+      setGeminiCheckMessage({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Could not verify the Gemini connection."
+      });
+    } finally {
+      setGeminiChecking(false);
+    }
+  };
+
   const summarise = async (materialId:string) => {
     setWorking(true); setError(""); setNotice("Building detailed High-Yield Points from your uploaded source…");
     try {
@@ -633,6 +669,8 @@ export default function MaterialsPanel() {
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
             <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
+            <button type="button" className="secondary-button gemini-connection-button" onClick={()=>void checkGeminiConnection()} disabled={geminiChecking||working||liveInProgress}>{geminiChecking?"Checking Gemini…":"Test Gemini connection"}</button>
+            {geminiCheckMessage&&<p className={geminiCheckMessage.kind==="success"?"gemini-connection-status success":"gemini-connection-status error"} role={geminiCheckMessage.kind==="success"?"status":"alert"}>{geminiCheckMessage.message}</p>}
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -750,7 +788,7 @@ export default function MaterialsPanel() {
 
               <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{selectedMaterial.summary.videoSuggestions.length}</span></div><div className="study-video-grid">{selectedMaterial.summary.videoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>{youtubeLoading&&youtubeQuery===video.topic+" "+video.channel+" medical lecture"?"Finding a playable lecture…":"▶ Play recommended video here"}</button></span></article>)}</div></div>
 
-              {activeYoutubeVideo&&<div className="study-video-player-panel">
+              {activeYoutubeVideo&&<div className="study-video-player-panel" ref={youtubePlayerRef} tabIndex={-1}>
                 <div className="study-video-player-heading"><div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeYoutubeVideo.title}</strong><small>{activeYoutubeVideo.channelTitle}</small></div><button type="button" onClick={()=>setActiveYoutubeVideo(null)} aria-label="Close video player">Close player ×</button></div>
                 <div className="study-video-player-frame"><iframe src={"https://www.youtube-nocookie.com/embed/"+activeYoutubeVideo.id+"?rel=0&playsinline=1"} title={activeYoutubeVideo.title+" — YouTube video player"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen loading="lazy"/></div>
                 <p className="study-video-player-note">Video playback is provided by YouTube. Some videos may still be unavailable here because of age restrictions or the uploader’s embedding settings.</p>
