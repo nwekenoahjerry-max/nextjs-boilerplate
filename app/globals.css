@@ -2937,6 +2937,12 @@ button{font-size:15px}
 .materials-tabs button{display:inline-flex;align-items:center;gap:8px}
 .materials-tab-count{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#edf3ee;color:#315c42;font-size:10px;font-weight:850}
 .materials-tabs button.active .materials-tab-count{background:#ddd5f8;color:#573bad}
+
+.study-quick-preview-banner{display:flex;align-items:flex-start;gap:10px;margin:12px 0;padding:13px 15px;border:1px solid #eadfbd;border-radius:11px;background:#fffaf0;color:#725d2d}
+.study-quick-preview-banner strong{display:block;font:800 12px Manrope,Arial,sans-serif;color:#6b5728}
+.study-quick-preview-banner p{margin:4px 0 0;color:#7e704e;font-size:12px;line-height:1.6}
+.study-quick-preview-banner .study-preview-dot{flex:0 0 8px;width:8px;height:8px;margin-top:4px;border-radius:50%;background:#d2a54b;box-shadow:0 0 0 4px #f8edcf}
+@media(max-width:640px){.study-quick-preview-banner{padding:12px}}
 .study-guide-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:16px 0;padding:17px 19px;border:1px solid #e3e9e3;border-radius:13px;background:linear-gradient(120deg,#f7faf7,#fbfaff)}
 .study-guide-toolbar>div:first-child{min-width:0}
 .study-guide-toolbar .eyebrow{color:#52745f}
