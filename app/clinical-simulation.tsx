@@ -583,7 +583,7 @@ export default function ClinicalSimulation() {
 
           <div className="simulation-session-footer">
             <span>Fictional educational case · Do not enter identifiable real patient information</span>
-            <div className="simulation-footer-actions"><button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button><button className="text-link" type="button" onClick={requestReview} disabled={loading || liveCallActive || conversation.length < 2 || Boolean(review)}>
+            <div className="simulation-footer-actions"><button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button><button className="text-link" type="button" onClick={()=>void requestReview()} disabled={loading || liveCallActive || conversation.length < 2 || Boolean(review)}>
               {loadingMode === "review" ? "Reviewing your history…" : review ? "Review complete" : "Review my history"} <span>→</span>
             </button></div>
           </div>
