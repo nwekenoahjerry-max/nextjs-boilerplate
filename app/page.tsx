@@ -343,7 +343,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button ref={signOutTriggerRef} type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>You</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
 {active === "overview" && <>
             <div className="welcome-row dashboard-welcome">
@@ -403,67 +403,45 @@ export default function Home() {
 
           {active === "you" && <>
             <div className="page-intro">
-              <div className="eyebrow">YOUR CLERKME WORKSPACE</div>
+              <div className="eyebrow">ACCOUNT SETTINGS</div>
               <h1>You</h1>
-              <p>Your clinical work, study tools, saved learning and account settings in one place.</p>
+              <p>Manage your ClerkME profile, app access and account security.</p>
             </div>
 
             <section className="panel you-account-panel">
               <div className="you-account-avatar">{authUser?.name?.[0] || "C"}</div>
               <div className="you-account-details">
-                <span className="eyebrow">YOUR ACCOUNT</span>
+                <span className="eyebrow">SIGNED IN AS</span>
                 <strong>{authUser?.name || "Medical student"}</strong>
                 <small>{authUser?.email || "Your ClerkME account"}</small>
               </div>
-              <a className="you-profile-link" href="/profile">Manage student profile <span>↗</span></a>
             </section>
-
-            <div className="section-heading you-tools-heading">
-              <div><h2>Your tools and activities</h2><p>Open any part of ClerkME from your personal workspace.</p></div>
-            </div>
-            <div className="tool-grid you-tool-grid">
-              <button type="button" className="tool-card" onClick={() => startClerking()}>
-                <span className="tool-icon mint">＋</span><span className="tool-title">New clinical clerking</span><span className="tool-desc">Start a structured patient history using specialty-specific templates.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("patients")}>
-                <span className="tool-icon blue">▤</span><span className="tool-title">My cases</span><span className="tool-desc">Open your saved clinical learning cases and clerking records.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("materials")}>
-                <span className="tool-icon blue">▧</span><span className="tool-title">My study materials</span><span className="tool-desc">Upload lectures and build structured, detailed revision guides.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("videos")}>
-                <span className="tool-icon lilac">▶</span><span className="tool-title">Video library</span><span className="tool-desc">Find teaching videos and organise your saved lessons.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("guides")}>
-                <span className="tool-icon mint">✚</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Review specialty-based approaches, examination steps and red flags.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("osce")}>
-                <span className="tool-icon sand">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Practise clinical stations and examiner-style oral questions.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("simulation")}>
-                <span className="tool-icon lilac">◈</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Practise fictional patient encounters and clinical reasoning.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("qbank")}>
-                <span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Test your knowledge with topic-based clinical questions.</span>
-              </button>
-              <button type="button" className="tool-card" onClick={() => selectSection("game")}>
-                <span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Make revision interactive with timed, question-led practice.</span>
-              </button>
-            </div>
 
             <section className="panel you-settings-panel">
               <div className="panel-heading">
-                <div><h3>Account and settings</h3><p>Manage your profile, access and session.</p></div>
+                <div><h3>Account and settings</h3><p>Personal details, app access and sign-in security.</p></div>
               </div>
               <div className="you-settings-actions">
-                <a className="you-setting-action" href="/profile"><span className="template-icon">⚙</span><span><strong>Student profile</strong><small>Update your name, university, level and career interests.</small></span><b>↗</b></a>
-                <div className="you-setting-action"><span className="template-icon">▣</span><span><strong>Install ClerkME</strong><small>Add the app to your device for quicker access.</small></span><InstallAppButton/></div>
-                <button type="button" className="you-setting-action" onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}><span className="template-icon">↪</span><span><strong>Sign out</strong><small>Securely end your current ClerkME session.</small></span><b>→</b></button>
+                <a className="you-setting-action" href="/profile">
+                  <span className="template-icon">⚙</span>
+                  <span><strong>Student profile</strong><small>Update your name, university, level, location and career interests.</small></span>
+                  <span className="you-action-label">Edit profile</span>
+                </a>
+                <div className="you-setting-action">
+                  <span className="template-icon">▣</span>
+                  <span><strong>Install ClerkME</strong><small>Add the app to your device for quicker access to your workspace.</small></span>
+                  <InstallAppButton/>
+                </div>
+                <button ref={signOutTriggerRef} type="button" className="you-setting-action" disabled={signingOut} onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>
+                  <span className="template-icon">⏻</span>
+                  <span><strong>Sign out</strong><small>Securely end your current ClerkME session on this device.</small></span>
+                  <span className="you-action-label">Sign out</span>
+                </button>
               </div>
             </section>
           </>}
-
-                    {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
+          
+{active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
             {selectedTemplateFramework && <div className="selected-template-context"><strong>{selectedTemplateFramework.title} focus</strong><p>{selectedTemplateFramework.overview}</p><div><span>Specialty-specific sections</span><ul>{selectedTemplateFramework.unitSections.map(section => <li key={section.title}>{section.title}</li>)}</ul></div></div>}
             <div className="clerking-note-panel"><div className="clerking-note-heading"><div><span className="eyebrow">CLERKING NOTE ORGANISER</span><h3>Organise rough notes into a clear clinical history</h3><p>Upload a document or paste your notes. ClerkMe will arrange the information you provide and identify details that still need to be checked.</p></div><span className="upload-icon">✎</span></div>
               <label className="slide-file-picker"><span>⇧</span><span><strong>Upload existing clerking notes</strong><small>DOCX, PDF, TXT or Markdown · remove names and hospital identifiers first</small></span><input type="file" accept=".docx,.pdf,.txt,.md" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setOrganiseError("");try{const extracted=await extractStudyFile(file);setRawClerkingNotes(extracted.text);}catch(err){setOrganiseError(err instanceof Error?err.message:"Could not read that file.");}}}/></label>
@@ -514,7 +492,7 @@ export default function Home() {
             aria-labelledby="signout-confirm-title"
             aria-describedby="signout-confirm-description"
           >
-            <div className="signout-confirm-icon" aria-hidden="true">↪</div>
+            <div className="signout-confirm-icon" aria-hidden="true">⏻</div>
             <span className="eyebrow">ACCOUNT</span>
             <h2 id="signout-confirm-title">Do you want to sign out?</h2>
             <p id="signout-confirm-description">You will need to sign in again to access your ClerkME workspace and saved learning materials.</p>
