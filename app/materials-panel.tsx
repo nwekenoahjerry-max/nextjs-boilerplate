@@ -56,6 +56,7 @@ type StudyMaterial = {
   questions:MaterialQuestion[];
   createdAt:number;
   updatedAt:number;
+  contentText:string;
 };
 type TutorAnswer = {
   answer:string;
@@ -87,6 +88,7 @@ const illustrationSessionKey = (materialId:string) => "clerkme:illustrations:"+m
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [unit,setUnit] = useState("general-medicine");
+  const [libraryUnit,setLibraryUnit] = useState("all");
   const [category,setCategory] = useState("Lecture notes");
   const [title,setTitle] = useState("");
   const [file,setFile] = useState<File|null>(null);
@@ -119,7 +121,14 @@ export default function MaterialsPanel() {
   const [illustrationErrors,setIllustrationErrors] = useState<Record<string,string>>({});
   const [expandedStudySections,setExpandedStudySections] = useState<number[]>([]);
 
+  const visibleMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
+  const selectLibraryUnit = (nextUnit:string) => {
+    setLibraryUnit(nextUnit);
+    const nextMaterials = nextUnit==="all"?materials:materials.filter(item=>item.unit===nextUnit);
+    setSelectedId(nextMaterials[0]?.id || "");
+    setAnswer(null); setTab("summary"); setQuestionIndex(0); setQuestionAnswers({}); setQuizFinished(false); setQuizMode("practice"); setLiveDeadline(null); setLiveStartedAt(null); setLiveElapsedSeconds(0); setLiveTimedOut(false); setError("");
+  };
   const activeQuestions = selectedMaterial?.questions || [];
   const activeQuestionCount = activeQuestions.length;
   const answeredCount = Object.keys(questionAnswers).length;
@@ -369,6 +378,7 @@ export default function MaterialsPanel() {
       const material = data.material as StudyMaterial;
       setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
+      setLibraryUnit(unit);
       setTitle(""); setFile(null);
       setNotice("Material uploaded and saved to your private library. Preparing its High-Yield Points…");
       await summarise(material.id);
@@ -483,12 +493,18 @@ export default function MaterialsPanel() {
 
         <section className="materials-library-card">
           <div className="materials-library-heading">
-            <div><div className="eyebrow">YOUR RESOURCES</div><h2>Study library <span>{materials.length}</span></h2></div>
+            <div><div className="eyebrow">YOUR RESOURCES</div><h2>Study library <span>{visibleMaterials.length}</span></h2></div>
             <button className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
+          <label className="materials-unit-filter">Show notes for
+            <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress}>
+              <option value="all">All clinical units</option>
+              {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </label>
           {materials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No study materials yet</strong><p>Upload your first lecture or revision document. It will appear here after it has been saved.</p></div> :
             <div className="materials-list">
-              {materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
+              {visibleMaterials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No notes in this unit yet</strong><p>Upload a lecture or study document and select this clinical unit. Its notes and study guide will appear here.</p></div> : visibleMaterials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
                 <button className="materials-select" disabled={liveInProgress} onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
                   <span className="materials-file-badge">▤</span>
                   <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
@@ -524,9 +540,12 @@ export default function MaterialsPanel() {
         </div>
         <div className="materials-tabs">
           <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>High-Yield Points</button>
+          <button className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Source material</button>
           <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length||0}</span></button>
           <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
+
+        {tab==="source" && <section className="materials-source-viewer"><div className="eyebrow">EXTRACTED FROM YOUR UPLOAD</div><h3>{selectedMaterial.sourceName}</h3><p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {selectedMaterial.contentText?.length?.toLocaleString("en-GB") || 0} characters extracted</p>{selectedMaterial.contentText ? <pre>{selectedMaterial.contentText}</pre> : <div className="materials-empty"><strong>Source text is unavailable</strong><p>Refresh your study library. If this material was uploaded before source viewing was added, upload it again to make its extracted text available.</p></div>}</section>}
 
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary">
