@@ -114,7 +114,7 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
   }
   // Preserve extracted wording and line breaks. Do not silently rewrite whitespace
   // or discard the end of the lecture before it reaches the private study library.
-  text=text.replace(/\\u0000/g," ");
+  text=text.replace(/\x00/g," ");
   if(text.trim().length<100) throw new Error("Very little selectable text was found. This may be a scanned/image-only slide deck. Upload a text-based file or paste the slide text.");
   if(text.length>MAX_EXTRACTED_CHARS) throw new Error("This document contains more than 120,000 extracted characters. Split it into smaller files so ClerkMe can preserve and analyse the complete source.");
   return {name,text};
