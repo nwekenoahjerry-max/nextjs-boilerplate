@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 
 type Video = {
@@ -89,7 +89,7 @@ export default function VideoLibraryPanel() {
 
   useEffect(() => { void loadSavedVideos(); }, []);
 
-  const searchVideos = async (event?: React.FormEvent) => {
+  const searchVideos = async (event?: FormEvent) => {
     event?.preventDefault();
     const cleanQuery = query.trim();
     if (cleanQuery.length < 2) {
