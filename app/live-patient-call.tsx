@@ -285,12 +285,15 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         try { message = JSON.parse(event.data) as Record<string, any>; }
         catch { return; }
 
-        if (message.inputTranscription?.text) {
-          studentTranscriptRef.current = appendText(studentTranscriptRef.current, String(message.inputTranscription.text));
+        const serverContent = message.serverContent as Record<string, any> | undefined;
+        const inputTranscript = message.inputTranscription?.text ?? serverContent?.inputTranscription?.text;
+        const outputTranscript = message.outputTranscription?.text ?? serverContent?.outputTranscription?.text;
+        if (inputTranscript) {
+          studentTranscriptRef.current = appendText(studentTranscriptRef.current, String(inputTranscript));
           scheduleTranscriptFlush();
         }
-        if (message.outputTranscription?.text) {
-          patientTranscriptRef.current = appendText(patientTranscriptRef.current, String(message.outputTranscription.text));
+        if (outputTranscript) {
+          patientTranscriptRef.current = appendText(patientTranscriptRef.current, String(outputTranscript));
           scheduleTranscriptFlush();
         }
 
@@ -315,7 +318,6 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
           setNotice("The call is approaching its connection limit. Finish your current question, then end the call to review your transcript.");
         }
 
-        const serverContent = message.serverContent as Record<string, any> | undefined;
         if (!serverContent) return;
         if (serverContent.interrupted) clearPlayback();
 
