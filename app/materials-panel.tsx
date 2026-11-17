@@ -97,7 +97,7 @@ export default function MaterialsPanel() {
   const [working,setWorking] = useState(false);
   const [error,setError] = useState("");
   const [notice,setNotice] = useState("");
-  const [tab,setTab] = useState<"summary"|"questions"|"ask">("summary");
+  const [tab,setTab] = useState<"summary"|"source"|"questions"|"ask">("summary");
   const [questionIndex,setQuestionIndex] = useState(0);
   const [questionAnswers,setQuestionAnswers] = useState<Record<number,number>>({});
   const [quizFinished,setQuizFinished] = useState(false);
