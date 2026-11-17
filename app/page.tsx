@@ -355,10 +355,10 @@ export default function Home() {
               </div>
               <div className="dashboard-hero-path" aria-label="Your learning cycle">
                 <div className="dashboard-path-heading"><span>YOUR LEARNING CYCLE</span><b>01—04</b></div>
-                <div className="dashboard-path-step"><span>01</span><div><strong>Prepare</strong><small>Review a guide or lecture</small></div><i>↗</i></div>
-                <div className="dashboard-path-step"><span>02</span><div><strong>Practise</strong><small>Clerking, OSCE and viva</small></div><i>↗</i></div>
-                <div className="dashboard-path-step"><span>03</span><div><strong>Test yourself</strong><small>Questions and simulation</small></div><i>↗</i></div>
-                <div className="dashboard-path-step"><span>04</span><div><strong>Reflect</strong><small>Review and improve</small></div><i>✓</i></div>
+                <button type="button" className="dashboard-path-step" onClick={() => selectSection("materials")}><span>01</span><div><strong>Prepare</strong><small>Review a guide or lecture</small></div></button>
+                <button type="button" className="dashboard-path-step" onClick={() => selectSection("clerking")}><span>02</span><div><strong>Practise</strong><small>Clerking, OSCE and viva</small></div></button>
+                <button type="button" className="dashboard-path-step" onClick={() => selectSection("qbank")}><span>03</span><div><strong>Test yourself</strong><small>Questions and simulation</small></div></button>
+                <button type="button" className="dashboard-path-step" onClick={() => selectSection("simulation")}><span>04</span><div><strong>Reflect</strong><small>Review and improve</small></div></button>
               </div>
             </section>
 
@@ -390,28 +390,28 @@ export default function Home() {
             </div>
             <div className="tool-grid dashboard-tool-grid">
               <button type="button" className="tool-card" onClick={() => startClerking()}>
-                <span className="tool-icon mint">＋</span><span className="tool-title">Clinical clerking</span><span className="tool-desc">Take a complete, organised patient history with specialty-specific templates.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon mint">＋</span><span className="tool-title">Clinical clerking</span><span className="tool-desc">Take a complete, organised patient history with specialty-specific templates.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("materials")}>
-                <span className="tool-icon blue">▧</span><span className="tool-title">My study materials</span><span className="tool-desc">Upload lectures, build detailed notes and ask questions from your source.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon blue">▧</span><span className="tool-title">My study materials</span><span className="tool-desc">Upload lectures, build detailed notes and ask questions from your source.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("videos")}>
-                <span className="tool-icon lilac">▶</span><span className="tool-title">Video library</span><span className="tool-desc">Find useful lectures and organise videos into your own collections.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon lilac">▶</span><span className="tool-title">Video library</span><span className="tool-desc">Find useful lectures and organise videos into your own collections.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("osce")}>
-                <span className="tool-icon sand">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Prepare for practical stations and focused oral examinations.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon sand">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Prepare for practical stations and focused oral examinations.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("qbank")}>
-                <span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Use active recall with clinical questions organised by topic and difficulty.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Use active recall with clinical questions organised by topic and difficulty.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("simulation")}>
-                <span className="tool-icon lilac">◈</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Work through fictional patient encounters and review your reasoning.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon lilac">◈</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Work through fictional patient encounters and review your reasoning.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("guides")}>
-                <span className="tool-icon mint">✚</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh assessment steps, red flags and specialty-based questions.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon mint">✚</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh assessment steps, red flags and specialty-based questions.</span>
               </button>
               <button type="button" className="tool-card" onClick={() => selectSection("game")}>
-                <span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Make revision interactive with timed, question-led practice.</span><span className="tool-arrow">↗</span>
+                <span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Make revision interactive with timed, question-led practice.</span>
               </button>
             </div>
             <div className="lower-grid dashboard-lower-grid">
