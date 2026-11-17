@@ -350,7 +350,7 @@ ${material.content_text}
     const outputText = (fallback.data.steps || [])
       .filter(step => step.type === "model_output")
       .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""))
-      .join("\\n").trim() || clean(fallback.data.output_text, 120000);
+      .join("\n").trim() || clean(fallback.data.output_text, 120000);
 
     if (!fallback.response.ok || fallback.data.status !== "completed" || !outputText) {
       const providerDetail = clean(fallback.data.error?.message || fallback.data.error?.status, 500);
