@@ -3691,3 +3691,25 @@ body{background:var(--paper);color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Interactive dashboard surfaces: no decorative arrows, the whole card is the action */
+.dashboard-path-step{
+  width:100%;min-width:0;border:0;border-top:1px solid rgba(255,255,255,.12);
+  background:transparent;color:inherit;text-align:left;font:inherit;
+  cursor:pointer;border-radius:9px;
+  transition:background .16s ease,transform .16s ease;
+}
+.dashboard-path-step:hover{background:rgba(255,255,255,.105);transform:translateX(2px)}
+.dashboard-path-step:active{transform:translateX(1px)}
+.dashboard-path-step:focus-visible{
+  outline:3px solid rgba(247,213,139,.8)!important;outline-offset:2px!important;
+  background:rgba(255,255,255,.12);
+}
+.dashboard-path-step>div{pointer-events:none}
+.dashboard-tool-grid .tool-card{cursor:pointer}
+.dashboard-tool-grid .tool-card:active{transform:translateY(-1px)!important}
+.dashboard-tool-grid .tool-card:focus-visible{
+  outline:3px solid rgba(231,179,79,.72)!important;outline-offset:3px!important;
+}
+.dashboard-tool-grid .tool-arrow{display:none!important}
