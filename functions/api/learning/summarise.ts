@@ -57,6 +57,7 @@ const SUMMARY_RESPONSE_SCHEMA = {
     examFocus: { type: "object", properties: { mustKnow: { type: "array", items: { type: "string" } }, likelyShortNotes: { type: "array", items: { type: "string" } }, vivaQuestions: { type: "array", items: { type: "object", properties: { question: { type: "string" }, answer: { type: "string" } } } }, clinicalApplications: { type: "array", items: { type: "string" } } } },
     flowcharts: { type: "array", items: { type: "object", properties: { title: { type: "string" }, steps: { type: "array", items: { type: "string" } }, takeaway: { type: "string" } } } },
     videoSuggestions: { type: "array", items: { type: "object", properties: { topic: { type: "string" }, whyWatch: { type: "string" }, channel: { type: "string" } } } },
+    mnemonics: { type: "array", items: { type: "object", properties: { title: { type: "string" }, mnemonic: { type: "string" }, expansion: { type: "array", items: { type: "string" } }, whyItWorks: { type: "string" }, caution: { type: "string" } } } },
     memoryAids: { type: "array", items: { type: "string" } },
     commonPitfalls: { type: "array", items: { type: "string" } },
     revisionQuestions: { type: "array", items: { type: "object", properties: { question: { type: "string" }, answer: { type: "string" } } } },
@@ -143,7 +144,8 @@ Return a JSON object with this exact shape:
   },
   "flowcharts": [{"title":"A natural sequence, mechanism or decision pathway","steps":["Step 1","Step 2","Step 3"],"takeaway":"The main relationship or caution to remember."}],
   "videoSuggestions": [{"topic":"A major topic from this document","whyWatch":"What the student should focus on while watching","channel":"Osmosis, Zero to Finals or Geeky Medics"}],
-  "memoryAids": ["Only sound, accurate memory aids; do not invent or force mnemonics."],
+  "mnemonics": [{"title":"What this mnemonic helps recall","mnemonic":"A short memorable word or phrase","expansion":["Each letter or phrase mapped accurately to a source-supported concept"],"whyItWorks":"Explain how the mnemonic helps organise recall","caution":"State any limitation or leave empty when none is needed"}],
+  "memoryAids": ["Accurate analogies, associations or memory hooks that are supported by the source."],
   "commonPitfalls": ["Common conceptual mix-ups, exam traps or unsafe oversimplifications to avoid."],
   "revisionQuestions": [{"question":"A short-answer revision question","answer":"An explanatory answer based on the source."}],
   "unclearOrMissing": ["Important topic that is unclear, incomplete or absent in the source and should be checked."],
@@ -152,7 +154,10 @@ Return a JSON object with this exact shape:
 }
 
 Quality requirements:
+- Organise the whole guide as a memorable teaching chapter: start with orientation and learning objectives, give a concise high-yield overview, teach the topic in numbered major sections with clearly named subsections, then finish with exam revision, videos, memory aids and quick self-testing.
 - The highYieldPoints array is a core deliverable, not an optional add-on. Aim for 12-20 high-value points when the source contains enough material. Make each point useful on its own: include the key fact plus the reason, mechanism, clinical implication, distinguishing feature or examination trap. Avoid vague fragments such as a diagnosis name without an explanation.
+- Use a consistent learning sequence where appropriate: definition → classification → causes/risk factors → pathophysiology → clinical features → investigations/diagnosis → management → complications/prognosis/prevention. Reorder or omit headings when the topic or uploaded source requires it; never invent unsupported content.
+- Use clear hierarchy and scannable headings. Give every major section a short orientation and then detailed subsections with connected explanations, not a wall of bullets. Use bold conceptual labels within prose only when it improves navigation.
 - This must read like a compact but substantial high-yield teaching chapter, not a shortened lecture summary. A student should be able to learn the central concepts from these notes, understand the mechanisms and use the notes for revision without losing important detail.
 - Include enough major sections to cover all headings and important subtopics in the source. Do not merge unrelated topics into one broad section.
 - For every major section, create focused subsections that explain the topic in depth. Use as many as the source requires; usually 2-6 meaningful subsections where appropriate. A subsection should teach the concept, not merely name it.
@@ -165,7 +170,9 @@ Quality requirements:
 - Provide up to 2 visual aids only when a picture would genuinely improve understanding. Prioritise a major anatomical relationship, physiological mechanism, pathophysiological sequence or clinically relevant process that is actually described in the source. Do not force an illustration for a topic that is better taught in words or a table.
 - Write each visualPrompt for a clean, professional undergraduate medical textbook schematic on a light background. Keep the anatomy or mechanism simple and source-grounded; use clear visual separation, restrained colours and a coherent composition. Do not ask the image model to render text, labels, arrows with words, letters, numbers, legends, logos or watermarks; ClerkMe will display the title and explanation separately.
 - Do not request a fabricated X-ray, MRI, CT, ECG tracing, histology slide, laboratory result or patient photograph. Do not depict unsupported anatomy, findings, treatment devices or disease mechanisms. Prefer conceptual schematic illustrations over apparent diagnostic evidence.
-- Create 3-5 video suggestions for the most difficult or high-value topics. Use only the channel names listed in the schema. Do not return URLs; ClerkMe will create safe YouTube search links for these topics.
+- Create 3-5 focused YouTube recommendations for the most difficult or high-value topics. Choose a specific topic for each recommendation, explain what the student should learn from it, and select only Osmosis, Zero to Finals or Geeky Medics as the suggested channel. ClerkMe will search YouTube and surface actual playable videos; do not invent video titles or URLs.
+- Create mnemonics when they genuinely improve recall. Prefer short, clinically accurate mnemonics for classifications, causes, criteria, differentials, steps or complications. Explain every letter/element. Never force a mnemonic, distort a fact to make it fit, or use a mnemonic that conflicts with the source. Return an empty array when no reliable mnemonic is appropriate.
+- Distinguish "must know" from "useful extra detail", and finish explanations with the key examination or clinical takeaway where possible.
 - Include exam-focus material only when it can be grounded in the uploaded source. Do not claim to predict the actual examination.
 - Use empty arrays when a category is not relevant. Never fill a section with unsupported general medical knowledge.
 
@@ -323,6 +330,16 @@ ${material.content_text}
           channel: videoChannels.includes(suggestedChannel) ? suggestedChannel : "Osmosis"
         };
       }).filter(item => item.topic) : [],
+      mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics.slice(0, 8).map(value => {
+        const item = value as Record<string, unknown>;
+        return {
+          title: clean(item.title, 180),
+          mnemonic: clean(item.mnemonic, 220),
+          expansion: asStrings(item.expansion, 12, 360),
+          whyItWorks: clean(item.whyItWorks, 650),
+          caution: clean(item.caution, 420)
+        };
+      }).filter(item => item.title && item.mnemonic && item.expansion.length) : [],
       memoryAids: asStrings(parsed.memoryAids, 16, 650),
       commonPitfalls: asStrings(parsed.commonPitfalls, 24, 700),
       revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 30).map(value => {
