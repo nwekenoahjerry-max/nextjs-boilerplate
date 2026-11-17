@@ -260,7 +260,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
             clientContent: {
               turns: [{
                 role: "user",
-                parts: [{ text: "Begin the phone call now. Say only the patient's opening statement naturally, in character, then pause and wait for the student's next question." }]
+                parts: [{ text: "Begin the phone call now. Say this opening statement naturally, in character: " + openingMessage + ". Then pause and wait for the student's next question." }]
               }],
               turnComplete: true
             }
