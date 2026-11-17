@@ -468,21 +468,16 @@ export const onRequestGet = async (context: AppContext) => {
 
     if (providerStatus === "failed" || providerStatus === "cancelled") {
       const detail = clean(data.error?.message || data.error?.status, 500);
-      console.error("[ClerkMe] Gemini background study job ended without a completed result.", {
-        providerStatus,
-        detail
-      });
       const safeDetail = detail
         ? detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 300)
         : "";
-      const message = safeDetail
-        ? "Gemini could not finish this guide: " + safeDetail + ". Your uploaded material is safe; please retry once."
-        : "Gemini could not finish this study guide. Your uploaded material is safe; please retry once.";
-      await context.env.DB.prepare(
-        "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
-      ).bind(message, job.id, user.id).run();
-      await deleteGeminiInteraction(context.env.GEMINI_API_KEY, job.interaction_id);
-      return json({ status: "failed", error: message }, 502);
+      const reason = "Gemini background interaction ended with status " + providerStatus +
+        (safeDetail ? ": " + safeDetail : "");
+      console.error("[ClerkMe] Gemini background interaction failed; starting generateContent recovery.", {
+        providerStatus,
+        detail: safeDetail
+      });
+      return recoverStudyJobWithGenerateContent(context, user.id, job, reason);
     }
 
     if (providerStatus === "incomplete" || providerStatus === "budget_exceeded") {
