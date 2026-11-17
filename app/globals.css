@@ -3715,14 +3715,6 @@ body{background:var(--paper);color:var(--ink)}
 .dashboard-tool-grid .tool-arrow{display:none!important}
 
 
-/* Inline Gemini health-check feedback */
-  border-color:#b7d1bf!important;background:#f5faf6!important;color:#236344!important;
-}
-  background:#eaf4ee!important;border-color:#80ad8d!important;
-}
-  flex:1 0 100%;width:100%;margin:3px 0 0;padding:10px 12px;
-  border:1px solid;border-radius:9px;font-size:12px!important;line-height:1.6!important;
-}
 .study-video-player-panel:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 .video-library-player:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 
