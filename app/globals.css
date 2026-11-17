@@ -3182,3 +3182,58 @@ button{font-size:15px}
 .materials-source-meta{margin:0 0 16px;color:#819087;font-size:11px;line-height:1.6}
 .materials-source-viewer pre{max-height:72vh;overflow:auto;margin:0;padding:20px;border:1px solid #e7ece8;border-radius:10px;background:#fafcfb;color:#3e5145;font:12px/1.85 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2}
 @media(max-width:650px){.materials-source-viewer{padding:14px}.materials-source-viewer pre{padding:13px;font-size:11px;max-height:68vh}}
+
+
+/* ClerkMe typography refinement: larger, clearer type with a consistent system font stack. */
+:root{
+  --font-ui:Inter,"Segoe UI Variable","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+  --font-heading:Inter,"Segoe UI Variable","Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+}
+html{font-size:16px}
+body{
+  font-family:var(--font-ui)!important;
+  font-size:16px;
+  line-height:1.6;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font-family:var(--font-ui)!important}
+.main-area :is(h1,h2,h3,h4,h5,h6),
+.public-landing :is(h1,h2,h3,h4,h5,h6){
+  font-family:var(--font-heading)!important;
+  letter-spacing:-.025em;
+}
+.main-area .content :is(h1){font-size:clamp(32px,3vw,42px)!important;line-height:1.2!important}
+.main-area .content :is(h2){font-size:clamp(24px,2.2vw,30px)!important;line-height:1.3!important}
+.main-area .content :is(h3){font-size:clamp(19px,1.7vw,23px)!important;line-height:1.4!important}
+.main-area .content :is(h4){font-size:17px!important;line-height:1.45!important}
+.main-area .content :is(p,li,dt,dd,td,th){
+  font-size:15px!important;
+  line-height:1.75!important;
+}
+.main-area .content :is(label,summary,button,a,input,select,textarea){
+  font-size:14px!important;
+  line-height:1.55;
+}
+.main-area .content :is(small){
+  font-size:12px!important;
+  line-height:1.55!important;
+}
+.main-area .content :is(.eyebrow,.workspace-label,.template-tag){
+  font-size:10px!important;
+  line-height:1.4!important;
+}
+.main-area .topbar :is(.breadcrumb,.saved-label){font-size:12px!important}
+.sidebar .nav-item{font-size:14px!important}
+.sidebar .workspace-label{font-size:11px!important}
+.public-landing :is(p,li){font-size:16px!important;line-height:1.75!important}
+.public-landing :is(a,button){font-size:14px}
+@media(max-width:760px){
+  .main-area .content{padding-top:30px}
+  .main-area .content :is(p,li,dt,dd,td,th){font-size:14px!important;line-height:1.7!important}
+  .main-area .content :is(label,summary,button,a,input,select,textarea){font-size:14px!important}
+  .main-area .content :is(h1){font-size:clamp(29px,7vw,36px)!important}
+  .main-area .content :is(h2){font-size:24px!important}
+  .main-area .content :is(h3){font-size:19px!important}
+  .public-landing :is(p,li){font-size:15px!important}
+}
