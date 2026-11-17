@@ -2,10 +2,11 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const GEMINI_MODEL = "gemini-3.6-flash";
-const GEMINI_FALLBACK_MODEL = "gemini-flash-lite-latest";
-const GEMINI_TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504]);
+const GEMINI_TRANSIENT_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
 type GeminiResponseData = {
+  id?: string;
+  output_text?: string;
   status?: string;
   steps?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
   outputs?: Array<{ type?: string; text?: string }>;
@@ -157,6 +158,243 @@ function parseAIResult(value: unknown): Record<string, unknown> {
 const asStrings = (value: unknown, maxItems: number, maxLength: number) =>
   Array.isArray(value) ? value.map(item => clean(item, maxLength)).filter(Boolean).slice(0, maxItems) : [];
 
+
+export const onRequestGet = async (context: AppContext) => {
+  if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
+  const user = await requireUser(context);
+  if (isResponse(user)) return user;
+  if (!context.env.GEMINI_API_KEY) return json({ error: "The study service is not configured.", code: "STUDY_SERVICE_UNAVAILABLE" }, 503);
+
+  const url = new URL(context.request.url);
+  const jobId = clean(url.searchParams.get("jobId"), 80);
+  if (!jobId) return json({ error: "A study generation job is required." }, 400);
+
+  const job = await context.env.DB.prepare(`
+    SELECT id, material_id, interaction_id, status, error_message
+    FROM study_generation_jobs
+    WHERE id = ? AND user_id = ?
+  `).bind(jobId, user.id).first<{
+    id:string; material_id:string; interaction_id:string; status:string; error_message:string|null;
+  }>();
+  if (!job) return json({ error: "This study generation job could not be found." }, 404);
+
+  if (job.status === "completed") {
+    const saved = await context.env.DB.prepare(
+      "SELECT summary_json FROM learning_materials WHERE id = ? AND user_id = ?"
+    ).bind(job.material_id, user.id).first<{summary_json:string|null}>();
+    if (saved?.summary_json) {
+      try { return json({ status: "completed", summary: JSON.parse(saved.summary_json) as unknown }); }
+      catch {}
+    }
+    return json({ error: "The completed study guide could not be loaded. Please refresh your study library.", code: "STUDY_RESULT_NOT_FOUND" }, 500);
+  }
+  if (job.status === "failed") {
+    return json({
+      status: "failed",
+      error: job.error_message || "ClerkMe could not complete this study guide. Your uploaded material is safe; please try again."
+    }, 502);
+  }
+
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/interactions/" + encodeURIComponent(job.interaction_id),
+      {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Api-Revision": "2026-05-20",
+          "x-goog-api-key": context.env.GEMINI_API_KEY
+        },
+        signal: AbortSignal.timeout(18000)
+      }
+    );
+    const data = await response.json().catch(() => ({})) as GeminiResponseData;
+    if (!response.ok) {
+      if (GEMINI_TRANSIENT_STATUSES.has(response.status)) {
+        return json({ status: "processing", retryAfterMs: 5000 });
+      }
+      const detail = clean(data.error?.message || data.error?.status, 500);
+      console.error("[ClerkMe] Gemini study job status request failed.", { status: response.status, detail });
+      await context.env.DB.prepare(
+        "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+      ).bind("The study service could not retrieve the generated guide. Please try again.", job.id, user.id).run();
+      return json({ status: "failed", error: "The study service could not retrieve the generated guide. Your uploaded material is safe; please try again." }, 502);
+    }
+
+    const providerStatus = clean(data.status, 40).toLowerCase();
+    if (providerStatus === "queued" || providerStatus === "in_progress" || !providerStatus) {
+      return json({ status: "processing", providerStatus: providerStatus || "in_progress", retryAfterMs: 5000 });
+    }
+
+    if (providerStatus === "failed" || providerStatus === "cancelled") {
+      const detail = clean(data.error?.message || data.error?.status, 500);
+      console.error("[ClerkMe] Gemini background study job ended without a completed result.", {
+        providerStatus,
+        detail
+      });
+      const message = "ClerkMe could not complete this study guide. Your uploaded material is safe; please try generating it again.";
+      await context.env.DB.prepare(
+        "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+      ).bind(message, job.id, user.id).run();
+      return json({ status: "failed", error: message }, 502);
+    }
+
+    if (providerStatus === "incomplete" || providerStatus === "budget_exceeded") {
+      const message = "This lecture produced an incomplete guide because it exceeded the model’s output limit. Your upload is safe. Please split the lecture into smaller sections and retry.";
+      await context.env.DB.prepare(
+        "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+      ).bind(message, job.id, user.id).run();
+      return json({ status: "failed", error: message, code: "STUDY_OUTPUT_INCOMPLETE" }, 502);
+    }
+
+    if (providerStatus !== "completed") {
+      return json({ status: "processing", providerStatus, retryAfterMs: 5000 });
+    }
+
+    const stepTexts = (data.steps || [])
+      .filter(step => step.type === "model_output")
+      .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""));
+    const legacyOutputTexts = (data.outputs || [])
+      .filter(output => output.type === "text")
+      .map(output => output.text || "");
+    const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim() || clean(data.output_text, 120000);
+    if (!outputText) throw new Error("The completed study guide contained no text output.");
+
+    const parsed = parseAIResult({ response: outputText });
+    const summary = normaliseStudySummary(parsed);
+    await context.env.DB.prepare(
+      "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+    ).bind(JSON.stringify(summary), job.material_id, user.id).run();
+    await context.env.DB.prepare(
+      "UPDATE study_generation_jobs SET status = 'completed', error_message = NULL, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+    ).bind(job.id, user.id).run();
+
+    console.info("[ClerkMe] Background study guide completed.", {
+      materialId: job.material_id,
+      jobId: job.id
+    });
+    return json({ status: "completed", summary });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unknown study-job polling error.";
+    console.error("[ClerkMe] Study-job polling failed:", detail.slice(0, 500));
+    if (/abort|timeout/i.test(detail)) {
+      return json({ status: "processing", retryAfterMs: 5000 });
+    }
+    return json({
+      status: "failed",
+      error: "ClerkMe could not retrieve the study guide just now. Your uploaded material is safe; please try again."
+    }, 502);
+  }
+};
+
+function normaliseStudySummary(parsed: Record<string, unknown>) {
+    const exam = parsed.examFocus && typeof parsed.examFocus === "object"
+      ? parsed.examFocus as Record<string, unknown>
+      : {};
+    const examFocus = {
+      mustKnow: asStrings(exam.mustKnow, 24, 900),
+      likelyShortNotes: asStrings(exam.likelyShortNotes, 20, 600),
+      vivaQuestions: Array.isArray(exam.vivaQuestions) ? exam.vivaQuestions.slice(0, 16).map(value => {
+        const item = value as Record<string, unknown>;
+        return { question: clean(item.question, 500), answer: clean(item.answer, 2200) };
+      }).filter(item => item.question && item.answer) : [],
+      clinicalApplications: asStrings(exam.clinicalApplications, 16, 800)
+    };
+    const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
+    const summary = {
+      overview: clean(parsed.overview, 3000),
+      highYieldPoints: asStrings(parsed.highYieldPoints, 32, 1400),
+      visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
+        const item = value as Record<string, unknown>;
+        return {
+          title: clean(item.title, 160),
+          caption: clean(item.caption, 650),
+          altText: clean(item.altText, 500),
+          sourceSection: clean(item.sourceSection, 180),
+          visualPrompt: clean(item.visualPrompt, 1100)
+        };
+      }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
+      learningObjectives: asStrings(parsed.learningObjectives, 20, 700),
+      sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
+        const item = value as Record<string, unknown>;
+        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 10).map(value => {
+          const subsection = value as Record<string, unknown>;
+          return {
+            heading: clean(subsection.heading, 180),
+            explanation: clean(subsection.explanation, 5200),
+            keyPoints: asStrings(subsection.keyPoints, 12, 500)
+          };
+        }).filter(subsection => subsection.heading && subsection.explanation) : [];
+        return {
+          heading: clean(item.heading, 180),
+          summary: clean(item.summary, 4200),
+          subsections,
+          clinicalRelevance: clean(item.clinicalRelevance, 3600),
+          highYieldPoints: asStrings(item.highYieldPoints, 20, 1000),
+          sourceLocator: clean(item.sourceLocator, 160)
+        };
+      }).filter(item => item.heading && (item.summary || item.subsections.length)) : [],
+      keyTerms: Array.isArray(parsed.keyTerms) ? parsed.keyTerms.slice(0, 45).map(value => {
+        const item = value as Record<string, unknown>;
+        return { term: clean(item.term, 120), meaning: clean(item.meaning, 800) };
+      }).filter(item => item.term && item.meaning) : [],
+      comparisonTables: Array.isArray(parsed.comparisonTables) ? parsed.comparisonTables.slice(0, 10).map(value => {
+        const item = value as Record<string, unknown>;
+        const columns = asStrings(item.columns, 8, 120);
+        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 18).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 360)) : []).filter(row => row.length > 0) : [];
+        return { title: clean(item.title, 160), columns, rows };
+      }).filter(item => item.title && item.columns.length && item.rows.length) : [],
+      examFocus: Object.values(examFocus).some(value => Array.isArray(value) && value.length) ? examFocus : null,
+      flowcharts: Array.isArray(parsed.flowcharts) ? parsed.flowcharts.slice(0, 8).map(value => {
+        const item = value as Record<string, unknown>;
+        return {
+          title: clean(item.title, 160),
+          steps: asStrings(item.steps, 12, 500),
+          takeaway: clean(item.takeaway, 900)
+        };
+      }).filter(item => item.title && item.steps.length >= 2) : [],
+      videoSuggestions: Array.isArray(parsed.videoSuggestions) ? parsed.videoSuggestions.slice(0, 6).map(value => {
+        const item = value as Record<string, unknown>;
+        const suggestedChannel = clean(item.channel, 40);
+        return {
+          topic: clean(item.topic, 180),
+          whyWatch: clean(item.whyWatch, 400),
+          channel: videoChannels.includes(suggestedChannel) ? suggestedChannel : "Osmosis"
+        };
+      }).filter(item => item.topic) : [],
+      mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics.slice(0, 8).map(value => {
+        const item = value as Record<string, unknown>;
+        return {
+          title: clean(item.title, 180),
+          mnemonic: clean(item.mnemonic, 220),
+          expansion: asStrings(item.expansion, 12, 360),
+          whyItWorks: clean(item.whyItWorks, 650),
+          caution: clean(item.caution, 420)
+        };
+      }).filter(item => item.title && item.mnemonic && item.expansion.length) : [],
+      memoryAids: asStrings(parsed.memoryAids, 16, 650),
+      commonPitfalls: asStrings(parsed.commonPitfalls, 24, 700),
+      revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 30).map(value => {
+        const item = value as Record<string, unknown>;
+        return { question: clean(item.question, 1000), answer: clean(item.answer, 2400) };
+      }).filter(item => item.question && item.answer) : [],
+      unclearOrMissing: asStrings(parsed.unclearOrMissing, 24, 700),
+      sourceCoverage: asStrings(parsed.sourceCoverage, 40, 450),
+      disclaimer: clean(parsed.disclaimer, 700) || "These notes are based on the uploaded source. Check current local guidance where relevant."
+    };
+
+    if (!summary.highYieldPoints.length) {
+      summary.highYieldPoints = Array.from(new Set([
+        ...examFocus.mustKnow,
+        ...summary.sections.flatMap(section => section.highYieldPoints)
+      ])).slice(0, 24);
+    }
+    if (!summary.overview || !summary.sections.length) {
+      throw new Error("The AI did not return a complete High-Yield Points study guide. Please retry or upload a clearer document.");
+    }
+  return summary;
+}
+
 export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
@@ -262,9 +500,24 @@ ${material.content_text}
 
     let result: unknown;
     if (context.env.GEMINI_API_KEY) {
+      const existing = await context.env.DB.prepare(`
+        SELECT id, status
+        FROM study_generation_jobs
+        WHERE user_id = ? AND material_id = ?
+          AND status IN ('queued', 'in_progress')
+          AND created_at > unixepoch() - 1800
+        ORDER BY created_at DESC
+        LIMIT 1
+      `).bind(user.id, material.id).first<{id:string;status:string}>();
+      if (existing) {
+        return json({ jobId: existing.id, status: "processing", resumed: true }, 202);
+      }
+
       const geminiPayload: Record<string, unknown> = {
+        model: GEMINI_MODEL,
         system_instruction: messages[0].content,
         input: messages[1].content,
+        background: true,
         store: false,
         response_format: {
           type: "text",
@@ -277,66 +530,65 @@ ${material.content_text}
         }
       };
 
-      let activeModel = GEMINI_MODEL;
-      let geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_MODEL, geminiPayload, 2);
-      if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
-        console.warn("[ClerkMe] Primary Gemini Interactions request temporarily unavailable; switching model:", GEMINI_MODEL, geminiResult.response.status);
-        activeModel = GEMINI_FALLBACK_MODEL;
-        const fallbackPayload = {
-          ...geminiPayload,
-          generation_config: { max_output_tokens: 11000, thinking_level: "minimal" }
-        };
-        geminiResult = await requestGeminiWithRetry(context.env.GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, fallbackPayload, 2);
-      }
-      if (!geminiResult.response.ok && GEMINI_TRANSIENT_STATUSES.has(geminiResult.response.status)) {
-        console.warn("[ClerkMe] Gemini Interactions API remains temporarily unavailable; trying GenerateContent API fallback:", {
-          model: GEMINI_MODEL,
-          status: geminiResult.response.status
+      let startResponse: Response | null = null;
+      let startData: GeminiResponseData = {};
+      for (let attempt = 0; attempt < 2; attempt++) {
+        startResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Api-Revision": "2026-05-20",
+            "x-goog-api-key": context.env.GEMINI_API_KEY
+          },
+          body: JSON.stringify(geminiPayload),
+          signal: AbortSignal.timeout(25000)
         });
-        activeModel = GEMINI_MODEL + " (GenerateContent fallback)";
-        geminiResult = await requestGeminiGenerateContentFallback(
-          context.env.GEMINI_API_KEY,
-          GEMINI_MODEL,
-          messages[0].content,
-          messages[1].content,
-          SUMMARY_RESPONSE_SCHEMA,
-          2
-        );
+        startData = await startResponse.json().catch(() => ({})) as GeminiResponseData;
+        if (startResponse.ok || !GEMINI_TRANSIENT_STATUSES.has(startResponse.status) || attempt === 1) break;
+        await new Promise(resolve => setTimeout(resolve, 900));
       }
 
-      const geminiResponse = geminiResult.response;
-      const geminiData = geminiResult.data;
-      if (!geminiResponse.ok) {
-        const providerMessage = clean(geminiData.error?.message || geminiData.error?.status, 700);
-        console.error("[ClerkMe] Study generation provider returned an error.", {
-          status: geminiResponse.status,
-          model: activeModel,
+      if (!startResponse?.ok) {
+        const providerMessage = clean(startData.error?.message || startData.error?.status, 500);
+        console.error("[ClerkMe] Gemini background study job could not be started.", {
+          status: startResponse?.status ?? 0,
           providerMessage
         });
-        if (geminiResponse.status === 429) {
+        if (startResponse?.status === 429) {
           return json({ error: "ClerkMe’s study service is busy right now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_SERVICE_BUSY", retryable: true }, 429);
         }
-        if (GEMINI_TRANSIENT_STATUSES.has(geminiResponse.status)) {
-          return json({ error: "ClerkMe couldn’t finish building this study guide just now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_GENERATION_TEMPORARILY_UNAVAILABLE", retryable: true }, 502);
-        }
-        return json({ error: "ClerkMe couldn’t prepare this study guide right now. Your uploaded material is safe. Please try again shortly.", code: "STUDY_GENERATION_FAILED", retryable: false }, 502);
+        return json({
+          error: "ClerkMe could not start your study guide just now. Your uploaded material is safe. Please try again shortly.",
+          code: "STUDY_JOB_START_FAILED",
+          retryable: true
+        }, 502);
       }
-      if (geminiData.status === "incomplete" || geminiData.status === "budget_exceeded") {
-        return json({ error: "This lecture is too extensive to finish in one pass. Your material is safe; try splitting it into smaller sections and generating the guide again.", code: "STUDY_OUTPUT_INCOMPLETE" }, 502);
+
+      const interactionId = clean(startData.id, 180);
+      if (!interactionId) {
+        console.error("[ClerkMe] Gemini accepted a background request without returning an interaction ID.");
+        return json({
+          error: "ClerkMe could not confirm that your study guide had started. Your uploaded material is safe; please try again.",
+          code: "STUDY_JOB_ID_MISSING",
+          retryable: true
+        }, 502);
       }
-      const stepTexts = (geminiData.steps || [])
-        .filter(step => step.type === "model_output")
-        .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""));
-      const legacyOutputTexts = (geminiData.outputs || [])
-        .filter(output => output.type === "text")
-        .map(output => output.text || "");
-      const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim();
-      if (!outputText) {
-        const state = clean(geminiData.status, 80) || "unknown";
-        throw new Error("The study service returned no completed text output (status: " + state + ").");
-      }
-      console.info("[ClerkMe] Study guide generation completed.", { model: activeModel });
-      result = { response: outputText };
+
+      const jobId = crypto.randomUUID();
+      const now = Math.floor(Date.now() / 1000);
+      await context.env.DB.prepare(`
+        INSERT INTO study_generation_jobs
+          (id, user_id, material_id, interaction_id, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 'in_progress', ?, ?)
+      `).bind(jobId, user.id, material.id, interactionId, now, now).run();
+
+      console.info("[ClerkMe] Background study guide started.", {
+        materialId: material.id,
+        jobId,
+        providerStatus: clean(startData.status, 40) || "in_progress"
+      });
+      return json({ jobId, status: "processing" }, 202);
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
         messages: messages.map(message => ({ role: message.role, content: message.content })),
@@ -348,110 +600,7 @@ ${material.content_text}
     }
 
     const parsed = parseAIResult(result);
-    const exam = parsed.examFocus && typeof parsed.examFocus === "object"
-      ? parsed.examFocus as Record<string, unknown>
-      : {};
-    const examFocus = {
-      mustKnow: asStrings(exam.mustKnow, 24, 900),
-      likelyShortNotes: asStrings(exam.likelyShortNotes, 20, 600),
-      vivaQuestions: Array.isArray(exam.vivaQuestions) ? exam.vivaQuestions.slice(0, 16).map(value => {
-        const item = value as Record<string, unknown>;
-        return { question: clean(item.question, 500), answer: clean(item.answer, 2200) };
-      }).filter(item => item.question && item.answer) : [],
-      clinicalApplications: asStrings(exam.clinicalApplications, 16, 800)
-    };
-    const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
-    const summary = {
-      overview: clean(parsed.overview, 3000),
-      highYieldPoints: asStrings(parsed.highYieldPoints, 32, 1400),
-      visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
-        const item = value as Record<string, unknown>;
-        return {
-          title: clean(item.title, 160),
-          caption: clean(item.caption, 650),
-          altText: clean(item.altText, 500),
-          sourceSection: clean(item.sourceSection, 180),
-          visualPrompt: clean(item.visualPrompt, 1100)
-        };
-      }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
-      learningObjectives: asStrings(parsed.learningObjectives, 20, 700),
-      sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
-        const item = value as Record<string, unknown>;
-        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 10).map(value => {
-          const subsection = value as Record<string, unknown>;
-          return {
-            heading: clean(subsection.heading, 180),
-            explanation: clean(subsection.explanation, 5200),
-            keyPoints: asStrings(subsection.keyPoints, 12, 500)
-          };
-        }).filter(subsection => subsection.heading && subsection.explanation) : [];
-        return {
-          heading: clean(item.heading, 180),
-          summary: clean(item.summary, 4200),
-          subsections,
-          clinicalRelevance: clean(item.clinicalRelevance, 3600),
-          highYieldPoints: asStrings(item.highYieldPoints, 20, 1000),
-          sourceLocator: clean(item.sourceLocator, 160)
-        };
-      }).filter(item => item.heading && (item.summary || item.subsections.length)) : [],
-      keyTerms: Array.isArray(parsed.keyTerms) ? parsed.keyTerms.slice(0, 45).map(value => {
-        const item = value as Record<string, unknown>;
-        return { term: clean(item.term, 120), meaning: clean(item.meaning, 800) };
-      }).filter(item => item.term && item.meaning) : [],
-      comparisonTables: Array.isArray(parsed.comparisonTables) ? parsed.comparisonTables.slice(0, 10).map(value => {
-        const item = value as Record<string, unknown>;
-        const columns = asStrings(item.columns, 8, 120);
-        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 18).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 360)) : []).filter(row => row.length > 0) : [];
-        return { title: clean(item.title, 160), columns, rows };
-      }).filter(item => item.title && item.columns.length && item.rows.length) : [],
-      examFocus: Object.values(examFocus).some(value => Array.isArray(value) && value.length) ? examFocus : null,
-      flowcharts: Array.isArray(parsed.flowcharts) ? parsed.flowcharts.slice(0, 8).map(value => {
-        const item = value as Record<string, unknown>;
-        return {
-          title: clean(item.title, 160),
-          steps: asStrings(item.steps, 12, 500),
-          takeaway: clean(item.takeaway, 900)
-        };
-      }).filter(item => item.title && item.steps.length >= 2) : [],
-      videoSuggestions: Array.isArray(parsed.videoSuggestions) ? parsed.videoSuggestions.slice(0, 6).map(value => {
-        const item = value as Record<string, unknown>;
-        const suggestedChannel = clean(item.channel, 40);
-        return {
-          topic: clean(item.topic, 180),
-          whyWatch: clean(item.whyWatch, 400),
-          channel: videoChannels.includes(suggestedChannel) ? suggestedChannel : "Osmosis"
-        };
-      }).filter(item => item.topic) : [],
-      mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics.slice(0, 8).map(value => {
-        const item = value as Record<string, unknown>;
-        return {
-          title: clean(item.title, 180),
-          mnemonic: clean(item.mnemonic, 220),
-          expansion: asStrings(item.expansion, 12, 360),
-          whyItWorks: clean(item.whyItWorks, 650),
-          caution: clean(item.caution, 420)
-        };
-      }).filter(item => item.title && item.mnemonic && item.expansion.length) : [],
-      memoryAids: asStrings(parsed.memoryAids, 16, 650),
-      commonPitfalls: asStrings(parsed.commonPitfalls, 24, 700),
-      revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 30).map(value => {
-        const item = value as Record<string, unknown>;
-        return { question: clean(item.question, 1000), answer: clean(item.answer, 2400) };
-      }).filter(item => item.question && item.answer) : [],
-      unclearOrMissing: asStrings(parsed.unclearOrMissing, 24, 700),
-      sourceCoverage: asStrings(parsed.sourceCoverage, 40, 450),
-      disclaimer: clean(parsed.disclaimer, 700) || "These notes are based on the uploaded source. Check current local guidance where relevant."
-    };
-
-    if (!summary.highYieldPoints.length) {
-      summary.highYieldPoints = Array.from(new Set([
-        ...examFocus.mustKnow,
-        ...summary.sections.flatMap(section => section.highYieldPoints)
-      ])).slice(0, 24);
-    }
-    if (!summary.overview || !summary.sections.length) {
-      throw new Error("The AI did not return a complete High-Yield Points study guide. Please retry or upload a clearer document.");
-    }
+    const summary = normaliseStudySummary(parsed);
     await context.env.DB.prepare(
       "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(JSON.stringify(summary), material.id, user.id).run();
