@@ -56,7 +56,6 @@ type StudyMaterial = {
   questions:MaterialQuestion[];
   createdAt:number;
   updatedAt:number;
-  contentText:string;
 };
 type TutorAnswer = {
   answer:string;
@@ -87,6 +86,7 @@ const illustrationSessionKey = (materialId:string) => "clerkme:illustrations:"+m
 
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
+  const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
   const [libraryUnit,setLibraryUnit] = useState("all");
   const [category,setCategory] = useState("Lecture notes");
@@ -180,6 +180,17 @@ export default function MaterialsPanel() {
     } catch {}
   },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([]); },[selectedId]);
+
+  useEffect(()=>{
+    if (tab!=="source" || !selectedId || sourceTextByMaterial[selectedId]) return;
+    let cancelled = false;
+    fetch("/api/learning/materials?id="+encodeURIComponent(selectedId),{credentials:"same-origin",cache:"no-store"})
+      .then(readResponse)
+      .then(data=>{ if(!cancelled && typeof data.material?.contentText==="string") setSourceTextByMaterial(current=>({...current,[selectedId]:data.material.contentText})); })
+      .catch(e=>{ if(!cancelled) setError(e instanceof Error?e.message:"Could not load the uploaded source text."); });
+    return ()=>{cancelled=true;};
+  },[tab,selectedId,sourceTextByMaterial]);
+
 
   useEffect(()=>{
     if (!selectedId) return;
@@ -378,6 +389,7 @@ export default function MaterialsPanel() {
       const material = data.material as StudyMaterial;
       setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
+      setSourceTextByMaterial(current=>({...current,[material.id]:extracted.text}));
       setLibraryUnit(unit);
       setTitle(""); setFile(null);
       setNotice("Material uploaded and saved to your private library. Preparing its High-Yield Points…");
@@ -545,7 +557,7 @@ export default function MaterialsPanel() {
           <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
 
-        {tab==="source" && <section className="materials-source-viewer"><div className="eyebrow">EXTRACTED FROM YOUR UPLOAD</div><h3>{selectedMaterial.sourceName}</h3><p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {selectedMaterial.contentText?.length?.toLocaleString("en-GB") || 0} characters extracted</p>{selectedMaterial.contentText ? <pre>{selectedMaterial.contentText}</pre> : <div className="materials-empty"><strong>Source text is unavailable</strong><p>Refresh your study library. If this material was uploaded before source viewing was added, upload it again to make its extracted text available.</p></div>}</section>}
+        {tab==="source" && <section className="materials-source-viewer"><div className="eyebrow">EXTRACTED FROM YOUR UPLOAD</div><h3>{selectedMaterial.sourceName}</h3><p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {sourceTextByMaterial[selectedMaterial.id]?.length?.toLocaleString("en-GB") || 0} characters extracted</p>{sourceTextByMaterial[selectedMaterial.id] ? <pre>{sourceTextByMaterial[selectedMaterial.id]}</pre> : <div className="materials-empty"><strong>Source text is unavailable</strong><p>Refresh your study library. If this material was uploaded before source viewing was added, upload it again to make its extracted text available.</p></div>}</section>}
 
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary">
