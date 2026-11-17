@@ -3731,3 +3731,5 @@ body{background:var(--paper);color:var(--ink)}
 .gemini-connection-status:empty{display:none}
 .study-video-player-panel:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 .video-library-player:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
+
+.dashboard-path-step{grid-template-columns:29px minmax(0,1fr)!important}
