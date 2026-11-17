@@ -483,14 +483,48 @@ export default function MaterialsPanel() {
   };
 
   const summarise = async (materialId:string) => {
-    setWorking(true); setError(""); setNotice("Building detailed High-Yield Points from your uploaded source…");
+    setWorking(true); setError(""); setNotice("Starting your detailed High-Yield Points study guide…");
     try {
       const response = await fetch("/api/learning/summarise",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({materialId})
       });
-      const data = await readResponse(response);
-      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:data.summary}:item));
+      const started = await readResponse(response);
+      let summary = started.summary as StudySummary|undefined;
+
+      if (!summary && typeof started.jobId === "string") {
+        const jobId = started.jobId;
+        const startedAt = Date.now();
+        const maximumWaitMs = 12 * 60 * 1000;
+        while (Date.now() - startedAt < maximumWaitMs) {
+          await new Promise(resolve=>window.setTimeout(resolve,4000));
+          const statusResponse = await fetch(
+            "/api/learning/summarise?jobId="+encodeURIComponent(jobId),
+            {credentials:"same-origin",cache:"no-store"}
+          );
+          const job = await readResponse(statusResponse);
+          if (job.status === "completed" && job.summary) {
+            summary = job.summary as StudySummary;
+            break;
+          }
+          if (job.status === "failed") {
+            throw new Error(job.error || "ClerkMe could not complete this study guide. Your uploaded material is safe.");
+          }
+          const elapsedSeconds = Math.floor((Date.now()-startedAt)/1000);
+          setNotice(elapsedSeconds < 30
+            ? "Analysing your lecture and organising its key concepts…"
+            : elapsedSeconds < 90
+              ? "Building the detailed explanations, clinical links, exam points and memory aids…"
+              : "Your study guide is still being generated in the background. Your uploaded material is safe; ClerkMe is continuing the same job.");
+        }
+        if (!summary) {
+          setNotice("Your study guide is still processing in the background. Your uploaded material is safe. Press Refresh High-Yield Points to resume checking the same job.");
+          return;
+        }
+      }
+
+      if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
+      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary}:item));
       setNotice("Your detailed High-Yield Points are ready. Visual illustrations are loading separately…");
       setTab("summary");
       void generateIllustrations(materialId);
