@@ -95,7 +95,7 @@ async function requestGeminiGenerateContentFallback(
     const outputText = (candidate?.content?.parts || [])
       .map(part => typeof part.text === "string" ? part.text : "")
       .filter(Boolean)
-      .join("\\n")
+      .join("\n")
       .trim();
     const finishReason = cleanFinishReason(candidate?.finishReason);
     const data: GeminiResponseData = {
