@@ -594,7 +594,7 @@ export default function MaterialsPanel() {
                 ? "Illustration plans are ready. Select Generate illustrations to create the visual aids."
                 : "Generate up to two useful visual aids for this lecture. ClerkMe will not force an image where a table or written explanation is clearer."}</p>}
               {!!illustrationErrors[selectedMaterial.id]&&<p className="study-illustration-error" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
-              <p className="study-illustration-disclaimer">AI-generated educational schematics are illustrative, may simplify anatomical detail and are not diagnostic images or a substitute for verified clinical references.</p>
+              <p className="study-illustration-disclaimer">Educational schematics are illustrative and may simplify anatomical detail. They are not diagnostic images or a substitute for verified clinical references.</p>
             </section>
             {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
               <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
