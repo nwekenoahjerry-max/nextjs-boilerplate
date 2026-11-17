@@ -301,7 +301,7 @@ export default function MaterialsPanel() {
   useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
   useEffect(()=>{
     const recommendation = recommendedVideoSuggestions[0];
-    if (!selectedId || !recommendation?.topic) return;
+    if (!selectedId || !selectedMaterial?.summary || !recommendation?.topic) return;
     const key = selectedId + ":" + recommendation.topic + ":" + recommendation.channel;
     if (autoRecommendedVideoKeyRef.current === key) return;
     autoRecommendedVideoKeyRef.current = key;
