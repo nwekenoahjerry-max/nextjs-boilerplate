@@ -141,6 +141,8 @@ ${material.content_text}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Api-Revision": "2026-05-20",
           "x-goog-api-key": context.env.GEMINI_API_KEY
         },
         body: JSON.stringify({
@@ -154,33 +156,48 @@ ${material.content_text}
             schema: SUMMARY_RESPONSE_SCHEMA
           },
           generation_config: {
-            max_output_tokens: 14000
+            max_output_tokens: 14000,
+            thinking_level: "medium"
           }
-        })
+        }),
+        signal: AbortSignal.timeout(110000)
       });
       const geminiData = await geminiResponse.json().catch(() => ({})) as {
         status?: string;
         steps?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
-        error?: { message?: string; status?: string };
+        outputs?: Array<{ type?: string; text?: string }>;
+        error?: { message?: string; status?: string; code?: number };
       };
-      if (geminiResponse.status === 429) {
-        return json({ error: "Gemini has reached the current API usage limit. Your uploaded material is safe; check your Google AI Studio usage and try again when the quota resets.", code: "GEMINI_RATE_LIMIT" }, 429);
-      }
-      if (geminiResponse.status === 401 || geminiResponse.status === 403) {
-        return json({ error: "Gemini did not accept the configured API key. Check that GEMINI_API_KEY is the correct key and that the Generative Language API is enabled for its Google Cloud project.", code: "GEMINI_API_KEY_REJECTED" }, 502);
-      }
       if (!geminiResponse.ok) {
-        throw new Error("Gemini API request failed (" + geminiResponse.status + "): " + (geminiData.error?.message || geminiData.error?.status || "unknown error"));
+        const providerMessage = clean(geminiData.error?.message || geminiData.error?.status, 700);
+        if (geminiResponse.status === 429) {
+          return json({ error: "Gemini's current API quota or rate limit has been reached. Your uploaded material is safe. Check Google AI Studio → Usage and try again when the limit resets.", code: "GEMINI_RATE_LIMIT" }, 429);
+        }
+        if (geminiResponse.status === 401 || geminiResponse.status === 403) {
+          return json({ error: "Gemini rejected the configured API key or its permissions. In Google AI Studio, confirm that this key belongs to the intended project and that it is restricted to the Generative Language API. " + providerMessage, code: "GEMINI_API_KEY_OR_PERMISSION_ERROR" }, 502);
+        }
+        if (geminiResponse.status === 400) {
+          return json({ error: "Google rejected the Gemini summary request. This is a request/model/schema error, not a problem with your uploaded file. " + providerMessage, code: "GEMINI_REQUEST_REJECTED" }, 502);
+        }
+        if (geminiResponse.status >= 500) {
+          return json({ error: "Google's Gemini service is temporarily unavailable (" + geminiResponse.status + "). Your uploaded material is safe; please retry shortly.", code: "GEMINI_PROVIDER_UNAVAILABLE" }, 502);
+        }
+        return json({ error: "Gemini request failed (" + geminiResponse.status + "). " + providerMessage, code: "GEMINI_REQUEST_FAILED" }, 502);
       }
-      if (geminiData.status === "incomplete") {
-        return json({ error: "Gemini started the study guide but did not finish generating it. Try a shorter source document or split the lecture into two parts.", code: "GEMINI_OUTPUT_INCOMPLETE" }, 502);
+      if (geminiData.status === "incomplete" || geminiData.status === "budget_exceeded") {
+        return json({ error: "Gemini reached its output or thinking budget before completing the study guide. Try a shorter source document or split a long lecture into sections.", code: "GEMINI_OUTPUT_INCOMPLETE" }, 502);
       }
-      const outputText = (geminiData.steps || [])
+      const stepTexts = (geminiData.steps || [])
         .filter(step => step.type === "model_output")
-        .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""))
-        .join("\n")
-        .trim();
-      if (!outputText) throw new Error("Gemini returned no text output.");
+        .flatMap(step => (step.content || []).filter(part => part.type === "text").map(part => part.text || ""));
+      const legacyOutputTexts = (geminiData.outputs || [])
+        .filter(output => output.type === "text")
+        .map(output => output.text || "");
+      const outputText = [...stepTexts, ...legacyOutputTexts].join("\n").trim();
+      if (!outputText) {
+        const state = clean(geminiData.status, 80) || "unknown";
+        throw new Error("Gemini returned no text output (provider status: " + state + "). The request may have been blocked or stopped before a response was produced.");
+      }
       result = { response: outputText };
     } else if (context.env.AI) {
       result = await context.env.AI.run(WORKERS_AI_MODEL, {
@@ -292,6 +309,18 @@ ${material.content_text}
     ).bind(JSON.stringify(summary), material.id, user.id).run();
     return json({ materialId: material.id, summary });
   } catch (error) {
+    if (context.env.GEMINI_API_KEY) {
+      const detail = error instanceof Error ? error.message : "Unknown Gemini integration error.";
+      const safeDetail = detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 700);
+      console.error("[ClerkMe] Gemini summary failure:", safeDetail);
+      const timedOut = /abort|timeout/i.test(detail);
+      return json({
+        error: timedOut
+          ? "Gemini took too long to finish generating this detailed guide. Your uploaded material is safe. Try again or split a very long lecture into smaller documents."
+          : safeDetail || "Gemini could not generate the study guide. Your uploaded material is safe; please retry.",
+        code: timedOut ? "GEMINI_TIMEOUT" : "GEMINI_SUMMARY_FAILED"
+      }, 502);
+    }
     return aiFailureResponse(error, "Could not prepare High-Yield Points right now. Your uploaded material is still saved; please try again later.");
   }
 };
