@@ -735,6 +735,10 @@ export default function MaterialsPanel() {
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
               </div>
             </div>
+            {selectedMaterial.summary.quickPreview&&<div className="study-quick-preview-banner" role="status">
+              <span className="study-preview-dot" aria-hidden="true"/>
+              <div><strong>Quick-start notes are ready</strong><p>You can begin with the original material highlights now. ClerkMe is still building the full explanations, mnemonics, clinical links and exam-focused guide.</p></div>
+            </div>}
             {!!selectedMaterial.summary.sections?.length&&<nav className="study-contents" aria-label="Study guide contents"><strong>In this guide</strong><div>{selectedMaterial.summary.sections.map((section,index)=><a key={index} href={`#study-section-${index+1}`}>{String(index+1).padStart(2,"0")} · {section.heading}</a>)}</div></nav>}
             <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
