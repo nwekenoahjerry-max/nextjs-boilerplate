@@ -109,7 +109,7 @@ export const onRequestPost = async (context:AppContext) => {
       "Never volunteer this examiner-only safety checklist: "+profile.safety.join("; "),
       "Specialty context: "+UNIT_FOCUS[unit],
       "When asked to begin the call, say only the opening statement above, in a natural patient voice, then wait quietly for the student's next question."
-    ].join("\\n\\n");
+    ].join("\n\n");
 
     const now=Date.now();
     const expireTime=new Date(now+12*60*1000).toISOString();
