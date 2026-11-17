@@ -3719,3 +3719,42 @@ body{background:var(--paper);color:var(--ink)}
 .video-library-player:focus{outline:3px solid rgba(231,179,79,.42);outline-offset:4px}
 
 .dashboard-path-step{grid-template-columns:29px minmax(0,1fr)!important}
+
+
+/* Structured memory aids and recommended lecture cards */
+.study-mnemonic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px}
+.study-mnemonic-card{border:1px solid #dce8e1;border-radius:14px;background:linear-gradient(145deg,#fbfdfb,#f3f8f4);padding:16px;min-width:0}
+.study-mnemonic-label{display:inline-flex;align-items:center;border-radius:999px;background:#e4f0e7;color:#2d6345;font-size:10px;font-weight:800;letter-spacing:.08em;padding:5px 9px}
+.study-mnemonic-card h4{margin:11px 0 8px;font-size:15px;color:#203b2d}
+.study-mnemonic-word{display:block;margin:0 0 10px;padding:11px 12px;border-radius:10px;background:#fff;border:1px solid #e0e9e2;color:#183b2a;font-size:17px;letter-spacing:.025em}
+.study-mnemonic-card ol{margin:0;padding-left:22px;display:grid;gap:7px}
+.study-mnemonic-card li{padding-left:3px;color:#34473c;line-height:1.55;font-size:13px}
+.study-mnemonic-card>p{margin:12px 0 0;color:#516257;font-size:12px;line-height:1.6}
+.study-mnemonic-card>small{display:block;margin-top:10px;color:#8b5d25;line-height:1.5}
+.study-video-best-match{display:inline-flex!important;width:max-content;border-radius:999px;background:#e6f0e8;color:#285c3d!important;padding:4px 8px;font-style:normal!important;font-size:9px!important;font-weight:800!important;letter-spacing:.07em;margin-bottom:6px}
+.study-video-result>span{min-width:0}
+.simulation-live-call-card{display:grid;gap:12px;border:1px solid #d5e4da;border-radius:16px;background:linear-gradient(135deg,#f7fbf8,#eef6f0);padding:16px;margin:0 0 18px}
+.simulation-live-call-main{display:flex;align-items:center;gap:13px;min-width:0}
+.simulation-live-call-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:0 0 44px;background:#dcebe0;color:#285d40;font-size:21px}
+.simulation-live-call-copy{min-width:0;flex:1}
+.simulation-live-call-copy strong{display:block;color:#1f3d2c;font-size:14px}
+.simulation-live-call-copy p{margin:4px 0 0;color:#65756a;font-size:12px;line-height:1.55}
+.simulation-live-call-timer{font-size:16px;font-weight:800;color:#234e35;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.simulation-live-call-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.simulation-live-call-start,.simulation-live-call-mute,.simulation-live-call-end{min-height:39px;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:750;transition:background .16s ease,transform .16s ease;cursor:pointer}
+.simulation-live-call-start{background:#244e37;color:#fff;border:1px solid #244e37}
+.simulation-live-call-start:hover:not(:disabled){background:#183d29;transform:translateY(-1px)}
+.simulation-live-call-start:disabled{opacity:.62;cursor:wait}
+.simulation-live-call-mute{background:#fff;border:1px solid #cbd9cf;color:#375342}
+.simulation-live-call-mute.is-muted{background:#fff5e9;border-color:#eed4ad;color:#87551e}
+.simulation-live-call-end{background:#fff;border:1px solid #e7c9c5;color:#984c42}
+.simulation-live-call-mute:hover,.simulation-live-call-end:hover{transform:translateY(-1px)}
+.simulation-live-call-notice{margin:0;border-radius:9px;background:rgba(255,255,255,.7);padding:9px 11px;color:#385743;font-size:12px;line-height:1.5}
+.simulation-live-call-privacy{margin:0;color:#79877d;font-size:10px;line-height:1.5}
+.simulation-live-call-card button:focus-visible{outline:3px solid rgba(37,94,61,.25);outline-offset:3px}
+@media(max-width:600px){
+  .simulation-live-call-card{padding:13px}
+  .simulation-live-call-main{align-items:flex-start}
+  .simulation-live-call-timer{font-size:14px}
+  .simulation-live-call-actions>*{flex:1}
+}
