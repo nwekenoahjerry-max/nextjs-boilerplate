@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 
 type Video = {
@@ -57,6 +57,7 @@ export default function VideoLibraryPanel() {
   const [savedFilter, setSavedFilter] = useState("all");
   const [savedSearch, setSavedSearch] = useState("");
   const [activeVideo, setActiveVideo] = useState<Video | null>(null);
+  const playerRef = useRef<HTMLElement>(null);
   const [movingId, setMovingId] = useState("");
 
   const unitName = (id: string) => clinicalUnits.find(item => item.id === id)?.name || id;
@@ -88,6 +89,13 @@ export default function VideoLibraryPanel() {
   };
 
   useEffect(() => { void loadSavedVideos(); }, []);
+  useEffect(() => {
+    if (!activeVideo) return;
+    const frame = window.requestAnimationFrame(() => {
+      playerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeVideo?.id, activeTab]);
 
   const searchVideos = async (event?: FormEvent) => {
     event?.preventDefault();
@@ -208,7 +216,7 @@ export default function VideoLibraryPanel() {
   };
 
   const player = activeVideo && (
-    <section className="video-library-player" aria-label="Video player">
+    <section className="video-library-player" aria-label="Video player" ref={playerRef} tabIndex={-1}>
       <div className="video-library-player-heading">
         <div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeVideo.title}</strong><small>{activeVideo.channelTitle}</small></div>
         <button type="button" className="video-library-close" onClick={() => setActiveVideo(null)}>Close player ×</button>
