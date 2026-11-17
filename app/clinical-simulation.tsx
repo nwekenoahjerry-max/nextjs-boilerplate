@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import LivePatientCall, { type LivePatientCallHandle, type LivePatientTurn, type LiveCallStatus } from "./live-patient-call";
 import { clinicalUnits } from "../lib/learning-content";
 import { simulationCaseOptions, type SimulationCaseOption } from "../lib/simulation-cases";
 
@@ -63,6 +64,8 @@ export default function ClinicalSimulation() {
   const recordingTimerRef = useRef<number | null>(null);
   const transcriptionControllerRef = useRef<AbortController | null>(null);
   const sessionEndedRef = useRef(false);
+  const livePatientCallRef = useRef<LivePatientCallHandle|null>(null);
+  const [liveCallActive,setLiveCallActive] = useState(false);
 
   const unitName = clinicalUnits.find(item => item.id === unit)?.name || unit;
   const unitCases = useMemo(() => simulationCaseOptions[unit] || [], [unit]);
@@ -281,6 +284,8 @@ export default function ClinicalSimulation() {
 
     const resetSession = () => {
     sessionEndedRef.current = false;
+    livePatientCallRef.current?.endCall(false);
+    setLiveCallActive(false);
     stopVoiceInput();
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setSessionEnded(false);
@@ -340,7 +345,7 @@ export default function ClinicalSimulation() {
 
   const askPatient = async () => {
     const prompt = question.trim();
-    if (!activeCase || prompt.length < 2 || loading) return;
+    if (!activeCase || prompt.length < 2 || loading || liveCallActive) return;
     setLoading(true);
     setLoadingMode("ask");
     setError("");
@@ -367,8 +372,9 @@ export default function ClinicalSimulation() {
     }
   };
 
-  const requestReview = async () => {
-    if (!activeCase || conversation.length < 2 || loading) return;
+  const requestReview = async (historyOverride?: Turn[]) => {
+    const reviewHistory = historyOverride || conversation;
+    if (!activeCase || reviewHistory.length < 2 || loading || (liveCallActive && !historyOverride)) return;
     setLoading(true);
     setLoadingMode("review");
     setError("");
@@ -377,7 +383,7 @@ export default function ClinicalSimulation() {
         unit,
         caseId: activeCase.id,
         intent: "review",
-        history: conversation,
+        history: reviewHistory,
         materialId: materialId || undefined,
       });
       const nextReview: CaseReview = {
@@ -410,9 +416,13 @@ export default function ClinicalSimulation() {
     setSessionEnded(true);
     setQuestion("");
     setVoiceNotice("");
+    const liveTurns = livePatientCallRef.current?.endCall(false) || [];
+    setLiveCallActive(false);
+    const finalHistory = [...conversation, ...liveTurns];
+    if (liveTurns.length) setConversation(current => [...current, ...liveTurns]);
     stopVoiceInput();
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
-    if (conversation.length >= 2 && !loading && !review) await requestReview();
+    if (finalHistory.length >= 2 && !loading && !review) await requestReview(finalHistory);
   };
 
   const renderList = (items: string[]) => items.length
@@ -497,6 +507,20 @@ export default function ClinicalSimulation() {
               <div><span className="eyebrow">HISTORY TAKING</span><h3>{activeCase.complaint}</h3></div>
               <div className="simulation-turn-count"><strong>{turnCount}</strong><span>questions asked</span></div>
             </div>
+            <LivePatientCall
+              ref={livePatientCallRef}
+              unit={unit}
+              caseId={activeCase.id}
+              sex={activeCase.sex}
+              openingMessage={activeCase.openingMessage}
+              onStatusChange={(status: LiveCallStatus)=>setLiveCallActive(status!=="idle")}
+              onTurns={(turns: LivePatientTurn[])=>{
+                setConversation(current=>[...current,...turns]);
+                const studentTurns=turns.filter(turn=>turn.role==="student").length;
+                if(studentTurns) setTurnCount(current=>current+studentTurns);
+                setReview(null);
+              }}
+            />
             <div className="simulation-chat-log" role="log" aria-live="polite" aria-relevant="additions text">
               <div className="simulation-chat-intro">
                 <div className="simulation-chat-message-meta"><span className="simulation-chat-person">{activeCase.role}</span><button className="simulation-play-voice" type="button" onClick={() => speakPatient(activeCase.openingMessage)} disabled={!patientVoiceEnabled}>▶ Listen</button></div>
@@ -517,9 +541,9 @@ export default function ClinicalSimulation() {
 
             {!sessionEnded ? <form className="simulation-question-form" onSubmit={event => { event.preventDefault(); askPatient(); }}>
               <label htmlFor="patient-question">Ask or speak to the patient</label>
-              <textarea id="patient-question" rows={3} value={question} onChange={event => setQuestion(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); askPatient(); } }} placeholder="Type a question, or use the microphone to ask it aloud…" disabled={loading || isListening || isStartingVoice || isTranscribing}/>
+              <textarea id="patient-question" rows={3} value={question} onChange={event => setQuestion(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); askPatient(); } }} placeholder="Type a question, or use the microphone to ask it aloud…" disabled={loading || isListening || isStartingVoice || isTranscribing || liveCallActive}/>
               <div className="simulation-voice-controls">
-                <button className={isListening ? "simulation-voice-button listening" : "simulation-voice-button"} type="button" onClick={startVoiceInput} disabled={loading || isTranscribing || isStartingVoice}>
+                <button className={isListening ? "simulation-voice-button listening" : "simulation-voice-button"} type="button" onClick={startVoiceInput} disabled={loading || isTranscribing || isStartingVoice || liveCallActive}>
                   <span aria-hidden="true">{isListening ? "■" : isStartingVoice || isTranscribing ? "…" : "🎙"}</span> {isListening ? "Stop & transcribe" : isStartingVoice ? "Requesting access…" : isTranscribing ? "Transcribing…" : "Record question"}
                 </button>
                 <button className={patientVoiceEnabled ? "simulation-patient-voice-toggle active" : "simulation-patient-voice-toggle"} type="button" onClick={() => { if (patientVoiceEnabled && typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel(); setPatientVoiceEnabled(value => !value); }} aria-pressed={patientVoiceEnabled}>
@@ -530,7 +554,7 @@ export default function ClinicalSimulation() {
               {voiceNotice && <p className="simulation-voice-notice" role="status">{voiceNotice}</p>}
               <div className="simulation-question-form-footer">
                 <span>Type or speak your question. Press Enter to send or Shift + Enter for a new line.</span>
-                <button className="primary-button" type="submit" disabled={loading || isListening || isStartingVoice || isTranscribing || question.trim().length < 2}>{loadingMode === "ask" ? "Waiting for patient…" : "Send question"} <span>→</span></button>
+                <button className="primary-button" type="submit" disabled={loading || isListening || isStartingVoice || isTranscribing || liveCallActive || question.trim().length < 2}>{loadingMode === "ask" ? "Waiting for patient…" : "Send question"} <span>→</span></button>
               </div>
             </form> : <div className="simulation-ended-panel">
               <div><span className="eyebrow">SESSION ENDED</span><h3>Your interview has ended</h3><p>{review ? "Your structured review is ready below. Print the case presentation whenever you are ready." : conversation.length < 2 ? "You ended the interview before enough questions were asked for a structured review. You can still print the case and transcript." : loading ? "Your structured review is being prepared." : "The interview has ended. You can print the case presentation or generate a review from the conversation."}</p></div>
@@ -559,7 +583,7 @@ export default function ClinicalSimulation() {
 
           <div className="simulation-session-footer">
             <span>Fictional educational case · Do not enter identifiable real patient information</span>
-            <div className="simulation-footer-actions"><button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button><button className="text-link" type="button" onClick={requestReview} disabled={loading || conversation.length < 2 || Boolean(review)}>
+            <div className="simulation-footer-actions"><button className="secondary-button" type="button" onClick={openPrintOptions}>Print case</button><button className="text-link" type="button" onClick={requestReview} disabled={loading || liveCallActive || conversation.length < 2 || Boolean(review)}>
               {loadingMode === "review" ? "Reviewing your history…" : review ? "Review complete" : "Review my history"} <span>→</span>
             </button></div>
           </div>
