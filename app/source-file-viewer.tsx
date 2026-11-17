@@ -1,23 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 
-const PowerPointViewer = dynamic(
-  () => import("pptx-react-viewer").then(module => module.PowerPointViewer),
-  { ssr: false, loading: () => <div className="source-preview-loading">Preparing the PowerPoint viewer…</div> }
-);
-const WordEditor = dynamic(
-  () => import("docx-react-viewer").then(module => module.WordEditor),
-  { ssr: false, loading: () => <div className="source-preview-loading">Preparing the Word viewer…</div> }
-);
+type Props = {
+  materialId: string;
+  fileName: string;
+  mimeType: string | null;
+};
 
-type Props = { materialId: string; fileName: string; mimeType: string | null; };
 type ViewerMode = "pdf" | "powerpoint" | "word" | "text" | "image" | "download";
 
+function formatBytes(bytes?: number | null) {
+  if (!bytes || bytes < 1) return "";
+  if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 export default function SourceFileViewer({ materialId, fileName, mimeType }: Props) {
-  const [bytes, setBytes] = useState<Uint8Array | null>(null);
-  const [wordModel, setWordModel] = useState<any>(null);
   const [textContent, setTextContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,11 +36,9 @@ export default function SourceFileViewer({ materialId, fileName, mimeType }: Pro
 
   useEffect(() => {
     let cancelled = false;
-    setBytes(null);
-    setWordModel(null);
     setTextContent("");
     setError("");
-    if (mode === "pdf" || mode === "image" || mode === "download") return;
+    if (mode !== "text") return;
     setLoading(true);
     fetch(sourceUrl, { credentials: "same-origin", cache: "no-store" })
       .then(async response => {
@@ -49,27 +46,13 @@ export default function SourceFileViewer({ materialId, fileName, mimeType }: Pro
           const data = await response.json().catch(() => ({}));
           throw new Error(data.error || "The original file could not be loaded.");
         }
-        return response.arrayBuffer();
+        return response.text();
       })
-      .then(async buffer => {
-        if (cancelled) return;
-        const fileBytes = new Uint8Array(buffer);
-        if (mode === "powerpoint") {
-          setBytes(fileBytes);
-        } else if (mode === "text") {
-          setTextContent(new TextDecoder().decode(fileBytes));
-        } else if (mode === "word") {
-          const parser = await import("docx-vanilla-viewer");
-          const loaded = await parser.loadDocument(fileBytes);
-          if (!cancelled) setWordModel(loaded.model);
-        }
-      })
+      .then(content => { if (!cancelled) setTextContent(content); })
       .catch(problem => {
         if (!cancelled) setError(problem instanceof Error ? problem.message : "The original document could not be previewed.");
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [mode, sourceUrl]);
 
@@ -79,24 +62,50 @@ export default function SourceFileViewer({ materialId, fileName, mimeType }: Pro
         <div>
           <span className="eyebrow">ORIGINAL UPLOADED FILE</span>
           <strong>{fileName}</strong>
-          <small>Stored in private R2 storage · Original file is not converted or overwritten</small>
+          <small>{formatBytes((window as any).__CLERKME_SOURCE_SIZE__) || "Original file"} · Stored privately; source file is not converted or overwritten</small>
         </div>
-        <a className="secondary-button source-download-button" href={downloadUrl}>Download original</a>
+        <a className="secondary-button source-download-button" href={downloadUrl} download={fileName}>Download original</a>
       </div>
 
-      {mode === "pdf" && <iframe className="source-pdf-frame" title={"Original PDF: " + fileName} src={sourceUrl + "#toolbar=1&navpanes=0&view=FitH"} />}
-      {mode === "image" && <div className="source-image-frame"><img src={sourceUrl} alt={"Original image file: " + fileName} /></div>}
-      {loading && <div className="source-preview-loading">Loading your original document…</div>}
+      {mode === "pdf" && (
+        <iframe
+          className="source-pdf-frame"
+          title={"Original PDF: " + fileName}
+          src={sourceUrl + "#toolbar=1&navpanes=0&view=FitH"}
+        />
+      )}
+      {mode === "image" && (
+        <div className="source-image-frame"><img src={sourceUrl} alt={"Original image file: " + fileName} /></div>
+      )}
+      {mode === "powerpoint" && (
+        <div className="source-office-file-preview">
+          <div className="source-office-file-icon" aria-hidden="true">PPT</div>
+          <div>
+            <strong>Your original PowerPoint presentation is preserved</strong>
+            <p>ClerkMe stores this exact .{extension} file. It does not turn your slides into plain text, PDF pages or screenshots. Download the original presentation to open it in Microsoft PowerPoint with its original slide design, images, fonts, animations and transitions.</p>
+            <a className="secondary-button" href={downloadUrl} download={fileName}>Download original PowerPoint</a>
+          </div>
+        </div>
+      )}
+      {mode === "word" && (
+        <div className="source-office-file-preview">
+          <div className="source-office-file-icon source-word-file-icon" aria-hidden="true">DOC</div>
+          <div>
+            <strong>Your original Word document is preserved</strong>
+            <p>ClerkMe stores the original .{extension} file without rewriting its page layout or formatting. Download it to open in Microsoft Word.</p>
+            <a className="secondary-button" href={downloadUrl} download={fileName}>Download original Word document</a>
+          </div>
+        </div>
+      )}
+      {loading && <div className="source-preview-loading">Loading your original text file…</div>}
       {error && <div className="source-preview-error" role="alert">{error}</div>}
-      {mode === "powerpoint" && bytes && !loading && !error && (
-        <div className="source-powerpoint-frame"><PowerPointViewer content={bytes} fileName={fileName} /></div>
-      )}
-      {mode === "word" && wordModel && !loading && !error && (
-        <div className="source-word-frame"><WordEditor documentModel={wordModel} readOnly /></div>
-      )}
       {mode === "text" && !loading && !error && <pre className="source-text-frame">{textContent}</pre>}
-      {mode === "download" && <div className="source-preview-fallback"><p>This file is stored in its original format. Use the button above to open it with a compatible application.</p></div>}
-      <p className="source-preview-note">The preview is rendered by your browser. Download the original file whenever you need the exact desktop PowerPoint, Word or PDF experience.</p>
+      {mode === "download" && (
+        <div className="source-preview-fallback">
+          <p>This file is kept in its original format. Download it to open with a compatible application.</p>
+        </div>
+      )}
+      <p className="source-preview-note">PDF files can be viewed in ClerkMe. PowerPoint and Word files remain in their native Office formats and are downloaded unchanged for viewing in their original applications.</p>
     </div>
   );
 }
