@@ -101,7 +101,7 @@ export default function Home() {
   const [copyNotice,setCopyNotice]=useState("");
   const [organiseMissing,setOrganiseMissing]=useState<string[]>([]);
   const [organiseUnclear,setOrganiseUnclear]=useState<string[]>([]);
-  const [streakData,setStreakData]=useState<{streak:number;bestStreak:number;activeDays:number;todayActive:boolean}>({streak:0,bestStreak:0,activeDays:0,todayActive:false});
+  const [streakData,setStreakData]=useState<{today:string;streak:number;bestStreak:number;activeDays:number;todayActive:boolean;recentDates:string[]}>({today:"",streak:0,bestStreak:0,activeDays:0,todayActive:false,recentDates:[]});
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
@@ -119,6 +119,24 @@ export default function Home() {
   const clerkingFormRef = useRef<HTMLDivElement>(null);
   const selectedTemplate = templates.find(template => template.id === selectedSpecialty) || templates[0];
   const selectedTemplateFramework = unitClerkingFrameworks[selectedSpecialty];
+  const learningWeek = useMemo(() => {
+    if (!streakData.today) return [];
+    const today = new Date(streakData.today + "T00:00:00Z");
+    const monday = new Date(today);
+    monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+    const activeDates = new Set(streakData.recentDates || []);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(monday);
+      date.setUTCDate(monday.getUTCDate() + index);
+      const key = date.toISOString().slice(0, 10);
+      return {
+        key,
+        label: new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "UTC" }).format(date),
+        active: activeDates.has(key),
+        today: key === streakData.today
+      };
+    });
+  }, [streakData.today, streakData.recentDates]);
   const [hpc, setHpc] = useState("");
   const [pastHistory, setPastHistory] = useState("");
   const [medications, setMedications] = useState("");
@@ -316,21 +334,93 @@ export default function Home() {
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><a className="profile-top-link" href="/profile">My profile</a><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span>{authUser ? <button ref={signOutTriggerRef} type="button" className="help-button" aria-label="Sign out" title="Sign out" onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>↪</button> : <a className="sign-in-link" href="/login">Sign in</a>}<div className="avatar small-avatar">{authUser?.name?.[0] || "C"}</div></div></header>
         <div className="content">
           {active === "overview" && <>
-            <div className="welcome-row"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Welcome, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.<br className="desktop-break"/> Ready to sharpen your clinical skills?</h1><p className="subheading">A calmer, more structured way to learn the art of clinical clerking.</p></div><div className="date-chip"><span>•</span> Learn • Practise • Improve</div></div>
-            <div className="activity-streak-card"><div className="streak-flame">◉</div><div><strong>{streakData.streak} day learning streak</strong><span>{authUser?(streakData.todayActive?"You have checked in today. Keep learning tomorrow.":"Your learning activity will update when you open ClerkMe."):"Sign in to track your daily learning streak."}</span></div><div className="streak-record"><small>PERSONAL BEST</small><b>{streakData.bestStreak} days</b></div></div>
-            <div className="hero-card"><div className="hero-copy"><span className="hero-kicker">YOUR NEXT PATIENT STARTS HERE</span><h2>Every great diagnosis<br/>begins with a good history.</h2><p>Capture the story. Examine with purpose. Organise your findings. Practise clinical reasoning with a clear structure.</p><button className="primary-button" onClick={() => startClerking()}>Start a new clerking <span>→</span></button></div><div className="hero-art"><div className="orbit orbit-one"></div><div className="orbit orbit-two"></div><div className="medical-cross">✚</div><div className="art-note note-one"><span>01</span> History</div><div className="art-note note-two"><span>02</span> Examination</div><div className="art-note note-three"><span>03</span> Assessment</div></div></div>
-            <div className="section-heading"><div><h2>Your clinical workspace</h2><p>Move from structured clerking to active recall, simulation and independent learning.</p></div><button type="button" className="text-link" onClick={() => selectSection("guides")}>Explore clinical guides <span>→</span></button></div>
-            <div className="tool-grid">
-              <button className="tool-card" onClick={() => startClerking()}><span className="tool-icon mint">＋</span><span className="tool-title">Clinical clerking</span><span className="tool-desc">Take a complete, organised patient history.</span><span className="tool-arrow">↗</span></button>
-              <button type="button" className="tool-card" onClick={() => selectSection("guides")}><span className="tool-icon sand">▤</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh key concepts and examination steps.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("osce")}><span className="tool-icon lilac">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Prepare for practical and oral examinations.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("qbank")}><span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Test your knowledge with clinical questions.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("materials")}><span className="tool-icon mint">▧</span><span className="tool-title">My materials</span><span className="tool-desc">Upload lectures, build clear summaries and ask source-based questions.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("simulation")}><span className="tool-icon lilac">◉</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Work through fictional cases and get examiner-style feedback.</span><span className="tool-arrow">↗</span></button>
-              <button className="tool-card" onClick={() => setActive("game")}><span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Practise with questions adapted to your unit and study materials.</span><span className="tool-arrow">↗</span></button>
+            <div className="welcome-row dashboard-welcome">
+              <div>
+                <div className="eyebrow">YOUR CLINICAL WORKSPACE</div>
+                <h1>Good to see you, {authUser?.name?.trim().split(/\\s+/)[0] || "there"}.</h1>
+                <p className="subheading">What would you like to work on today?</p>
+              </div>
+              <div className="date-chip"><span>●</span> Learn · Practise · Progress</div>
             </div>
-            <div className="lower-grid"><section className="panel"><div className="panel-heading"><div><h3>Popular clerking templates</h3><p>Choose a structure to guide your assessment.</p></div><button className="text-link" onClick={() => { setActive("clerking"); setShowNew(false); }}>See all →</button></div><div className="template-list">{templates.map(t => <button className="template-row" key={t.title} onClick={() => startClerking(t.id)}><span className="template-icon">{t.icon}</span><span className="template-info"><strong>{t.title}</strong><small>{t.detail}</small></span><span className="template-tag">{t.tag}</span><span className="row-arrow">↗</span></button>)}</div></section></div>
-            <footer className="footer-note">ClerkMe is a learning and documentation companion. Clinical decisions must always be made by a qualified healthcare professional.</footer>
+
+            <section className="dashboard-hero" aria-label="Start a learning session">
+              <div className="dashboard-hero-copy">
+                <span className="hero-kicker">CLERK · LEARN · PRACTISE</span>
+                <h2>Build clinical confidence,<br/>one focused session at a time.</h2>
+                <p>Start a structured patient history, revisit a lecture or practise the clinical decisions that matter.</p>
+                <div className="dashboard-hero-actions">
+                  <button type="button" className="primary-button" onClick={() => startClerking()}>Start clinical clerking <span>→</span></button>
+                  <button type="button" className="dashboard-hero-secondary" onClick={() => selectSection("materials")}>Study my lectures <span>↗</span></button>
+                </div>
+              </div>
+              <div className="dashboard-hero-path" aria-label="Your learning cycle">
+                <div className="dashboard-path-heading"><span>YOUR LEARNING CYCLE</span><b>01—04</b></div>
+                <div className="dashboard-path-step"><span>01</span><div><strong>Prepare</strong><small>Review a guide or lecture</small></div><i>↗</i></div>
+                <div className="dashboard-path-step"><span>02</span><div><strong>Practise</strong><small>Clerking, OSCE and viva</small></div><i>↗</i></div>
+                <div className="dashboard-path-step"><span>03</span><div><strong>Test yourself</strong><small>Questions and simulation</small></div><i>↗</i></div>
+                <div className="dashboard-path-step"><span>04</span><div><strong>Reflect</strong><small>Review and improve</small></div><i>✓</i></div>
+              </div>
+            </section>
+
+            <section className="learning-rhythm" aria-label="Your learning activity">
+              <div className="learning-rhythm-main">
+                <div className="eyebrow">YOUR LEARNING RHYTHM</div>
+                <h2>Consistency builds confidence.</h2>
+                <p>{streakData.todayActive ? "You have checked in today. Keep the momentum going." : "Short, regular study sessions make it easier to retain what you learn."}</p>
+                <div className="learning-rhythm-metrics">
+                  <div><strong>{streakData.streak}</strong><span>Current streak</span></div>
+                  <div><strong>{streakData.bestStreak}</strong><span>Personal best</span></div>
+                  <div><strong>{streakData.activeDays}</strong><span>Days active</span></div>
+                </div>
+              </div>
+              <div className="learning-week">
+                <div className="learning-week-heading"><strong>This week</strong><span>Daily check-ins</span></div>
+                <div className="learning-week-days">
+                  {learningWeek.map(day => <div className={day.active ? "learning-week-day active" : day.today ? "learning-week-day today" : "learning-week-day"} key={day.key} aria-label={day.label + (day.active ? ", active" : ", no activity recorded")}>
+                    <span>{day.label}</span><i>{day.active ? "✓" : "·"}</i>
+                  </div>)}
+                </div>
+                <small className="learning-week-note">{streakData.todayActive ? "Today's learning activity is recorded." : "Your day is counted when you use ClerkMe."}</small>
+              </div>
+            </section>
+
+            <div className="section-heading dashboard-section-heading">
+              <div><h2>Choose your next step</h2><p>Jump straight into the tool that matches what you want to practise.</p></div>
+              <button type="button" className="text-link" onClick={() => selectSection("guides")}>Explore clinical guides <span>→</span></button>
+            </div>
+            <div className="tool-grid dashboard-tool-grid">
+              <button type="button" className="tool-card" onClick={() => startClerking()}>
+                <span className="tool-icon mint">＋</span><span className="tool-title">Clinical clerking</span><span className="tool-desc">Take a complete, organised patient history with specialty-specific templates.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("materials")}>
+                <span className="tool-icon blue">▧</span><span className="tool-title">My study materials</span><span className="tool-desc">Upload lectures, build detailed notes and ask questions from your source.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("videos")}>
+                <span className="tool-icon lilac">▶</span><span className="tool-title">Video library</span><span className="tool-desc">Find useful lectures and organise videos into your own collections.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("osce")}>
+                <span className="tool-icon sand">◉</span><span className="tool-title">OSCE & Viva</span><span className="tool-desc">Prepare for practical stations and focused oral examinations.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("qbank")}>
+                <span className="tool-icon blue">▦</span><span className="tool-title">Question bank</span><span className="tool-desc">Use active recall with clinical questions organised by topic and difficulty.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("simulation")}>
+                <span className="tool-icon lilac">◈</span><span className="tool-title">Clinical simulation</span><span className="tool-desc">Work through fictional patient encounters and review your reasoning.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("guides")}>
+                <span className="tool-icon mint">✚</span><span className="tool-title">Clinical guides</span><span className="tool-desc">Refresh assessment steps, red flags and specialty-based questions.</span><span className="tool-arrow">↗</span>
+              </button>
+              <button type="button" className="tool-card" onClick={() => selectSection("game")}>
+                <span className="tool-icon sand">✈</span><span className="tool-title">Flight Academy</span><span className="tool-desc">Make revision interactive with timed, question-led practice.</span><span className="tool-arrow">↗</span>
+              </button>
+            </div>
+            <div className="lower-grid dashboard-lower-grid">
+              <section className="panel">
+                <div className="panel-heading"><div><h3>Start with a clerking template</h3><p>Choose a structure that fits the patient encounter you are practising.</p></div><button type="button" className="text-link" onClick={() => selectSection("clerking")}>All templates →</button></div>
+                <div className="template-list">{templates.map(t => <button type="button" className="template-row" key={t.title} onClick={() => startClerking(t.id)}><span className="template-icon">{t.icon}</span><span className="template-info"><strong>{t.title}</strong><small>{t.detail}</small></span><span className="template-tag">{t.tag}</span><span className="row-arrow">↗</span></button>)}</div>
+              </section>
+            </div>
+            <footer className="footer-note">ClerkMe is an educational learning companion. It supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
           </>}
 
           {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
