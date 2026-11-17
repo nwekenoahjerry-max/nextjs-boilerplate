@@ -337,7 +337,7 @@ export default function Home() {
             <div className="welcome-row dashboard-welcome">
               <div>
                 <div className="eyebrow">YOUR CLINICAL WORKSPACE</div>
-                <h1>Good to see you, {authUser?.name?.trim().split(/\\s+/)[0] || "there"}.</h1>
+                <h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
                 <p className="subheading">What would you like to work on today?</p>
               </div>
               <div className="date-chip"><span>●</span> Learn · Practise · Progress</div>
