@@ -2,60 +2,86 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 
 
-const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_GENERATE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+const GEMINI_MODEL = "gemini-3.1-flash-lite";
+const GEMINI_FALLBACK_MODELS = ["gemini-3.5-flash-lite"] as const;
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
 type GeminiGenerateResponse = {
   candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
   error?: { message?: string; status?: string; code?: number };
   usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
 };
-async function requestGeminiStudyGuide(apiKey: string, messages: ReadonlyArray<{ role: string; content: string }>, attempts = 5): Promise<string> {
+
+async function requestGeminiStudyGuide(
+  apiKey: string,
+  messages: ReadonlyArray<{ role: string; content: string }>,
+  attempts = 3
+): Promise<string> {
   const system = messages.find(message => message.role === "system")?.content || "";
-  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
-  for (let attempt = 0; attempt < attempts; attempt++) {
-    let response: Response;
-    let data: GeminiGenerateResponse = {};
-    try {
-      response = await fetch(GEMINI_GENERATE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: "user", parts: [{ text: user }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 24000, responseMimeType: "application/json" }
-        }),
-        signal: AbortSignal.timeout(180000)
-      });
-      data = await response.json().catch(() => ({})) as GeminiGenerateResponse;
-    } catch (error) {
-      if (attempt === attempts - 1) {
-        const detail = error instanceof Error ? error.message : "Network request failed.";
-        throw new Error(/abort|timeout/i.test(detail)
-          ? "GEMINI_TIMEOUT: The study-generation request timed out while waiting for Gemini."
-          : "GEMINI_NETWORK_ERROR: Could not reach the Gemini API. " + detail.slice(0, 180));
-      }
-      await new Promise(resolve => setTimeout(resolve, Math.min(8000, 1500 * (2 ** attempt))));
-      continue;
-    }
-    if (!response.ok) {
-      const providerMessage = typeof data.error?.message === "string" ? data.error.message.slice(0, 450) : "";
-      if (GEMINI_RETRYABLE_STATUSES.has(response.status) && attempt < attempts - 1) {
-        const retryAfter = Number(response.headers.get("retry-after"));
-        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(15000, Math.max(1500, retryAfter * 1000)) : Math.min(8000, 1500 * (2 ** attempt));
-        await new Promise(resolve => setTimeout(resolve, waitMs));
+  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\\n\\n");
+  const models = [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS];
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      let response: Response;
+      let data: GeminiGenerateResponse = {};
+      try {
+        response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 24000, responseMimeType: "application/json" }
+          }),
+          signal: AbortSignal.timeout(180000)
+        });
+        data = await response.json().catch(() => ({})) as GeminiGenerateResponse;
+      } catch (error) {
+        if (attempt === attempts - 1) {
+          const detail = error instanceof Error ? error.message : "Network request failed.";
+          throw new Error(/abort|timeout/i.test(detail)
+            ? "GEMINI_TIMEOUT: The study-generation request timed out while waiting for Gemini."
+            : "GEMINI_NETWORK_ERROR: Could not reach the Gemini API. " + detail.slice(0, 180));
+        }
+        await new Promise(resolve => setTimeout(resolve, Math.min(8000, 1500 * (2 ** attempt))));
         continue;
       }
-      throw new Error("GEMINI_HTTP_" + response.status + ": " + (providerMessage || "Google rejected the Gemini request."));
+
+      if (!response.ok) {
+        const providerMessage = typeof data.error?.message === "string" ? data.error.message.slice(0, 450) : "";
+        const unavailable = response.status === 503 || data.error?.status === "UNAVAILABLE";
+        if (unavailable && model !== models[models.length - 1]) {
+          console.warn("[ClerkMe] Gemini model unavailable; trying the next configured model.", {
+            model, fallbackModel: models[models.indexOf(model) + 1], status: response.status
+          });
+          break;
+        }
+        if (GEMINI_RETRYABLE_STATUSES.has(response.status) && attempt < attempts - 1) {
+          const retryAfter = Number(response.headers.get("retry-after"));
+          const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(15000, Math.max(1500, retryAfter * 1000))
+            : Math.min(8000, 1500 * (2 ** attempt));
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+          continue;
+        }
+        throw new Error("GEMINI_HTTP_" + response.status + ": " + (providerMessage || "Google rejected the Gemini request."));
+      }
+
+      const candidate = data.candidates?.[0];
+      const outputText = candidate?.content?.parts?.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\\n").trim() || "";
+      const finishReason = typeof candidate?.finishReason === "string" ? candidate.finishReason.toUpperCase() : "";
+      if (finishReason === "MAX_TOKENS") {
+        throw new Error("GEMINI_OUTPUT_TRUNCATED: Gemini reached the response-length limit before completing the study guide.");
+      }
+      if (!outputText) {
+        throw new Error("GEMINI_EMPTY_RESPONSE: Gemini returned no study-guide content (" + (finishReason || "no candidate text") + ").");
+      }
+      console.info("[ClerkMe] Study guide generated successfully.", { model, usage: data.usageMetadata || null });
+      return outputText;
     }
-    const candidate = data.candidates?.[0];
-    const outputText = candidate?.content?.parts?.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\n").trim() || "";
-    const finishReason = typeof candidate?.finishReason === "string" ? candidate.finishReason.toUpperCase() : "";
-    if (finishReason === "MAX_TOKENS") throw new Error("GEMINI_OUTPUT_TRUNCATED: Gemini reached the response-length limit before completing the study guide.");
-    if (!outputText) throw new Error("GEMINI_EMPTY_RESPONSE: Gemini returned no study-guide content (" + (finishReason || "no candidate text") + ").");
-    return outputText;
   }
-  throw new Error("GEMINI_REQUEST_FAILED: The study-generation request could not be completed.");
+  throw new Error("GEMINI_MODELS_UNAVAILABLE: All configured Gemini models are temporarily unavailable.");
 }
 
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
