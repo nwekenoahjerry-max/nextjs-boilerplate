@@ -425,6 +425,7 @@ ${material.content_text}
     const rateLimited = /GEMINI_HTTP_429|rate limit|too many requests|quota|RESOURCE_EXHAUSTED/i.test(detail);
     const authFailure = /GEMINI_HTTP_400|GEMINI_HTTP_401|GEMINI_HTTP_403|API_KEY_INVALID|invalid api.?key|unauthori[sz]ed/i.test(detail);
     const timedOut = /GEMINI_TIMEOUT|abort|timeout/i.test(detail);
+    const modelsUnavailable = /GEMINI_MODELS_UNAVAILABLE|GEMINI_HTTP_503|UNAVAILABLE/i.test(detail);
     const message = missingBalance
       ? "Google reports that Gemini is unavailable for this API project or its billing quota is exhausted. Check the Gemini API project and billing settings. Your uploaded material is safe."
       : rateLimited
@@ -433,13 +434,15 @@ ${material.content_text}
           ? "Google Gemini did not accept the API key. Check that GEMINI_API_KEY is saved as an encrypted Cloudflare secret in the production environment and that the key is enabled for the Gemini API."
           : timedOut
             ? "Gemini took too long to complete this study guide. Your uploaded material is safe; retry, or split a very long lecture into smaller parts."
-            : /GEMINI_OUTPUT_TRUNCATED/.test(detail)
+            : modelsUnavailable
+              ? "Google's Gemini Flash-Lite models are temporarily at capacity. ClerkMe tried its backup model too; your uploaded material is safe. Please retry shortly."
+              : /GEMINI_OUTPUT_TRUNCATED/.test(detail)
               ? "Gemini reached its output-length limit before completing the guide. Your upload is safe; retry with a smaller lecture section."
               : "ClerkMe could not complete the Gemini study guide. Your uploaded material is safe. Please retry shortly.";
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(message, jobId, user.id).run().catch(() => undefined);
-    const status = rateLimited ? 429 : timedOut ? 504 : 502;
-    return json({ error: message, code: missingBalance ? "GEMINI_BILLING_OR_QUOTA" : authFailure ? "GEMINI_AUTH_FAILED" : rateLimited ? "GEMINI_RATE_LIMITED" : timedOut ? "GEMINI_TIMEOUT" : "GEMINI_GENERATION_FAILED", retryable: !authFailure && !missingBalance }, status);
+    const status = rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
+    return json({ error: message, code: missingBalance ? "GEMINI_BILLING_OR_QUOTA" : authFailure ? "GEMINI_AUTH_FAILED" : rateLimited ? "GEMINI_RATE_LIMITED" : timedOut ? "GEMINI_TIMEOUT" : modelsUnavailable ? "GEMINI_MODELS_UNAVAILABLE" : "GEMINI_GENERATION_FAILED", retryable: !authFailure && !missingBalance }, status);
   }
 };
