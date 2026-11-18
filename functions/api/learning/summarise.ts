@@ -32,7 +32,12 @@ async function requestGeminiStudyGuide(
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: system }] },
             contents: [{ role: "user", parts: [{ text: user }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: 24000, responseMimeType: "application/json" }
+            generationConfig: {
+              temperature: 0.2,
+              maxOutputTokens: 24000,
+              responseMimeType: "application/json",
+              thinkingConfig: { thinkingLevel: "MINIMAL" }
+            }
           }),
           signal: AbortSignal.timeout(180000)
         });
@@ -360,30 +365,16 @@ Return a JSON object with this exact shape:
   "unclearOrMissing": ["Important topic that is unclear, incomplete or absent in the source and should be checked."],
   "sourceCoverage": ["Major source topics represented in the summary."],
   "disclaimer": "A short note that these notes are based on the uploaded source and should be checked against current local guidance where relevant."
-}
-
-Quality requirements:
-- Organise the whole guide as a memorable teaching chapter: start with orientation and learning objectives, give a concise high-yield overview, teach the topic in numbered major sections with clearly named subsections, then finish with exam revision, videos, memory aids and quick self-testing.
-- The highYieldPoints array is a core deliverable, not an optional add-on. Aim for 12-20 high-value points when the source contains enough material. Make each point useful on its own: include the key fact plus the reason, mechanism, clinical implication, distinguishing feature or examination trap. Avoid vague fragments such as a diagnosis name without an explanation.
-- Use a consistent learning sequence where appropriate: definition → classification → causes/risk factors → pathophysiology → clinical features → investigations/diagnosis → management → complications/prognosis/prevention. Reorder or omit headings when the topic or uploaded source requires it; never invent unsupported content.
-- Use clear hierarchy and scannable headings. Give every major section a short orientation and then detailed subsections with connected explanations, not a wall of bullets. Use bold conceptual labels within prose only when it improves navigation.
-- This must read like a compact but substantial high-yield teaching chapter, not a shortened lecture summary. A student should be able to learn the central concepts from these notes, understand the mechanisms and use the notes for revision without losing important detail.
-- Include enough major sections to cover all headings and important subtopics in the source. Do not merge unrelated topics into one broad section.
-- For every major section, create focused subsections that explain the topic in depth. Use as many as the source requires; usually 2-6 meaningful subsections where appropriate. A subsection should teach the concept, not merely name it.
-- Where supported by the source, organise subsections around definitions, classification, aetiology and risk factors, pathophysiology, clinical features, investigations, diagnostic approach, management principles, complications, prognosis, prevention and relevant special situations. Omit categories that are not relevant or not covered by the source.
-- Distinguish core explanations from examination checkpoints. Explain abbreviations, important terms and the reasoning behind steps. Preserve important exceptions, contraindications, distinctions and numerical criteria found in the document.
-- For difficult mechanisms, explain the sequence and cause-and-effect rather than listing terms.
-- Avoid thin summaries: do not reduce a full lecture to a few bullet points. Aim for a usable revision chapter that a student can study from, while clearly marking content that the source does not provide.
-- Make useful comparison tables for genuine contrasts such as classifications, differentials, investigations or treatment options. Do not invent tables just to fill space.
-- Include flowcharts only for processes or pathways that genuinely have an order; do not invent a clinical algorithm.
-- Provide up to 2 visual aids only when a picture would genuinely improve understanding. Prioritise a major anatomical relationship, physiological mechanism, pathophysiological sequence or clinically relevant process that is actually described in the source. Do not force an illustration for a topic that is better taught in words or a table.
-- Write each visualPrompt for a clean, professional undergraduate medical textbook schematic on a light background. Keep the anatomy or mechanism simple and source-grounded; use clear visual separation, restrained colours and a coherent composition. Do not ask the image model to render text, labels, arrows with words, letters, numbers, legends, logos or watermarks; ClerkMe will display the title and explanation separately.
-- Do not request a fabricated X-ray, MRI, CT, ECG tracing, histology slide, laboratory result or patient photograph. Do not depict unsupported anatomy, findings, treatment devices or disease mechanisms. Prefer conceptual schematic illustrations over apparent diagnostic evidence.
-- Create 3-5 focused YouTube recommendations for the most difficult or high-value topics. Choose a specific topic for each recommendation, explain what the student should learn from it, and select only Osmosis, Zero to Finals or Geeky Medics as the suggested channel. ClerkMe will search YouTube and surface actual playable videos; do not invent video titles or URLs.
-- Create mnemonics when they genuinely improve recall. Prefer short, clinically accurate mnemonics for classifications, causes, criteria, differentials, steps or complications. Explain every letter/element. Never force a mnemonic, distort a fact to make it fit, or use a mnemonic that conflicts with the source. Return an empty array when no reliable mnemonic is appropriate.
-- Distinguish "must know" from "useful extra detail", and finish explanations with the key examination or clinical takeaway where possible.
-- Include exam-focus material only when it can be grounded in the uploaded source. Do not claim to predict the actual examination.
-- Use empty arrays when a category is not relevant. Never fill a section with unsupported general medical knowledge.
+}Quality and completeness:
+- Treat the uploaded lecture as the source of truth. Preserve its major topics, explanations, classifications, mechanisms, diagnostic criteria, investigations, management principles, numerical values, exceptions, contraindications and caveats. Never invent unsupported clinical facts. Flag contradictions or missing information rather than silently correcting them.
+- This is a detailed teaching chapter, not an abstract. Cover every major heading and important subtopic in the source. Use clear numbered sections and meaningful subsections (usually 2-6 per major section when appropriate). Explain what a concept is, why it occurs, how it works and its cause-and-effect relationships in connected prose.
+- Follow a logical learning sequence where relevant: definition, classification, causes/risk factors, pathophysiology, clinical features, investigations/diagnosis, management, complications and prognosis. Omit categories not relevant or unsupported by the lecture. Explain abbreviations at first use.
+- Produce 12-20 explanatory high-yield points when the source contains enough material. Each should state the key fact plus its mechanism, significance, distinction, criterion or examination trap; do not return fragments.
+- Include learning objectives, key terms, source coverage, clinical relevance and exam focus grounded in the upload. Make comparison tables only for genuine contrasts and flowcharts only for real ordered processes.
+- Provide 3-5 focused video recommendations. Use only Osmosis, Zero to Finals or Geeky Medics as channel suggestions. Recommend topics, not invented video titles or URLs.
+- Add accurate mnemonics and memory aids only when they genuinely help. Explain every mnemonic element; do not force one.
+- Include up to 2 visual aids only when a diagram would materially clarify a source-supported anatomical relationship or mechanism. Use a clean textbook schematic prompt with no words, labels, numbers or watermarks. Never fabricate diagnostic images or findings.
+- Write in British English with scannable headings and concise examination takeaways. Empty arrays are appropriate when a category is not relevant. Do not pad the guide with unsupported general knowledge.
 
 UPLOADED SOURCE:
 ---
