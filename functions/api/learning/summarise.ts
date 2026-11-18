@@ -2,88 +2,60 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 
 
-const ZAI_MODEL = "glm-4.7-flash";
-const ZAI_CHAT_COMPLETIONS_URL = "https://api.z.ai/api/paas/v4/chat/completions";
-const ZAI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
-
-type ZaiChatResponse = {
-  choices?: Array<{
-    finish_reason?: string | null;
-    message?: {
-      content?: string | Array<{ type?: string; text?: string }>;
-    };
-  }>;
-  error?: { message?: string; code?: string | number };
+const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_GENERATE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
+const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+type GeminiGenerateResponse = {
+  candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
+  error?: { message?: string; status?: string; code?: number };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
 };
-
-async function requestZaiStudyGuide(
-  apiKey: string,
-  messages: ReadonlyArray<{ role: string; content: string }>,
-  attempts = 3
-): Promise<string> {
+async function requestGeminiStudyGuide(apiKey: string, messages: ReadonlyArray<{ role: string; content: string }>, attempts = 3): Promise<string> {
+  const system = messages.find(message => message.role === "system")?.content || "";
+  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
   for (let attempt = 0; attempt < attempts; attempt++) {
     let response: Response;
-    let data: ZaiChatResponse = {};
+    let data: GeminiGenerateResponse = {};
     try {
-      response = await fetch(ZAI_CHAT_COMPLETIONS_URL, {
+      response = await fetch(GEMINI_GENERATE_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": "Bearer " + apiKey
-        },
+        headers: { "Content-Type": "application/json", "Accept": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
-          model: ZAI_MODEL,
-          messages: messages.map(message => ({ role: message.role, content: message.content })),
-          temperature: 0.2,
-          max_tokens: 24000,
-          response_format: { type: "json_object" },
-          stream: false
+          systemInstruction: { parts: [{ text: system }] },
+          contents: [{ role: "user", parts: [{ text: user }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 24000, responseMimeType: "application/json" }
         }),
         signal: AbortSignal.timeout(180000)
       });
-      data = await response.json().catch(() => ({})) as ZaiChatResponse;
+      data = await response.json().catch(() => ({})) as GeminiGenerateResponse;
     } catch (error) {
       if (attempt === attempts - 1) {
         const detail = error instanceof Error ? error.message : "Network request failed.";
         throw new Error(/abort|timeout/i.test(detail)
-          ? "ZAI_TIMEOUT: The study-generation request timed out while waiting for Z.ai."
-          : "ZAI_NETWORK_ERROR: Could not reach the Z.ai API. " + detail.slice(0, 180));
+          ? "GEMINI_TIMEOUT: The study-generation request timed out while waiting for Gemini."
+          : "GEMINI_NETWORK_ERROR: Could not reach the Gemini API. " + detail.slice(0, 180));
       }
-      await new Promise(resolve => setTimeout(resolve, 900 * (attempt + 1)));
+      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       continue;
     }
-
     if (!response.ok) {
       const providerMessage = typeof data.error?.message === "string" ? data.error.message.slice(0, 450) : "";
-      if (ZAI_RETRYABLE_STATUSES.has(response.status) && attempt < attempts - 1) {
+      if (GEMINI_RETRYABLE_STATUSES.has(response.status) && attempt < attempts - 1) {
         const retryAfter = Number(response.headers.get("retry-after"));
-        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
-          ? Math.min(5000, Math.max(800, retryAfter * 1000))
-          : 900 * (attempt + 1);
+        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(10000, Math.max(1000, retryAfter * 1000)) : 1000 * (attempt + 1);
         await new Promise(resolve => setTimeout(resolve, waitMs));
         continue;
       }
-      throw new Error("ZAI_HTTP_" + response.status + ": " + (providerMessage || "The provider rejected the study-generation request."));
+      throw new Error("GEMINI_HTTP_" + response.status + ": " + (providerMessage || "Google rejected the Gemini request."));
     }
-
-    const choice = data.choices?.[0];
-    const rawContent = choice?.message?.content;
-    const outputText = typeof rawContent === "string"
-      ? rawContent.trim()
-      : Array.isArray(rawContent)
-        ? rawContent.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\n").trim()
-        : "";
-    const finishReason = typeof choice?.finish_reason === "string" ? choice.finish_reason.toLowerCase() : "";
-    if (finishReason === "length" || finishReason === "max_tokens") {
-      throw new Error("ZAI_OUTPUT_TRUNCATED: GLM reached the response-length limit before completing the study guide.");
-    }
-    if (!outputText) {
-      throw new Error("ZAI_EMPTY_RESPONSE: Z.ai returned no study-guide content.");
-    }
+    const candidate = data.candidates?.[0];
+    const outputText = candidate?.content?.parts?.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\n").trim() || "";
+    const finishReason = typeof candidate?.finishReason === "string" ? candidate.finishReason.toUpperCase() : "";
+    if (finishReason === "MAX_TOKENS") throw new Error("GEMINI_OUTPUT_TRUNCATED: Gemini reached the response-length limit before completing the study guide.");
+    if (!outputText) throw new Error("GEMINI_EMPTY_RESPONSE: Gemini returned no study-guide content (" + (finishReason || "no candidate text") + ").");
     return outputText;
   }
-  throw new Error("ZAI_REQUEST_FAILED: The study-generation request could not be completed.");
+  throw new Error("GEMINI_REQUEST_FAILED: The study-generation request could not be completed.");
 }
 
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -134,11 +106,11 @@ export const onRequestGet = async (context: AppContext) => {
       error: job.error_message || "ClerkMe could not complete this study guide. Your uploaded material is safe; please try again."
     }, 502);
   }
-  if (job.interaction_id.startsWith("zai:")) {
-    return json({ status: "processing", providerStatus: "zai", retryAfterMs: 2500 });
+  if (job.interaction_id.startsWith("gemini:")) {
+    return json({ status: "processing", providerStatus: "gemini", retryAfterMs: 2500 });
   }
 
-  const legacyMessage = "This study guide was started with the previous Gemini service and cannot be resumed. Your uploaded source is safe; press Refresh High-Yield Points to generate it with GLM-4.7-Flash.";
+  const legacyMessage = "This earlier Z.ai study-guide job cannot be resumed after the provider switch. Your uploaded source is safe; press Refresh High-Yield Points to generate it with Gemini.";
   await context.env.DB.prepare(
     "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
   ).bind(legacyMessage, job.id, user.id).run();
@@ -257,10 +229,10 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  if (!context.env.ZAI_API_KEY) {
+  if (!context.env.GEMINI_API_KEY) {
     return json({
-      error: "ClerkMe's Z.ai connection is not configured yet. Add ZAI_API_KEY as an encrypted Cloudflare Pages secret, then retry.",
-      code: "ZAI_API_KEY_MISSING"
+      error: "ClerkMe's Gemini connection is not configured. Add GEMINI_API_KEY as an encrypted Cloudflare Pages secret, then redeploy.",
+      code: "GEMINI_API_KEY_MISSING"
     }, 503);
   }
 
@@ -291,14 +263,14 @@ export const onRequestPost = async (context: AppContext) => {
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(user.id, material.id).first<{ id: string; interaction_id: string }>();
-  if (activeJob?.interaction_id.startsWith("zai:")) {
+  if (activeJob?.interaction_id.startsWith("gemini:")) {
     return json({ jobId: activeJob.id, status: "processing", resumed: true }, 202);
   }
   if (activeJob) {
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(
-      "This earlier Gemini job was stopped during the migration to Z.ai. Your uploaded source is safe; a new GLM study guide can now be generated.",
+      "This earlier job was started with the previous Z.ai generator and cannot be resumed. Your uploaded source is safe; a new Gemini study guide can now be generated.",
       activeJob.id,
       user.id
     ).run();
@@ -310,7 +282,7 @@ export const onRequestPost = async (context: AppContext) => {
     INSERT INTO study_generation_jobs
       (id, user_id, material_id, interaction_id, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, 'in_progress', ?, ?)
-  `).bind(jobId, user.id, material.id, "zai:" + jobId, now, now).run();
+  `).bind(jobId, user.id, material.id, "gemini:" + jobId, now, now).run();
 
   try {
   const messages = [
@@ -395,7 +367,7 @@ ${material.content_text}
       ] as const;
 
 
-    const outputText = await requestZaiStudyGuide(context.env.ZAI_API_KEY, messages);
+    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages);
     const parsed = parseAIResult({ response: outputText });
     const summary = normaliseStudySummary(parsed);
 
@@ -406,42 +378,42 @@ ${material.content_text}
       "UPDATE study_generation_jobs SET status = 'completed', error_message = NULL, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(jobId, user.id).run();
 
-    console.info("[ClerkMe] GLM-4.7-Flash study guide completed.", {
+    console.info("[ClerkMe] Gemini study guide completed.", {
       materialId: material.id,
       jobId,
       sectionCount: summary.sections.length
     });
     return json({ materialId: material.id, jobId, status: "completed", summary });
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "Unknown Z.ai study-generation error.";
-    const safeDetail = context.env.ZAI_API_KEY
-      ? detail.split(context.env.ZAI_API_KEY).join("[redacted]").slice(0, 500)
+    const detail = error instanceof Error ? error.message : "Unknown Gemini study-generation error.";
+    const safeDetail = context.env.GEMINI_API_KEY
+      ? detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 500)
       : detail.slice(0, 500);
-    console.error("[ClerkMe] GLM study-guide generation failed.", {
+    console.error("[ClerkMe] Gemini study-guide generation failed.", {
       materialId: material.id,
       jobId,
       detail: safeDetail
     });
 
     const missingBalance = /1113|insufficient balance|no resource package/i.test(detail);
-    const rateLimited = /ZAI_HTTP_429|rate limit|too many requests|quota/i.test(detail);
-    const authFailure = /ZAI_HTTP_401|ZAI_HTTP_403|invalid api.?key|unauthori[sz]ed/i.test(detail);
-    const timedOut = /ZAI_TIMEOUT|abort|timeout/i.test(detail);
+    const rateLimited = /GEMINI_HTTP_429|rate limit|too many requests|quota|RESOURCE_EXHAUSTED/i.test(detail);
+    const authFailure = /GEMINI_HTTP_400|GEMINI_HTTP_401|GEMINI_HTTP_403|API_KEY_INVALID|invalid api.?key|unauthori[sz]ed/i.test(detail);
+    const timedOut = /GEMINI_TIMEOUT|abort|timeout/i.test(detail);
     const message = missingBalance
-      ? "Z.ai reports that this API account has no available resource balance or package. Confirm that GLM-4.7-Flash is enabled as a free model on your API account. Your uploaded material is safe."
+      ? "Google reports that Gemini is unavailable for this API project or its billing quota is exhausted. Check the Gemini API project and billing settings. Your uploaded material is safe."
       : rateLimited
-        ? "Z.ai is temporarily rate-limiting study-guide generation. Your uploaded material is safe; wait briefly and retry."
+        ? "Gemini is temporarily rate-limiting study-guide generation or the project has reached its quota. Your uploaded material is safe; wait briefly and retry."
         : authFailure
-          ? "Z.ai did not accept the API key. Check that ZAI_API_KEY is saved as an encrypted Cloudflare secret in the production environment."
+          ? "Google Gemini did not accept the API key. Check that GEMINI_API_KEY is saved as an encrypted Cloudflare secret in the production environment and that the key is enabled for the Gemini API."
           : timedOut
-            ? "GLM-4.7-Flash took too long to complete this study guide. Your uploaded material is safe; retry, or split a very long lecture into smaller parts."
-            : /ZAI_OUTPUT_TRUNCATED/.test(detail)
-              ? "GLM reached its output-length limit before completing the guide. Your upload is safe; retry with a smaller lecture section."
-              : "ClerkMe could not complete the GLM study guide. Your uploaded material is safe. Please retry shortly.";
+            ? "Gemini took too long to complete this study guide. Your uploaded material is safe; retry, or split a very long lecture into smaller parts."
+            : /GEMINI_OUTPUT_TRUNCATED/.test(detail)
+              ? "Gemini reached its output-length limit before completing the guide. Your upload is safe; retry with a smaller lecture section."
+              : "ClerkMe could not complete the Gemini study guide. Your uploaded material is safe. Please retry shortly.";
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(message, jobId, user.id).run().catch(() => undefined);
     const status = rateLimited ? 429 : timedOut ? 504 : 502;
-    return json({ error: message, code: missingBalance ? "ZAI_BALANCE_REQUIRED" : authFailure ? "ZAI_AUTH_FAILED" : rateLimited ? "ZAI_RATE_LIMITED" : timedOut ? "ZAI_TIMEOUT" : "ZAI_GENERATION_FAILED", retryable: !authFailure && !missingBalance }, status);
+    return json({ error: message, code: missingBalance ? "GEMINI_BILLING_OR_QUOTA" : authFailure ? "GEMINI_AUTH_FAILED" : rateLimited ? "GEMINI_RATE_LIMITED" : timedOut ? "GEMINI_TIMEOUT" : "GEMINI_GENERATION_FAILED", retryable: !authFailure && !missingBalance }, status);
   }
 };
