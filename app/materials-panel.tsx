@@ -45,6 +45,7 @@ type MaterialQuestion = {
   options:string[];
   answerIndex:number;
   explanation:string;
+  optionRationales?:string[];
   topic:string;
   difficulty:string;
 };
@@ -750,7 +751,7 @@ export default function MaterialsPanel() {
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
+            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Preparing questions…":"Generate "+questionCount+" SBA questions"} <span>→</span></button>
           </div>
         </div>
         <div className="materials-tabs">
@@ -913,7 +914,7 @@ export default function MaterialsPanel() {
         {tab==="questions" && <div className="study-mcq-panel">
           {activeQuestions.length>0 ? <>
             <div className="study-mcq-heading">
-              <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: MCQ practice</h3><p>Choose Practice for immediate teaching feedback, or Live test for a timed examination simulation with all answers and explanations revealed after submission.</p></div>
+              <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: SBA practice</h3><p>USMLE-style single-best-answer questions with five options (A-E), clinically framed stems where appropriate, and explanations for every option. Choose Practice for immediate feedback or Live test for a timed examination simulation.</p></div>
               <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")} disabled={liveInProgress}>← Read High-Yield Points</button></div>
             </div>
 
@@ -979,7 +980,7 @@ export default function MaterialsPanel() {
                   <button type="button" className="secondary-button" onClick={()=>setTab("summary")}>Return to High-Yield Points</button>
                   {quizMode==="live"&&<button type="button" className="text-link" onClick={()=>switchQuizMode("practice")}>Switch to practice</button>}
                 </div>
-                <div className="study-mcq-review-list"><h4>Answer review and explanations</h4>{activeQuestions.map((item,index)=><details key={index} className="study-mcq-review-item"><summary><span>Q{index+1}</span>{item.question}<b className={questionAnswers[index]===item.answerIndex?"review-correct":questionAnswers[index]===undefined?"review-unanswered":"review-wrong"}>{questionAnswers[index]===undefined?"Not answered":questionAnswers[index]===item.answerIndex?"Correct":"Incorrect"}</b></summary><p><strong>Your answer:</strong> {questionAnswers[index]===undefined?"Not answered":item.options[questionAnswers[index]]}</p><p><strong>Best answer:</strong> {item.options[item.answerIndex]}</p><p><strong>Explanation:</strong> {item.explanation}</p></details>)}</div>
+                <div className="study-mcq-review-list"><h4>Answer review and explanations</h4>{activeQuestions.map((item,index)=><details key={index} className="study-mcq-review-item"><summary><span>Q{index+1}</span>{item.question}<b className={questionAnswers[index]===item.answerIndex?"review-correct":questionAnswers[index]===undefined?"review-unanswered":"review-wrong"}>{questionAnswers[index]===undefined?"Not answered":questionAnswers[index]===item.answerIndex?"Correct":"Incorrect"}</b></summary><p><strong>Your answer:</strong> {questionAnswers[index]===undefined?"Not answered":item.options[questionAnswers[index]]}</p><p><strong>Best answer:</strong> {item.options[item.answerIndex]}</p><p><strong>Explanation:</strong> {item.explanation}</p>{item.optionRationales?.length===5&&<div className="study-mcq-option-rationales"><strong>Option-by-option analysis</strong><ol>{item.optionRationales.map((rationale,optionIndex)=><li key={optionIndex}><b>{String.fromCharCode(65+optionIndex)}. {item.options[optionIndex]}</b><span>{rationale}</span></li>)}</ol></div>}</details>)}</div>
               </section> : currentQuestion && <>
                 <div className="study-mcq-progress-row"><span>QUESTION {questionIndex+1} OF {activeQuestions.length}</span><span>{currentQuestion.topic} · {currentQuestion.difficulty}</span></div>
                 <div className="study-mcq-progress"><span style={{width:((questionIndex+1)/activeQuestions.length*100)+"%"}}/></div>
@@ -993,7 +994,7 @@ export default function MaterialsPanel() {
                       : (currentAnswer===null?"":optionIndex===currentQuestion.answerIndex?" is-correct":selectedOption?" is-wrong":" is-muted");
                     return <button key={optionIndex} type="button" disabled={quizMode==="practice"&&currentAnswer!==null} aria-pressed={selectedOption} className={"study-mcq-option"+optionClass} onClick={()=>{setQuestionAnswers(previous=>({...previous,[questionIndex]:optionIndex}));fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});}}><span>{String.fromCharCode(65+optionIndex)}</span><b>{option}</b><i>{quizMode==="live"?(selectedOption?"●":""):(currentAnswer!==null&&optionIndex===currentQuestion.answerIndex?"✓":selectedOption?"×":"")}</i></button>;
                   })}</div>
-                  {quizMode==="practice"&&currentAnswer!==null&&<div className={"study-mcq-feedback"+(currentAnswer===currentQuestion.answerIndex?" is-correct":" is-wrong")} role="status"><strong>{currentAnswer===currentQuestion.answerIndex?"Correct — well done.":"Not quite. Review this concept."}</strong><p><b>Best answer: {currentQuestion.options[currentQuestion.answerIndex]}.</b> {currentQuestion.explanation}</p></div>}
+                  {quizMode==="practice"&&currentAnswer!==null&&<div className={"study-mcq-feedback"+(currentAnswer===currentQuestion.answerIndex?" is-correct":" is-wrong")} role="status"><strong>{currentAnswer===currentQuestion.answerIndex?"Correct — well done.":"Not quite. Review this concept."}</strong><p><b>Best answer: {currentQuestion.options[currentQuestion.answerIndex]}.</b> {currentQuestion.explanation}</p>{currentQuestion.optionRationales?.length===5&&<div className="study-mcq-option-rationales"><strong>Option-by-option analysis</strong><ol>{currentQuestion.optionRationales.map((rationale,optionIndex)=><li key={optionIndex}><b>{String.fromCharCode(65+optionIndex)}. {currentQuestion.options[optionIndex]}</b><span>{rationale}</span></li>)}</ol></div>}</div>}
                   {quizMode==="live"&&<p className="study-live-answer-note">{currentAnswer===null?"Choose one answer. You can change it before submitting.":"Answer selected. You can change it at any time before submission."}</p>}
                   <div className="study-mcq-navigation">
                     <button type="button" className="secondary-button" disabled={questionIndex===0} onClick={()=>setQuestionIndex(index=>index-1)}>← Previous</button>
