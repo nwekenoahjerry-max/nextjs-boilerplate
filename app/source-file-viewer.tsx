@@ -111,6 +111,11 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [pptxViewportHeight, setPptxViewportHeight] = useState(600);
   const [pptxSlideAspectRatio, setPptxSlideAspectRatio] = useState(16 / 9);
   const [pptxRetry, setPptxRetry] = useState(0);
+  const [pptxZoom, setPptxZoom] = useState<"fit" | "100" | "125" | "150" | "200">("fit");
+  const [pptxPlaying, setPptxPlaying] = useState(false);
+  const [pptxSlideInterval, setPptxSlideInterval] = useState(6);
+  const [pptxShowSlides, setPptxShowSlides] = useState(false);
+  const [pptxFullscreen, setPptxFullscreen] = useState(false);
 
   const [docxFrameReady, setDocxFrameReady] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
@@ -122,6 +127,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const pptxCanvasContainerRef = useRef<HTMLDivElement | null>(null);
   const pptxRenderSequenceRef = useRef(0);
   const pptxSwipeStartRef = useRef<{ x:number; y:number; pointerId:number } | null>(null);
+  const pptxReaderRef = useRef<HTMLElement | null>(null);
   const docxFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   const sourceUrl = useMemo(
@@ -137,6 +143,37 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     extension === "docx" ? "word" :
     ["txt", "md", "csv"].includes(extension) ? "text" :
     (mimeType || "").startsWith("image/") ? "image" : "download";
+
+  useEffect(() => {
+    if (!pptxPlaying || !pptxReady || pptxSlideCount < 1) return;
+    if (pptxCurrentSlide >= pptxSlideCount - 1) {
+      setPptxPlaying(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setPptxCurrentSlide(current => Math.min(pptxSlideCount - 1, current + 1));
+    }, pptxSlideInterval * 1000);
+    return () => window.clearTimeout(timer);
+  }, [pptxPlaying, pptxReady, pptxCurrentSlide, pptxSlideCount, pptxSlideInterval]);
+
+  useEffect(() => {
+    const updateFullscreen = () => {
+      setPptxFullscreen(document.fullscreenElement === pptxReaderRef.current);
+    };
+    document.addEventListener("fullscreenchange", updateFullscreen);
+    return () => document.removeEventListener("fullscreenchange", updateFullscreen);
+  }, []);
+
+  const togglePptxFullscreen = async () => {
+    const reader = pptxReaderRef.current;
+    if (!reader) return;
+    try {
+      if (document.fullscreenElement === reader) await document.exitFullscreen();
+      else await reader.requestFullscreen();
+    } catch {
+      setPptxError("Full-screen presentation is not available in this browser. You can still use the enlarged slide view.");
+    }
+  };
 
   // PowerPoint is parsed and rendered in the student's browser. The original
   // PPTX is fetched only from ClerkMe's authenticated, private R2 endpoint.
@@ -215,13 +252,18 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         const maxSlideHeight = Math.min(820, Math.max(320, pptxViewportHeight));
         const maxWidthForHeight = Math.round(maxSlideHeight * pptxSlideAspectRatio);
         const fittedWidth = Math.min(pptxViewportWidth, maxWidthForHeight);
-        const renderWidth = Math.min(2400, Math.max(320, Math.round(fittedWidth * pixelRatio)));
+        const zoomFactor = pptxZoom === "fit" ? 1 : Number(pptxZoom) / 100;
+        const displayWidth = Math.round(fittedWidth * zoomFactor);
+        const renderWidth = Math.min(3600, Math.max(320, Math.round(displayWidth * pixelRatio)));
         const slideCanvas = document.createElement("canvas");
         await renderer.renderSlide(pptxCurrentSlide, slideCanvas, renderWidth);
         if (sequence !== pptxRenderSequenceRef.current) return;
 
         visibleCanvas.width = slideCanvas.width;
         visibleCanvas.height = slideCanvas.height;
+        visibleCanvas.style.width = displayWidth + "px";
+        visibleCanvas.style.maxWidth = zoomFactor > 1 ? "none" : "100%";
+        visibleCanvas.style.maxHeight = zoomFactor > 1 ? "none" : "min(72vh, 820px)";
         const context = visibleCanvas.getContext("2d");
         if (!context) throw new Error("Your browser could not prepare the slide canvas.");
         context.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
@@ -238,7 +280,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     return () => {
       if (sequence === pptxRenderSequenceRef.current) pptxRenderSequenceRef.current += 1;
     };
-  }, [mode, pptxReady, pptxSlideCount, pptxCurrentSlide, pptxViewportWidth, pptxViewportHeight, pptxSlideAspectRatio]);
+  }, [mode, pptxReady, pptxSlideCount, pptxCurrentSlide, pptxViewportWidth, pptxViewportHeight, pptxSlideAspectRatio, pptxZoom]);
 
   useEffect(() => {
     if (mode !== "powerpoint") return;
@@ -337,6 +379,15 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     } else if (event.key === "ArrowRight" && pptxCurrentSlide < pptxSlideCount - 1) {
       event.preventDefault();
       setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1));
+    } else if (event.key === " " && pptxReady) {
+      event.preventDefault();
+      setPptxPlaying(value => !value);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setPptxCurrentSlide(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setPptxCurrentSlide(Math.max(0, pptxSlideCount - 1));
     }
   };
 
@@ -357,6 +408,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
 
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
+    // On enlarged slides, preserve browser scrolling and panning rather than hijacking gestures.
+    if (pptxZoom !== "fit") return;
     // Ignore taps and vertical page scrolling; only a deliberate horizontal swipe changes slides.
     if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     if (deltaX < 0 && pptxCurrentSlide < pptxSlideCount - 1) {
@@ -378,7 +431,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
           <strong>{fileName}</strong>
           <small>{formatBytes(originalSizeBytes) || "Original file"} · Stored privately; the uploaded file is never overwritten</small>
         </div>
-        <a className="secondary-button source-download-button" href={downloadUrl} download={fileName}>Download original</a>
+        <a className="secondary-button source-download-button" href={downloadUrl} download={fileName} title="Download the original presentation to open or edit it in Microsoft PowerPoint">Download / open in PowerPoint</a>
       </div>
 
       {mode === "pdf" && (
@@ -396,7 +449,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
       )}
 
       {mode === "powerpoint" && (
-        <section className="source-pptx-reader" aria-label="PowerPoint slide reader">
+        <section ref={pptxReaderRef} className={"source-pptx-reader" + (pptxFullscreen ? " is-fullscreen" : "")} aria-label="PowerPoint slide reader">
           {pptxLoading && (
             <div className="source-preview-loading" role="status">
               <strong>{pptxMessage}</strong>
@@ -419,10 +472,55 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                 <div className="source-pptx-slide-progress" aria-hidden="true">
                   <span style={{ width: ((pptxCurrentSlide + 1) / pptxSlideCount * 100) + "%" }} />
                 </div>
-                <small>Swipe to change slides</small>
+                <small>Play to advance automatically · Present for full screen</small>
               </div>
+              <div className="source-pptx-toolbar" role="toolbar" aria-label="PowerPoint presentation controls">
+                <div className="source-pptx-toolbar-group">
+                  <button type="button" className="source-pptx-tool-button" onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(value => Math.max(0, value - 1)); }} disabled={pptxCurrentSlide === 0} aria-label="Previous slide">‹</button>
+                  <button type="button" className="source-pptx-tool-button" onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1)); }} disabled={pptxCurrentSlide >= pptxSlideCount - 1} aria-label="Next slide">›</button>
+                  <button type="button" className="source-pptx-tool-button source-pptx-play-button" onClick={() => setPptxPlaying(value => !value)} aria-pressed={pptxPlaying}>
+                    {pptxPlaying ? "Ⅱ Pause" : "▶ Play"}
+                  </button>
+                  <label className="source-pptx-tool-select">Advance
+                    <select value={pptxSlideInterval} onChange={event => setPptxSlideInterval(Number(event.target.value))}>
+                      <option value={3}>3 sec</option><option value={5}>5 sec</option><option value={6}>6 sec</option>
+                      <option value={8}>8 sec</option><option value={10}>10 sec</option><option value={15}>15 sec</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="source-pptx-toolbar-group">
+                  <label className="source-pptx-tool-select">Zoom
+                    <select value={pptxZoom} onChange={event => setPptxZoom(event.target.value as typeof pptxZoom)}>
+                      <option value="fit">Fit to window</option><option value="100">100%</option>
+                      <option value="125">125%</option><option value="150">150%</option><option value="200">200%</option>
+                    </select>
+                  </label>
+                  <button type="button" className={"source-pptx-tool-button" + (pptxShowSlides ? " is-active" : "")} onClick={() => setPptxShowSlides(value => !value)} aria-expanded={pptxShowSlides}>
+                    {pptxShowSlides ? "Hide slides" : "Slides"}
+                  </button>
+                  <button type="button" className="source-pptx-tool-button source-pptx-present-button" onClick={() => void togglePptxFullscreen()}>
+                    {pptxFullscreen ? "Exit full screen" : "Present"}
+                  </button>
+                </div>
+              </div>
+              {pptxShowSlides && (
+                <nav className="source-pptx-slide-grid" aria-label="Jump to a slide">
+                  {Array.from({ length: pptxSlideCount }, (_, index) => (
+                    <button
+                      type="button"
+                      key={index}
+                      className={index === pptxCurrentSlide ? "is-current" : ""}
+                      aria-current={index === pptxCurrentSlide ? "page" : undefined}
+                      onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(index); }}
+                    >
+                      <span className="source-pptx-slide-thumb">{String(index + 1).padStart(2, "0")}</span>
+                      <small>Slide {index + 1}</small>
+                    </button>
+                  ))}
+                </nav>
+              )}
               <div
-                className="source-pptx-canvas-wrap"
+                className={"source-pptx-canvas-wrap" + (pptxZoom !== "fit" ? " is-zoomed" : "")}
                 ref={pptxCanvasContainerRef}
                 onKeyDown={handlePptxKeyDown}
                 onPointerDown={handlePptxPointerDown}
@@ -430,18 +528,18 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                 onPointerCancel={clearPptxPointer}
                 onLostPointerCapture={clearPptxPointer}
                 tabIndex={0}
-                aria-label="Presentation slides. Swipe left or right to move between slides."
+                aria-label="Presentation slides. Use arrow keys or swipe to move between slides. Press Space to play or pause."
               >
                 <canvas
                   ref={pptxCanvasRef}
-                  className="source-pptx-canvas"
+                  className={"source-pptx-canvas" + (pptxZoom !== "fit" ? " is-zoomed" : "")}
                   role="img"
                   aria-label={"PowerPoint slide " + (pptxCurrentSlide + 1) + " of " + pptxSlideCount}
                 />
                 {pptxRendering && <div className="source-pptx-rendering" aria-live="polite">Rendering slide…</div>}
               </div>
               <div className="source-preview-note">
-                Swipe left or right on the slide, or use the keyboard arrow keys when the slide area is focused. The entire slide is fitted to the reader window; the original PPTX remains available to download.
+                Use Play to advance slides automatically, Present for a full-screen view, or Zoom to enlarge dense slides. Download the original PowerPoint above to use Microsoft PowerPoint's full editing, animation and transition features.
               </div>
             </>
           )}
