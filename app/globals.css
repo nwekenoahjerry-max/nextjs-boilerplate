@@ -3832,3 +3832,21 @@ body{background:var(--paper);color:var(--ink)}
 .source-office-file-icon{display:grid;place-items:center;flex:0 0 64px;height:76px;border-radius:9px;background:#b84e42;color:#fff;font-size:17px;font-weight:850;letter-spacing:.04em;box-shadow:0 5px 12px rgba(67,45,36,.12)}
 .source-word-file-icon{background:#3d6eac}
 @media(max-width:650px){.source-office-file-preview{align-items:flex-start;gap:12px;padding:16px}.source-office-file-icon{flex-basis:52px;height:62px;font-size:14px}}
+
+
+/* In-app readers for original PowerPoint and Word documents. */
+.source-pptx-reader,.source-docx-reader{display:grid;gap:12px;min-width:0}
+.source-pptx-controls{display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 12px;border:1px solid #e2e9e3;border-radius:11px;background:#fbfdfb}
+.source-pptx-counter{min-width:112px;color:#40564a;text-align:center;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.source-pptx-canvas-wrap{position:relative;display:flex;align-items:center;justify-content:center;min-height:280px;max-height:78vh;overflow:auto;padding:14px;border:1px solid #dce5dd;border-radius:12px;background:#e9eeea;outline-offset:3px}
+.source-pptx-canvas{display:block;width:100%;height:auto;max-width:1800px;margin:0 auto;border:1px solid #d9dfd9;background:#fff;box-shadow:0 5px 22px rgba(22,42,28,.13)}
+.source-pptx-rendering{position:absolute;right:22px;bottom:22px;padding:7px 10px;border:1px solid #dce5dd;border-radius:8px;background:rgba(255,255,255,.94);color:#506558;font-size:11px;box-shadow:0 2px 9px rgba(22,42,28,.08)}
+.source-pptx-progress{width:min(360px,80%);height:7px;overflow:hidden;border-radius:99px;background:#e5ece6}
+.source-pptx-progress span{display:block;height:100%;border-radius:99px;background:#397a55;transition:width .2s ease}
+.source-docx-frame{display:block;width:100%;height:min(78vh,980px);min-height:680px;border:1px solid #dfe7e0;border-radius:12px;background:#edf0ed}
+@media(max-width:650px){
+  .source-pptx-controls{gap:9px;padding:9px}
+  .source-pptx-counter{min-width:84px;font-size:12px}
+  .source-pptx-canvas-wrap{min-height:200px;max-height:68vh;padding:6px}
+  .source-docx-frame{height:72vh;min-height:540px}
+}
