@@ -3,7 +3,7 @@ type SmokeContext = { env: SmokeEnv };
 export const onRequestGet = async ({ env }: SmokeContext) => {
   if (!env.GEMINI_API_KEY) return Response.json({ ok: false, code: "GEMINI_API_KEY_MISSING" }, { status: 503 });
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
       body: JSON.stringify({
@@ -18,13 +18,13 @@ export const onRequestGet = async ({ env }: SmokeContext) => {
       usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
     };
     if (!response.ok) return Response.json({
-      ok: false, model: "gemini-3.5-flash-lite", httpStatus: response.status,
+      ok: false, model: "gemini-3.1-flash-lite", httpStatus: response.status,
       providerStatus: data.error?.status || "UNKNOWN",
       message: (data.error?.message || "Gemini rejected the request.").slice(0, 250)
     }, { status: 502 });
     const output = data.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("").trim() || "";
     return Response.json({
-      ok: output === "CLERKME_GEMINI_OK", model: "gemini-3.5-flash-lite",
+      ok: output === "CLERKME_GEMINI_OK", model: "gemini-3.1-flash-lite",
       responseMatched: output === "CLERKME_GEMINI_OK", usage: data.usageMetadata || null
     });
   } catch (error) {
