@@ -116,6 +116,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [pptxSlideInterval, setPptxSlideInterval] = useState(6);
   const [pptxShowSlides, setPptxShowSlides] = useState(false);
   const [pptxFullscreen, setPptxFullscreen] = useState(false);
+  const [pptxPresentationError, setPptxPresentationError] = useState("");
 
   const [docxFrameReady, setDocxFrameReady] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
@@ -167,11 +168,12 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const togglePptxFullscreen = async () => {
     const reader = pptxReaderRef.current;
     if (!reader) return;
+    setPptxPresentationError("");
     try {
       if (document.fullscreenElement === reader) await document.exitFullscreen();
       else await reader.requestFullscreen();
     } catch {
-      setPptxError("Full-screen presentation is not available in this browser. You can still use the enlarged slide view.");
+      setPptxPresentationError("Full-screen presentation is not available in this browser. You can still use the enlarged slide view.");
     }
   };
 
@@ -503,6 +505,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                   </button>
                 </div>
               </div>
+              {pptxPresentationError && <p className="source-preview-note" role="status">{pptxPresentationError}</p>}
               {pptxShowSlides && (
                 <nav className="source-pptx-slide-grid" aria-label="Jump to a slide">
                   {Array.from({ length: pptxSlideCount }, (_, index) => (
