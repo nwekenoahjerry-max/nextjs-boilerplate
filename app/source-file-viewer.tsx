@@ -108,6 +108,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [pptxCurrentSlide, setPptxCurrentSlide] = useState(0);
   const [pptxRendering, setPptxRendering] = useState(false);
   const [pptxViewportWidth, setPptxViewportWidth] = useState(960);
+  const [pptxViewportHeight, setPptxViewportHeight] = useState(600);
+  const [pptxSlideAspectRatio, setPptxSlideAspectRatio] = useState(16 / 9);
   const [pptxRetry, setPptxRetry] = useState(0);
 
   const [docxFrameReady, setDocxFrameReady] = useState(false);
@@ -119,6 +121,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const pptxCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const pptxCanvasContainerRef = useRef<HTMLDivElement | null>(null);
   const pptxRenderSequenceRef = useRef(0);
+  const pptxSwipeStartRef = useRef<{ x:number; y:number; pointerId:number } | null>(null);
   const docxFrameRef = useRef<HTMLIFrameElement | null>(null);
 
   const sourceUrl = useMemo(
@@ -170,6 +173,12 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         if (cancelled) return;
         if (!renderer.slideCount) throw new Error("No readable slides were found in this PowerPoint file.");
         setPptxSlideCount(renderer.slideCount);
+        const slideInfo = renderer.getInfo();
+        setPptxSlideAspectRatio(
+          Number.isFinite(slideInfo.aspectRatio) && slideInfo.aspectRatio > 0
+            ? slideInfo.aspectRatio
+            : 16 / 9
+        );
         setPptxCurrentSlide(0);
         setPptxReady(true);
         setPptxLoading(false);
@@ -202,7 +211,11 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     const render = async () => {
       try {
         const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.75);
-        const renderWidth = Math.min(1800, Math.max(640, Math.round(pptxViewportWidth * pixelRatio)));
+        // Fit the complete slide inside both the available width and viewing height.
+        const maxSlideHeight = Math.min(820, Math.max(320, pptxViewportHeight));
+        const maxWidthForHeight = Math.round(maxSlideHeight * pptxSlideAspectRatio);
+        const fittedWidth = Math.min(pptxViewportWidth, maxWidthForHeight);
+        const renderWidth = Math.min(2400, Math.max(320, Math.round(fittedWidth * pixelRatio)));
         const slideCanvas = document.createElement("canvas");
         await renderer.renderSlide(pptxCurrentSlide, slideCanvas, renderWidth);
         if (sequence !== pptxRenderSequenceRef.current) return;
@@ -225,17 +238,26 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     return () => {
       if (sequence === pptxRenderSequenceRef.current) pptxRenderSequenceRef.current += 1;
     };
-  }, [mode, pptxReady, pptxSlideCount, pptxCurrentSlide, pptxViewportWidth]);
+  }, [mode, pptxReady, pptxSlideCount, pptxCurrentSlide, pptxViewportWidth, pptxViewportHeight, pptxSlideAspectRatio]);
 
   useEffect(() => {
     if (mode !== "powerpoint") return;
     const container = pptxCanvasContainerRef.current;
     if (!container) return;
-    const updateWidth = () => setPptxViewportWidth(Math.max(320, Math.round(container.clientWidth || 960)));
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
+    const updateDimensions = () => {
+      const styles = window.getComputedStyle(container);
+      const horizontalPadding = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      setPptxViewportWidth(Math.max(280, Math.round((container.clientWidth || 960) - horizontalPadding)));
+      setPptxViewportHeight(Math.max(320, Math.round(window.innerHeight * 0.72)));
+    };
+    updateDimensions();
+    const observer = new ResizeObserver(updateDimensions);
     observer.observe(container);
-    return () => observer.disconnect();
+    window.addEventListener("resize", updateDimensions);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateDimensions);
+    };
   }, [mode]);
 
   // The DOCX reader lives in an opaque-origin iframe: it can run the renderer,
@@ -318,6 +340,36 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     }
   };
 
+  const handlePptxPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" || event.button !== 0) return;
+    pptxSwipeStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      pointerId: event.pointerId
+    };
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch {}
+  };
+
+  const handlePptxPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = pptxSwipeStartRef.current;
+    pptxSwipeStartRef.current = null;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    // Ignore taps and vertical page scrolling; only a deliberate horizontal swipe changes slides.
+    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    if (deltaX < 0 && pptxCurrentSlide < pptxSlideCount - 1) {
+      setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1));
+    } else if (deltaX > 0 && pptxCurrentSlide > 0) {
+      setPptxCurrentSlide(value => Math.max(0, value - 1));
+    }
+  };
+
+  const clearPptxPointer = () => {
+    pptxSwipeStartRef.current = null;
+  };
+
   return (
     <div className="source-original-panel">
       <div className="source-original-toolbar">
@@ -361,27 +413,25 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
           {pptxReady && !pptxError && (
             <>
               <div className="source-pptx-controls">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => setPptxCurrentSlide(value => Math.max(0, value - 1))}
-                  disabled={pptxCurrentSlide <= 0 || pptxRendering}
-                >
-                  Previous
-                </button>
                 <span className="source-pptx-counter" aria-live="polite">
                   Slide {pptxCurrentSlide + 1} of {pptxSlideCount}
                 </span>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1))}
-                  disabled={pptxCurrentSlide >= pptxSlideCount - 1 || pptxRendering}
-                >
-                  Next
-                </button>
+                <div className="source-pptx-slide-progress" aria-hidden="true">
+                  <span style={{ width: ((pptxCurrentSlide + 1) / pptxSlideCount * 100) + "%" }} />
+                </div>
+                <small>Swipe to change slides</small>
               </div>
-              <div className="source-pptx-canvas-wrap" ref={pptxCanvasContainerRef} onKeyDown={handlePptxKeyDown} tabIndex={0}>
+              <div
+                className="source-pptx-canvas-wrap"
+                ref={pptxCanvasContainerRef}
+                onKeyDown={handlePptxKeyDown}
+                onPointerDown={handlePptxPointerDown}
+                onPointerUp={handlePptxPointerUp}
+                onPointerCancel={clearPptxPointer}
+                onLostPointerCapture={clearPptxPointer}
+                tabIndex={0}
+                aria-label="Presentation slides. Swipe left or right to move between slides."
+              >
                 <canvas
                   ref={pptxCanvasRef}
                   className="source-pptx-canvas"
@@ -391,7 +441,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                 {pptxRendering && <div className="source-pptx-rendering" aria-live="polite">Rendering slide…</div>}
               </div>
               <div className="source-preview-note">
-                Use Previous and Next, or the left and right arrow keys while the slide area is focused. Some advanced PowerPoint charts, SmartArt, animations and transitions may be simplified in the browser preview; the original PPTX remains available above.
+                Swipe left or right on the slide, or use the keyboard arrow keys when the slide area is focused. The entire slide is fitted to the reader window; the original PPTX remains available to download.
               </div>
             </>
           )}
