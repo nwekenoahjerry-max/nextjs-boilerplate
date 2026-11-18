@@ -642,7 +642,7 @@ export default function MaterialsPanel() {
 
       <div className="materials-safety-note">
         <strong>Upload learning resources, not identifiable patient records.</strong>
-        <span>Remove patient names, hospital numbers, contact details and other identifying information. This version retains the extracted text, High-Yield Points and generated questions, not the original binary file. Scanned image-only files may need OCR or a text-based copy.</span>
+        <span>Remove patient names, hospital numbers, contact details and other identifying information. Your original uploaded file is stored privately and remains available in the Source Material tab alongside the study guide. ClerkMe analyses a separate text extraction; it does not replace or rewrite your original document. Scanned image-only files may need OCR or a text-based copy before AI study notes can be generated.</span>
       </div>
 
       <div className="materials-layout">
