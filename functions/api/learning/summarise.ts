@@ -365,7 +365,9 @@ Return a JSON object with this exact shape:
   "unclearOrMissing": ["Important topic that is unclear, incomplete or absent in the source and should be checked."],
   "sourceCoverage": ["Major source topics represented in the summary."],
   "disclaimer": "A short note that these notes are based on the uploaded source and should be checked against current local guidance where relevant."
-}Quality and completeness:
+}
+
+Quality and completeness:
 - Treat the uploaded lecture as the source of truth. Preserve its major topics, explanations, classifications, mechanisms, diagnostic criteria, investigations, management principles, numerical values, exceptions, contraindications and caveats. Never invent unsupported clinical facts. Flag contradictions or missing information rather than silently correcting them.
 - This is a detailed teaching chapter, not an abstract. Cover every major heading and important subtopic in the source. Use clear numbered sections and meaningful subsections (usually 2-6 per major section when appropriate). Explain what a concept is, why it occurs, how it works and its cause-and-effect relationships in connected prose.
 - Follow a logical learning sequence where relevant: definition, classification, causes/risk factors, pathophysiology, clinical features, investigations/diagnosis, management, complications and prognosis. Omit categories not relevant or unsupported by the lecture. Explain abbreviations at first use.
