@@ -37,6 +37,9 @@ export const onRequestPost = async (context: AppContext) => {
     id:string; title:string; source_name:string; unit:string; content_text:string; summary_json:string|null;
   }>();
   if (!material) return json({ error: "This material could not be found in your private library." }, 404);
+  if (material.content_text.trim().length < 100 && !material.summary_json) {
+    return json({ error: "The original file is available in Source Material, but it has no selectable text for the study tutor. Use OCR or upload a text-based copy to enable AI explanations." }, 400);
+  }
 
   try {
     const result = await context.env.AI.run(MODEL, {

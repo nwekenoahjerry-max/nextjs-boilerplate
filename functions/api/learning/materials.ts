@@ -48,12 +48,14 @@ export const onRequestGet = async (context: AppContext) => {
       contentText: source.content_text,
       originalFileAvailable: Boolean(source.original_object_key),
       originalSizeBytes: source.original_size_bytes,
-      mimeType: source.mime_type
+      mimeType: source.mime_type,
+      hasExtractableText: source.content_text.trim().length >= 100
     } });
   }
   const rows = await context.env.DB.prepare(`
     SELECT id, title, source_name, unit, category, mime_type,
            original_object_key, original_size_bytes,
+           LENGTH(TRIM(COALESCE(content_text, ''))) AS content_text_length,
            summary_json, questions_json, created_at, updated_at
     FROM learning_materials
     WHERE user_id = ?
@@ -62,7 +64,7 @@ export const onRequestGet = async (context: AppContext) => {
   `).bind(user.id).all<{
     id:string; title:string; source_name:string; unit:string; category:string;
     mime_type:string|null; original_object_key:string|null; original_size_bytes:number|null;
-    summary_json:string|null; questions_json:string|null;
+    content_text_length:number; summary_json:string|null; questions_json:string|null;
     created_at:number; updated_at:number;
   }>();
   const materials = rows.results.map(row => ({
@@ -74,6 +76,7 @@ export const onRequestGet = async (context: AppContext) => {
     mimeType: row.mime_type,
     originalFileAvailable: Boolean(row.original_object_key),
     originalSizeBytes: row.original_size_bytes,
+    hasExtractableText: row.content_text_length >= 100,
     summary: parseStored(row.summary_json),
     questions: parseStored(row.questions_json) || [],
     createdAt: row.created_at,
@@ -110,7 +113,6 @@ export const onRequestPost = async (context: AppContext) => {
   if (!(originalFile instanceof File)) return json({ error: "The original file was not included. Please select it again." }, 400);
   if (!originalFile.size) return json({ error: "The selected file is empty." }, 400);
   if (originalFile.size > MAX_FILE_BYTES) return json({ error: "This file is larger than 20 MB. Please compress it or split it into smaller parts." }, 413);
-  if (content.length < 100) return json({ error: "The document contains too little readable text for AI study generation. Try a text-based PDF, DOCX, PPTX or text file." }, 400);
   if (content.length > MAX_TEXT) return json({ error: "The extracted document is too long. Split it into smaller files and upload each part separately." }, 413);
 
   const fileName = safeFileName(originalFile.name || sourceName);
@@ -146,6 +148,7 @@ export const onRequestPost = async (context: AppContext) => {
     material: {
       id, title, sourceName: fileName, unit, category, mimeType,
       originalFileAvailable: true, originalSizeBytes: originalFile.size,
+      hasExtractableText: content.trim().length >= 100,
       contentText: content, summary: null, questions: [], createdAt: now, updatedAt: now
     }
   }, 201);

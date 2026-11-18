@@ -278,6 +278,9 @@ export const onRequestPost = async (context: AppContext) => {
     id: string; title: string; source_name: string; unit: string; content_text: string;
   }>();
   if (!material) return json({ error: "This material could not be found in your private library." }, 404);
+  if (material.content_text.trim().length < 100) {
+    return json({ error: "Your original file is saved and can be read in Source Material, but ClerkMe could not extract enough selectable text to create reliable AI notes. Use OCR or a text-based copy, then upload it again for study-guide generation." }, 400);
+  }
 
   const activeJob = await context.env.DB.prepare(`
     SELECT id, interaction_id

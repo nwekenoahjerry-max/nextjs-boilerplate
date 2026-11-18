@@ -57,6 +57,7 @@ type StudyMaterial = {
   mimeType:string|null;
   originalFileAvailable?:boolean;
   originalSizeBytes?:number|null;
+  hasExtractableText?:boolean;
   summary:StudySummary|null;
   questions:MaterialQuestion[];
   createdAt:number;
@@ -487,6 +488,12 @@ export default function MaterialsPanel() {
   };
 
   const summarise = async (materialId:string) => {
+    const target = materials.find(item=>item.id===materialId);
+    if (target?.hasExtractableText === false) {
+      setTab("source");
+      setError("This original file does not contain enough selectable text for AI study notes. You can still read or download it in Source Material.");
+      return;
+    }
     setWorking(true); setError(""); setNotice("Starting your detailed High-Yield Points study guide…");
     try {
       const response = await fetch("/api/learning/summarise",{
@@ -547,13 +554,21 @@ export default function MaterialsPanel() {
     if (!file) { setError("Choose a document first."); return; }
     setUploading(true); setError(""); setNotice(""); setAnswer(null);
     try {
-      const extracted = await extractStudyFile(file);
+      let extractedText = "";
+      try {
+        const extracted = await extractStudyFile(file);
+        extractedText = extracted.text;
+      } catch {
+        // The original file can still be stored and read even if text extraction fails.
+        extractedText = "";
+      }
+      const hasExtractableText = extractedText.trim().length >= 100;
       const uploadForm = new FormData();
       uploadForm.append("title",title.trim() || file.name.replace(/\\.[^.]+$/,""));
       uploadForm.append("sourceName",file.name);
       uploadForm.append("unit",unit);
       uploadForm.append("category",category);
-      uploadForm.append("contentText",extracted.text);
+      uploadForm.append("contentText",extractedText);
       uploadForm.append("originalFile",file,file.name);
       const response = await fetch("/api/learning/materials",{
         method:"POST",credentials:"same-origin",body:uploadForm
@@ -562,9 +577,14 @@ export default function MaterialsPanel() {
       const material = data.material as StudyMaterial;
       setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
-      setSourceTextByMaterial(current=>({...current,[material.id]:extracted.text}));
+      setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
       setLibraryUnit(unit);
       setTitle(""); setFile(null);
+      if (!hasExtractableText) {
+        setTab("source");
+        setNotice("Your original document has been uploaded and is ready to read in Source Material. ClerkMe could not find enough selectable text to create reliable AI notes. You can still read or download the original; use OCR or a text-based copy to generate a study guide.");
+        return;
+      }
       setNotice("Material uploaded and saved to your private library. Preparing its High-Yield Points…");
       await summarise(material.id);
     } catch(e) {
@@ -574,6 +594,11 @@ export default function MaterialsPanel() {
 
   const generateQuestions = async () => {
     if (!selectedMaterial) return;
+    if (selectedMaterial.hasExtractableText === false) {
+      setTab("source");
+      setError("This original file has no selectable text for reliable question generation. Read it in Source Material or upload a text-based/OCR version for MCQs.");
+      return;
+    }
     setWorking(true); setError(""); setNotice("Creating unit- and source-specific practice questions…");
     try {
       const response = await fetch("/api/learning/generate",{
@@ -604,6 +629,11 @@ export default function MaterialsPanel() {
 
   const ask = async () => {
     if (!selectedMaterial || question.trim().length<5) return;
+    if (selectedMaterial.hasExtractableText === false && !selectedMaterial.summary) {
+      setTab("source");
+      setError("This original file has no selectable text for the study tutor. Use OCR or upload a text-based copy to enable AI explanations.");
+      return;
+    }
     setAnswering(true); setError(""); setAnswer(null);
     try {
       const response = await fetch("/api/learning/ask",{
@@ -707,7 +737,7 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress}>{working?"Building your study guide…":selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -720,14 +750,14 @@ export default function MaterialsPanel() {
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
+            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Preparing questions…":"Generate "+questionCount+" questions"} <span>→</span></button>
           </div>
         </div>
         <div className="materials-tabs">
           <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>High-Yield Points</button>
           <button className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Source material</button>
           <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length||0}</span></button>
-          <button className={tab==="ask"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
+          <button className={tab==="ask"?"active":""} disabled={liveInProgress||(selectedMaterial.hasExtractableText===false&&!selectedMaterial.summary)} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
 
         {tab==="source" && <section className="materials-source-viewer">
@@ -739,7 +769,11 @@ export default function MaterialsPanel() {
             : <div className="materials-empty"><strong>Original file unavailable for this older upload</strong><p>ClerkMe saved its extracted text before original-file storage was enabled. Upload the original file again to view it in its original format.</p></div>}
           <details className="source-extracted-details">
             <summary>View extracted text used by the AI</summary>
-            {sourceTextByMaterial[selectedMaterial.id] ? <pre>{sourceTextByMaterial[selectedMaterial.id]}</pre> : <p>Loading extracted text…</p>}
+            {sourceTextByMaterial[selectedMaterial.id] !== undefined
+              ? sourceTextByMaterial[selectedMaterial.id]
+                ? <pre>{sourceTextByMaterial[selectedMaterial.id]}</pre>
+                : <p>ClerkMe could not extract selectable text from this file. The original document above remains available to read and download.</p>
+              : <p>Loading extracted text…</p>}
           </details>
         </section>}
 
@@ -871,7 +905,7 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.sourceCoverage?.length&&<section className="study-summary-block"><h3>Topics covered from your source</h3><ul>{selectedMaterial.summary.sourceCoverage.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
-          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working}>{working?"Building your study guide…":"Create High-Yield Points →"}</button></div>}
+          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||selectedMaterial.hasExtractableText===false}>{working?"Building your study guide…":"Create High-Yield Points →"}</button></div>}
         </>}
 
 
@@ -977,7 +1011,7 @@ export default function MaterialsPanel() {
                   : <button type="button" className="study-mcq-finish-link" onClick={()=>{const unanswered=activeQuestions.length-answeredCount;if(unanswered>0&&!window.confirm("You have "+unanswered+" unanswered question(s). Submit your test now?"))return;finishLiveTest(false);}}>Submit live test and reveal feedback</button>}
               </>}
             </>}
-          </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the High-Yield Points at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
+          </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the High-Yield Points at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working||selectedMaterial.hasExtractableText===false}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
         </div>}
 
         {tab==="ask" && <div className="study-tutor-panel">
