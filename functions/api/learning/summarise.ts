@@ -2,7 +2,7 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 
 
-const GEMINI_MODEL = "gemini-3.8-flash";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_GENERATE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent";
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 type GeminiGenerateResponse = {
@@ -10,7 +10,7 @@ type GeminiGenerateResponse = {
   error?: { message?: string; status?: string; code?: number };
   usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
 };
-async function requestGeminiStudyGuide(apiKey: string, messages: ReadonlyArray<{ role: string; content: string }>, attempts = 3): Promise<string> {
+async function requestGeminiStudyGuide(apiKey: string, messages: ReadonlyArray<{ role: string; content: string }>, attempts = 5): Promise<string> {
   const system = messages.find(message => message.role === "system")?.content || "";
   const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -35,14 +35,14 @@ async function requestGeminiStudyGuide(apiKey: string, messages: ReadonlyArray<{
           ? "GEMINI_TIMEOUT: The study-generation request timed out while waiting for Gemini."
           : "GEMINI_NETWORK_ERROR: Could not reach the Gemini API. " + detail.slice(0, 180));
       }
-      await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      await new Promise(resolve => setTimeout(resolve, Math.min(8000, 1500 * (2 ** attempt))));
       continue;
     }
     if (!response.ok) {
       const providerMessage = typeof data.error?.message === "string" ? data.error.message.slice(0, 450) : "";
       if (GEMINI_RETRYABLE_STATUSES.has(response.status) && attempt < attempts - 1) {
         const retryAfter = Number(response.headers.get("retry-after"));
-        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(10000, Math.max(1000, retryAfter * 1000)) : 1000 * (attempt + 1);
+        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(15000, Math.max(1500, retryAfter * 1000)) : Math.min(8000, 1500 * (2 ** attempt));
         await new Promise(resolve => setTimeout(resolve, waitMs));
         continue;
       }
