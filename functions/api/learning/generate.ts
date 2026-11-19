@@ -1,9 +1,129 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; optionRationales: string[]; topic: string; difficulty: string };
-const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
+const GEMINI_FALLBACK_MODELS = ["gemini-3.1-flash-lite"] as const;
+const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+type GeminiSbaResponse = {
+  candidates?: Array<{
+    finishReason?: string;
+    content?: { parts?: Array<{ text?: string; thought?: boolean }> };
+  }>;
+  error?: { message?: string; status?: string; code?: number };
+  usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+};
+
+async function requestGeminiSba(
+  apiKey: string,
+  messages: ReadonlyArray<{ role: string; content: string }>,
+  maxOutputTokens: number
+): Promise<string> {
+  const system = messages.find(message => message.role === "system")?.content || "";
+  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
+  const models = [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS];
+  let lastError: unknown = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      let response: Response;
+      let data: GeminiSbaResponse = {};
+      try {
+        response = await fetch(
+          "https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: system }] },
+              contents: [{ role: "user", parts: [{ text: user }] }],
+              generationConfig: {
+                temperature: 0.25,
+                maxOutputTokens,
+                responseMimeType: "application/json",
+                thinkingConfig: { thinkingLevel: "MEDIUM" }
+              }
+            }),
+            signal: AbortSignal.timeout(120000)
+          }
+        );
+        data = await response.json().catch(() => ({})) as GeminiSbaResponse;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0) {
+          await wait(1200);
+          continue;
+        }
+        console.warn("[ClerkMe] Gemini SBA request failed; trying the next configured model when available.", {
+          model,
+          detail: error instanceof Error ? error.message.slice(0, 180) : "Network request failed."
+        });
+        break;
+      }
+
+      if (!response.ok) {
+        const providerMessage = typeof data.error?.message === "string"
+          ? data.error.message.slice(0, 350)
+          : "The question request was rejected.";
+        lastError = new Error("GEMINI_HTTP_" + response.status + ": " + providerMessage);
+        const retryable = GEMINI_RETRYABLE_STATUSES.has(response.status) ||
+          data.error?.status === "UNAVAILABLE" ||
+          data.error?.status === "RESOURCE_EXHAUSTED";
+        if (retryable && attempt === 0) {
+          const retryAfter = Number(response.headers.get("retry-after"));
+          const delay = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(12000, Math.max(1200, retryAfter * 1000))
+            : 1500;
+          await wait(delay);
+          continue;
+        }
+        if (retryable) {
+          console.warn("[ClerkMe] Gemini model remained unavailable for SBA generation.", {
+            model, status: response.status, providerStatus: data.error?.status || null
+          });
+          break;
+        }
+        throw lastError;
+      }
+
+      const candidate = data.candidates?.[0];
+      const finishReason = typeof candidate?.finishReason === "string"
+        ? candidate.finishReason.toUpperCase()
+        : "";
+      const outputText = candidate?.content?.parts
+        ?.filter(part => !part.thought && typeof part.text === "string")
+        .map(part => part.text || "")
+        .join("\n")
+        .trim() || "";
+
+      if (finishReason === "MAX_TOKENS") {
+        lastError = new Error("GEMINI_OUTPUT_TRUNCATED: The SBA batch exceeded the response-length limit.");
+        console.warn("[ClerkMe] Gemini truncated an SBA batch.", { model, maxOutputTokens });
+        break;
+      }
+      if (!outputText) {
+        lastError = new Error("GEMINI_EMPTY_RESPONSE: The question service returned no usable question content.");
+        console.warn("[ClerkMe] Gemini returned no usable SBA content.", { model, finishReason });
+        break;
+      }
+
+      console.info("[ClerkMe] SBA batch generated successfully.", {
+        model,
+        outputTokens: data.usageMetadata?.candidatesTokenCount ?? null
+      });
+      return outputText;
+    }
+  }
+
+  const detail = lastError instanceof Error ? lastError.message : "Gemini did not complete the question request.";
+  throw new Error("GEMINI_SBA_GENERATION_FAILED: " + detail.slice(0, 450));
+}
 function isRetryableGenerationError(error: unknown): boolean {
   const detail = error instanceof Error ? error.message : String(error ?? "");
   return /timeout|timed out|request timeout|\\b408\\b|\\b429\\b|\\b500\\b|\\b502\\b|\\b503\\b|\\b504\\b|temporarily unavailable|overloaded|capacity|json mode couldn't be met/i.test(detail);
@@ -59,8 +179,13 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  const ai = context.env.AI;
-  if (!ai) return json({ error: "The AI engine is not connected yet. Add a Workers AI binding named AI to the ClerkMe Pages project, then redeploy." }, 503);
+  const apiKey = context.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return json({
+      error: "Question generation is temporarily unavailable. Your uploaded material is safe; please try again shortly.",
+      code: "QUESTION_SERVICE_UNAVAILABLE"
+    }, 503);
+  }
 
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; }
@@ -94,7 +219,7 @@ export const onRequestPost = async (context: AppContext) => {
       const exclusionNote = exclude.length
         ? "\nDo not repeat or closely paraphrase these questions:\n" + exclude.map((item, index) => (index + 1) + ". " + item).join("\n")
         : "";
-      const result = await ai.run(MODEL, {
+      const result = await requestGeminiSba(apiKey, [
         messages: [
           {
             role: "system",
@@ -107,11 +232,9 @@ export const onRequestPost = async (context: AppContext) => {
               "For Mixed difficulty, use a sensible balance of foundational knowledge, mechanism, interpretation and clinical application, with most application questions framed as short clinical vignettes. For Easy, test core understanding with clear SBA stems. For Moderate, emphasise clinical interpretation and application. For Hard, prioritise multi-step clinical reasoning, prioritisation and discriminating between plausible diagnoses or management choices. Each item must have one best answer, not simply a technically true answer. Keep the lead-in focused and all five options parallel. Do not exceed the source." +
               exclusionNote + "\n\nUPLOADED STUDY MATERIAL:\n---\n" + source + "\n---"
           }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: Math.min(12000, requested * 360 + 900)
-      });
-      const parsed = parseAIResult(result);
+        ]
+      ], Math.min(10000, requested * 1400 + 1200));
+      const parsed = parseAIResult({ response: result });
       return normaliseQuestions(parsed.questions, level).slice(0, requested);
     };
 
@@ -240,10 +363,10 @@ export const onRequestPost = async (context: AppContext) => {
       materialId: materialId || null
     });
   } catch (error) {
-    console.error("[ClerkMe] SBA question generation failed.", {
+    console.error("[ClerkMe] Gemini SBA question generation failed.", {
       materialId: materialId || null,
       requestedCount: count,
-      detail: error instanceof Error ? error.message.slice(0, 350) : "Unknown Workers AI error."
+      detail: error instanceof Error ? error.message.slice(0, 350) : "Unknown Gemini API error."
     });
     return aiFailureResponse(error, "Question generation is temporarily unavailable. Your study material remains saved; please try again later.");
   }
