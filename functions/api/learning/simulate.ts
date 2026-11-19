@@ -117,7 +117,7 @@ export const onRequestPost = async (context:AppContext) => {
     const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
 
     try{
-      const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
+      const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens",{
         method:"POST",
         headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},
         body:JSON.stringify({
