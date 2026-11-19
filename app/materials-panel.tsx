@@ -11,6 +11,17 @@ type SummarySection = {
   heading: string;
   summary: string;
   subsections?: Array<{heading:string;explanation:string;keyPoints?:string[];memoryHook?:string}>;
+  diagnosisPattern?: {
+    patternSummary?:string;
+    typicalPresentation?:string;
+    historyClues?:string[];
+    examinationClues?:string[];
+    redFlags?:string[];
+    diagnosticCriteria?:string[];
+    investigations?:Array<{test:string;expectedFinding:string;interpretation:string}>;
+    differentialDiagnoses?:Array<{diagnosis:string;distinguishingFeatures:string}>;
+  } | null;
+  managementPlan?:Array<{phase:string;intervention:string;rationale:string;monitoring?:string;cautions?:string}>;
   clinicalRelevance?: string;
   highYieldPoints?: string[];
   sourceLocator?: string;
@@ -140,7 +151,6 @@ export default function MaterialsPanel() {
   const [youtubeLoading,setYoutubeLoading] = useState(false);
   const [youtubeError,setYoutubeError] = useState("");
   const [activeYoutubeVideo,setActiveYoutubeVideo] = useState<YouTubeVideo|null>(null);
-  const autoRecommendedVideoKeyRef = useRef("");
   const youtubePlayerRef = useRef<HTMLDivElement>(null);
   const [youtubeLink,setYoutubeLink] = useState("");
   const [videoSaving,setVideoSaving] = useState(false);
@@ -305,15 +315,6 @@ export default function MaterialsPanel() {
   },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([0,1,2]); },[selectedId]);
   useEffect(()=>{ setYoutubeVideos([]); setActiveYoutubeVideo(null); setYoutubeError(""); setYoutubeQuery(""); setYoutubeLink(""); },[selectedId]);
-  useEffect(()=>{
-    const recommendation = recommendedVideoSuggestions[0];
-    if (!selectedId || !selectedMaterial?.summary || !recommendation?.topic) return;
-    const key = selectedId + ":" + recommendation.topic + ":" + recommendation.channel;
-    if (autoRecommendedVideoKeyRef.current === key) return;
-    autoRecommendedVideoKeyRef.current = key;
-    void searchYouTube(recommendation.topic + " " + recommendation.channel + " medical lecture", false);
-  },[selectedId,recommendedVideoSuggestions]);
-
   useEffect(()=>{
     if (tab!=="source" || !selectedId || sourceTextByMaterial[selectedId]) return;
     let cancelled = false;
@@ -844,6 +845,23 @@ export default function MaterialsPanel() {
                   <div id={`study-section-details-${index+1}`} className="study-section-expanded-content" hidden={!expanded}>
                     {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
                     {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}><h4>{subsection.heading}</h4><p>{subsection.explanation}</p>{!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}{subsection.memoryHook&&<div className="study-memory-hook"><strong>Memory hook</strong><p>{subsection.memoryHook}</p></div>}</section>)}</div>}
+                    {section.diagnosisPattern&&<section className="study-clinical-framework">
+                      <div className="eyebrow">CLINICAL RECOGNITION</div><h4>Diagnosis pattern</h4>
+                      {section.diagnosisPattern.patternSummary&&<p className="study-clinical-pattern-summary">{section.diagnosisPattern.patternSummary}</p>}
+                      {section.diagnosisPattern.typicalPresentation&&<div className="study-clinical-pattern-card"><strong>Typical presentation</strong><p>{section.diagnosisPattern.typicalPresentation}</p></div>}
+                      <div className="study-clinical-cue-grid">
+                        {!!section.diagnosisPattern.historyClues?.length&&<div className="study-clinical-pattern-card"><strong>Key history</strong><ul>{section.diagnosisPattern.historyClues.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}
+                        {!!section.diagnosisPattern.examinationClues?.length&&<div className="study-clinical-pattern-card"><strong>Examination findings</strong><ul>{section.diagnosisPattern.examinationClues.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}
+                        {!!section.diagnosisPattern.diagnosticCriteria?.length&&<div className="study-clinical-pattern-card"><strong>Diagnostic criteria</strong><ul>{section.diagnosisPattern.diagnosticCriteria.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}
+                        {!!section.diagnosisPattern.redFlags?.length&&<div className="study-clinical-pattern-card is-warning"><strong>Red flags and urgent features</strong><ul>{section.diagnosisPattern.redFlags.map((item,i)=><li key={i}>{item}</li>)}</ul></div>}
+                      </div>
+                      {!!section.diagnosisPattern.investigations?.length&&<div className="study-table-wrap study-clinical-table"><strong>Investigations: expected pattern and interpretation</strong><table><thead><tr><th>Investigation</th><th>Expected finding</th><th>Clinical interpretation</th></tr></thead><tbody>{section.diagnosisPattern.investigations.map((item,i)=><tr key={i}><th>{item.test}</th><td>{item.expectedFinding}</td><td>{item.interpretation}</td></tr>)}</tbody></table></div>}
+                      {!!section.diagnosisPattern.differentialDiagnoses?.length&&<div className="study-table-wrap study-clinical-table"><strong>Differential diagnosis: how to distinguish alternatives</strong><table><thead><tr><th>Alternative diagnosis</th><th>Distinguishing clues</th></tr></thead><tbody>{section.diagnosisPattern.differentialDiagnoses.map((item,i)=><tr key={i}><th>{item.diagnosis}</th><td>{item.distinguishingFeatures}</td></tr>)}</tbody></table></div>}
+                    </section>}
+                    {!!section.managementPlan?.length&&<section className="study-management-plan">
+                      <div className="eyebrow">CLINICAL MANAGEMENT</div><h4>Detailed management approach</h4><p className="study-management-intro">Follow the sequence supported by the uploaded material. Review the rationale, monitoring and cautions for each step.</p>
+                      <div className="study-table-wrap study-clinical-table"><table><thead><tr><th>Phase / priority</th><th>Management action</th><th>Rationale</th><th>Monitoring</th><th>Safety / cautions</th></tr></thead><tbody>{section.managementPlan.map((item,i)=><tr key={i}><th>{item.phase}</th><td>{item.intervention}</td><td>{item.rationale||"Not specified in the uploaded source."}</td><td>{item.monitoring||"Not specified in the uploaded source."}</td><td>{item.cautions||"Not specified in the uploaded source."}</td></tr>)}</tbody></table></div>
+                    </section>}
                     {section.clinicalRelevance&&<div className="study-clinical-relevance"><strong>Clinical relevance</strong><p>{section.clinicalRelevance}</p></div>}
                     {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>High-yield points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
                   </div>
@@ -853,8 +871,8 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
-            {!!recommendedVideoSuggestions.length&&<section className="study-summary-block study-video-resources">
-              <div className="study-video-heading"><div><div className="eyebrow">IN-APP VIDEO LEARNING</div><h3>Watch a related lecture</h3><p className="study-section-intro">Find a relevant video, select it and watch without leaving your ClerkMe study guide.</p></div><span className="study-video-app-badge">ClerkMe player</span></div>
+            {!!recommendedVideoSuggestions.length&&<details className="study-summary-block study-video-resources">
+              <summary className="study-video-disclosure"><div><div className="eyebrow">OPTIONAL VIDEO SUPPORT</div><h3>One or two focused video recommendations</h3><p className="study-section-intro">The detailed notes are primary. Open this section when a visual explanation or an additional lecture would help.</p></div><span className="study-video-app-badge">1–2 resources</span></summary>
 
               <form className="study-video-search-form" onSubmit={event=>{event.preventDefault();void searchYouTube(youtubeQuery);}}>
                 <label htmlFor="clerkme-youtube-search">Search for a lecture</label>
@@ -871,7 +889,7 @@ export default function MaterialsPanel() {
 
 
 
-              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Recommended YouTube videos</strong><span>{youtubeVideos.length} relevant results</span></div><div className="study-video-grid">{youtubeVideos.map((video,index)=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span>{index===0&&<em className="study-video-best-match">TOP RECOMMENDATION</em>}<strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
+              {!!youtubeVideos.length&&<div className="study-video-results"><div className="study-video-results-heading"><strong>Recommended YouTube videos</strong><span>{youtubeVideos.length} relevant results</span></div><div className="study-video-grid">{youtubeVideos.slice(0,4).map((video,index)=><button type="button" className={"study-video-result"+(activeYoutubeVideo?.id===video.id?" active":"")} key={video.id} onClick={()=>{setActiveYoutubeVideo(video);setYoutubeError("");}}><img src={video.thumbnailUrl} alt="" loading="lazy"/><span>{index===0&&<em className="study-video-best-match">TOP RECOMMENDATION</em>}<strong>{video.title}</strong><small>{video.channelTitle}</small><em>{video.description}</em></span><b>▶</b></button>)}</div></div>}
 
               <div className="study-video-recommendations"><div className="study-video-results-heading"><strong>Recommended videos from your lecture</strong><span>{recommendedVideoSuggestions.length}</span></div><div className="study-video-grid">{recommendedVideoSuggestions.map((video,index)=><article className="study-video-link" key={index}><span className="study-video-play">▶</span><span><strong>{video.topic}</strong><small>{video.channel}</small>{video.whyWatch&&<p>{video.whyWatch}</p>}<button type="button" className="study-video-topic-button" disabled={youtubeLoading} onClick={()=>void searchYouTube(video.topic+" "+video.channel+" medical lecture",true)}>{youtubeLoading&&youtubeQuery===video.topic+" "+video.channel+" medical lecture"?"Finding a playable lecture…":"▶ Play recommended video here"}</button></span></article>)}</div></div>
 
@@ -888,7 +906,7 @@ export default function MaterialsPanel() {
                 {!!videoSaveNotice&&<p className="study-video-save-notice" role="status">{videoSaveNotice}</p>}
                 {!!videoSaveError&&<p className="study-video-save-error" role="alert">{videoSaveError}</p>}
               </div>}
-            </section>}
+            </details>}
             {!!selectedMaterial.summary.mnemonics?.length&&<section className="study-summary-block study-mnemonics">
               <div className="eyebrow">MEMORY TOOLS</div><h3>Mnemonics worth remembering</h3>
               <p className="study-section-intro">Understand the concept first, then use these accurate recall aids to retrieve the important details.</p>

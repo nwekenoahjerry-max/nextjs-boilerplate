@@ -55,7 +55,7 @@ export const onRequestPost = async (context: AppContext) => {
     q: query,
     type: "video",
     videoEmbeddable: "true",
-    maxResults: "12",
+    maxResults: "5",
     regionCode: "NG",
     relevanceLanguage: "en",
     safeSearch: "strict",

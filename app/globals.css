@@ -3906,3 +3906,29 @@ body{background:var(--paper);color:var(--ink)}
 .study-mcq-option-rationales li{padding-left:3px;color:#43564a;font-size:12px;line-height:1.6}
 .study-mcq-option-rationales li b{display:block;color:#294c37;font-size:12px;margin-bottom:2px}
 .study-mcq-option-rationales li span{display:block;color:#596b60}
+
+
+/* Clinical recognition and management tables in the detailed study guide */
+.study-clinical-framework,.study-management-plan{margin:18px 0;padding:16px;border:1px solid #dce8e0;border-radius:12px;background:#fbfdfb}
+.study-clinical-framework>h4,.study-management-plan>h4{margin:5px 0 12px;color:#284f38;font:800 16px/1.4 Manrope,Arial,sans-serif}
+.study-clinical-pattern-summary{margin:8px 0 12px;color:#405e4a;font-size:13px;line-height:1.8}
+.study-clinical-pattern-card{padding:12px 14px;border:1px solid #e3ebe5;border-radius:9px;background:#fff;min-width:0}
+.study-clinical-pattern-card>strong{display:block;color:#355b43;font-size:12px;font-weight:800;margin-bottom:6px}
+.study-clinical-pattern-card p{margin:0;color:#52665a;font-size:12px;line-height:1.75}
+.study-clinical-pattern-card ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.study-clinical-pattern-card li{color:#52665a;font-size:12px;line-height:1.65}
+.study-clinical-pattern-card.is-warning{border-color:#eadac2;background:#fffaf2}
+.study-clinical-pattern-card.is-warning>strong{color:#8a5b29}
+.study-clinical-cue-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.study-clinical-table{margin-top:12px}
+.study-clinical-table table{min-width:680px;font-size:11px}
+.study-clinical-table th,.study-clinical-table td{padding:10px 12px;line-height:1.7}
+.study-management-plan{border-color:#d9e6dc;background:#f8fbf8}
+.study-management-intro{margin:0 0 10px;color:#596e60;font-size:12px;line-height:1.7}
+.study-management-plan .study-clinical-table table{min-width:900px}
+.study-video-disclosure{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;cursor:pointer;list-style:none;padding:2px 0}
+.study-video-disclosure::-webkit-details-marker{display:none}
+.study-video-disclosure h3{margin:5px 0;color:#304f3a;font:800 15px/1.4 Manrope,Arial,sans-serif}
+.study-video-disclosure p{margin:0;max-width:650px}
+.study-video-resources[open] .study-video-disclosure{padding-bottom:14px;border-bottom:1px solid #e7eee8;margin-bottom:14px}
+@media(max-width:650px){.study-clinical-cue-grid{grid-template-columns:1fr}.study-clinical-framework,.study-management-plan{padding:12px}.study-video-disclosure{flex-direction:column}}

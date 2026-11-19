@@ -178,24 +178,68 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
       learningObjectives: asStrings(parsed.learningObjectives, 20, 700),
       sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 32).map(value => {
         const item = value as Record<string, unknown>;
-        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 10).map(value => {
+        const diagnosisRaw = item.diagnosisPattern && typeof item.diagnosisPattern === "object"
+          ? item.diagnosisPattern as Record<string, unknown>
+          : null;
+        const diagnosisPattern = diagnosisRaw ? {
+          patternSummary: clean(diagnosisRaw.patternSummary, 1800),
+          typicalPresentation: clean(diagnosisRaw.typicalPresentation, 2400),
+          historyClues: asStrings(diagnosisRaw.historyClues, 16, 700),
+          examinationClues: asStrings(diagnosisRaw.examinationClues, 16, 700),
+          redFlags: asStrings(diagnosisRaw.redFlags, 12, 700),
+          diagnosticCriteria: asStrings(diagnosisRaw.diagnosticCriteria, 16, 700),
+          investigations: Array.isArray(diagnosisRaw.investigations) ? diagnosisRaw.investigations.slice(0, 18).map(value => {
+            const investigation = value as Record<string, unknown>;
+            return {
+              test: clean(investigation.test, 180),
+              expectedFinding: clean(investigation.expectedFinding, 1000),
+              interpretation: clean(investigation.interpretation, 1000)
+            };
+          }).filter(row => row.test && (row.expectedFinding || row.interpretation)) : [],
+          differentialDiagnoses: Array.isArray(diagnosisRaw.differentialDiagnoses) ? diagnosisRaw.differentialDiagnoses.slice(0, 14).map(value => {
+            const differential = value as Record<string, unknown>;
+            return {
+              diagnosis: clean(differential.diagnosis, 180),
+              distinguishingFeatures: clean(differential.distinguishingFeatures, 1000)
+            };
+          }).filter(row => row.diagnosis && row.distinguishingFeatures) : []
+        } : null;
+        const hasDiagnosisPattern = Boolean(diagnosisPattern && (
+          diagnosisPattern.patternSummary || diagnosisPattern.typicalPresentation ||
+          diagnosisPattern.historyClues.length || diagnosisPattern.examinationClues.length ||
+          diagnosisPattern.redFlags.length || diagnosisPattern.diagnosticCriteria.length ||
+          diagnosisPattern.investigations.length || diagnosisPattern.differentialDiagnoses.length
+        ));
+        const managementPlan = Array.isArray(item.managementPlan) ? item.managementPlan.slice(0, 24).map(value => {
+          const action = value as Record<string, unknown>;
+          return {
+            phase: clean(action.phase, 180),
+            intervention: clean(action.intervention, 1800),
+            rationale: clean(action.rationale, 1400),
+            monitoring: clean(action.monitoring, 1000),
+            cautions: clean(action.cautions, 1000)
+          };
+        }).filter(action => action.phase && action.intervention) : [];
+        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 12).map(value => {
           const subsection = value as Record<string, unknown>;
           return {
             heading: clean(subsection.heading, 180),
-            explanation: clean(subsection.explanation, 5200),
-            keyPoints: asStrings(subsection.keyPoints, 12, 500),
+            explanation: clean(subsection.explanation, 6200),
+            keyPoints: asStrings(subsection.keyPoints, 14, 600),
             memoryHook: clean(subsection.memoryHook, 650)
           };
         }).filter(subsection => subsection.heading && subsection.explanation) : [];
         return {
           heading: clean(item.heading, 180),
-          summary: clean(item.summary, 4200),
+          summary: clean(item.summary, 4600),
           subsections,
-          clinicalRelevance: clean(item.clinicalRelevance, 3600),
-          highYieldPoints: asStrings(item.highYieldPoints, 20, 1000),
+          diagnosisPattern: hasDiagnosisPattern ? diagnosisPattern : null,
+          managementPlan,
+          clinicalRelevance: clean(item.clinicalRelevance, 4000),
+          highYieldPoints: asStrings(item.highYieldPoints, 22, 1100),
           sourceLocator: clean(item.sourceLocator, 160)
         };
-      }).filter(item => item.heading && (item.summary || item.subsections.length)) : [],
+      }).filter(item => item.heading && (item.summary || item.subsections.length || item.diagnosisPattern || item.managementPlan.length)) : [],
       keyTerms: Array.isArray(parsed.keyTerms) ? parsed.keyTerms.slice(0, 45).map(value => {
         const item = value as Record<string, unknown>;
         return { term: clean(item.term, 120), meaning: clean(item.meaning, 800) };
@@ -203,7 +247,7 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
       comparisonTables: Array.isArray(parsed.comparisonTables) ? parsed.comparisonTables.slice(0, 10).map(value => {
         const item = value as Record<string, unknown>;
         const columns = asStrings(item.columns, 8, 120);
-        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 18).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 360)) : []).filter(row => row.length > 0) : [];
+        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 24).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 800)) : []).filter(row => row.length > 0) : [];
         return { title: clean(item.title, 160), columns, rows };
       }).filter(item => item.title && item.columns.length && item.rows.length) : [],
       examFocus: Object.values(examFocus).some(value => Array.isArray(value) && value.length) ? examFocus : null,
@@ -215,7 +259,7 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
           takeaway: clean(item.takeaway, 900)
         };
       }).filter(item => item.title && item.steps.length >= 2) : [],
-      videoSuggestions: Array.isArray(parsed.videoSuggestions) ? parsed.videoSuggestions.slice(0, 6).map(value => {
+      videoSuggestions: Array.isArray(parsed.videoSuggestions) ? parsed.videoSuggestions.slice(0, 2).map(value => {
         const item = value as Record<string, unknown>;
         const suggestedChannel = clean(item.channel, 40);
         return {
@@ -345,6 +389,19 @@ Return a JSON object with this exact shape:
           "memoryHook": "A short, specific and accurate recall cue for this subsection, with its meaning decoded."
         }
       ],
+      "diagnosisPattern": {
+        "patternSummary": "The overall clinical pattern that should make a student consider this condition; state the limits of the pattern.",
+        "typicalPresentation": "A concise but detailed synthesis of the characteristic presentation supported by the uploaded source.",
+        "historyClues": ["Relevant symptoms, chronology, risk factors and discriminating history points."],
+        "examinationClues": ["Relevant general and focused examination findings."],
+        "redFlags": ["Features that indicate severity, complications or need for urgent escalation, only when supported by the source."],
+        "diagnosticCriteria": ["Formal criteria, definitions or thresholds stated in the source; do not invent missing criteria."],
+        "investigations": [{"test":"Investigation","expectedFinding":"Expected source-supported result or pattern","interpretation":"What the finding means and how it supports, excludes or stages the diagnosis."}],
+        "differentialDiagnoses": [{"diagnosis":"Important alternative diagnosis","distinguishingFeatures":"The specific clues that help distinguish it from the main diagnosis."}]
+      },
+      "managementPlan": [
+        {"phase":"Initial stabilisation / definitive treatment / supportive care / monitoring / complications / follow-up, as relevant","intervention":"Detailed action or treatment step, including dose, route, timing or sequence only when explicitly supported by the source","rationale":"Why this step is indicated and the clinical objective","monitoring":"What response, parameters or adverse effects should be monitored, if stated","cautions":"Contraindications, precautions, escalation triggers or important exceptions stated in the source"}
+      ],
       "clinicalRelevance": "Explain the clinical significance and how the concept connects with presentation, examination, diagnosis or management, only where supported by the source.",
       "highYieldPoints": ["Exam-ready facts, distinctions, thresholds or caveats present in the source."],
       "sourceLocator": "Page, slide or heading where available; otherwise an empty string."
@@ -379,12 +436,15 @@ Quality and completeness:
 - Build understanding before recall. Where appropriate, connect anatomy to function, pathophysiology to symptoms, investigations to the underlying abnormality, and management to its rationale. Use clinical examples only when supported by the uploaded source; do not add unsupported patient details or treatment advice.
 - Include approximately 8-12 revision questions across the guide when the source is substantial. Mix direct recall with “why”, mechanism, comparison, and clinical-application questions. Answers should explain the reasoning, not merely give a one-word response.
 - Produce 12-20 explanatory high-yield points when the source contains enough material. Each should state the key fact plus its mechanism, significance, distinction, criterion or examination trap; do not return fragments.
-- Include learning objectives, key terms, source coverage, clinical relevance and exam focus grounded in the upload. Make comparison tables only for genuine contrasts and flowcharts only for real ordered processes.
-- Provide 3-5 focused video recommendations. Use only Osmosis, Zero to Finals or Geeky Medics as channel suggestions. Recommend topics, not invented video titles or URLs.
+- CLINICAL DIAGNOSIS PATTERN: for every disease, disorder, syndrome or clinical presentation covered by a section, create a structured diagnosisPattern. Describe the characteristic pattern, relevant history, examination findings, red flags, diagnostic criteria, investigations with expected findings AND their interpretation, and key differential diagnoses with distinguishing features. Show how the findings fit together; do not imply that one isolated symptom or test automatically establishes a diagnosis.
+- DETAILED MANAGEMENT: for every condition with management content in the source, create an ordered managementPlan table with separate rows for immediate stabilisation, definitive treatment, supportive care, monitoring, complications, escalation and follow-up as applicable. Include the action, rationale, monitoring and cautions. Preserve sequence, doses, routes, timing, durations, contraindications, thresholds and exceptions only when actually present in the source. Never fill a missing drug dose, guideline threshold or protocol from guesswork.
+- If the uploaded source describes a clinical condition but omits important diagnostic or management details, state exactly what is missing in unclearOrMissing and do not manufacture a complete protocol. Use the sourceLocator for clinical details whenever possible. Distinguish source facts from any analogy or educational framing.
+- Use detailed, information-rich tables where they genuinely improve clinical learning: investigations and interpretation, differential diagnosis, management steps, and comparisons. Use clear row labels and explanatory cells, not one-word entries. Let a table carry detail that would otherwise become a long list, while retaining explanation around it.
+- Provide only 1-2 highly relevant video recommendations for the entire upload. Video suggestions are supplementary; prioritise detailed theory, diagnostic pattern recognition, investigations, management, monitoring and examination preparation. Use only Osmosis, Zero to Finals or Geeky Medics as channel suggestions. Recommend topics, not invented video titles or URLs.
 - Add a small set of high-value mnemonics where they genuinely improve recall. Explain every element and ensure each one maps accurately to the source. Prefer a simple, meaningful mnemonic over a clever but misleading one. Do not force one.
 - Use memoryAids for a concise collection of the strongest whole-topic associations, not a duplicate list of every subsection memoryHook. Make the hooks concrete, easy to retrieve and directly linked to examinable concepts.
 - Include up to 2 visual aids only when a diagram would materially clarify a source-supported anatomical relationship or mechanism. Use a clean textbook schematic prompt with no words, labels, numbers or watermarks. Never fabricate diagnostic images or findings.
-- Write in British English with scannable headings and concise examination takeaways. Give enough explanation for a student to learn from the guide without reopening the lecture for every concept. Be detailed where the source is detailed; do not pad short sections or omit important material for the sake of brevity. Empty arrays are appropriate when a category is not relevant. Do not pad the guide with unsupported general knowledge.
+- Write in British English with scannable headings and concise examination takeaways. Give enough explanation for a student to learn from the guide without reopening the lecture for every concept. This guide must serve both theory revision and clinical SBA preparation: build a usable mental model, then show the pattern of presentation, how investigations are interpreted, how alternatives are distinguished, and the rationale and sequence of management. Be detailed where the source is detailed; do not pad short sections or omit important material for the sake of brevity. Empty arrays are appropriate when a category is not relevant. Do not pad the guide with unsupported general knowledge.
 
 UPLOADED SOURCE:
 ---
