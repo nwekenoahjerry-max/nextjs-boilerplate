@@ -526,7 +526,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
               </div>}
 
           {selected !== null && question && <div className={"flight-feedback " + (selected === question.answerIndex ? "correct" : "wrong")}>
-            <strong>{selected === -1 ? "Time is up — review the key point." : selected === question.answerIndex ? "Excellent — altitude gained!" : "Not quite — learn from the explanation."}</strong>
+            <strong>{selected === -1 ? "Time is up — the aircraft is slowing." : selected === question.answerIndex ? "Excellent — speed boost +45 KT!" : "Not quite — speed reduced. Review the explanation."}</strong>
             <p>{selected === -1 ? "No answer was selected before the 20-second limit. " : ""}
               {question.explanation}
             </p>
@@ -536,8 +536,8 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
 
           {!started && !gameOver && <div className="flight-howto">
             <span>QUICK RULES</span>
-            <p><b>Correct answer</b> <i>+</i> 250 ft and points</p>
-            <p><b>Wrong or timed out</b> <i>−</i> 300 ft</p>
+            <p><b>Correct answer</b> <i>+</i> 250 ft, points and 45 KT speed</p>
+            <p><b>Wrong or timed out</b> <i>−</i> 300 ft and 60 KT speed</p>
             <p><b>Three failed answers</b> ends the flight.</p>
             <p><b>Up to ten unique missions</b> per flight; no repeats in the same round.</p>
           </div>}
