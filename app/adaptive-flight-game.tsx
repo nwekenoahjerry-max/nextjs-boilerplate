@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 
 type GeneratedQuestion = {
@@ -11,6 +11,7 @@ type GeneratedQuestion = {
   topic: string;
   difficulty: string;
 };
+type FlightQuestion = GeneratedQuestion & { id: string; source: string };
 type StudyMaterial = {
   id: string;
   title: string;
@@ -18,7 +19,8 @@ type StudyMaterial = {
   questions: GeneratedQuestion[];
 };
 
-const QUESTION_SECONDS = 15;
+const QUESTION_SECONDS = 20;
+const ROUND_LENGTH = 10;
 
 const fallbackQuestions = questionBank as unknown as Array<{
   id:string;unit:string;topic:string;level:string;q:string;o:string[];a:number;e:string;
@@ -40,6 +42,10 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   const [correct,setCorrect] = useState(0);
   const [wrong,setWrong] = useState(0);
   const [streak,setStreak] = useState(0);
+  const [bestStreak,setBestStreak] = useState(0);
+  const [points,setPoints] = useState(0);
+  const [questionDeck,setQuestionDeck] = useState<FlightQuestion[]>([]);
+  const lastFirstQuestionRef = useRef<string|null>(null);
   const [gameOver,setGameOver] = useState(false);
   const [generationMessage,setGenerationMessage] = useState("");
 
@@ -52,6 +58,16 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   useEffect(()=>{
     reload().catch(e=>setError(e instanceof Error?e.message:"Could not load your study library.")).finally(()=>setLoading(false));
   },[]);
+  useEffect(()=>{
+    try {
+      const saved = Number(window.localStorage.getItem("clerkme-flight-best-altitude"));
+      if (Number.isFinite(saved) && saved > 1000) setBestAltitude(saved);
+    } catch {}
+  },[]);
+  useEffect(()=>{
+    if (bestAltitude <= 1000) return;
+    try { window.localStorage.setItem("clerkme-flight-best-altitude",String(bestAltitude)); } catch {}
+  },[bestAltitude]);
 
   const unitMaterials = useMemo(()=>materials.filter(item=>item.unit===unit),[materials,unit]);
   const chosenMaterial = unitMaterials.find(item=>item.id===materialId);
@@ -61,19 +77,28 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     return rows.flatMap(item=>(item.questions||[]).map((q,i)=>({...q,id:item.id+"-"+i,source:item.title})));
   },[unitMaterials,chosenMaterial,materialId]);
   const builtInQuestions = useMemo(()=>fallbackQuestions.filter(item=>item.unit===unit),[unit]);
-  const activeQuestions = materialId !== "all" && chosenMaterial
+  const activeQuestions: FlightQuestion[] = materialId !== "all" && chosenMaterial
     ? uploadedQuestions
     : uploadedQuestions.length ? uploadedQuestions : builtInQuestions.map(item=>({
         question:item.q,options:item.o,answerIndex:item.a,explanation:item.e,topic:item.topic,difficulty:item.level,source:"ClerkMe core bank",id:item.id
       }));
-  const question = activeQuestions.length ? activeQuestions[index%activeQuestions.length] : null;
+  const questionPool = questionDeck.length ? questionDeck : activeQuestions;
+  const question = questionPool.length ? questionPool[index%questionPool.length] : null;
   const selectedMaterialNeedsQuestions = !!chosenMaterial && !(chosenMaterial.questions||[]).length;
 
   const reset = () => {
-    setStarted(true);setIndex(0);setSelected(null);setTimeLeft(QUESTION_SECONDS);setAltitude(1000);setCorrect(0);setWrong(0);setStreak(0);setGameOver(false);setError("");
+    const deck = [...activeQuestions];
+    for (let i=deck.length-1;i>0;i--) {
+      const j=Math.floor(Math.random()*(i+1));
+      [deck[i],deck[j]]=[deck[j],deck[i]];
+    }
+    if(deck.length>1 && deck[0]?.id===lastFirstQuestionRef.current) [deck[0],deck[1]]=[deck[1],deck[0]];
+    lastFirstQuestionRef.current = deck[0]?.id ?? null;
+    setQuestionDeck(deck);
+    setStarted(true);setIndex(0);setSelected(null);setTimeLeft(QUESTION_SECONDS);setAltitude(1000);setCorrect(0);setWrong(0);setStreak(0);setBestStreak(0);setPoints(0);setGameOver(false);setError("");
   };
   const changeUnit = (value:string) => {
-    setUnit(value);setMaterialId("all");setStarted(false);setIndex(0);setSelected(null);setTimeLeft(QUESTION_SECONDS);setGameOver(false);setGenerationMessage("");setError("");
+    setUnit(value);setMaterialId("all");setQuestionDeck([]);setStarted(false);setIndex(0);setSelected(null);setTimeLeft(QUESTION_SECONDS);setGameOver(false);setGenerationMessage("");setError("");
   };
   const generateForSelected = async () => {
     if (!chosenMaterial) return;
@@ -121,9 +146,9 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     setSelected(option);
     void fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});
     if(option===question.answerIndex) {
-      setAltitude(value=>value+250);setBestAltitude(value=>Math.max(value,altitude+250));setCorrect(value=>value+1);setStreak(value=>value+1);
+      setAltitude(value=>value+250);setBestAltitude(value=>Math.max(value,altitude+250));setCorrect(value=>value+1);setStreak(value=>value+1);setBestStreak(value=>Math.max(value,streak+1));setPoints(value=>value+100+Math.min(streak,4)*25);
     } else {
-      const nextWrong=wrong+1;setWrong(nextWrong);setStreak(0);
+      const nextWrong=wrong+1;setWrong(nextWrong);setStreak(0);setPoints(value=>Math.max(0,value-25));
       if(nextWrong>=3) setGameOver(true);
       setAltitude(value=>Math.max(0,nextWrong>=3?0:value-300));
     }
@@ -131,7 +156,12 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   useEffect(()=>{
     if(selected===null||gameOver)return;
     const timer=window.setTimeout(()=>{
-      setIndex(value=>value+1);setSelected(null);setTimeLeft(QUESTION_SECONDS);
+      setIndex(value=>{
+        const next=value+1;
+        if(next>=ROUND_LENGTH) setGameOver(true);
+        return next;
+      });
+      setSelected(null);setTimeLeft(QUESTION_SECONDS);
     },1800);
     return ()=>window.clearTimeout(timer);
   },[selected,gameOver]);
@@ -171,30 +201,36 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
         <div className="flight-altitude"><span>ALTITUDE</span><strong>{altitude.toLocaleString()}<small> FT</small></strong><div className="altitude-track"><span style={{height:Math.max(0,Math.min(100,altitude/3000*100))+"%"}}/></div></div>
         <div className="flight-sky">
           <div className="sky-sun"></div><div className="sky-cloud cloud-a"></div><div className="sky-cloud cloud-b"></div><div className="sky-cloud cloud-c"></div><div className="sky-cloud cloud-d"></div><div className="sky-cloud cloud-e"></div><div className="flight-route-line"></div>
+          <div className="flight-question-overlay" aria-live="polite">
+            <span>{gameOver?"FLIGHT COMPLETE":started?`MISSION ${String(Math.min(index+1,ROUND_LENGTH)).padStart(2,"0")} OF ${ROUND_LENGTH}`:"FLIGHT QUESTION"}</span>
+            <div className="flight-question-line" tabIndex={0} aria-label={question?.question||"Your clinical question will appear here"} title={question?.question||"Your clinical question will appear here"}>
+              <span>{gameOver?"Flight complete — review your score and launch another round.":started&&question?question.question:"Your clinical question appears here when the flight begins."}</span>
+            </div>
+          </div>
           <div className={"flight-plane "+(gameOver&&selected!==null&&question&&selected!==question.answerIndex?"plane-crashed":selected!==null&&question&&selected===question.answerIndex?"plane-boost":selected!==null?"plane-drop":"")} aria-label="Jet aircraft">
             <svg viewBox="0 0 120 150" role="img" aria-label="Silver jet pointing upwards"><defs><linearGradient id="adaptiveJetMetal" x1="0" x2="1"><stop offset="0" stopColor="#647d91"/><stop offset=".48" stopColor="#f5fbff"/><stop offset="1" stopColor="#526b80"/></linearGradient></defs><path d="M60 7 C69 28 72 57 75 83 L109 111 L108 122 L72 108 L68 137 L52 137 L48 108 L12 122 L11 111 L45 83 C48 57 51 28 60 7Z" fill="url(#adaptiveJetMetal)" stroke="#d9e8f1" strokeWidth="2"/><path d="M60 24 C66 42 66 54 64 66 L60 74 L56 66 C54 54 54 42 60 24Z" fill="#76d9f5"/></svg>
           </div>
           <div className="sky-coordinate coord-two">CLIMB RATE <b>{selected===null?"READY":question&&selected===question.answerIndex?"+250":selected===-1?"TIME OUT":"−300"}</b></div>
-          {(!started||gameOver)&&<div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>{gameOver?"Flight complete":"Ready for take-off?"}</strong><p>{gameOver?"Three failed answers. Your flight has ended. Review the explanation and try again.":"Answer each question before the 15-second countdown reaches zero."}</p><button className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length}>{gameOver?"Restart flight":"Start your flight"} <span>→</span></button></div>}
+          {(!started||gameOver)&&<div className="flight-start-overlay"><div className="flight-start-icon">✈</div><strong>{gameOver?"Flight complete":"Ready for take-off?"}</strong><p>{gameOver?"Review your score, then fly a fresh shuffled set of missions.":"Complete ten clinical missions. You have 20 seconds per question; three missed answers end the flight."}</p><button className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length}>{gameOver?"Fly again":"Start your flight"} <span>→</span></button></div>}
         </div>
-        <div className="flight-metrics"><div><span>CORRECT</span><strong>{correct}</strong></div><div><span>FAILURES LEFT</span><strong>{Math.max(0,3-wrong)}</strong></div><div><span>QUESTIONS ANSWERED</span><strong>{index+(selected!==null?1:0)}</strong></div></div>
+        <div className="flight-metrics"><div><span>CORRECT</span><strong>{correct}</strong></div><div><span>POINTS</span><strong>{points}</strong></div><div><span>BEST STREAK</span><strong>{bestStreak}</strong></div><div><span>LIVES LEFT</span><strong>{Math.max(0,3-wrong)}</strong></div></div>
 
         <div className="flight-question-panel" aria-live="polite">
           <div className="question-topline"><span>MISSION {String(index+1).padStart(2,"0")}</span><span>{question?.topic||"UNIT QUESTIONS"}</span></div>
-          <div className="question-progress"><span style={{width:(activeQuestions.length?((index%activeQuestions.length)+1)/activeQuestions.length*100:0)+"%"}}/></div>
+          <div className="question-progress"><span style={{width:(Math.min(ROUND_LENGTH,index+(selected!==null?1:0))/ROUND_LENGTH*100)+"%"}}/></div>
           <div className="question-meta-row"><div className="question-difficulty">{question?.difficulty||"READY"} QUESTION</div>{started&&!gameOver&&question&&<span className="flight-quick-prompt">CHOOSE A–D</span>}</div>
           {started&&!gameOver&&question&&<div className={"flight-timer "+(timeLeft<=5?"flight-timer-urgent":"")} role="timer" aria-label={timeLeft+" seconds remaining"}>
             <div className="flight-timer-copy"><span>TIME LEFT</span><strong>{String(timeLeft).padStart(2,"0")}<small>s</small></strong></div>
             <div className="flight-timer-track"><span style={{width:(timeLeft/QUESTION_SECONDS*100)+"%"}}/></div>
           </div>}
-          <h3>{gameOver?"Flight complete":started&&question?question.question:"Your next clinical question is ready."}</h3>
-          {started&&question&&!gameOver?<div className="flight-options">{question.options.map((option,i)=><button type="button" key={option+i} className={"flight-option "+(selected===null?"":i===question.answerIndex?"option-correct":i===selected?"option-wrong":"option-muted")} onClick={()=>answerQuestion(i)} disabled={selected!==null}><span className="option-letter">{String.fromCharCode(65+i)}</span><span>{option}</span><span className="option-mark">{selected!==null&&i===question.answerIndex?"✓":selected===i?"×":"↗"}</span></button>)}</div>:<div className="flight-mission-placeholder"><span>◈</span><p>{gameOver?"Restart the flight to begin another quick round.":activeQuestions.length?"Start your flight. Each question stays on the game screen for 15 seconds.":"No practice questions are available for this unit yet. Upload learning material and generate a question set."}</p></div>}
+          <h3>{gameOver?"Flight complete":started&&question?"Choose the single best answer":"Your next clinical question is ready."}</h3>
+          {started&&question&&!gameOver?<div className="flight-options">{question.options.map((option,i)=><button type="button" key={option+i} className={"flight-option "+(selected===null?"":i===question.answerIndex?"option-correct":i===selected?"option-wrong":"option-muted")} onClick={()=>answerQuestion(i)} disabled={selected!==null}><span className="option-letter">{String.fromCharCode(65+i)}</span><span>{option}</span><span className="option-mark">{selected!==null&&i===question.answerIndex?"✓":selected===i?"×":"↗"}</span></button>)}</div>:<div className="flight-mission-placeholder"><span>◈</span><p>{gameOver?"Launch another flight to practise a fresh question order.":activeQuestions.length?"The question is displayed over the flight screen. Choose the best answer below.":"No practice questions are available for this unit yet. Upload learning material and generate a question set."}</p></div>}
           {selected!==null&&question&&<div className={"flight-feedback "+(selected===question.answerIndex?"correct":"wrong")}><strong>{selected===-1?"Time's up — keep moving!":selected===question.answerIndex?"Excellent — altitude gained!":"Not quite — review the explanation."}</strong><p>{selected===-1?"No answer was selected before the 15-second limit. ":""}{question.explanation}</p><div className="altitude-change">{selected===question.answerIndex?"+250":"−300"} FT</div>{!gameOver&&<div className="flight-auto-advance">Next question in a moment…</div>}</div>}
-          {!started&&!gameOver&&<div className="flight-howto"><span>QUICK RULES</span><p><b>Correct answer</b> <i>+</i> 250 ft</p><p><b>Wrong or timed out</b> <i>−</i> 300 ft</p><p><b>Three failed answers</b> ends the flight.</p></div>}
-          {gameOver&&<div className="flight-game-over-note"><strong>Flight summary</strong><p>You answered {correct} correctly and made {wrong} incorrect attempts. Your personal best is {bestAltitude.toLocaleString()} ft.</p></div>}
+          {!started&&!gameOver&&<div className="flight-howto"><span>QUICK RULES</span><p><b>Correct answer</b> <i>+</i> 250 ft and points</p><p><b>Wrong or timed out</b> <i>−</i> 300 ft</p><p><b>Three failed answers</b> ends the flight.</p><p><b>Ten missions</b> completes a full round.</p></div>}
+          {gameOver&&<div className="flight-game-over-note"><strong>Flight summary · {correct+wrong} missions attempted</strong><p>{correct} correct · {wrong} missed · {correct+wrong?Math.round(correct/(correct+wrong)*100):0}% accuracy · {points} points · best streak {bestStreak}. Your altitude record is {bestAltitude.toLocaleString()} ft. Your next flight will use a new question order.</p></div>}
         </div>
       </div>
     </div>
-    <div className="flight-quiz-footer"><span><i></i> EDUCATIONAL GAME · UNIT-SPECIFIC PRACTICE</span><span>{activeQuestions.length} QUESTIONS AVAILABLE</span></div>
+    <div className="flight-quiz-footer"><span><i></i> EDUCATIONAL GAME · UNIT-SPECIFIC PRACTICE</span><span>{activeQuestions.length} QUESTIONS AVAILABLE · 10 MISSIONS PER FLIGHT</span></div>
   </section>;
 }
