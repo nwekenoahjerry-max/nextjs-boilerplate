@@ -4158,3 +4158,5 @@ body{background:var(--paper);color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   .flight-question-line.is-overflowing span{animation:none;transform:none}
 }
+
+.flight-question-panel{z-index:8}
