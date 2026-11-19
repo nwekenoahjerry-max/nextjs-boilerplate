@@ -4160,3 +4160,86 @@ body{background:var(--paper);color:var(--ink)}
 }
 
 .flight-question-panel{z-index:8}
+
+
+/* Flight Academy: automatic mission transitions, translucent HUD and speed-responsive flight. */
+.flight-question-panel{
+  color:#f4fbff!important;border:1px solid rgba(230,248,255,.34)!important;
+  background:rgba(8,29,44,.48)!important;box-shadow:0 18px 50px rgba(3,18,29,.19)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(145%)!important;backdrop-filter:blur(16px) saturate(145%)!important;
+}
+.flight-question-panel .question-topline{color:#d4f3e8}
+.flight-question-panel .question-topline span:last-child{color:#e7d7a7}
+.flight-question-panel .question-progress{background:rgba(255,255,255,.18)}
+.flight-question-panel .question-difficulty{color:#c4d6d9}
+.flight-question-panel .flight-quick-prompt{color:#b7d4d4}
+.flight-question-panel h3{color:#f5fbff!important}
+.flight-question-panel .flight-option{
+  color:#f5fbff!important;border:1px solid rgba(237,249,255,.4)!important;
+  background:rgba(255,255,255,.105)!important;-webkit-backdrop-filter:blur(9px);
+  backdrop-filter:blur(9px);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)
+}
+.flight-question-panel .flight-option:hover:not(:disabled){
+  border-color:rgba(194,245,222,.85)!important;background:rgba(255,255,255,.19)!important
+}
+.flight-question-panel .option-letter{color:#f4fffa;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.18)}
+.flight-question-panel .option-mark{color:#eaf8f2}
+.flight-question-panel .flight-option.option-correct{
+  border-color:rgba(112,238,168,.9)!important;background:rgba(28,157,91,.38)!important;color:#f5fff8!important
+}
+.flight-question-panel .flight-option.option-correct .option-letter{background:rgba(117,238,165,.28);color:#fff}
+.flight-question-panel .flight-option.option-wrong{
+  border-color:rgba(255,157,147,.9)!important;background:rgba(180,62,57,.4)!important;color:#fff7f6!important
+}
+.flight-question-panel .flight-option.option-wrong .option-letter{background:rgba(255,185,174,.24);color:#fff}
+.flight-question-panel .flight-option.option-muted{opacity:.38}
+.flight-question-panel .flight-timer{border-color:rgba(234,249,250,.24);background:rgba(255,255,255,.09)}
+.flight-question-panel .flight-timer-copy>span{color:#d2e4e5}
+.flight-question-panel .flight-timer-copy strong{color:#f2fff8}
+.flight-question-panel .flight-mission-placeholder{border-color:rgba(238,250,255,.35);background:rgba(255,255,255,.07)}
+.flight-question-panel .flight-mission-placeholder span{color:#bfead6}
+.flight-question-panel .flight-mission-placeholder p{color:#e0eeef}
+.flight-question-panel .flight-feedback{border-color:rgba(157,240,186,.42);background:rgba(33,142,85,.2)}
+.flight-question-panel .flight-feedback.wrong{border-color:rgba(255,169,160,.46);background:rgba(176,66,62,.22)}
+.flight-question-panel .flight-feedback strong,.flight-question-panel .flight-feedback.wrong strong{color:#f2fff7}
+.flight-question-panel .flight-feedback p{color:#e3eff0}
+.flight-question-panel .altitude-change{color:#adffd0}
+.flight-question-panel .flight-feedback.wrong .altitude-change{color:#ffd1ca}
+.flight-question-panel .flight-auto-advance{
+  display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:9px;
+  border-top:1px solid rgba(239,250,255,.18);color:#d4eeea;font-size:10px;font-weight:750;letter-spacing:.02em
+}
+.flight-question-panel .flight-auto-advance:before{
+  content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;
+  background:#8df0bc;box-shadow:0 0 0 4px rgba(141,240,188,.13)
+}
+.flight-question-panel .flight-game-over-note strong{color:#fff}
+.flight-question-panel .flight-game-over-note p{color:#e4f0f0}
+.flight-replay-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;
+  margin-top:10px;padding:8px 13px;border:1px solid rgba(190,236,211,.55);border-radius:9px;
+  background:rgba(189,238,211,.2);color:#f2fff7;font:800 11px Manrope,sans-serif
+}
+.flight-replay-button:hover{background:rgba(189,238,211,.3)}
+.flight-speed-readout{
+  position:absolute;z-index:3;top:73px;right:16px;display:grid;gap:3px;min-width:96px;
+  padding:9px 11px;border:1px solid rgba(255,255,255,.34);border-radius:10px;
+  background:rgba(5,27,40,.38);color:#fff;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)
+}
+.flight-speed-readout span{font-size:7px;font-weight:900;letter-spacing:1.2px;color:#bfe7dc}
+.flight-speed-readout strong{font:850 18px/1.1 Manrope,sans-serif;font-variant-numeric:tabular-nums}
+.flight-speed-readout small{font:800 9px 'DM Sans',sans-serif;color:#b9e5dc}
+.flight-sky .sky-cloud{animation:flight-cloud-drift var(--flight-cloud-duration,18s) linear infinite;will-change:translate}
+.flight-sky .cloud-b{animation-delay:-5.5s}
+.flight-sky .cloud-c{animation-delay:-10s}
+.flight-sky .cloud-d{animation-delay:-3.5s}
+.flight-sky .cloud-e{animation-delay:-13s}
+@keyframes flight-cloud-drift{from{translate:-12vw 0}to{translate:115vw 0}}
+.flight-plane.plane-fast{filter:drop-shadow(0 0 14px rgba(122,238,205,.78))}
+.flight-plane.plane-boost{filter:drop-shadow(0 0 22px rgba(155,255,206,.96))}
+@media(max-width:600px){
+  .flight-speed-readout{top:67px;right:12px;min-width:82px;padding:7px 9px}
+  .flight-speed-readout strong{font-size:16px}
+  .flight-question-panel .flight-auto-advance{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){.flight-sky .sky-cloud{animation:none;will-change:auto}}
