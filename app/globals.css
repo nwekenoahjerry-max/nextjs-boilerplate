@@ -4039,3 +4039,43 @@ body{background:var(--paper);color:var(--ink)}
  .materials-workspace.is-mobile-detail .study-mental-model,.materials-workspace.is-mobile-detail .study-memory-hook{padding:11px 12px}
  .materials-workspace.is-mobile-detail .study-active-recall>summary{padding:12px}
 }
+
+
+/* Flight Academy: put the clinical stem directly over the flight scene. */
+.flight-question-overlay{
+  position:absolute;z-index:4;top:16px;left:12px;right:12px;
+  padding:10px 13px 11px;border:1px solid rgba(255,255,255,.42);
+  border-radius:12px;background:rgba(7,28,42,.72);
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  box-shadow:0 8px 24px rgba(3,18,29,.2);color:#fff;min-width:0;
+}
+.flight-question-overlay>span{
+  display:block;margin-bottom:5px;color:#bde9d9;font-size:8px;
+  font-weight:900;letter-spacing:1.5px;white-space:nowrap;
+}
+.flight-question-line{
+  width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;
+  white-space:nowrap;scrollbar-width:none;overscroll-behavior-x:contain;
+  color:#fff;font:800 clamp(12px,1.8vw,15px)/1.35 Manrope,sans-serif;
+  letter-spacing:-.1px;touch-action:pan-x;
+}
+.flight-question-line::-webkit-scrollbar{display:none}
+.flight-question-line span{display:inline-block;min-width:100%;width:max-content}
+.flight-question-line:focus-visible{outline:2px solid #b8e6cf;outline-offset:4px;border-radius:4px}
+.flight-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.flight-metrics>div{min-width:0}
+.flight-metrics strong{font-size:16px}
+.flight-game-over-note p{line-height:1.75}
+@media(max-width:900px){
+  .flight-question-overlay{top:12px;left:10px;right:10px;padding:9px 11px}
+  .flight-question-line{font-size:clamp(12px,2.5vw,15px)}
+}
+@media(max-width:600px){
+  .flight-question-overlay{top:10px;left:9px;right:9px;padding:8px 10px}
+  .flight-question-overlay>span{font-size:7px}
+  .flight-question-line{font-size:13px}
+  .flight-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+  .flight-metrics>div{padding-left:4px}
+  .flight-metrics span{font-size:6px;letter-spacing:.2px}
+  .flight-metrics strong{font-size:15px}
+}
