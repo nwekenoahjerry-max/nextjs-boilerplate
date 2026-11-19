@@ -195,7 +195,7 @@ export default function MaterialsPanel() {
     : selectedMaterial?.summary?.examFocus?.mustKnow || [];
   const recommendedVideoSuggestions = useMemo(() => {
     const saved = selectedMaterial?.summary?.videoSuggestions || [];
-    if (saved.length) return saved;
+    if (saved.length) return saved.slice(0,2);
     if (!selectedMaterial) return [];
     return [{
       topic: selectedMaterial.title,
