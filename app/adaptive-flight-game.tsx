@@ -353,7 +353,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     };
   }, [question, started, gameOver]);
 
-  const questionLineStyle = { "--flight-question-overflow": questionOverflow + "px" } as CSSProperties;
+  const questionLineStyle = { "--flight-question-overflow": "-" + questionOverflow + "px" } as CSSProperties;
   const completedMissions = Math.min(roundLength, index + (selected !== null ? 1 : 0));
   const accuracy = correct + wrong ? Math.round((correct / (correct + wrong)) * 100) : 0;
 
