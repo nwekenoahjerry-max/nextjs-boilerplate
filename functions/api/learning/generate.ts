@@ -126,7 +126,7 @@ async function requestGeminiSba(
 }
 function isRetryableGenerationError(error: unknown): boolean {
   const detail = error instanceof Error ? error.message : String(error ?? "");
-  return /timeout|timed out|request timeout|\\b408\\b|\\b429\\b|\\b500\\b|\\b502\\b|\\b503\\b|\\b504\\b|temporarily unavailable|overloaded|capacity|json mode couldn't be met/i.test(detail);
+  return /timeout|timed out|request timeout|HTTP[_\\s-]?(408|429|500|502|503|504)|(?:^|[^0-9])(408|429|500|502|503|504)(?:[^0-9]|$)|RESOURCE_EXHAUSTED|UNAVAILABLE|temporarily unavailable|overloaded|capacity|json mode couldn't be met/i.test(detail);
 }
 
 function parseAIResult(value: unknown): Record<string, unknown> {
