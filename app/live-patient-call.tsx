@@ -83,6 +83,14 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const patientHasSpokenOpeningRef = useRef(false);
   const callAttemptRef = useRef(0);
   const transcriptFlushTimerRef = useRef<number|null>(null);
+  const connectionTimeoutRef = useRef<number|null>(null);
+
+  const clearConnectionTimeout = () => {
+    if (connectionTimeoutRef.current !== null) {
+      window.clearTimeout(connectionTimeoutRef.current);
+      connectionTimeoutRef.current = null;
+    }
+  };
 
   const updateStatus = (next: LiveCallStatus) => {
     setStatus(next);
@@ -153,6 +161,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
   const stopCall = (notifyParent = true): LivePatientTurn[] => {
     callAttemptRef.current += 1;
+    clearConnectionTimeout();
     clearTranscriptFlush();
     const pending = takePendingTurns();
     endingRef.current = true;
@@ -265,9 +274,14 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         throw new Error(tokenData.error || "The live patient call could not be authorised.");
       }
 
-      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
       const socket = new WebSocket(endpoint);
       socketRef.current = socket;
+      connectionTimeoutRef.current = window.setTimeout(() => {
+        if (callAttempt !== callAttemptRef.current || setupCompleteRef.current) return;
+        stopCall(false);
+        setNotice("Gemini did not complete the call setup in time. Check your connection and try again, or continue with the text interview.");
+      }, 20000);
 
       socket.onopen = () => {
         const voiceName = sex.toLowerCase().includes("female") ? "Kore" : "Puck";
@@ -304,7 +318,16 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
           scheduleTranscriptFlush();
         }
 
+        if (message.error) {
+          const providerMessage = typeof message.error.message === "string" ? message.error.message : "Gemini rejected the live-call setup.";
+          clearConnectionTimeout();
+          stopCall(false);
+          setNotice("The live patient call could not be established. " + providerMessage.slice(0,220));
+          return;
+        }
+
         if (message.setupComplete) {
+          clearConnectionTimeout();
           setupCompleteRef.current = true;
           startedAtRef.current = Date.now();
           updateStatus("connected");
@@ -360,16 +383,24 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
       };
 
       socket.onerror = () => {
-        setNotice("The live-call connection encountered a problem. End the call and retry, or continue with the text interview.");
+        setNotice("The live-call connection encountered a problem. Check your internet connection and retry, or continue with the text interview.");
+        if (!setupCompleteRef.current) {
+          clearConnectionTimeout();
+          stopCall(false);
+          setNotice("Gemini could not establish the live call. Please retry or continue with the text interview.");
+        }
       };
 
-      socket.onclose = () => {
+      socket.onclose = event => {
         if (endingRef.current) return;
+        clearConnectionTimeout();
         clearTranscriptFlush();
         const completedTurns = takePendingTurns();
         if (completedTurns.length) onTurns(completedTurns);
         stopCall(false);
-        setNotice("The live call has disconnected. Your completed transcript is still available for review.");
+        setNotice(event.code === 1000
+          ? "Call ended. Your completed transcript is available for review."
+          : `The live call disconnected unexpectedly (connection code ${event.code}). Your completed transcript is still available; please retry.`);
       };
     } catch (reason) {
       if (callAttempt !== callAttemptRef.current || endingRef.current) return;
