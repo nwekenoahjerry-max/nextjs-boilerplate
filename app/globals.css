@@ -4000,3 +4000,10 @@ body{background:var(--paper);color:var(--ink)}
   .materials-workspace .materials-feedback{font-size:12px!important}
   .materials-workspace.is-mobile-detail .materials-feedback{margin:0 0 10px}
 }
+
+@media(max-width:700px){
+  .materials-workspace .materials-item-copy{flex:1}
+  .materials-library-heading-actions{display:flex;align-items:center;gap:10px}
+  .materials-add-link{display:inline-flex;align-items:center;justify-content:center;min-height:35px;padding:7px 10px;border:1px solid #cfe2d4;border-radius:9px;background:#eff7f1;color:#34734a;font:800 10px Manrope,Arial,sans-serif;white-space:nowrap}
+  .materials-workspace #materials-upload-card{scroll-margin-top:76px}
+}

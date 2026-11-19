@@ -702,7 +702,7 @@ export default function MaterialsPanel() {
       </div>
 
       <div className="materials-layout">
-        <section className="materials-upload-card">
+        <section id="materials-upload-card" className="materials-upload-card">
           <div className="eyebrow">ADD A RESOURCE</div>
           <h2>Upload learning material</h2>
           <p>Use one source for structured summaries, study questions and unit-specific practice.</p>
@@ -735,7 +735,10 @@ export default function MaterialsPanel() {
         <section className="materials-library-card">
           <div className="materials-library-heading">
             <div><div className="eyebrow">YOUR RESOURCES</div><h2>Study library <span>{visibleMaterials.length}</span></h2></div>
-            <button className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
+            <div className="materials-library-heading-actions">
+              <button type="button" className="materials-add-link" onClick={()=>document.getElementById("materials-upload-card")?.scrollIntoView({behavior:"smooth",block:"start"})}>＋ Upload</button>
+              <button className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
+            </div>
           </div>
           <div className="materials-unit-filter">
             <span>Browse by clinical unit</span>
