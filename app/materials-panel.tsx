@@ -119,6 +119,7 @@ export default function MaterialsPanel() {
   const [title,setTitle] = useState("");
   const [file,setFile] = useState<File|null>(null);
   const [selectedId,setSelectedId] = useState("");
+  const [mobileDetailOpen,setMobileDetailOpen] = useState(false);
   const [uploading,setUploading] = useState(false);
   const [working,setWorking] = useState(false);
   const [error,setError] = useState("");
@@ -167,12 +168,34 @@ export default function MaterialsPanel() {
   }, [activeYoutubeVideo?.id]);
 
   const visibleMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
+  const groupedVisibleMaterials = useMemo(()=>clinicalUnits.map(unit=>({...unit,materials:visibleMaterials.filter(item=>item.unit===unit.id)})).filter(unit=>unit.materials.length>0),[visibleMaterials]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
+    setMobileDetailOpen(false);
     const nextMaterials = nextUnit==="all"?materials:materials.filter(item=>item.unit===nextUnit);
     setSelectedId(nextMaterials[0]?.id || "");
     setAnswer(null); setTab("summary"); setQuestionIndex(0); setQuestionAnswers({}); setQuizFinished(false); setQuizMode("practice"); setLiveDeadline(null); setLiveStartedAt(null); setLiveElapsedSeconds(0); setLiveTimedOut(false); setError("");
+  };
+  const openMaterial = (item:StudyMaterial) => {
+    setSelectedId(item.id);
+    setAnswer(null);
+    setTab("summary");
+    setQuestionIndex(0);
+    setQuestionAnswers({});
+    setQuizFinished(false);
+    setQuizMode("practice");
+    setLiveDeadline(null);
+    setLiveStartedAt(null);
+    setLiveElapsedSeconds(0);
+    setLiveTimedOut(false);
+    setError("");
+    setMobileDetailOpen(true);
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+  const returnToLibrary = () => {
+    setMobileDetailOpen(false);
+    window.scrollTo({top:0,behavior:"smooth"});
   };
   const activeQuestions = selectedMaterial?.questions || [];
   const activeQuestionCount = activeQuestions.length;
@@ -579,6 +602,7 @@ export default function MaterialsPanel() {
       const material = data.material as StudyMaterial;
       setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
+      setMobileDetailOpen(true);
       setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
       setLibraryUnit(unit);
       setTitle(""); setFile(null);
@@ -659,13 +683,13 @@ export default function MaterialsPanel() {
       }));
       const next = materials.filter(item=>item.id!==materialId);
       setMaterials(next);
-      if (selectedId===materialId) setSelectedId(next[0]?.id||"");
+      if (selectedId===materialId) { setSelectedId(next[0]?.id||""); setMobileDetailOpen(false); }
       setAnswer(null); setNotice("Material removed from your library.");
     } catch(e) { setError(e instanceof Error?e.message:"Could not remove this material."); }
   };
 
   return (
-    <div className="materials-workspace">
+    <div className={"materials-workspace"+(mobileDetailOpen?" is-mobile-detail":"")}>
       <div className="page-intro">
         <div className="eyebrow">YOUR PRIVATE STUDY LIBRARY</div>
         <h1>My study materials</h1>
@@ -713,21 +737,32 @@ export default function MaterialsPanel() {
             <div><div className="eyebrow">YOUR RESOURCES</div><h2>Study library <span>{visibleMaterials.length}</span></h2></div>
             <button className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
-          <label className="materials-unit-filter">Show notes for
-            <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress}>
-              <option value="all">All clinical units</option>
-              {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
+          <div className="materials-unit-filter">
+            <span>Browse by clinical unit</span>
+            <div className="materials-unit-tabs" role="group" aria-label="Filter study materials by clinical unit">
+              <button type="button" className={libraryUnit==="all"?"active":""} aria-pressed={libraryUnit==="all"} onClick={()=>selectLibraryUnit("all")} disabled={liveInProgress}>All units <span>{materials.length}</span></button>
+              {clinicalUnits.map(item=>{
+                const count=materials.filter(material=>material.unit===item.id).length;
+                return <button type="button" key={item.id} className={libraryUnit===item.id?"active":""} aria-pressed={libraryUnit===item.id} onClick={()=>selectLibraryUnit(item.id)} disabled={liveInProgress}>{item.name} <span>{count}</span></button>;
+              })}
+            </div>
+          </div>
           {materials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No study materials yet</strong><p>Upload your first lecture or revision document. It will appear here after it has been saved.</p></div> :
-            <div className="materials-list">
-              {visibleMaterials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No notes in this unit yet</strong><p>Upload a lecture or study document and select this clinical unit. Its notes and study guide will appear here.</p></div> : visibleMaterials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
-                <button className="materials-select" disabled={liveInProgress} onClick={()=>{setSelectedId(item.id);setAnswer(null);setTab("summary");setQuestionIndex(0);setQuestionAnswers({});setQuizFinished(false);setQuizMode("practice");setLiveDeadline(null);setLiveStartedAt(null);setLiveElapsedSeconds(0);setLiveTimedOut(false);setError("");}}>
-                  <span className="materials-file-badge">▤</span>
-                  <span className="materials-item-copy"><strong>{item.title}</strong><small>{unitName(item.unit)} · {item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Quick outline ready · full guide processing":item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
-                </button>
-                <button className="materials-delete" title="Remove material" disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
-              </div>)}
+            visibleMaterials.length===0 ? <div className="materials-empty"><span>▤</span><strong>No materials in {unitName(libraryUnit)}</strong><p>Upload a lecture and assign it to this clinical unit. It will appear here.</p></div> :
+            <div className="materials-unit-groups">
+              {groupedVisibleMaterials.map(group=><section className="materials-unit-group" key={group.id}>
+                <div className="materials-unit-group-heading"><h3>{group.name}</h3><span>{group.materials.length} {group.materials.length===1?"resource":"resources"}</span></div>
+                <div className="materials-list">
+                  {group.materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
+                    <button className="materials-select" disabled={liveInProgress} onClick={()=>openMaterial(item)}>
+                      <span className="materials-file-badge">▤</span>
+                      <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Quick outline · full guide processing":item.summary?"High-Yield Points ready":"High-Yield Points not yet generated"} · {item.questions?.length||0} questions</span></span>
+                      <span className="materials-open-label">View material <b aria-hidden="true">›</b></span>
+                    </button>
+                    <button className="materials-delete" title={"Remove "+item.title} aria-label={"Remove "+item.title} disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
+                  </div>)}
+                </div>
+              </section>)}
             </div>}
         </section>
       </div>
@@ -736,6 +771,7 @@ export default function MaterialsPanel() {
       {notice&&<p className="success-note materials-feedback">{notice}</p>}
 
       {selectedMaterial && <section className="materials-detail-card">
+        <button type="button" className="materials-mobile-back" onClick={returnToLibrary} aria-label="Back to study library">← <span>All materials</span></button>
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
