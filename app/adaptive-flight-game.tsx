@@ -333,7 +333,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     }
     const timer = window.setTimeout(() => setTimeLeft((value) => Math.max(0, value - 1)), 1000);
     return () => window.clearTimeout(timer);
-  }, [started, gameOver, selected, question?.id, timeLeft, answerQuestion]);
+  }, [started, gameOver, selected, question, timeLeft, answerQuestion]);
 
   useEffect(() => {
     const element = questionLineRef.current;
