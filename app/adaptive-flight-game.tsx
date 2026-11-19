@@ -186,7 +186,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   };
 
   const reset = () => {
-    let deck = shuffleQuestions(activeQuestions.map(shuffleOptions));
+    const deck = shuffleQuestions(activeQuestions.map(shuffleOptions));
     if (deck.length > 1 && deck[0]?.id === lastFirstQuestionRef.current) {
       [deck[0], deck[1]] = [deck[1], deck[0]];
     }
@@ -351,7 +351,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
       observer?.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [question?.id, question?.question, started, gameOver]);
+  }, [question, started, gameOver]);
 
   const questionLineStyle = { "--flight-question-overflow": questionOverflow + "px" } as CSSProperties;
   const completedMissions = Math.min(roundLength, index + (selected !== null ? 1 : 0));
