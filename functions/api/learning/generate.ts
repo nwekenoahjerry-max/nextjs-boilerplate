@@ -3,6 +3,11 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; optionRationales: string[]; topic: string; difficulty: string };
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+function isRetryableGenerationError(error: unknown): boolean {
+  const detail = error instanceof Error ? error.message : String(error ?? "");
+  return /timeout|timed out|request timeout|\\b408\\b|\\b429\\b|\\b500\\b|\\b502\\b|\\b503\\b|\\b504\\b|temporarily unavailable|overloaded|capacity|json mode couldn't be met/i.test(detail);
+}
 
 function parseAIResult(value: unknown): Record<string, unknown> {
   const outer = value as { response?: unknown; result?: { response?: unknown } };
@@ -110,25 +115,113 @@ export const onRequestPost = async (context: AppContext) => {
       return normaliseQuestions(parsed.questions, level).slice(0, requested);
     };
 
-    let questions = await generateBatch(count);
-    let completionWarning = "";
-    if (questions.length < count) {
-      try {
-        const additional = await generateBatch(count - questions.length, questions.map(item => item.question));
-        const seen = new Set(questions.map(item => item.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()));
-        for (const item of additional) {
-          const key = item.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          if (!seen.has(key) && questions.length < count) {
-            seen.add(key);
-            questions.push(item);
+    // Large one-shot requests can exceed the Workers AI generation time limit.
+    // Generate in small groups, retry transient failures, and reduce the group size
+    // automatically if the model is still timing out.
+    const generateBatchWithRetry = async (requested: number, exclude: string[] = []) => {
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          return await generateBatch(requested, exclude);
+        } catch (error) {
+          lastError = error;
+          if (attempt === 0 && isRetryableGenerationError(error)) {
+            console.warn("[ClerkMe] Temporary SBA generation failure; retrying the same batch.", {
+              materialId, requested, attempt: attempt + 1,
+              detail: error instanceof Error ? error.message.slice(0, 180) : "Unknown AI error."
+            });
+            await wait(1200);
+            continue;
           }
+          throw error;
         }
-      } catch {
-        completionWarning = "The question service returned an incomplete set. You can retry to generate the remaining questions.";
+      }
+      throw lastError instanceof Error ? lastError : new Error("The question service did not complete this batch.");
+    };
+
+    let questions: GeneratedQuestion[] = [];
+    let completionWarning = "";
+    let batchSize = Math.min(5, count);
+    let successfulReducedBatches = 0;
+    let emptyBatchAttempts = 0;
+
+    while (questions.length < count) {
+      const requested = Math.min(batchSize, count - questions.length);
+      const exclude = questions.map(item => item.question);
+      let batch: GeneratedQuestion[];
+
+      try {
+        batch = await generateBatchWithRetry(requested, exclude);
+      } catch (error) {
+        if (batchSize > 1 && isRetryableGenerationError(error)) {
+          const previousSize = batchSize;
+          batchSize = Math.max(1, Math.floor(batchSize / 2));
+          successfulReducedBatches = 0;
+          console.warn("[ClerkMe] Reducing SBA batch size after repeated timeout or capacity failure.", {
+            materialId, previousSize, nextSize: batchSize,
+            detail: error instanceof Error ? error.message.slice(0, 180) : "Unknown AI error."
+          });
+          continue;
+        }
+        if (questions.length) {
+          completionWarning = "The question service could not finish the entire set just now. Your completed questions have been saved; retry to generate the remaining questions.";
+          console.warn("[ClerkMe] SBA generation stopped after a partial set.", {
+            materialId, generated: questions.length, requested: count,
+            detail: error instanceof Error ? error.message.slice(0, 220) : "Unknown AI error."
+          });
+          break;
+        }
+        throw error;
+      }
+
+      const seen = new Set(questions.map(item => item.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()));
+      const additions: GeneratedQuestion[] = [];
+      for (const item of batch) {
+        const key = item.question.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        additions.push(item);
+        if (questions.length + additions.length >= count) break;
+      }
+
+      if (!additions.length) {
+        if (batchSize > 1) {
+          batchSize = Math.max(1, Math.floor(batchSize / 2));
+          successfulReducedBatches = 0;
+          continue;
+        }
+        emptyBatchAttempts++;
+        if (emptyBatchAttempts < 2) continue;
+        completionWarning = "The uploaded lecture did not yield any more distinct, valid questions. Your completed questions have been saved.";
+        break;
+      }
+
+      questions.push(...additions);
+      emptyBatchAttempts = 0;
+
+      // Persist after every successful batch so a later timeout never discards
+      // questions that have already been generated.
+      if (materialId) {
+        await context.env.DB.prepare(
+          "UPDATE learning_materials SET questions_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+        ).bind(JSON.stringify(questions), materialId, user.id).run();
+      }
+
+      if (batchSize < 5) {
+        successfulReducedBatches++;
+        if (successfulReducedBatches >= 2) {
+          batchSize = Math.min(5, batchSize + 1);
+          successfulReducedBatches = 0;
+        }
       }
     }
-    if (!questions.length) throw new Error("The AI could not create valid questions from this material. Try a clearer or more text-rich document and retry.");
 
+    if (!questions.length) throw new Error("The AI could not create valid questions from this material. Try a clearer or more text-rich document and retry.");
+    if (questions.length < count && !completionWarning) {
+      completionWarning = "Some questions could not be generated from this source. Your completed questions have been saved; retry to complete the set.";
+    }
+
+    // Final write keeps the persisted material and the returned set in sync.
     if (materialId) {
       await context.env.DB.prepare(
         "UPDATE learning_materials SET questions_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
@@ -147,6 +240,11 @@ export const onRequestPost = async (context: AppContext) => {
       materialId: materialId || null
     });
   } catch (error) {
+    console.error("[ClerkMe] SBA question generation failed.", {
+      materialId: materialId || null,
+      requestedCount: count,
+      detail: error instanceof Error ? error.message.slice(0, 350) : "Unknown Workers AI error."
+    });
     return aiFailureResponse(error, "Question generation is temporarily unavailable. Your study material remains saved; please try again later.");
   }
 };
