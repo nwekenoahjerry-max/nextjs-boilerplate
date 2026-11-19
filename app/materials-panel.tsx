@@ -10,7 +10,7 @@ type GeneratedStudyIllustration = StudyVisualAid & { imageDataUri:string; };
 type SummarySection = {
   heading: string;
   summary: string;
-  subsections?: Array<{heading:string;explanation:string;keyPoints?:string[];memoryHook?:string}>;
+  subsections?: Array<{heading:string;explanation:string;keyPoints?:string[];mentalModel?:string;memoryHook?:string;recallQuestion?:string;recallAnswer?:string}>;
   diagnosisPattern?: {
     patternSummary?:string;
     typicalPresentation?:string;
@@ -883,7 +883,15 @@ export default function MaterialsPanel() {
                   <p className="study-section-lead">{section.summary}</p>
                   <div id={`study-section-details-${index+1}`} className="study-section-expanded-content" hidden={!expanded}>
                     {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
-                    {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}><h4>{subsection.heading}</h4><p>{subsection.explanation}</p>{!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}{subsection.memoryHook&&<div className="study-memory-hook"><strong>Memory hook</strong><p>{subsection.memoryHook}</p></div>}</section>)}</div>}
+                    {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}>
+                      <div className="study-subsection-kicker">TEACH IT · {String(subIndex+1).padStart(2,"0")}</div>
+                      <h4>{subsection.heading}</h4>
+                      <p>{subsection.explanation}</p>
+                      {!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}
+                      {subsection.mentalModel&&<div className="study-mental-model"><span>MAKE IT CLICK</span><p>{subsection.mentalModel}</p></div>}
+                      {subsection.memoryHook&&<div className="study-memory-hook"><span className="study-learning-label">MEMORY ANCHOR</span><p>{subsection.memoryHook}</p></div>}
+                      {subsection.recallQuestion&&<details className="study-active-recall"><summary><span>PAUSE & RECALL</span><strong>{subsection.recallQuestion}</strong><small>Think of your answer before revealing it</small></summary>{subsection.recallAnswer&&<div className="study-recall-answer"><b>Answer and reasoning</b><p>{subsection.recallAnswer}</p></div>}</details>}
+                    </section>)}</div>}
                     {section.diagnosisPattern&&<section className="study-clinical-framework">
                       <div className="eyebrow">CLINICAL RECOGNITION</div><h4>Diagnosis pattern</h4>
                       {section.diagnosisPattern.patternSummary&&<p className="study-clinical-pattern-summary">{section.diagnosisPattern.patternSummary}</p>}
