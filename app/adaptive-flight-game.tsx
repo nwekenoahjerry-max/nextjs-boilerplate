@@ -22,7 +22,10 @@ type StudyMaterial = {
 
 const QUESTION_SECONDS = 20;
 const MAX_ROUND_LENGTH = 10;
-const ANSWER_REVIEW_MS = 6500;
+const INITIAL_SPEED_KNOTS = 420;
+const MIN_SPEED_KNOTS = 240;
+const MAX_SPEED_KNOTS = 780;
+const ANSWER_REVIEW_MS = 5200;
 
 const fallbackQuestions = questionBank as unknown as Array<{
   id: string; unit: string; topic: string; level: string; q: string; o: string[]; a: number; e: string;
@@ -81,6 +84,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState(QUESTION_SECONDS);
+  const [flightSpeed, setFlightSpeed] = useState(INITIAL_SPEED_KNOTS);
   const [altitude, setAltitude] = useState(1000);
   const [bestAltitude, setBestAltitude] = useState(1000);
   const [correct, setCorrect] = useState(0);
@@ -175,6 +179,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     setIndex(0);
     setSelected(null);
     setTimeLeft(QUESTION_SECONDS);
+    setFlightSpeed(INITIAL_SPEED_KNOTS);
     setAltitude(1000);
     setCorrect(0);
     setWrong(0);
@@ -197,6 +202,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     setIndex(0);
     setSelected(null);
     setTimeLeft(QUESTION_SECONDS);
+    setFlightSpeed(INITIAL_SPEED_KNOTS);
     setAltitude(1000);
     setCorrect(0);
     setWrong(0);
@@ -293,6 +299,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
       const nextStreak = streak + 1;
       setAltitude(nextAltitude);
       setBestAltitude((value) => Math.max(value, nextAltitude));
+      setFlightSpeed((value) => Math.min(MAX_SPEED_KNOTS, value + 45));
       setCorrect((value) => value + 1);
       setStreak(nextStreak);
       setBestStreak((value) => Math.max(value, nextStreak));
@@ -303,6 +310,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
       setStreak(0);
       setPoints((value) => Math.max(0, value - 25));
       setAltitude(nextWrong >= 3 ? 0 : Math.max(0, altitude - 300));
+      setFlightSpeed((value) => Math.max(MIN_SPEED_KNOTS, value - 60));
       if (nextWrong >= 3) setGameOver(true);
     }
   }, [altitude, gameOver, question, streak, wrong]);
@@ -354,6 +362,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   }, [question, started, gameOver]);
 
   const questionLineStyle = { "--flight-question-overflow": "-" + questionOverflow + "px" } as CSSProperties;
+  const flightSkyStyle = { "--flight-cloud-duration": (18 * INITIAL_SPEED_KNOTS / flightSpeed).toFixed(2) + "s" } as CSSProperties;
   const completedMissions = Math.min(roundLength, index + (selected !== null ? 1 : 0));
   const accuracy = correct + wrong ? Math.round((correct / (correct + wrong)) * 100) : 0;
 
@@ -425,7 +434,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
           <div className="altitude-track"><span style={{ height: Math.max(0, Math.min(100, altitude / 3000 * 100)) + "%" }} /></div>
         </div>
 
-        <div className="flight-sky">
+        <div className="flight-sky" style={flightSkyStyle}>
           <div className="sky-sun"></div>
           <div className="sky-cloud cloud-a"></div><div className="sky-cloud cloud-b"></div>
           <div className="sky-cloud cloud-c"></div><div className="sky-cloud cloud-d"></div>
@@ -445,7 +454,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             </div>
           </div>
 
-          <div className={"flight-plane " + (gameOver && selected !== null && question && selected !== question.answerIndex ? "plane-crashed" : selected !== null && question && selected === question.answerIndex ? "plane-boost" : selected !== null ? "plane-drop" : "")} aria-label="Jet aircraft">
+          <div className={"flight-plane " + (flightSpeed >= 600 ? "plane-fast " : "") + (gameOver && selected !== null && question && selected !== question.answerIndex ? "plane-crashed" : selected !== null && question && selected === question.answerIndex ? "plane-boost" : selected !== null ? "plane-drop" : "")} aria-label="Jet aircraft">
             <svg viewBox="0 0 120 150" role="img" aria-label="Silver jet pointing upwards">
               <defs><linearGradient id="adaptiveJetMetal" x1="0" x2="1"><stop offset="0" stopColor="#647d91" /><stop offset=".48" stopColor="#f5fbff" /><stop offset="1" stopColor="#526b80" /></linearGradient></defs>
               <path d="M60 7 C69 28 72 57 75 83 L109 111 L108 122 L72 108 L68 137 L52 137 L48 108 L12 122 L11 111 L45 83 C48 57 51 28 60 7Z" fill="url(#adaptiveJetMetal)" stroke="#d9e8f1" strokeWidth="2" />
@@ -453,7 +462,8 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             </svg>
           </div>
 
-          <div className="sky-coordinate coord-two">CLIMB RATE <b>{selected === null ? "READY" : question && selected === question.answerIndex ? "+250" : selected === -1 ? "TIME OUT" : "−300"}</b></div>
+          <div className="flight-speed-readout" aria-live="polite"><span>AIR SPEED</span><strong>{flightSpeed.toLocaleString()} <small>KT</small></strong></div>
+        <div className="sky-coordinate coord-two">CLIMB RATE <b>{selected === null ? "READY" : question && selected === question.answerIndex ? "+250" : selected === -1 ? "TIME OUT" : "−300"}</b></div>
 
           {(!started || gameOver) && <div className="flight-start-overlay">
             <div className="flight-start-icon">✈</div>
@@ -516,18 +526,18 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
               </div>}
 
           {selected !== null && question && <div className={"flight-feedback " + (selected === question.answerIndex ? "correct" : "wrong")}>
-            <strong>{selected === -1 ? "Time is up — review the key point." : selected === question.answerIndex ? "Excellent — altitude gained!" : "Not quite — learn from the explanation."}</strong>
+            <strong>{selected === -1 ? "Time is up — the aircraft is slowing." : selected === question.answerIndex ? "Excellent — speed boost +45 KT!" : "Not quite — speed reduced. Review the explanation."}</strong>
             <p>{selected === -1 ? "No answer was selected before the 20-second limit. " : ""}
               {question.explanation}
             </p>
             <div className="altitude-change">{selected === question.answerIndex ? "+250" : "−300"} FT</div>
-            {!gameOver && <button type="button" className="flight-next-button" onClick={advanceQuestion}>Next mission <span>→</span></button>}
+            {!gameOver && <div className="flight-auto-advance" role="status">Next mission launching automatically…</div>}
           </div>}
 
           {!started && !gameOver && <div className="flight-howto">
             <span>QUICK RULES</span>
-            <p><b>Correct answer</b> <i>+</i> 250 ft and points</p>
-            <p><b>Wrong or timed out</b> <i>−</i> 300 ft</p>
+            <p><b>Correct answer</b> <i>+</i> 250 ft, points and 45 KT speed</p>
+            <p><b>Wrong or timed out</b> <i>−</i> 300 ft and 60 KT speed</p>
             <p><b>Three failed answers</b> ends the flight.</p>
             <p><b>Up to ten unique missions</b> per flight; no repeats in the same round.</p>
           </div>}
@@ -535,7 +545,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
           {gameOver && <div className="flight-game-over-note">
             <strong>Flight summary · {correct + wrong} missions attempted</strong>
             <p>{correct} correct · {wrong} missed · {accuracy}% accuracy · {points} points · best streak {bestStreak}. Altitude record: {bestAltitude.toLocaleString()} ft. Best score: {bestScore.toLocaleString()}.</p>
-            <button type="button" className="flight-next-button" onClick={reset} disabled={!activeQuestions.length}>Launch another flight <span>→</span></button>
+            <button type="button" className="flight-replay-button" onClick={reset} disabled={!activeQuestions.length}>Launch another flight <span>→</span></button>
           </div>}
         </div>
       </div>
