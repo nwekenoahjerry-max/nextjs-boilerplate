@@ -627,11 +627,11 @@ ${material.content_text}
     const timedOut = /GEMINI_TIMEOUT|abort|timeout/i.test(detail);
     const modelsUnavailable = /GEMINI_MODELS_UNAVAILABLE|GEMINI_HTTP_503|UNAVAILABLE/i.test(detail);
     const outputTruncated = /GEMINI_OUTPUT_TRUNCATED|MAX_TOKENS/i.test(detail);
-    const malformedOutput = /SyntaxError|JSON\\.parse|unexpected token|unexpected end|did not return a complete High-Yield Points/i.test(detail);
+    const malformedOutput = /SyntaxError|JSON\.parse|unexpected token|unexpected end|did not return a complete High-Yield Points/i.test(detail);
     const emptyOutput = /GEMINI_EMPTY_RESPONSE|no candidate text/i.test(detail);
     const requestRejected = /GEMINI_HTTP_400/.test(detail);
     const failureClass = authFailure ? "authentication" : rateLimited ? "rate_limit_or_quota" : timedOut ? "timeout" : modelsUnavailable ? "capacity" : outputTruncated ? "output_limit" : malformedOutput ? "malformed_output" : emptyOutput ? "empty_output" : requestRejected ? "request_rejected" : "unclassified";
-    console.error("[ClerkMe] Study-guide failure classification.", { materialId: material.id, jobId, failureClass, errorName: error instanceof Error ? error.name : "UnknownError", stack: error instanceof Error ? error.stack?.split("\\n").slice(0, 4).join("\\n") : undefined });
+    console.error("[ClerkMe] Study-guide failure classification.", { materialId: material.id, jobId, failureClass, errorName: error instanceof Error ? error.name : "UnknownError", stack: error instanceof Error ? error.stack?.split("\n").slice(0, 4).join("\n") : undefined });
     const message = authFailure
       ? "The study service is not configured correctly. Your uploaded material is safe; please contact support."
       : rateLimited

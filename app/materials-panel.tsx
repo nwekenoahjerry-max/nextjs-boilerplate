@@ -100,8 +100,8 @@ async function readResponse(response: Response) {
 }
 function safeStudyError(message:string) {
   return message
-    .replace(/\\bGemini\\b/gi,"study service")
-    .replace(/\\bZ\\.ai\\b/gi,"study service")
+    .replace(/\bGemini\b/gi,"study service")
+    .replace(/\bZ\.ai\b/gi,"study service")
     .replace(/GEMINI_[A-Z0-9_]+/g,"study service")
     .trim();
 }
