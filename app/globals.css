@@ -4222,7 +4222,7 @@ body{background:var(--paper);color:var(--ink)}
 }
 .flight-replay-button:hover{background:rgba(189,238,211,.3)}
 .flight-speed-readout{
-  position:absolute;z-index:3;top:73px;right:16px;display:grid;gap:3px;min-width:96px;
+  position:absolute;z-index:3;top:73px;left:16px;right:auto;display:grid;gap:3px;min-width:96px;
   padding:9px 11px;border:1px solid rgba(255,255,255,.34);border-radius:10px;
   background:rgba(5,27,40,.38);color:#fff;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)
 }
@@ -4238,7 +4238,7 @@ body{background:var(--paper);color:var(--ink)}
 .flight-plane.plane-fast{filter:drop-shadow(0 0 14px rgba(122,238,205,.78))}
 .flight-plane.plane-boost{filter:drop-shadow(0 0 22px rgba(155,255,206,.96))}
 @media(max-width:600px){
-  .flight-speed-readout{top:67px;right:12px;min-width:82px;padding:7px 9px}
+  .flight-speed-readout{top:67px;left:12px;right:auto;min-width:82px;padding:7px 9px}
   .flight-speed-readout strong{font-size:16px}
   .flight-question-panel .flight-auto-advance{font-size:9px}
 }
