@@ -231,7 +231,6 @@ export const onRequestPost = async (context: AppContext) => {
               "For Mixed difficulty, use a sensible balance of foundational knowledge, mechanism, interpretation and clinical application, with most application questions framed as short clinical vignettes. For Easy, test core understanding with clear SBA stems. For Moderate, emphasise clinical interpretation and application. For Hard, prioritise multi-step clinical reasoning, prioritisation and discriminating between plausible diagnoses or management choices. Each item must have one best answer, not simply a technically true answer. Keep the lead-in focused and all five options parallel. Do not exceed the source." +
               exclusionNote + "\n\nUPLOADED STUDY MATERIAL:\n---\n" + source + "\n---"
           }
-        ]
       ], Math.min(10000, requested * 1400 + 1200));
       const parsed = parseAIResult({ response: result });
       return normaliseQuestions(parsed.questions, level).slice(0, requested);
