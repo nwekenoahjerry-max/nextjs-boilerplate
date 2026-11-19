@@ -5,6 +5,7 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_FALLBACK_MODELS = ["gemini-3.1-flash-lite"] as const;
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+const SAFE_STUDY_FAILURE = "ClerkMe could not complete this study guide just now. Your uploaded material is safe. Please try again shortly.";
 
 type GeminiGenerateResponse = {
   candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string }> } }>;
@@ -20,7 +21,7 @@ async function requestGeminiStudyGuide(
   thinkingLevel: "LOW" | "MEDIUM" | "HIGH" = "HIGH"
 ): Promise<string> {
   const system = messages.find(message => message.role === "system")?.content || "";
-  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\\n\\n");
+  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
   const models = [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS];
 
   for (const model of models) {
@@ -72,17 +73,31 @@ async function requestGeminiStudyGuide(
           await new Promise(resolve => setTimeout(resolve, waitMs));
           continue;
         }
-        throw new Error("GEMINI_HTTP_" + response.status + ": " + (providerMessage || "Google rejected the Gemini request."));
+        if (GEMINI_RETRYABLE_STATUSES.has(response.status) && model !== models[models.length - 1]) {
+          console.warn("[ClerkMe] Gemini model remained unavailable after retries; trying another Gemini model.", {
+            model, fallbackModel: models[models.indexOf(model) + 1], status: response.status
+          });
+          break;
+        }
+        throw new Error("GEMINI_HTTP_" + response.status + ": " + (providerMessage || "The generation request was rejected."));
       }
 
       const candidate = data.candidates?.[0];
-      const outputText = candidate?.content?.parts?.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\\n").trim() || "";
+      const outputText = candidate?.content?.parts?.map(part => typeof part.text === "string" ? part.text : "").filter(Boolean).join("\n").trim() || "";
       const finishReason = typeof candidate?.finishReason === "string" ? candidate.finishReason.toUpperCase() : "";
       if (finishReason === "MAX_TOKENS") {
-        throw new Error("GEMINI_OUTPUT_TRUNCATED: Gemini reached the response-length limit before completing the study guide.");
+        if (model !== models[models.length - 1]) {
+          console.warn("[ClerkMe] Primary Gemini model reached its output limit; retrying with the next Gemini model.", { model });
+          break;
+        }
+        throw new Error("GEMINI_OUTPUT_TRUNCATED: The response reached its output-length limit before completing the study guide.");
       }
       if (!outputText) {
-        throw new Error("GEMINI_EMPTY_RESPONSE: Gemini returned no study-guide content (" + (finishReason || "no candidate text") + ").");
+        if (model !== models[models.length - 1]) {
+          console.warn("[ClerkMe] Gemini returned an empty response; retrying with the next Gemini model.", { model, finishReason });
+          break;
+        }
+        throw new Error("GEMINI_EMPTY_RESPONSE: No study-guide content was returned (" + (finishReason || "no candidate text") + ").");
       }
       console.info("[ClerkMe] Study guide generated successfully.", { model, usage: data.usageMetadata || null });
       return outputText;
@@ -136,14 +151,14 @@ export const onRequestGet = async (context: AppContext) => {
   if (job.status === "failed") {
     return json({
       status: "failed",
-      error: job.error_message || "ClerkMe could not complete this study guide. Your uploaded material is safe; please try again."
+      error: SAFE_STUDY_FAILURE
     }, 502);
   }
   if (job.interaction_id.startsWith("gemini:")) {
-    return json({ status: "processing", providerStatus: "gemini", retryAfterMs: 2500 });
+    return json({ status: "processing", retryAfterMs: 2500 });
   }
 
-  const legacyMessage = "This earlier Z.ai study-guide job cannot be resumed after the provider switch. Your uploaded source is safe; press Refresh High-Yield Points to generate it with Gemini.";
+  const legacyMessage = SAFE_STUDY_FAILURE;
   await context.env.DB.prepare(
     "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
   ).bind(legacyMessage, job.id, user.id).run();
@@ -378,8 +393,8 @@ export const onRequestPost = async (context: AppContext) => {
   if (isResponse(user)) return user;
   if (!context.env.GEMINI_API_KEY) {
     return json({
-      error: "ClerkMe's Gemini connection is not configured. Add GEMINI_API_KEY as an encrypted Cloudflare Pages secret, then redeploy.",
-      code: "GEMINI_API_KEY_MISSING"
+      error: "The study-guide service is temporarily unavailable. Your uploaded material is safe. Please try again shortly.",
+      code: "STUDY_SERVICE_UNAVAILABLE"
     }, 503);
   }
 
@@ -417,7 +432,7 @@ export const onRequestPost = async (context: AppContext) => {
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(
-      "This earlier job was started with the previous Z.ai generator and cannot be resumed. Your uploaded source is safe; a new Gemini study guide can now be generated.",
+      SAFE_STUDY_FAILURE,
       activeJob.id,
       user.id
     ).run();
@@ -607,28 +622,37 @@ ${material.content_text}
       detail: safeDetail
     });
 
-    const missingBalance = /1113|insufficient balance|no resource package/i.test(detail);
     const rateLimited = /GEMINI_HTTP_429|rate limit|too many requests|quota|RESOURCE_EXHAUSTED/i.test(detail);
-    const authFailure = /GEMINI_HTTP_400|GEMINI_HTTP_401|GEMINI_HTTP_403|API_KEY_INVALID|invalid api.?key|unauthori[sz]ed/i.test(detail);
+    const authFailure = /GEMINI_HTTP_401|GEMINI_HTTP_403|API_KEY_INVALID|invalid api.?key|unauthori[sz]ed/i.test(detail);
     const timedOut = /GEMINI_TIMEOUT|abort|timeout/i.test(detail);
     const modelsUnavailable = /GEMINI_MODELS_UNAVAILABLE|GEMINI_HTTP_503|UNAVAILABLE/i.test(detail);
-    const message = missingBalance
-      ? "Google reports that Gemini is unavailable for this API project or its billing quota is exhausted. Check the Gemini API project and billing settings. Your uploaded material is safe."
+    const outputTruncated = /GEMINI_OUTPUT_TRUNCATED|MAX_TOKENS/i.test(detail);
+    const malformedOutput = /SyntaxError|JSON\\.parse|unexpected token|unexpected end|did not return a complete High-Yield Points/i.test(detail);
+    const emptyOutput = /GEMINI_EMPTY_RESPONSE|no candidate text/i.test(detail);
+    const requestRejected = /GEMINI_HTTP_400/.test(detail);
+    const failureClass = authFailure ? "authentication" : rateLimited ? "rate_limit_or_quota" : timedOut ? "timeout" : modelsUnavailable ? "capacity" : outputTruncated ? "output_limit" : malformedOutput ? "malformed_output" : emptyOutput ? "empty_output" : requestRejected ? "request_rejected" : "unclassified";
+    console.error("[ClerkMe] Study-guide failure classification.", { materialId: material.id, jobId, failureClass, errorName: error instanceof Error ? error.name : "UnknownError", stack: error instanceof Error ? error.stack?.split("\\n").slice(0, 4).join("\\n") : undefined });
+    const message = authFailure
+      ? "The study service is not configured correctly. Your uploaded material is safe; please contact support."
       : rateLimited
-        ? "Gemini is temporarily rate-limiting study-guide generation or the project has reached its quota. Your uploaded material is safe; wait briefly and retry."
-        : authFailure
-          ? "Google Gemini did not accept the API key. Check that GEMINI_API_KEY is saved as an encrypted Cloudflare secret in the production environment and that the key is enabled for the Gemini API."
-          : timedOut
-            ? "Gemini took too long to complete this study guide. Your uploaded material is safe; retry, or split a very long lecture into smaller parts."
-            : modelsUnavailable
-              ? "Google's Gemini Flash-Lite models are temporarily at capacity. ClerkMe tried its backup model too; your uploaded material is safe. Please retry shortly."
-              : /GEMINI_OUTPUT_TRUNCATED/.test(detail)
-              ? "Gemini reached its output-length limit before completing the guide. Your upload is safe; retry with a smaller lecture section."
-              : "ClerkMe could not complete the Gemini study guide. Your uploaded material is safe. Please retry shortly.";
+        ? "Study-guide generation is temporarily busy. Your uploaded material is safe; please wait briefly and try again."
+        : timedOut
+          ? "This lecture took too long to process. Your uploaded material is safe; try again or split a very long lecture into smaller parts."
+          : modelsUnavailable
+            ? "Study-guide generation is temporarily busy. Your uploaded material is safe; please retry shortly."
+            : outputTruncated
+              ? "This lecture produced a study guide that was too long to finish in one response. Your upload is safe; try a smaller lecture section."
+              : malformedOutput
+                ? "The study guide could not be formatted correctly. Your uploaded material is safe; please retry."
+                : emptyOutput
+                  ? "The study service returned an incomplete response. Your uploaded material is safe; please retry shortly."
+                  : requestRejected
+                    ? "ClerkMe could not process this lecture in its current format. Your uploaded material is safe; please retry or upload a text-based copy."
+                    : SAFE_STUDY_FAILURE;
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(message, jobId, user.id).run().catch(() => undefined);
-    const status = rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
-    return json({ error: message, code: missingBalance ? "GEMINI_BILLING_OR_QUOTA" : authFailure ? "GEMINI_AUTH_FAILED" : rateLimited ? "GEMINI_RATE_LIMITED" : timedOut ? "GEMINI_TIMEOUT" : modelsUnavailable ? "GEMINI_MODELS_UNAVAILABLE" : "GEMINI_GENERATION_FAILED", retryable: !authFailure && !missingBalance }, status);
+    const status = authFailure ? 503 : rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
+    return json({ error: message, code: "STUDY_GUIDE_" + failureClass.toUpperCase(), retryable: !authFailure }, status);
   }
 };

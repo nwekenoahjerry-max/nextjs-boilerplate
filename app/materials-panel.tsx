@@ -98,6 +98,13 @@ async function readResponse(response: Response) {
   if (!response.ok) throw new Error(data.error || "The request could not be completed.");
   return data;
 }
+function safeStudyError(message:string) {
+  return message
+    .replace(/\\bGemini\\b/gi,"study service")
+    .replace(/\\bZ\\.ai\\b/gi,"study service")
+    .replace(/GEMINI_[A-Z0-9_]+/g,"study service")
+    .trim();
+}
 function formatDate(timestamp:number) {
   if (!timestamp) return "Date unavailable";
   return new Intl.DateTimeFormat("en-GB",{dateStyle:"medium"}).format(new Date(timestamp*1000));
@@ -570,7 +577,7 @@ export default function MaterialsPanel() {
       setTab("summary");
       void generateIllustrations(materialId);
     } catch(e) {
-      setError(e instanceof Error?e.message:"Could not prepare High-Yield Points for this material.");
+      setError(safeStudyError(e instanceof Error?e.message:"Could not prepare this study guide."));
       setNotice("Your uploaded material is saved. High-Yield Points can be generated again when the study service is available.");
     } finally { setWorking(false); }
   };
