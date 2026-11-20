@@ -530,7 +530,9 @@ export default function MaterialsPanel() {
       setError("This original file does not contain enough selectable text for AI study notes. You can still read or download it in Source Material.");
       return;
     }
-    const shouldStartSba = !target?.questions?.length && questionGenerationStatus[materialId] !== "generating";
+    const existingQuestionCount = target?.questions?.length || 0;
+    const sbaQuestionCount = Math.max(1, questionCount - existingQuestionCount);
+    const shouldStartSba = existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
     setSummaryWorking(true);
     setError("");
     setNotice(shouldStartSba
@@ -539,7 +541,7 @@ export default function MaterialsPanel() {
     // Keep both AI jobs independent. The SBA builder reads the same saved source
     // text and writes only questions_json while the study guide writes summary_json.
     if (shouldStartSba) {
-      void generateQuestionsForMaterial(materialId, questionCount, questionDifficulty, true);
+      void generateQuestionsForMaterial(materialId, sbaQuestionCount, questionDifficulty, true);
     }
     try {
       const response = await fetch("/api/learning/summarise",{
