@@ -128,7 +128,11 @@ export default function MaterialsPanel() {
   const [selectedId,setSelectedId] = useState("");
   const [mobileDetailOpen,setMobileDetailOpen] = useState(false);
   const [uploading,setUploading] = useState(false);
-  const [working,setWorking] = useState(false);
+  const [summaryWorking,setSummaryWorking] = useState(false);
+  const [questionsWorking,setQuestionsWorking] = useState(false);
+  const working = summaryWorking || questionsWorking;
+  const [questionGenerationStatus,setQuestionGenerationStatus] = useState<Record<string,"generating"|"ready"|"failed">>({});
+  const [questionGenerationErrors,setQuestionGenerationErrors] = useState<Record<string,string>>({});
   const [error,setError] = useState("");
   const [notice,setNotice] = useState("");
   const [tab,setTab] = useState<"summary"|"source"|"questions"|"ask">("summary");
@@ -526,7 +530,17 @@ export default function MaterialsPanel() {
       setError("This original file does not contain enough selectable text for AI study notes. You can still read or download it in Source Material.");
       return;
     }
-    setWorking(true); setError(""); setNotice("Starting your detailed High-Yield Points study guide…");
+    const shouldStartSba = !target?.questions?.length && questionGenerationStatus[materialId] !== "generating";
+    setSummaryWorking(true);
+    setError("");
+    setNotice(shouldStartSba
+      ? "Building your detailed High-Yield Points and generating your SBA questions at the same time…"
+      : "Starting your detailed High-Yield Points study guide…");
+    // Keep both AI jobs independent. The SBA builder reads the same saved source
+    // text and writes only questions_json while the study guide writes summary_json.
+    if (shouldStartSba) {
+      void generateQuestionsForMaterial(materialId, questionCount, questionDifficulty, true);
+    }
     try {
       const response = await fetch("/api/learning/summarise",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
@@ -537,7 +551,7 @@ export default function MaterialsPanel() {
       if (started.preview && typeof started.preview === "object") {
         const preview = started.preview as StudySummary;
         setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
-        setNotice("Quick source outline ready. Your complete, detailed study guide is still being generated in the background…");
+        setNotice("Quick source outline ready. Your detailed guide and SBA questions are being generated independently…");
       }
 
       if (!summary && typeof started.jobId === "string") {
@@ -560,26 +574,26 @@ export default function MaterialsPanel() {
           }
           const elapsedSeconds = Math.floor((Date.now()-startedAt)/1000);
           setNotice(elapsedSeconds < 30
-            ? "Analysing your lecture and organising its key concepts…"
+            ? "Analysing your lecture and organising its key concepts while SBA items are prepared…"
             : elapsedSeconds < 90
-              ? "Building the detailed explanations, clinical links, exam points and memory aids…"
-              : "Your study guide is still being generated in the background. Your uploaded material is safe; ClerkMe is continuing the same job.");
+              ? "Building detailed explanations, clinical links and exam points. SBA generation is running alongside it…"
+              : "Your study guide and SBA set are processing. Your uploaded material is safe; ClerkMe is continuing both jobs.");
         }
         if (!summary) {
-          setNotice("Your quick source outline is ready. The complete guide is still processing; press Refresh High-Yield Points to resume checking the same job.");
+          setNotice("Your quick source outline is ready. The complete guide is still processing; SBA generation continues separately.");
           return;
         }
       }
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary}:item));
-      setNotice("Your complete, detailed High-Yield Points are ready. Visual illustrations are loading separately…");
+      setNotice("Your detailed High-Yield Points are ready. SBA questions continue building if they have not finished yet; visual illustrations load separately.");
       setTab("summary");
       void generateIllustrations(materialId);
     } catch(e) {
       setError(safeStudyError(e instanceof Error?e.message:"Could not prepare this study guide."));
       setNotice("Your uploaded material is saved. High-Yield Points can be generated again when the study service is available.");
-    } finally { setWorking(false); }
+    } finally { setSummaryWorking(false); }
   };
 
   const upload = async () => {
@@ -626,6 +640,54 @@ export default function MaterialsPanel() {
     } finally { setUploading(false); }
   };
 
+  const generateQuestionsForMaterial = async (
+    materialId:string,
+    count:number,
+    level:string,
+    background=false
+  ) => {
+    setQuestionsWorking(true);
+    setQuestionGenerationStatus(current=>({...current,[materialId]:"generating"}));
+    setQuestionGenerationErrors(current=>({...current,[materialId]:""}));
+    if (!background) {
+      setError("");
+      setNotice("Creating new, non-repeating SBA questions from your uploaded lecture…");
+    }
+    try {
+      const response = await fetch("/api/learning/generate",{
+        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+        body:JSON.stringify({materialId,count,level})
+      });
+      const data = await readResponse(response);
+      const refreshedMaterials = await loadMaterials(true);
+      const refreshedMaterial = refreshedMaterials.find(item=>item.id===materialId);
+      const added = Number(data.generated || 0);
+      const total = Number(refreshedMaterial?.questions?.length || data.totalAvailable || data.questions?.length || 0);
+      setQuestionGenerationStatus(current=>({...current,[materialId]:total>0?"ready":"failed"}));
+      if (!background && selectedId===materialId) {
+        setQuestionIndex(0);
+        setQuestionAnswers({});
+        setQuizFinished(false);
+        setQuizMode("practice");
+        setLiveDeadline(null);
+        setLiveStartedAt(null);
+        setLiveElapsedSeconds(0);
+        setLiveTimedOut(false);
+        if (total > 0) setTab("questions");
+        setNotice(data.complete === false
+          ? `Added ${added} new distinct questions. Your set now contains ${total} questions. ${data.warning || "You can practise the questions generated so far."}`
+          : `Added ${added} new SBA questions from ${refreshedMaterial?.title || "this material"}. Your library now contains ${total} distinct questions for this lecture.`);
+      }
+      return true;
+    } catch(e) {
+      const message = e instanceof Error?e.message:"Could not create questions from this material.";
+      setQuestionGenerationStatus(current=>({...current,[materialId]:"failed"}));
+      setQuestionGenerationErrors(current=>({...current,[materialId]:message}));
+      if (!background) setError(message);
+      return false;
+    } finally { setQuestionsWorking(false); }
+  };
+
   const generateQuestions = async () => {
     if (!selectedMaterial) return;
     if (selectedMaterial.hasExtractableText === false) {
@@ -633,32 +695,7 @@ export default function MaterialsPanel() {
       setError("This original file has no selectable text for reliable question generation. Read it in Source Material or upload a text-based/OCR version for MCQs.");
       return;
     }
-    setWorking(true); setError(""); setNotice("Creating unit- and source-specific practice questions…");
-    try {
-      const response = await fetch("/api/learning/generate",{
-        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({materialId:selectedMaterial.id,count:questionCount,level:questionDifficulty})
-      });
-      const data = await readResponse(response);
-      const refreshedMaterials = await loadMaterials(true);
-      const refreshedMaterial = refreshedMaterials.find(item=>item.id===selectedMaterial.id);
-      const generated = Number(refreshedMaterial?.questions?.length || data.generated || data.questions?.length || 0);
-      const requested = Number(data.requested || questionCount);
-      setQuestionIndex(0);
-      setQuestionAnswers({});
-      setQuizFinished(false);
-      setQuizMode("practice");
-      setLiveDeadline(null);
-      setLiveStartedAt(null);
-      setLiveElapsedSeconds(0);
-      setLiveTimedOut(false);
-      if (generated > 0) setTab("questions");
-      setNotice(data.complete === false
-        ? `Generated ${generated} of ${requested} requested questions from ${selectedMaterial.title}. ${data.warning || "You can start practising the questions generated so far."}`
-        : `Your ${generated} questions from ${selectedMaterial.title} are ready. You can start answering now or study the detailed High-Yield Points first.`);
-    } catch(e) {
-      setError(e instanceof Error?e.message:"Could not create questions from this material.");
-    } finally { setWorking(false); }
+    await generateQuestionsForMaterial(selectedMaterial.id,questionCount,questionDifficulty,false);
   };
 
   const ask = async () => {
@@ -786,7 +823,7 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{summaryWorking?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh High-Yield Points":"Create High-Yield Points"}</button>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -799,13 +836,13 @@ export default function MaterialsPanel() {
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{working?"Preparing questions…":"Generate "+questionCount+" SBA questions"} <span>→</span></button>
+            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{questionsWorking?"Generating SBA questions…":summaryWorking?"Building study resources…":selectedMaterial.questions?.length?"Generate more SBA questions":"Generate "+questionCount+" SBA questions"} <span>→</span></button>
           </div>
         </div>
         <div className="materials-tabs">
           <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>High-Yield Points</button>
           <button className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Source material</button>
-          <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length||0}</span></button>
+          <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length|| (questionGenerationStatus[selectedMaterial.id]==="generating"?"…":0)}</span></button>
           <button className={tab==="ask"?"active":""} disabled={liveInProgress||(selectedMaterial.hasExtractableText===false&&!selectedMaterial.summary)} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
         </div>
 
@@ -979,12 +1016,14 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.unclearOrMissing?.length&&<section className="study-summary-block study-summary-warnings"><h3>Topics to verify or supplement</h3><ul>{selectedMaterial.summary.unclearOrMissing.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!selectedMaterial.summary.sourceCoverage?.length&&<section className="study-summary-block"><h3>Topics covered from your source</h3><ul>{selectedMaterial.summary.sourceCoverage.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             <p className="study-summary-disclaimer">{selectedMaterial.summary.disclaimer}</p>
-          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||selectedMaterial.hasExtractableText===false}>{working?"Building your study guide…":"Create High-Yield Points →"}</button></div>}
+          </div> : <div className="materials-empty"><span>•</span><strong>No High-Yield Points have been prepared</strong><p>ClerkMe will build a detailed, source-based revision resource with mechanisms, clinical relevance, exam facts, comparisons and key explanations—not just a short summary.</p><button className="primary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||selectedMaterial.hasExtractableText===false}>{summaryWorking?"Building your study guide…":"Create High-Yield Points →"}</button></div>}
         </>}
 
 
 
         {tab==="questions" && <div className="study-mcq-panel">
+          {questionGenerationStatus[selectedMaterial.id]==="generating"&&<div className="study-quick-preview-banner" role="status"><span className="study-preview-dot" aria-hidden="true"/><div><strong>Building your SBA question set</strong><p>ClerkMe is generating source-specific questions alongside your detailed High-Yield Points. This tab will update automatically when the new questions are saved.</p></div></div>}
+          {questionGenerationStatus[selectedMaterial.id]==="failed"&&<div className="study-summary-warnings" role="status"><strong>SBA generation needs another attempt</strong><p>{questionGenerationErrors[selectedMaterial.id]||"ClerkMe could not complete the new question set. Your uploaded source and any questions already saved remain available."}</p><button type="button" className="secondary-button" onClick={generateQuestions} disabled={working||selectedMaterial.hasExtractableText===false}>Retry SBA generation</button></div>}
           {activeQuestions.length>0 ? <>
             <div className="study-mcq-heading">
               <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: SBA practice</h3><p>USMLE-style single-best-answer questions with five options (A-E), clinically framed stems where appropriate, and explanations for every option. Choose Practice for immediate feedback or Live test for a timed examination simulation.</p></div>
@@ -1097,7 +1136,9 @@ export default function MaterialsPanel() {
                   : <button type="button" className="study-mcq-finish-link" onClick={()=>{const unanswered=activeQuestions.length-answeredCount;if(unanswered>0&&!window.confirm("You have "+unanswered+" unanswered question(s). Submit your test now?"))return;finishLiveTest(false);}}>Submit live test and reveal feedback</button>}
               </>}
             </>}
-          </> : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>Choose the number and difficulty above, then generate questions directly from this lecture. You can return to the High-Yield Points at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working||selectedMaterial.hasExtractableText===false}>{working?"Generating questions…":"Generate MCQs now →"}</button></div>}
+          </> : questionGenerationStatus[selectedMaterial.id]==="generating"
+            ? <div className="materials-empty"><span>✎</span><strong>Your SBA questions are being generated</strong><p>The question writer is working from your original lecture while the detailed guide is being built. You do not need to start a second generation request.</p></div>
+            : <div className="materials-empty"><span>✎</span><strong>No MCQs generated for this material yet</strong><p>ClerkMe will create source-specific, non-repeating five-option SBA questions. You can choose the number and difficulty for additional questions at any time.</p><button type="button" className="primary-button" onClick={generateQuestions} disabled={working||selectedMaterial.hasExtractableText===false}>{questionsWorking?"Generating questions…":"Generate MCQs now →"}</button></div>}
         </div>}
 
         {tab==="ask" && <div className="study-tutor-panel">
