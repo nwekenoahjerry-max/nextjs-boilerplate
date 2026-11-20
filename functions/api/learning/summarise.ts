@@ -497,8 +497,8 @@ ${sourceBlueprint ? JSON.stringify(sourceBlueprint).slice(0, 26000) : "No separa
 
 Return a JSON object with this exact shape:
 {
-  "overview": "A clear 2-4 sentence orientation to the topic and why it matters.",
-  "highYieldPoints": ["15-25 ranked exam-relevant points when the source contains sufficient material. Each point should be information-rich (usually 1-3 sentences): state the exact fact, then why it matters, the mechanism/distinction/criterion behind it, and the likely trap or application where useful. Do not use fragments or generic statements."],
+  "overview": "A concise 1-3 sentence orientation to the topic and why it matters.",
+  "highYieldPoints": ["12-20 ranked exam-relevant points when the source contains sufficient material. Each point should state the key fact and why it matters, without becoming a mini-essay."],
   "visualAids": [{"title":"A concise illustration title","caption":"What the visual teaches and how it relates to the source","altText":"A precise description of the intended image for screen-reader users","sourceSection":"The matching section heading","visualPrompt":"A detailed image-generation prompt for a medically responsible textbook-style schematic. No text, labels, lettering, numbers or watermarks."}],
   "learningObjectives": ["Specific things the student should be able to explain, recognise or apply after studying."],
   "sections": [
@@ -508,12 +508,12 @@ Return a JSON object with this exact shape:
       "subsections": [
         {
           "heading": "A specific subtopic heading",
-          "explanation": "A detailed, self-contained teaching explanation (normally several well-developed paragraphs for a substantial concept). Define the concept, explain its components and context, build the mechanism or reasoning step by step, connect it to related topics, and explain its clinical or examination significance. Do not assume the student already knows the intermediate steps. Avoid repeating the same fact as filler.",
+          "explanation": "A focused, self-contained explanation: normally one clear paragraph or a concise set of bullets. Use more depth only for CORE mechanisms or complex clinical reasoning. Define unfamiliar terms, explain essential causal steps and state the examination significance without repeating the same fact.",
           "keyPoints": ["Important distinctions, mechanisms, criteria or facts stated in the source."],
-          "mentalModel": "A brief intuitive explanation or analogy that makes this concept click. Use only when it genuinely clarifies the science; make the limits of an analogy clear.",
-          "memoryHook": "A vivid, specific retrieval cue for this subsection, followed by an explanation of exactly how it retrieves the key facts.",
-          "recallQuestion": "One challenging but fair active-recall question that requires the student to retrieve or explain the key idea without looking.",
-          "recallAnswer": "A concise but explanatory answer to the active-recall question, grounded in the uploaded source."
+          "mentalModel": "Optional: a brief intuitive explanation or analogy, only when it genuinely clarifies the science. Otherwise return an empty string.",
+          "memoryHook": "Optional: a specific, accurate retrieval cue and a brief explanation of how it maps to the examinable facts. Otherwise return an empty string.",
+          "recallQuestion": "A challenging active-recall question for a CORE subsection when it improves learning; otherwise return an empty string.",
+          "recallAnswer": "A concise answer to the recall question, grounded in the uploaded source; otherwise return an empty string."
         }
       ],
       "diagnosisPattern": {
