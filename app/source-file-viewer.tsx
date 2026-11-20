@@ -412,13 +412,15 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
 
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
-    // On enlarged slides, preserve browser scrolling and panning rather than hijacking gestures.
-    if (pptxZoom !== "fit" && pptxZoom !== "width") return;
-    // Ignore taps and vertical page scrolling; only a deliberate horizontal swipe changes slides.
-    if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    // Horizontal swipes navigate at every zoom level. The reader uses touch-action: pan-y,
+    // so ordinary vertical document scrolling remains native to the browser.
+    // Ignore taps and vertical gestures; only a deliberate horizontal swipe changes slides.
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
     if (deltaX < 0 && pptxCurrentSlide < pptxSlideCount - 1) {
+      setPptxPlaying(false);
       setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1));
     } else if (deltaX > 0 && pptxCurrentSlide > 0) {
+      setPptxPlaying(false);
       setPptxCurrentSlide(value => Math.max(0, value - 1));
     }
   };
