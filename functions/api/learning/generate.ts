@@ -271,7 +271,7 @@ export const onRequestPost = async (context: AppContext) => {
   try {
     const generateBatch = async (requested: number, exclude: string[] = []) => {
       const exclusionNote = exclude.length
-        ? "\nNON-REPETITION RULE: Do not repeat, closely paraphrase, or test the same specific learning objective, key fact, clinical decision or reasoning step already covered below. Reusing a broad disease or topic is allowed only when the new item tests a genuinely different examinable point.\\nPreviously generated questions for this material:\\n" +
+        ? "\nNON-REPETITION RULE: Do not repeat, closely paraphrase, or test the same specific learning objective, key fact, clinical decision or reasoning step already covered below. Reusing a broad disease or topic is allowed only when the new item tests a genuinely different examinable point.\nPreviously generated questions for this material:\n" +
           exclude.slice(-60).map((item, index) => (index + 1) + ". " + item).join("\n")
         : "";
       const result = await requestGeminiSba(apiKey, [
