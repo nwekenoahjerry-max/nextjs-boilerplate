@@ -111,7 +111,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [pptxViewportHeight, setPptxViewportHeight] = useState(600);
   const [pptxSlideAspectRatio, setPptxSlideAspectRatio] = useState(16 / 9);
   const [pptxRetry, setPptxRetry] = useState(0);
-  const [pptxZoom, setPptxZoom] = useState<"fit" | "100" | "125" | "150" | "200">("fit");
+  const [pptxZoom, setPptxZoom] = useState<"fit" | "width" | "100" | "125" | "150" | "200">("width");
   const [pptxPlaying, setPptxPlaying] = useState(false);
   const [pptxSlideInterval, setPptxSlideInterval] = useState(6);
   const [pptxShowSlides, setPptxShowSlides] = useState(false);
@@ -254,8 +254,10 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         const maxSlideHeight = Math.min(820, Math.max(320, pptxViewportHeight));
         const maxWidthForHeight = Math.round(maxSlideHeight * pptxSlideAspectRatio);
         const fittedWidth = Math.min(pptxViewportWidth, maxWidthForHeight);
-        const zoomFactor = pptxZoom === "fit" ? 1 : Number(pptxZoom) / 100;
-        const displayWidth = Math.round(fittedWidth * zoomFactor);
+        const fitToWindow = pptxZoom === "fit";
+        const zoomFactor = fitToWindow || pptxZoom === "width" ? 1 : Number(pptxZoom) / 100;
+        const baseWidth = fitToWindow ? fittedWidth : pptxViewportWidth;
+        const displayWidth = Math.round(baseWidth * zoomFactor);
         const renderWidth = Math.min(3600, Math.max(320, Math.round(displayWidth * pixelRatio)));
         const slideCanvas = document.createElement("canvas");
         await renderer.renderSlide(pptxCurrentSlide, slideCanvas, renderWidth);
@@ -264,8 +266,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         visibleCanvas.width = slideCanvas.width;
         visibleCanvas.height = slideCanvas.height;
         visibleCanvas.style.width = displayWidth + "px";
-        visibleCanvas.style.maxWidth = zoomFactor > 1 ? "none" : "100%";
-        visibleCanvas.style.maxHeight = zoomFactor > 1 ? "none" : "min(72vh, 820px)";
+        visibleCanvas.style.maxWidth = fitToWindow ? "100%" : "none";
+        visibleCanvas.style.maxHeight = fitToWindow ? "min(72vh, 820px)" : "none";
         const context = visibleCanvas.getContext("2d");
         if (!context) throw new Error("Your browser could not prepare the slide canvas.");
         context.clearRect(0, 0, visibleCanvas.width, visibleCanvas.height);
@@ -302,7 +304,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
       observer.disconnect();
       window.removeEventListener("resize", updateDimensions);
     };
-  }, [mode]);
+  }, [mode, pptxReady]);
 
   // The DOCX reader lives in an opaque-origin iframe: it can run the renderer,
   // but it cannot read ClerkMe cookies, local storage, or the parent app DOM.
@@ -493,7 +495,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                 <div className="source-pptx-toolbar-group">
                   <label className="source-pptx-tool-select">Zoom
                     <select value={pptxZoom} onChange={event => setPptxZoom(event.target.value as typeof pptxZoom)}>
-                      <option value="fit">Fit to window</option><option value="100">100%</option>
+                      <option value="fit">Fit to window</option><option value="width">Fit width · read text</option><option value="100">100%</option>
                       <option value="125">125%</option><option value="150">150%</option><option value="200">200%</option>
                     </select>
                   </label>

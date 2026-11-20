@@ -219,12 +219,15 @@ export default function VideoLibraryPanel() {
     <section className="video-library-player" aria-label="Video player" ref={playerRef} tabIndex={-1}>
       <div className="video-library-player-heading">
         <div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeVideo.title}</strong><small>{activeVideo.channelTitle}</small></div>
-        <button type="button" className="video-library-close" onClick={() => setActiveVideo(null)}>Close player ×</button>
+        <div className="video-library-player-actions">
+          <a className="video-library-youtube-link" href={"https://www.youtube.com/watch?v=" + activeVideo.id} target="_blank" rel="noopener noreferrer">Open on YouTube ↗</a>
+          <button type="button" className="video-library-close" onClick={() => setActiveVideo(null)}>Close player ×</button>
+        </div>
       </div>
       <div className="video-library-player-frame">
         <iframe src={"https://www.youtube-nocookie.com/embed/" + activeVideo.id + "?rel=0&playsinline=1"} title={activeVideo.title + " — YouTube video player"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen loading="lazy" />
       </div>
-      <p className="video-library-player-note">Playback stays in ClerkMe using YouTube’s embedded player. A small number of age-restricted or embedding-disabled videos may not play here.</p>
+      <p className="video-library-player-note">Playback stays in ClerkMe using YouTube’s embedded player. ClerkMe can save the lecture to your personal library, but cannot download YouTube-hosted video files. For offline viewing, open the video on YouTube and use its own download feature where it is available for your account and region.</p>
     </section>
   );
 

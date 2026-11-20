@@ -246,8 +246,8 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
     };
     const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
     const summary = {
-      overview: clean(parsed.overview, 3000),
-      highYieldPoints: asStrings(parsed.highYieldPoints, 40, 1600),
+      overview: clean(parsed.overview, 1600),
+      highYieldPoints: asStrings(parsed.highYieldPoints, 24, 750),
       visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
         const item = value as Record<string, unknown>;
         return {
@@ -258,32 +258,32 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
           visualPrompt: clean(item.visualPrompt, 1100)
         };
       }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
-      learningObjectives: asStrings(parsed.learningObjectives, 20, 700),
-      sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 40).map(value => {
+      learningObjectives: asStrings(parsed.learningObjectives, 10, 450),
+      sections: Array.isArray(parsed.sections) ? parsed.sections.slice(0, 24).map(value => {
         const item = value as Record<string, unknown>;
         const diagnosisRaw = item.diagnosisPattern && typeof item.diagnosisPattern === "object"
           ? item.diagnosisPattern as Record<string, unknown>
           : null;
         const diagnosisPattern = diagnosisRaw ? {
-          patternSummary: clean(diagnosisRaw.patternSummary, 1800),
-          typicalPresentation: clean(diagnosisRaw.typicalPresentation, 2400),
-          historyClues: asStrings(diagnosisRaw.historyClues, 20, 850),
-          examinationClues: asStrings(diagnosisRaw.examinationClues, 20, 850),
-          redFlags: asStrings(diagnosisRaw.redFlags, 12, 700),
-          diagnosticCriteria: asStrings(diagnosisRaw.diagnosticCriteria, 20, 850),
-          investigations: Array.isArray(diagnosisRaw.investigations) ? diagnosisRaw.investigations.slice(0, 24).map(value => {
+          patternSummary: clean(diagnosisRaw.patternSummary, 1200),
+          typicalPresentation: clean(diagnosisRaw.typicalPresentation, 1500),
+          historyClues: asStrings(diagnosisRaw.historyClues, 12, 600),
+          examinationClues: asStrings(diagnosisRaw.examinationClues, 12, 600),
+          redFlags: asStrings(diagnosisRaw.redFlags, 8, 500),
+          diagnosticCriteria: asStrings(diagnosisRaw.diagnosticCriteria, 12, 600),
+          investigations: Array.isArray(diagnosisRaw.investigations) ? diagnosisRaw.investigations.slice(0, 16).map(value => {
             const investigation = value as Record<string, unknown>;
             return {
-              test: clean(investigation.test, 180),
-              expectedFinding: clean(investigation.expectedFinding, 1000),
-              interpretation: clean(investigation.interpretation, 1000)
+              test: clean(investigation.test, 140),
+              expectedFinding: clean(investigation.expectedFinding, 750),
+              interpretation: clean(investigation.interpretation, 750)
             };
           }).filter(row => row.test && (row.expectedFinding || row.interpretation)) : [],
-          differentialDiagnoses: Array.isArray(diagnosisRaw.differentialDiagnoses) ? diagnosisRaw.differentialDiagnoses.slice(0, 18).map(value => {
+          differentialDiagnoses: Array.isArray(diagnosisRaw.differentialDiagnoses) ? diagnosisRaw.differentialDiagnoses.slice(0, 12).map(value => {
             const differential = value as Record<string, unknown>;
             return {
-              diagnosis: clean(differential.diagnosis, 180),
-              distinguishingFeatures: clean(differential.distinguishingFeatures, 1000)
+              diagnosis: clean(differential.diagnosis, 140),
+              distinguishingFeatures: clean(differential.distinguishingFeatures, 750)
             };
           }).filter(row => row.diagnosis && row.distinguishingFeatures) : []
         } : null;
@@ -293,36 +293,36 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
           diagnosisPattern.redFlags.length || diagnosisPattern.diagnosticCriteria.length ||
           diagnosisPattern.investigations.length || diagnosisPattern.differentialDiagnoses.length
         ));
-        const managementPlan = Array.isArray(item.managementPlan) ? item.managementPlan.slice(0, 32).map(value => {
+        const managementPlan = Array.isArray(item.managementPlan) ? item.managementPlan.slice(0, 18).map(value => {
           const action = value as Record<string, unknown>;
           return {
-            phase: clean(action.phase, 180),
-            intervention: clean(action.intervention, 1800),
-            rationale: clean(action.rationale, 1400),
-            monitoring: clean(action.monitoring, 1000),
-            cautions: clean(action.cautions, 1000)
+            phase: clean(action.phase, 140),
+            intervention: clean(action.intervention, 1200),
+            rationale: clean(action.rationale, 850),
+            monitoring: clean(action.monitoring, 700),
+            cautions: clean(action.cautions, 700)
           };
         }).filter(action => action.phase && action.intervention) : [];
-        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 16).map(value => {
+        const subsections = Array.isArray(item.subsections) ? item.subsections.slice(0, 8).map(value => {
           const subsection = value as Record<string, unknown>;
           return {
-            heading: clean(subsection.heading, 180),
-            explanation: clean(subsection.explanation, 8500),
-            keyPoints: asStrings(subsection.keyPoints, 18, 750),
-            mentalModel: clean(subsection.mentalModel, 900),
-            memoryHook: clean(subsection.memoryHook, 800),
-            recallQuestion: clean(subsection.recallQuestion, 650),
-            recallAnswer: clean(subsection.recallAnswer, 1400)
+            heading: clean(subsection.heading, 160),
+            explanation: clean(subsection.explanation, 3200),
+            keyPoints: asStrings(subsection.keyPoints, 8, 450),
+            mentalModel: clean(subsection.mentalModel, 500),
+            memoryHook: clean(subsection.memoryHook, 450),
+            recallQuestion: clean(subsection.recallQuestion, 350),
+            recallAnswer: clean(subsection.recallAnswer, 750)
           };
         }).filter(subsection => subsection.heading && subsection.explanation) : [];
         return {
           heading: clean(item.heading, 180),
-          summary: clean(item.summary, 4600),
+          summary: clean(item.summary, 2200),
           subsections,
           diagnosisPattern: hasDiagnosisPattern ? diagnosisPattern : null,
           managementPlan,
-          clinicalRelevance: clean(item.clinicalRelevance, 4000),
-          highYieldPoints: asStrings(item.highYieldPoints, 22, 1100),
+          clinicalRelevance: clean(item.clinicalRelevance, 1800),
+          highYieldPoints: asStrings(item.highYieldPoints, 12, 650),
           sourceLocator: clean(item.sourceLocator, 160)
         };
       }).filter(item => item.heading && (item.summary || item.subsections.length || item.diagnosisPattern || item.managementPlan.length)) : [],
@@ -330,18 +330,18 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
         const item = value as Record<string, unknown>;
         return { term: clean(item.term, 120), meaning: clean(item.meaning, 1000) };
       }).filter(item => item.term && item.meaning) : [],
-      comparisonTables: Array.isArray(parsed.comparisonTables) ? parsed.comparisonTables.slice(0, 14).map(value => {
+      comparisonTables: Array.isArray(parsed.comparisonTables) ? parsed.comparisonTables.slice(0, 8).map(value => {
         const item = value as Record<string, unknown>;
         const columns = asStrings(item.columns, 8, 120);
-        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 32).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 1100)) : []).filter(row => row.length > 0) : [];
+        const rows = Array.isArray(item.rows) ? item.rows.slice(0, 16).map(row => Array.isArray(row) ? row.slice(0, 8).map(cell => clean(cell, 750)) : []).filter(row => row.length > 0) : [];
         return { title: clean(item.title, 160), columns, rows };
       }).filter(item => item.title && item.columns.length && item.rows.length) : [],
       examFocus: Object.values(examFocus).some(value => Array.isArray(value) && value.length) ? examFocus : null,
-      flowcharts: Array.isArray(parsed.flowcharts) ? parsed.flowcharts.slice(0, 12).map(value => {
+      flowcharts: Array.isArray(parsed.flowcharts) ? parsed.flowcharts.slice(0, 6).map(value => {
         const item = value as Record<string, unknown>;
         return {
           title: clean(item.title, 160),
-          steps: asStrings(item.steps, 16, 650),
+          steps: asStrings(item.steps, 10, 450),
           takeaway: clean(item.takeaway, 900)
         };
       }).filter(item => item.title && item.steps.length >= 2) : [],
@@ -354,7 +354,7 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
           channel: videoChannels.includes(suggestedChannel) ? suggestedChannel : "Osmosis"
         };
       }).filter(item => item.topic) : [],
-      mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics.slice(0, 10).map(value => {
+      mnemonics: Array.isArray(parsed.mnemonics) ? parsed.mnemonics.slice(0, 6).map(value => {
         const item = value as Record<string, unknown>;
         return {
           title: clean(item.title, 180),
@@ -364,14 +364,14 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
           caution: clean(item.caution, 420)
         };
       }).filter(item => item.title && item.mnemonic && item.expansion.length) : [],
-      memoryAids: asStrings(parsed.memoryAids, 20, 800),
-      commonPitfalls: asStrings(parsed.commonPitfalls, 32, 850),
-      revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 36).map(value => {
+      memoryAids: asStrings(parsed.memoryAids, 12, 600),
+      commonPitfalls: asStrings(parsed.commonPitfalls, 20, 600),
+      revisionQuestions: Array.isArray(parsed.revisionQuestions) ? parsed.revisionQuestions.slice(0, 20).map(value => {
         const item = value as Record<string, unknown>;
-        return { question: clean(item.question, 1000), answer: clean(item.answer, 3000) };
+        return { question: clean(item.question, 700), answer: clean(item.answer, 1800) };
       }).filter(item => item.question && item.answer) : [],
       unclearOrMissing: asStrings(parsed.unclearOrMissing, 32, 850),
-      sourceCoverage: asStrings(parsed.sourceCoverage, 60, 550),
+      sourceCoverage: asStrings(parsed.sourceCoverage, 40, 350),
       disclaimer: clean(parsed.disclaimer, 700) || "These notes are based on the uploaded source. Check current local guidance where relevant."
     };
 
@@ -475,11 +475,11 @@ export const onRequestPost = async (context: AppContext) => {
         {
           role: "user",
           content: `Clinical unit: ${material.unit}. Document title: ${material.title}. Source filename: ${material.source_name}.
-Create a comprehensive High-Yield Points study chapter from the uploaded document. This is NOT a short summary, abstract, outline or list of keywords. It must teach the material sufficiently for a medical student to understand it, recall it and apply it in theory papers, short notes, viva/OSCE discussion and clinical single-best-answer questions.
+Create a selective, high-value medical revision guide from the uploaded source. Its purpose is to help a student understand and retain the most examinable material, not to reproduce the lecture in longer form. Preserve important source-grounded facts, mechanisms, distinctions, classifications, criteria, investigations, management principles, values and exceptions, but give each item depth in proportion to its examination and clinical importance.
 
-HIGH-YIELD DOES NOT MEAN SHALLOW OR SHORT. It means selecting the most examinable and clinically meaningful knowledge, then explaining it accurately and efficiently. Do not compress a multi-page lecture into a handful of generic bullets. Preserve the source's meaningful detail, including named concepts, distinctions, mechanisms, categories, values, examples, caveats and exceptions. Use the selected clinical unit to frame the content, not to invent facts.
+Rank the document's main topics as CORE (central, clinically important or strongly examinable), SUPPORTING (needed to understand a core topic) or CONTEXTUAL (background, examples or peripheral detail). Give most space to CORE topics. Cover SUPPORTING topics briefly; mention CONTEXTUAL material only when it adds useful understanding. Do not create a separate long subsection for every slide, sentence or named example. Merge closely related points under clear headings, while keeping genuinely distinct diseases or concepts separate.
 
-First establish the document's scope and teaching sequence. Then build the guide topic by topic. Every major topic in the source must appear in the guide or be explicitly identified as a minor contextual mention. Allocate depth according to the source's teaching emphasis. Use an ordered hierarchy of main topic → specific subtopic → explanation → exam-relevant takeaways. Avoid vague headings such as "Other information" when a precise topic heading is available.
+Use the hierarchy major topic → essential subtopic → concise explanation → exam takeaway. Allocate detail according to the source's teaching emphasis; do not expand every topic to the same length.
 
 For each important concept, teach in this order where relevant:
 1. WHAT it is: clear definition and context.
@@ -554,37 +554,37 @@ Return a JSON object with this exact shape:
 }
 
 Quality and completeness:
-- HIGH-YIELD DEPTH STANDARD: A reader should be able to learn the important concepts from this guide without needing to reopen the lecture for every explanation. Do not substitute a short abstract for teaching. A section summary is only an orientation; the subsections carry the actual teaching. A meaningful concept needs enough explanation to make its logic understandable.
-- SOURCE-TO-GUIDE COVERAGE AUDIT: Before returning JSON, compare the complete answer against the source coverage map and the original upload. Check that every major heading, named concept, classification, mechanism, formula, numerical fact, investigation, management principle, exception and important comparison has been carried into the appropriate section or explicitly listed under unclearOrMissing. Do not let early pages dominate while later pages disappear. Include the exact relevant page/slide/heading locator whenever it can be identified.
-- EXAM VALUE HIERARCHY: Distinguish core examinable knowledge from supporting explanation and contextual detail. Rank highYieldPoints by importance. High yield should include precise definitions, first principles, mechanisms, classic patterns, differentiating features, named classifications, important values/formulas, interpretation, management priorities, complications and traps where supported. Each point should teach, not merely name.
+- SELECTIVE HIGH-YIELD STANDARD: This is a focused revision guide, not a textbook rewrite. Lead with the highest-value facts and clinical patterns. Include only details that improve understanding, discrimination, recall or examination performance. Do not expand every slide, example or minor point to the same depth.
+- SOURCE-COVERAGE AUDIT: Represent every major examinable topic from the source, including later sections. Supporting and contextual topics may be summarised briefly. Do not omit an important classification, mechanism, criterion, numerical fact, investigation, management principle or exception. Include page/slide locators when available.
+- EXAM VALUE HIERARCHY: Rank content as CORE, SUPPORTING or CONTEXTUAL. The high-yield list should contain approximately 12–20 of the most important, precise and source-grounded points, ordered by importance. Prioritise definitions, mechanisms, classic patterns, differentiating features, criteria, values, investigation interpretation, management priorities, complications and examination traps where supported.
 - EXPLANATION QUALITY: Define unfamiliar terms, unpack abbreviations at first use, explain every causal link, and explain why each classification or investigation matters. A list of findings without interpretation is incomplete. A treatment list without rationale, sequence and monitoring is incomplete. A mechanism that skips intermediate steps is incomplete.
 - DISCIPLINE-SPECIFIC STRUCTURE: Use the relevant teaching framework for the actual subject. Never force anatomy, physiology, pharmacology, microbiology, pathology, public health or statistics into an inappropriate generic medical-condition template. Preserve discipline-specific detail and practical applications.
 - SELECTIVE TABLE RULE: Tables are optional teaching tools, not a quota. Generate a table only when it makes information genuinely easier to understand, compare, scan or revise. Strong use cases include side-by-side differences between related conditions/concepts, multi-feature classifications, investigation interpretation, drug/class comparisons, or a multi-stage sequence with consistent fields. For a table to earn its place, there should usually be at least two comparable items and several meaningful features/rows. If prose, a short list or a flowchart explains the idea more clearly, use that instead. Never split ordinary explanatory prose into a table, create a table merely to decorate a section, or force a comparison where the source does not support one. Keep comparisonTables empty when no useful comparison exists.
 - TABLE QUALITY: When a table is genuinely useful, use it to increase information density without removing the explanation that makes it meaningful. Compare like with like, use meaningful row headings and explanatory cells, and preserve all important source-stated categories, criteria, values and distinctions. Avoid tiny, vague or redundant tables.
 - NUMERICAL ACCURACY: Preserve each meaningful number with its unit, context, timing and denominator where applicable. Do not alter a number to a familiar guideline value. If the lecture is ambiguous, flag it. For formulas, define each variable and explain the interpretation; include a worked example only if the source provides one or it can be derived without introducing external clinical facts.
-- Do not pad the guide with repeated statements just to make it longer. Completeness, accuracy and teachability matter more than word count. A memorable explanation is not a repetitive explanation: every mental model, hook and recall question must perform a distinct learning function.
-- Treat the uploaded lecture as the source of truth. Preserve its major topics, explanations, classifications, mechanisms, diagnostic criteria, investigations, management principles, numerical values, exceptions, contraindications and caveats. Never invent unsupported clinical facts. Flag contradictions or missing information rather than silently correcting them.
-- This is a detailed teaching chapter, not an abstract. Cover every major heading and important subtopic in the source. Use clear numbered sections and meaningful subsections (usually 2-6 per major section when appropriate). Explain what a concept is, why it occurs, how it works and its cause-and-effect relationships in connected prose.
-- Follow a logical learning sequence where relevant: definition, classification, causes/risk factors, pathophysiology, clinical features, investigations/diagnosis, management, complications and prognosis. Omit categories not relevant or unsupported by the lecture. Explain abbreviations at first use.
-- Teach each concept progressively, from its foundation to its clinical or examination significance. For mechanisms, show the causal chain in the correct order and explain why each step leads to the next. For classifications and diagnostic criteria, define each category and distinguish it from close alternatives. Use connected explanatory paragraphs rather than a page of disconnected fragments.
-- MAKE THE TEACHING COME ALIVE: write as an excellent, engaging medical lecturer teaching a capable student. Use clear signposting, intuitive explanations, concrete cause-and-effect links and source-supported examples. Vary sentence structure and explanation style so the guide does not feel like a repetitive data dump. Explain the difficult part first when that helps. Do not use jokes, exaggerated claims, childish language or decorative filler.
-- MENTAL-MODEL REQUIREMENT: for each subsection, provide a concise mentalModel when an analogy, spatial picture, simple model or intuitive comparison genuinely helps the concept click. Keep it scientifically accurate, label analogies clearly and state where an analogy stops being exact. Do not force an analogy; use an empty string if none improves understanding.
-- MEMORY-ANCHOR REQUIREMENT: every subsection must include a useful memoryHook. It must be specific enough that recalling the phrase or image brings back the actual concept, not merely its title. Good forms include a visual image, accurately decoded mnemonic, cause-and-effect phrase, ordered sequence, spatial relationship, contrast or pattern-recognition cue. Explain exactly how the hook maps to the facts. Avoid generic "remember this" wording, forced rhymes and invented acronyms. Do not let a hook erase exceptions or clinical nuance.
-- ACTIVE-RECALL REQUIREMENT: every subsection must include one recallQuestion and recallAnswer. Ask a question that makes the student retrieve, explain, connect, compare or apply the central learning point without looking at the answer. Prefer "Why does...?", "How would you distinguish...?", "What happens next if...?" or a concise clinical-reasoning prompt over simple word recognition. The answer should explain the reasoning in 1-3 sentences and remain grounded in the source. Do not put the answer inside the question or merely repeat the hook.
-- Keep the roles distinct: keyPoints state what the student must know; mentalModel makes it intuitive; memoryHook makes it memorable; recallQuestion tests retrieval and recallAnswer reinforces the reasoning. Do not copy the same sentence into every field.
+- NO PADDING OR REPETITION: do not restate the same fact in the overview, high-yield list, section summary, key points and memory aids. Each component must add distinct value. Prefer a short, precise explanation to several paragraphs that repeat the same idea.
+- SOURCE FIDELITY: the uploaded lecture is the primary source. Retain material facts, named classifications, mechanisms, criteria, numerical values, investigations, management principles, exceptions and cautions. Never invent unsupported clinical facts. Flag contradictions or missing information instead of silently correcting them.
+- SECTION DESIGN: create only as many major sections as the source's genuinely distinct topics require (normally 4–18). A major section will usually have 1–4 useful subsections; do not create a subsection for every slide or bullet. Use precise headings, concise orientation summaries and clear source locators.
+- PROPORTIONATE DETAIL: explain CORE topics well enough to understand the mechanism and apply the concept. Keep SUPPORTING explanations brief. Keep CONTEXTUAL details to a sentence or omit them when they do not improve learning.
+- DISCIPLINE-AWARE STRUCTURE: follow the topic's actual discipline. Use definition, classification, mechanism, presentation, diagnosis, management and complications only where relevant and supported. Define unfamiliar terms and abbreviations once at first use.
+- TEACHING STYLE: use clear, direct British English, scannable paragraphs and precise examination takeaways. Avoid decorative filler, exaggerated claims, forced analogies and repetitive textbook language.
+- MENTAL MODELS: include a mentalModel only when a short analogy or intuitive model materially improves understanding. Leave it empty when it does not.
+- MEMORY HOOKS: include a memoryHook only when it is accurate, specific and genuinely useful. Do not force mnemonics or duplicate the explanation; leave it empty when no good hook exists.
+- ACTIVE RECALL: use one strong recall question and explanatory answer for a CORE subsection or major section where it adds value. Supporting/contextual material does not need its own question. Do not repeat the same question in the revision-question list.
+- Keep the roles distinct: keyPoints state essential facts; mentalModel makes a difficult concept intuitive; memoryHook aids retrieval; recallQuestion tests understanding. Leave optional fields empty rather than manufacturing low-value content.
 - Build understanding before recall. Where appropriate, connect anatomy to function, pathophysiology to symptoms, investigations to the underlying abnormality, and management to its rationale. Use clinical examples only when supported by the uploaded source; do not add unsupported patient details or treatment advice.
-- Include approximately 8-12 revision questions across the guide when the source is substantial. Mix direct recall with “why”, mechanism, comparison, and clinical-application questions. Answers should explain the reasoning, not merely give a one-word response.
-- Produce 12-20 explanatory high-yield points when the source contains enough material. Each should state the key fact plus its mechanism, significance, distinction, criterion or examination trap; do not return fragments.
-- CLINICAL SECTION GRANULARITY: when a lecture covers multiple distinct diseases, disorders or syndromes, give each major condition its own clearly named section and its own diagnosisPattern and managementPlan. Do not merge several unrelated conditions into one generic diagnostic pattern or treatment table. Keep a separate differential-comparison table where useful.
-- CLINICAL DIAGNOSIS PATTERN: for every disease, disorder, syndrome or clinical presentation covered by a section, create a structured diagnosisPattern. Describe the characteristic pattern, relevant history, examination findings, red flags, diagnostic criteria, investigations with expected findings AND their interpretation, and key differential diagnoses with distinguishing features. Show how the findings fit together; do not imply that one isolated symptom or test automatically establishes a diagnosis.
-- DETAILED MANAGEMENT: for every condition with management content in the source, create an ordered managementPlan table with separate rows for immediate stabilisation, definitive treatment, supportive care, monitoring, complications, escalation and follow-up as applicable. Include the action, rationale, monitoring and cautions. Preserve sequence, doses, routes, timing, durations, contraindications, thresholds and exceptions only when actually present in the source. Never fill a missing drug dose, guideline threshold or protocol from guesswork.
+- Include approximately 6–10 high-value revision questions for a substantial source. Prefer questions that test mechanism, comparison, clinical application and common traps. Give concise explanations, not one-word answers.
+- Produce approximately 12–20 ranked high-yield points when supported by the source. Each point should be a precise fact plus its significance or distinguishing feature, not a long mini-essay.
+- CLINICAL SECTION GRANULARITY: when a lecture centres on multiple distinct diseases, give each major condition its own clearly named section and separate diagnosisPattern and managementPlan. Do not merge unrelated conditions into one generic pattern. A minor mention of a condition does not need a full clinical framework.
+- CLINICAL DIAGNOSIS PATTERN: for each CORE disease or presentation, give a structured, source-grounded pattern: characteristic history and examination clues, red flags, criteria, investigations with expected findings and interpretation, and key differentials. Explain how findings fit together; never imply one isolated symptom or test proves a diagnosis. Supporting conditions may be summarised more briefly.
+- DETAILED MANAGEMENT: for each CORE condition where the source teaches management, provide an ordered and clinically useful managementPlan. Include immediate stabilisation, definitive treatment, supportive care, monitoring, complications, escalation and follow-up only where relevant. Preserve actions, rationale, sequence, doses, routes, timing, contraindications, thresholds and exceptions only when stated in the source. Never guess a dose or protocol.
 - If the uploaded source describes a clinical condition but omits important diagnostic or management details, state exactly what is missing in unclearOrMissing and do not manufacture a complete protocol. Use the sourceLocator for clinical details whenever possible. Distinguish source facts from any analogy or educational framing.
 - Use detailed, information-rich tables where they genuinely improve clinical learning: investigations and interpretation, differential diagnosis, management steps, and comparisons. Use clear row labels and explanatory cells, not one-word entries. Let a table carry detail that would otherwise become a long list, while retaining explanation around it.
 - Provide only 1-2 highly relevant video recommendations for the entire upload. Video suggestions are supplementary; prioritise detailed theory, diagnostic pattern recognition, investigations, management, monitoring and examination preparation. Use only Osmosis, Zero to Finals or Geeky Medics as channel suggestions. Recommend topics, not invented video titles or URLs.
 - Add a small set of high-value mnemonics where they genuinely improve recall. Explain every element and ensure each one maps accurately to the source. Prefer a simple, meaningful mnemonic over a clever but misleading one. Do not force one.
 - Use memoryAids for a concise collection of the strongest whole-topic associations, not a duplicate list of every subsection memoryHook. Make the hooks concrete, easy to retrieve and directly linked to examinable concepts.
 - Include up to 2 visual aids only when a diagram would materially clarify a source-supported anatomical relationship or mechanism. Use a clean textbook schematic prompt with no words, labels, numbers or watermarks. Never fabricate diagnostic images or findings.
-- Write in British English with scannable headings and concise examination takeaways. Give enough explanation for a student to learn from the guide without reopening the lecture for every concept. This guide must serve both theory revision and clinical SBA preparation: build a usable mental model, then show the pattern of presentation, how investigations are interpreted, how alternatives are distinguished, and the rationale and sequence of management. Be detailed where the source is detailed; do not pad short sections or omit important material for the sake of brevity. Empty arrays are appropriate when a category is not relevant. Do not pad the guide with unsupported general knowledge.
+- Write in British English. Optimise for rapid revision and durable understanding: make the CORE material clear and memorable, then use concise supporting detail to preserve context. The guide must serve theory revision and clinical SBA preparation, with source-grounded diagnosis patterns, investigation interpretation, differential discrimination and management rationale wherever the source supports them. Include the material that matters, not every sentence from the lecture. Empty arrays are appropriate when a category is not relevant. Do not add unsupported general knowledge.
 
 UPLOADED SOURCE:
 ---
@@ -594,7 +594,7 @@ ${material.content_text}
       ] as const;
 
 
-    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages, 3, 48000, "HIGH");
+    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages, 3, 30000, "HIGH");
     const parsed = parseAIResult({ response: outputText });
     const summary = normaliseStudySummary(parsed);
 

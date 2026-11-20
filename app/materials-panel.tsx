@@ -618,7 +618,8 @@ export default function MaterialsPanel() {
         setNotice("Your original document has been uploaded and is ready to read in Source Material. ClerkMe could not find enough selectable text to create reliable AI notes. You can still read or download the original; use OCR or a text-based copy to generate a study guide.");
         return;
       }
-      setNotice("Material uploaded and saved to your private library. Preparing its High-Yield Points…");
+      setNotice("Material uploaded and saved. Your original source is opening while ClerkMe builds the exam-focused High-Yield Points…");
+      setTab("source");
       await summarise(material.id);
     } catch(e) {
       setError(e instanceof Error?e.message:"Could not upload this material.");
@@ -1064,7 +1065,19 @@ export default function MaterialsPanel() {
                     const optionClass = quizMode==="live"
                       ? (selectedOption?" is-selected":"")
                       : (currentAnswer===null?"":optionIndex===currentQuestion.answerIndex?" is-correct":selectedOption?" is-wrong":" is-muted");
-                    return <button key={optionIndex} type="button" disabled={quizMode==="practice"&&currentAnswer!==null} aria-pressed={selectedOption} className={"study-mcq-option"+optionClass} onClick={()=>{setQuestionAnswers(previous=>({...previous,[questionIndex]:optionIndex}));fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});}}><span>{String.fromCharCode(65+optionIndex)}</span><b>{option}</b><i>{quizMode==="live"?(selectedOption?"●":""):(currentAnswer!==null&&optionIndex===currentQuestion.answerIndex?"✓":selectedOption?"×":"")}</i></button>;
+                    return <button key={optionIndex} type="button" disabled={quizMode==="practice"&&currentAnswer!==null} aria-pressed={selectedOption} className={"study-mcq-option"+optionClass} onClick={()=>{
+                      setQuestionAnswers(previous=>({...previous,[questionIndex]:optionIndex}));
+                      fetch("/api/activity",{method:"POST",credentials:"same-origin"}).catch(()=>{});
+                      if(quizMode==="live"){
+                        let nextUnanswered=-1;
+                        for(let offset=1;offset<activeQuestions.length;offset++){
+                          const candidate=(questionIndex+offset)%activeQuestions.length;
+                          if(questionAnswers[candidate]===undefined){nextUnanswered=candidate;break;}
+                        }
+                        if(nextUnanswered>=0) setQuestionIndex(nextUnanswered);
+                        else finishLiveTest(false);
+                      }
+                    }}><span>{String.fromCharCode(65+optionIndex)}</span><b>{option}</b><i>{quizMode==="live"?(selectedOption?"●":""):(currentAnswer!==null&&optionIndex===currentQuestion.answerIndex?"✓":selectedOption?"×":"")}</i></button>;
                   })}</div>
                   {quizMode==="practice"&&currentAnswer!==null&&<div className={"study-mcq-feedback"+(currentAnswer===currentQuestion.answerIndex?" is-correct":" is-wrong")} role="status"><strong>{currentAnswer===currentQuestion.answerIndex?"Correct — well done.":"Not quite. Review this concept."}</strong><p><b>Best answer: {currentQuestion.options[currentQuestion.answerIndex]}.</b> {currentQuestion.explanation}</p>{currentQuestion.optionRationales?.length===5&&<div className="study-mcq-option-rationales"><strong>Option-by-option analysis</strong><ol>{currentQuestion.optionRationales.map((rationale,optionIndex)=><li key={optionIndex}><b>{String.fromCharCode(65+optionIndex)}. {currentQuestion.options[optionIndex]}</b><span>{rationale}</span></li>)}</ol></div>}</div>}
                   {quizMode==="live"&&<p className="study-live-answer-note">{currentAnswer===null?"Choose one answer. You can change it before submitting.":"Answer selected. You can change it at any time before submission."}</p>}
