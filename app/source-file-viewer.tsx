@@ -413,7 +413,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
     // On enlarged slides, preserve browser scrolling and panning rather than hijacking gestures.
-    if (pptxZoom !== "fit") return;
+    if (pptxZoom !== "fit" && pptxZoom !== "width") return;
     // Ignore taps and vertical page scrolling; only a deliberate horizontal swipe changes slides.
     if (Math.abs(deltaX) < 48 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     if (deltaX < 0 && pptxCurrentSlide < pptxSlideCount - 1) {
