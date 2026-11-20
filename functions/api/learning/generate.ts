@@ -185,7 +185,7 @@ const QUESTION_STOP_WORDS = new Set([
 
 function questionKey(value: unknown): string {
   return typeof value === "string"
-    ? value.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\\s+/g, " ")
+    ? value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\\s+/g, " ")
     : "";
 }
 
