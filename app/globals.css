@@ -3875,7 +3875,7 @@ body{background:var(--paper);color:var(--ink)}
 .source-pptx-slide-grid button.is-current{border:2px solid #397a55;background:#eaf4ed;color:#245a39}
 .source-pptx-slide-thumb{display:grid;place-items:center;width:100%;aspect-ratio:16/9;border:1px solid #e0e8e1;border-radius:5px;background:linear-gradient(135deg,#fff,#edf3ee);color:#477153;font-size:19px;font-weight:800}
 .source-pptx-slide-grid small{font-size:10px;font-weight:700}
-.source-pptx-canvas-wrap.is-zoomed{display:block;overflow:auto;align-items:initial;justify-content:initial;text-align:center;touch-action:pan-x pan-y;cursor:grab}
+.source-pptx-canvas-wrap.is-zoomed{display:block;overflow:auto;align-items:initial;justify-content:initial;text-align:center;touch-action:pan-y;cursor:grab}
 .source-pptx-canvas-wrap.is-zoomed:active{cursor:grabbing}
 .source-pptx-canvas.is-zoomed{display:block;max-width:none;max-height:none;height:auto;margin:0 auto}
 .source-pptx-reader:fullscreen,.source-pptx-reader.is-fullscreen{display:flex;flex-direction:column;gap:12px;width:100%;height:100%;min-height:0;padding:18px;overflow:auto;background:#f1f5f1;color:#25372c}
