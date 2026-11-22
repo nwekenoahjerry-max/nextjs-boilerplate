@@ -164,7 +164,7 @@ function PublicLanding() {
             <div className="public-spotlight-copy">
               <span className="public-spotlight-kicker">01 / LECTURE-TO-REVISION</span>
               <h3>One upload. A structured, exam-focused study guide.</h3>
-              <p>Upload a PDF, PowerPoint, Word document or other supported study resource. ClerkME builds detailed High-Yield Points around the material instead of giving you a wall of unstructured text.</p>
+              <p>Upload a PDF, PowerPoint, Word document or other supported study resource. ClerkME builds a detailed study guide from the material instead of giving you a wall of unstructured text.</p>
               <ul>
                 <li>Topic-by-topic explanations and learning objectives</li>
                 <li>Diagnosis patterns, red flags, investigations and management tables</li>
@@ -268,7 +268,7 @@ function PublicLanding() {
         </div>
         <div className="public-how-steps">
           <div><span>01</span><strong>Upload your source</strong><p>Add a lecture or study document and keep the original alongside your study resources.</p></div>
-          <div><span>02</span><strong>Build your study pack</strong><p>Review detailed High-Yield Points, generate lecture-based SBAs and explore related video recommendations.</p></div>
+          <div><span>02</span><strong>Build your study pack</strong><p>Review your study guide, practise lecture-based questions and explore related video recommendations.</p></div>
           <div><span>03</span><strong>Practise and apply</strong><p>Use the question bank, clerking guides, OSCE, Viva, simulation and Flight Academy to keep improving.</p></div>
         </div>
       </section>
