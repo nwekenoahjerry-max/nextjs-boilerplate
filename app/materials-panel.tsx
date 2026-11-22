@@ -886,7 +886,7 @@ export default function MaterialsPanel() {
           <h3>{selectedMaterial.sourceName}</h3>
           <p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {selectedMaterial.originalFileAvailable ? "Original file preserved" : "Older upload: original file not retained"}</p>
           {selectedMaterial.originalFileAvailable
-            ? <SourceFileViewer materialId={selectedMaterial.id} fileName={selectedMaterial.sourceName} mimeType={selectedMaterial.mimeType} originalSizeBytes={selectedMaterial.originalSizeBytes}/>
+            ? <SourceFileViewer materialId={selectedMaterial.id} fileName={selectedMaterial.sourceName} mimeType={selectedMaterial.mimeType} originalSizeBytes={selectedMaterial.originalSizeBytes} extractedText={sourceTextByMaterial[selectedMaterial.id]||""}/>
             : <div className="materials-empty"><strong>Original file unavailable for this older upload</strong><p>ClerkMe saved its extracted text before original-file storage was enabled. Upload the original file again to view it in its original format.</p></div>}
           <details className="source-extracted-details">
             <summary>View extracted text used by the AI</summary>
