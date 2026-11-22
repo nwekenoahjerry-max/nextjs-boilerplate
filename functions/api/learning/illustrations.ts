@@ -144,11 +144,11 @@ export const onRequestPost = async (context: AppContext) => {
           },
           {
             role: "user",
-            content: ${material.unit.startsWith("custom:")
+            content: (material.unit.startsWith("custom:")
               ? `Subject / course: ${material.unit.slice("custom:".length)}. Material: ${material.title}.
 Create at most TWO educational visuals only where a diagram, graph, timeline, comparison map or process illustration teaches a precise source concept better than prose. Select from actual content, not just the subject name. Do not create generic study stock imagery. If no clear drawable concept is supported, return an empty array. Each visual must have one central learning objective and an unmistakable subject. State the exact elements, relationships, sequence, axes or values that the source supports.`
               : `Clinical unit: ${material.unit}. Material: ${material.title}.
-Create at most TWO illustrations, only where an image teaches a precise concept better than prose or a table. Select from actual content, not just the unit name. Prioritise anatomical structures and spatial relationships, mechanisms, disease-specific pathology, sequential processes or clinically meaningful pathways explicitly described in the source. Do not create generic images about medicine or healthcare. Never use an image simply to decorate a section. If no clear drawable concept is supported, return an empty array. Each image must have one central learning objective and an unmistakable visual subject. State exactly what the viewer should see, where it is located, its orientation, what connects to what, and what changes or moves.`};
+Create at most TWO illustrations, only where an image teaches a precise concept better than prose or a table. Select from actual content, not just the unit name. Prioritise anatomical structures and spatial relationships, mechanisms, disease-specific pathology, sequential processes or clinically meaningful pathways explicitly described in the source. Do not create generic images about medicine or healthcare. Never use an image simply to decorate a section. If no clear drawable concept is supported, return an empty array. Each image must have one central learning objective and an unmistakable visual subject. State exactly what the viewer should see, where it is located, its orientation, what connects to what, and what changes or moves.`) + `
 
 Return exactly this JSON shape:
 {
@@ -158,8 +158,8 @@ Return exactly this JSON shape:
       "caption": "What this visual teaches, including its learning value",
       "altText": "Accurate screen-reader description of the intended illustration",
       "sourceSection": "Relevant heading from the guide",
-      "coreConcept": "The exact anatomical, pathological, physiological or clinical concept being depicted in one sentence",
-      "mustShow": ["Specific visible structure or step 1", "Specific visible structure or step 2"],
+      "coreConcept": "The exact subject concept being depicted in one sentence",
+      "mustShow": ["Specific visible element or step 1", "Specific visible element or step 2"],
       "mustAvoid": ["Specific misleading or unsupported feature"],
       "composition": "Exact viewpoint, layout, orientation and spatial relationships",
       "visualPrompt": "Detailed image-generation brief describing the exact subject, structures, relationships, direction and sequence. Avoid broad or generic wording."
@@ -167,7 +167,7 @@ Return exactly this JSON shape:
   ]
 }
 
-A candidate is valid only if a medical student could identify the exact lecture concept from the picture without reading its title. Reject generic healthcare scenes and vague prompts. Do not use a clinical photograph or diagnostic scan. No text or labels. Do not invent details. Use an empty array rather than an unrelated image.
+A candidate is valid only if a learner could identify the exact source concept from the visual without reading its title. Reject generic healthcare scenes and vague prompts. Do not use a clinical photograph or diagnostic scan. No text or labels. Do not invent details. Use an empty array rather than an unrelated image.
 
 STUDY GUIDE:
 ${JSON.stringify({
