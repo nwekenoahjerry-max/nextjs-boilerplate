@@ -4849,3 +4849,8 @@ body{background:var(--paper);color:var(--ink)}
   .materials-format-card{padding:12px}
   .materials-format-copy small{font-size:11px}
 }
+
+@media(max-width:760px){
+  /* Keep the brand header calm; the persistent You tab owns account access on phones. */
+  .main-area .topbar .top-actions{display:none!important}
+}
