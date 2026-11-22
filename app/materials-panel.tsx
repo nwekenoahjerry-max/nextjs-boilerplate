@@ -250,6 +250,7 @@ export default function MaterialsPanel() {
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
     setUnit(nextUnit==="all"?"general-medicine":nextUnit);
+    if(libraryMode==="general" && nextUnit!=="all") setCustomSubject(unitName(nextUnit));
     setLibrarySearch("");
     setExpandedUnits({});
     setMobileDetailOpen(false);
