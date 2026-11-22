@@ -7478,3 +7478,16 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
  .home-stat-card,.home-action-card,.home-action-card:before,.home-action-arrow{transition:none}
  .home-stat-card:hover,.home-action-card:hover{transform:none}
 }
+
+
+/* Card edge consistency and subtle functional colour accents */
+.home-dashboard-active .home-stats-strip>.home-stat-card,
+.home-dashboard-active .home-stats-strip>.home-stat-card:first-child{display:flex;align-items:center;padding:13px 15px;border:1px solid #E3EAF3}
+.home-action-materials .home-action-icon{background:#E8F0FB;color:#315F96}
+.home-action-qbank .home-action-icon{background:#EEF0FC;color:#555F9B}
+.home-action-videos .home-action-icon{background:#E8F3F9;color:#2B6A8A}
+.home-action-clinical .home-action-icon{background:#EAF3ED;color:#3D765B}
+@media(max-width:760px){
+ .home-dashboard-active .home-stats-strip>.home-stat-card,
+ .home-dashboard-active .home-stats-strip>.home-stat-card:first-child{display:flex;align-items:center;padding:9px;border:1px solid #E3EAF3}
+}
