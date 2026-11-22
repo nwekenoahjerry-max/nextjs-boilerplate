@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
-import { extractStudyFile } from "../lib/file-text";
+import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import SourceFileViewer from "./source-file-viewer";
 
 type StudyVisualAid = { title:string; caption:string; altText:string; sourceSection:string; visualPrompt:string; };
@@ -194,8 +194,7 @@ export default function MaterialsPanel() {
     setUnit(nextUnit==="all"?"general-medicine":nextUnit);
     setExpandedUnits({});
     setMobileDetailOpen(false);
-    const nextMaterials = nextUnit==="all"?materials:materials.filter(item=>item.unit===nextUnit);
-    setSelectedId(nextMaterials[0]?.id || "");
+    setSelectedId("");
     setAnswer(null); setTab("summary"); setQuestionIndex(0); setQuestionAnswers({}); setQuizFinished(false); setQuizMode("practice"); setLiveDeadline(null); setLiveStartedAt(null); setLiveElapsedSeconds(0); setLiveTimedOut(false); setError("");
   };
   const openMaterial = (item:StudyMaterial) => {
@@ -355,7 +354,7 @@ export default function MaterialsPanel() {
           window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
         } catch {}
       }
-      setSelectedId(savedMaterialExists ? savedMaterialId : next[0]?.id || "");
+      setSelectedId(savedMaterialExists ? savedMaterialId : "");
     }
     return next;
   };
@@ -625,15 +624,12 @@ export default function MaterialsPanel() {
     if (!file) { setError("Choose a document first."); return; }
     setUploading(true); setError(""); setNotice(""); setAnswer(null);
     try {
-      let extractedText = "";
-      try {
-        const extracted = await extractStudyFile(file);
-        extractedText = extracted.text;
-      } catch {
-        // The original file can still be stored and read even if text extraction fails.
-        extractedText = "";
+      setNotice("Reading your file and preparing it for study…");
+      const extracted = await extractStudyFile(file);
+      const extractedText = extracted.text.trim();
+      if (extractedText.length < 100) {
+        throw new Error("ClerkME could not extract enough readable text to create a reliable study guide. The file has not been uploaded. Try a clearer scan or a text-based copy.");
       }
-      const hasExtractableText = extractedText.trim().length >= 100;
       const uploadForm = new FormData();
       uploadForm.append("title",title.trim() || file.name.replace(/\\.[^.]+$/,""));
       uploadForm.append("sourceName",file.name);
@@ -654,12 +650,7 @@ export default function MaterialsPanel() {
       setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
       setLibraryUnit(unit);
       setTitle(""); setFile(null);
-      if (!hasExtractableText) {
-        setTab("source");
-        setNotice("Your original document has been uploaded and is ready to read in Source Material. ClerkMe could not find enough selectable text to create reliable AI notes. You can still read or download the original; use OCR or a text-based copy to generate a study guide.");
-        return;
-      }
-      setNotice("Material uploaded and saved. Your original source is opening while ClerkMe builds the exam-focused Study Guide…");
+      setNotice("Material uploaded. Opening the original file and building your study guide…");
       setTab("source");
       await summarise(material.id);
     } catch(e) {
@@ -755,7 +746,7 @@ export default function MaterialsPanel() {
       }));
       const next = materials.filter(item=>item.id!==materialId);
       setMaterials(next);
-      if (selectedId===materialId) { setSelectedId(next[0]?.id||""); setMobileDetailOpen(false); }
+      if (selectedId===materialId) { setSelectedId(""); setMobileDetailOpen(false); }
       setAnswer(null); setNotice("Material removed from your library.");
     } catch(e) { setError(e instanceof Error?e.message:"Could not remove this material."); }
   };
@@ -835,8 +826,8 @@ export default function MaterialsPanel() {
           </label>
           <label className="materials-file-picker">
             <span className="materials-file-icon">⇧</span>
-            <span><strong>{file?file.name:"Choose a file to upload"}</strong><small>{file?`${Math.max(1,Math.round(file.size/1024))} KB · ready to extract`:"PDF, PPTX, DOCX, TXT, MD or CSV · up to 20 MB"}</small></span>
-            <input type="file" accept=".pdf,.pptx,.docx,.txt,.md,.csv" onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
+            <span><strong>{file?file.name:"Choose a file to upload"}</strong><small>{file?`${Math.max(1,Math.round(file.size/1024))} KB · ready to extract`:STUDY_FILE_TYPES+" · up to 20 MB"}</small></span>
+            <input type="file" accept={STUDY_FILE_ACCEPT} onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
           </label>
           <button className="primary-button materials-action-button" onClick={upload} disabled={!file||uploading}>
             {uploading?"Uploading and preparing study guide…":"Upload material"} <span>→</span>
