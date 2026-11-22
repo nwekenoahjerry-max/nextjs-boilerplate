@@ -192,6 +192,7 @@ export default function MaterialsPanel() {
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
     setUnit(nextUnit==="all"?"general-medicine":nextUnit);
+    setLibrarySearch("");
     setExpandedUnits({});
     setMobileDetailOpen(false);
     setSelectedId("");
@@ -838,6 +839,12 @@ export default function MaterialsPanel() {
           </div>
         </section>}
       
+
+      {materials.length>0&&!selectedMaterial&&!showUploadForm&&<section className="materials-selection-empty">
+        <span className="materials-selection-empty-icon" aria-hidden="true">▤</span>
+        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>Choose a material to begin</h2><p>Select any uploaded lecture above to open its original file, detailed Study Guide, generated SBA questions or Ask ClerkME. Your files stay organised by clinical unit.</p></div>
+        <button type="button" className="primary-button" onClick={openUploadForm}>＋ Upload a material</button>
+      </section>}
 
       {error&&<p className="auth-error materials-feedback">{error}</p>}
       {notice&&<p className="success-note materials-feedback">{notice}</p>}
