@@ -804,11 +804,7 @@ export default function Home() {
   <div className="home-welcome-copy">
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
     <h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
-    <p>Make today a useful study day. Small steps, strong clinical judgement.</p>
-    <div className={streakData.todayActive ? "home-hero-status is-active" : "home-hero-status"}>
-      <span className="home-status-dot" aria-hidden="true"></span>
-      {streakData.todayActive ? "You have studied today. Keep your momentum going." : "A focused session today can keep your progress moving."}
-    </div>
+    <p className="home-hero-subtitle">Your clinical learning, in one place.</p>
   </div>
   <div className="home-hero-streak">
     <div className="home-streak-ring" role="img" aria-label={`${streakData.streak} day study streak`}>
@@ -818,18 +814,13 @@ export default function Home() {
         <small>DAY STREAK</small>
       </div>
     </div>
-    <div className="home-streak-caption"><strong>Consistency looks good on you.</strong><span>Come back tomorrow to extend your run.</span></div>
+    <div className="home-streak-caption"><strong>Keep your momentum going</strong><span>One study day at a time</span></div>
   </div>
 </section>
 <section className="home-stats-strip" aria-label="Your learning statistics">
-  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">↗</span><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><small>Personal best</small></div>
-  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><small>Days with study activity</small></div>
-  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done for today" : "Your next session"}</strong><span>Daily check-in</span></div><small>{streakData.todayActive ? "Learning logged today" : "Ready when you are"}</small></div>
-</section>
-<section className="home-motivation" aria-label="Daily motivation">
-  <span className="home-motivation-icon" aria-hidden="true">✦</span>
-  <div><span className="eyebrow">A NOTE FOR YOUR JOURNEY</span><p>{["Small, consistent study sessions build the clinical judgement that lasts.","You do not need to master everything today. Understand one concept well, then build on it.","Every question you attempt is an opportunity to sharpen your clinical reasoning.","Progress is not measured by hours alone, but by what you understand and can apply.","Stay curious, practise deliberately, and let consistency do the heavy lifting."][(new Date().getDate()+new Date().getMonth())%5]}</p></div>
-  <span className="home-motivation-mark" aria-hidden="true">01 / DAILY</span>
+  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">↗</span><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div></div>
+  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{streakData.activeDays}</strong><span>Active days</span></div></div>
+  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done for today" : "Your next session"}</strong><span>Daily check-in</span></div></div>
 </section>
 <section className="home-quick-start" aria-label="Quick study actions">
   <div className="home-section-heading"><div><span className="eyebrow">YOUR NEXT STEP</span><h2>What would you like to work on?</h2></div><span className="home-section-hint">Choose a tool to continue</span></div>
