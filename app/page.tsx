@@ -553,7 +553,7 @@ export default function Home() {
         <button type="button" className={active==="clerking"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("clerking")} aria-current={active==="clerking"?"page":undefined}>
           <span>＋</span><small>Clerk</small>
         </button>
-        <button type="button" className={["materials","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("materials")} aria-current={["materials","videos","osce","qbank","game"].includes(active)?"page":undefined}>
+        <button type="button" className={["study","materials","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","videos","osce","qbank","game"].includes(active)?"page":undefined}>
           <span>▧</span><small>Study</small>
         </button>
         <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
@@ -591,7 +591,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Overview")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
             <div className="welcome-row dashboard-welcome">
@@ -648,6 +648,56 @@ export default function Home() {
             <footer className="footer-note">ClerkME is an educational learning companion. It supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
           </>}
 
+          {active === "study" && <>
+            <div className="page-intro study-hub-intro">
+              <div className="eyebrow">YOUR STUDY WORKSPACE</div>
+              <h1>Study tools</h1>
+              <p>Turn your lectures into focused revision, test your understanding and find useful teaching videos — all in one place.</p>
+            </div>
+
+            <section className="study-hub-start" aria-label="Start studying from a lecture">
+              <div className="study-hub-start-copy">
+                <span className="study-hub-kicker">START WITH YOUR LECTURE</span>
+                <h2>One source. A complete study session.</h2>
+                <p>Upload a lecture or open a saved resource to build detailed High-Yield Points and source-based SBA questions together.</p>
+              </div>
+              <button type="button" className="study-hub-start-button" onClick={()=>selectSection("materials")}>Open my study materials <span>→</span></button>
+            </section>
+
+            <div className="study-hub-section-heading">
+              <div><h2>What would you like to do?</h2><p>Choose a study format to get started.</p></div>
+            </div>
+            <div className="study-hub-primary-grid">
+              <button type="button" className="study-hub-card" onClick={()=>selectSection("materials")}>
+                <span className="study-hub-card-icon high-yield">▤</span>
+                <span className="study-hub-card-copy"><strong>High-Yield Points</strong><small>Build a detailed, structured revision guide from your lecture, with clinical explanations, diagnosis, investigations, management tables and memory aids.</small></span>
+                <span className="study-hub-card-link">Create or review a guide <b>→</b></span>
+              </button>
+              <button type="button" className="study-hub-card" onClick={()=>selectSection("qbank")}>
+                <span className="study-hub-card-icon quiz">☑</span>
+                <span className="study-hub-card-copy"><strong>Quiz questions</strong><small>Practise single-best-answer questions, check explanations and strengthen your understanding across clinical units.</small></span>
+                <span className="study-hub-card-link">Start question practice <b>→</b></span>
+              </button>
+              <button type="button" className="study-hub-card" onClick={()=>selectSection("videos")}>
+                <span className="study-hub-card-icon videos">▶</span>
+                <span className="study-hub-card-copy"><strong>YouTube library</strong><small>Find lecture recommendations by topic, disease or clinical unit. Watch supported videos inside ClerkME and save them to collections.</small></span>
+                <span className="study-hub-card-link">Explore video library <b>→</b></span>
+              </button>
+            </div>
+
+            <div className="study-hub-section-heading study-hub-more-heading">
+              <div><h2>More ways to practise</h2><p>Move from revision to exam-style application.</p></div>
+            </div>
+            <div className="study-hub-secondary-grid">
+              <button type="button" className="study-hub-format-card" onClick={()=>selectSection("osce")}>
+                <span className="study-hub-format-icon">◎</span><span><strong>OSCE & Viva practice</strong><small>Work through clinical prompts and reveal examiner-style teaching points.</small></span><b>→</b>
+              </button>
+              <button type="button" className="study-hub-format-card" onClick={()=>selectSection("game")}>
+                <span className="study-hub-format-icon flight">✈</span><span><strong>Flight Academy</strong><small>Test your recall through adaptive, unit- and lecture-based questions.</small></span><b>→</b>
+              </button>
+            </div>
+          </>}
+          
           {active === "you" && <>
             <div className="page-intro">
               <div className="eyebrow">ACCOUNT & PREFERENCES</div>
