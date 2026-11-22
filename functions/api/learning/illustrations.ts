@@ -1,7 +1,7 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const IMAGE_MODEL = "black-forest-labs/flux-2-pro-preview";
+const IMAGE_MODEL = "@cf/black-forest-labs/flux-2-klein-9b";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
 type VisualAid = {
@@ -158,12 +158,23 @@ ${material.content_text.slice(0, 22000)}
     }
 
     const generated = await Promise.allSettled(visualAids.map(async aid => {
+      // FLUX.2 Klein is a Cloudflare-hosted Workers AI model. Unlike the
+      // third-party FLUX.2 Pro preview model, it requires multipart form data
+      // and returns the generated image as base64.
+      const form = new FormData();
+      form.append("prompt", imagePrompt(aid));
+      form.append("width", "1024");
+      form.append("height", "1024");
+      form.append("guidance", "4");
+      const formRequest = new Request("https://clerkme.invalid/image-generation", {
+        method: "POST",
+        body: form
+      });
       const result = await context.env.AI!.run(IMAGE_MODEL, {
-        prompt: imagePrompt(aid),
-        width: 1024,
-        height: 1024,
-        output_format: "jpeg",
-        safety_tolerance: 2
+        multipart: {
+          body: formRequest.body,
+          contentType: formRequest.headers.get("content-type") || "multipart/form-data"
+        }
       }) as { image?: unknown; result?: { image?: unknown } };
       const rawImage = result?.image ?? result?.result?.image;
       if (typeof rawImage !== "string" || !rawImage.trim()) throw new Error("The image model returned no image.");
