@@ -651,22 +651,22 @@ export default function Home() {
           {active === "study" && <>
             <div className="page-intro study-hub-intro">
               <div className="eyebrow">YOUR STUDY WORKSPACE</div>
-              <h1>Study tools</h1>
-              <p>Turn a lecture into focused revision, question practice and video learning.</p>
+              <h1>Study</h1>
+              <p>Your lectures, questions and teaching videos — together in one place.</p>
             </div>
 
             <div className="study-hub-section-heading">
-              <div><h2>What would you like to make?</h2><p>Choose a format to turn your learning material into practice.</p></div>
+              <div><h2>Where would you like to start?</h2><p>Choose your materials or jump straight into practice.</p></div>
             </div>
             <div className="study-hub-primary-grid">
               <button type="button" className="study-hub-card" onClick={()=>selectSection("materials")}>
                 <span className="study-hub-card-icon high-yield">▤</span>
-                <span className="study-hub-card-copy"><strong>High-Yield Points</strong><small>Build a detailed, structured revision guide from your lecture, with clinical explanations, diagnosis, investigations, management tables and memory aids.</small></span>
-                <span className="study-hub-card-link">Create or review a guide <b>→</b></span>
+                <span className="study-hub-card-copy"><strong>My Materials</strong><small>Find your uploaded lectures and open the study guide, original file, practice questions or ask ClerkME about a topic.</small></span>
+                <span className="study-hub-card-link">Open my library <b>→</b></span>
               </button>
               <button type="button" className="study-hub-card" onClick={()=>selectSection("qbank")}>
                 <span className="study-hub-card-icon quiz">☑</span>
-                <span className="study-hub-card-copy"><strong>SBA questions</strong><small>Practise single-best-answer questions generated from your lectures, review explanations and strengthen your clinical reasoning.</small></span>
+                <span className="study-hub-card-copy"><strong>Question Bank</strong><small>Practise single-best-answer questions from your uploaded lectures and the clinical question bank, with explanations.</small></span>
                 <span className="study-hub-card-link">Practise questions <b>→</b></span>
               </button>
               <button type="button" className="study-hub-card" onClick={()=>selectSection("videos")}>
