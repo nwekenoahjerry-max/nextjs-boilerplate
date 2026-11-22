@@ -129,6 +129,7 @@ export default function MaterialsPanel() {
   const [mobileDetailOpen,setMobileDetailOpen] = useState(false);
   const [showUploadForm,setShowUploadForm] = useState(false);
   const [librarySearch,setLibrarySearch] = useState("");
+  const [expandedUnits,setExpandedUnits] = useState<Record<string,boolean>>({});
   const [uploading,setUploading] = useState(false);
   const [summaryWorking,setSummaryWorking] = useState(false);
   const [questionsWorking,setQuestionsWorking] = useState(false);
@@ -180,6 +181,7 @@ export default function MaterialsPanel() {
     return () => window.cancelAnimationFrame(frame);
   }, [activeYoutubeVideo?.id]);
 
+  const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
   const unitFilteredMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
   const visibleMaterials = useMemo(()=>{
     const query=librarySearch.trim().toLocaleLowerCase();
@@ -189,6 +191,8 @@ export default function MaterialsPanel() {
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
+    setUnit(nextUnit==="all"?"general-medicine":nextUnit);
+    setExpandedUnits({});
     setMobileDetailOpen(false);
     const nextMaterials = nextUnit==="all"?materials:materials.filter(item=>item.unit===nextUnit);
     setSelectedId(nextMaterials[0]?.id || "");
@@ -239,7 +243,6 @@ export default function MaterialsPanel() {
   const liveDurationMinutes = Number.isFinite(requestedMinutes) ? Math.max(5,Math.min(180,Math.round(requestedMinutes))) : 20;
   const liveInProgress = quizMode==="live" && liveDeadline!==null && !quizFinished;
   const timerUrgency = remainingSeconds<=60 ? "urgent" : remainingSeconds<=300 ? "warning" : "";
-  const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
   const studySectionCount = selectedMaterial?.summary?.sections?.length || 0;
   const allStudySectionsExpanded = studySectionCount>0 && Array.from({length:studySectionCount},(_,index)=>index).every(index=>expandedStudySections.includes(index));
   const toggleStudySection = (index:number) => setExpandedStudySections(current=>current.includes(index)?current.filter(item=>item!==index):[...current,index]);
@@ -779,7 +782,7 @@ export default function MaterialsPanel() {
             {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
           </label>
           <div className="materials-unit-filter">
-            <span>Browse by clinical unit</span>
+            <div className="materials-unit-filter-heading"><strong>Browse your uploads by unit</strong><small>Select a unit to see its lectures and notes.</small></div>
             <div className="materials-unit-tabs" role="group" aria-label="Filter study materials by clinical unit">
               <button type="button" className={libraryUnit==="all"?"active":""} aria-pressed={libraryUnit==="all"} onClick={()=>selectLibraryUnit("all")} disabled={liveInProgress}>All units <span>{materials.length}</span></button>
               {clinicalUnits.map(item=>{
@@ -789,21 +792,29 @@ export default function MaterialsPanel() {
             </div>
           </div>
           {materials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. You will find it here whenever you return.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
-            visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>No matching materials</strong><p>Try another title or clinical unit, or clear the search to see your uploaded files.</p><button type="button" className="secondary-button" onClick={()=>{setLibrarySearch("");setLibraryUnit("all");}}>Show all materials</button></div> :
+            visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?"Upload a lecture or choose a clinical unit to start building your library.":"Upload a lecture for this unit and it will appear here. Your other unit libraries will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
             <div className="materials-unit-groups">
-              {groupedVisibleMaterials.map(group=><section className="materials-unit-group" key={group.id}>
-                <div className="materials-unit-group-heading"><h3>{group.name}</h3><span>{group.materials.length} {group.materials.length===1?"material":"materials"}</span></div>
-                <div className="materials-list">
-                  {group.materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
-                    <button type="button" className="materials-select" aria-pressed={item.id===selectedId} disabled={liveInProgress} onClick={()=>openMaterial(item)}>
-                      <span className="materials-file-badge">▤</span>
-                      <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Study guide processing":item.summary?"Study guide ready":"Study guide not created yet"} · {item.questions?.length||0} questions</span></span>
-                      <span className="materials-open-label">Open <b aria-hidden="true">›</b></span>
-                    </button>
-                    <button type="button" className="materials-delete" title={"Remove "+item.title} aria-label={"Remove "+item.title} disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
-                  </div>)}
-                </div>
-              </section>)}
+              {groupedVisibleMaterials.map(group=>{
+                const expanded=!!expandedUnits[group.id];
+                const shownMaterials=expanded?group.materials:group.materials.slice(0,3);
+                const remaining=group.materials.length-shownMaterials.length;
+                return <section className="materials-unit-group" key={group.id}>
+                  <div className="materials-unit-group-heading"><div><h3>{group.name}</h3><span>{group.materials.length} {group.materials.length===1?"material":"materials"}</span></div>
+                    {group.materials.length>3&&<button type="button" className="materials-view-more" aria-expanded={expanded} onClick={()=>setExpandedUnits(current=>({...current,[group.id]:!current[group.id]}))}>{expanded?"Show fewer":"View all "+group.materials.length} <span aria-hidden="true">{expanded?"⌃":"⌄"}</span></button>}
+                  </div>
+                  <div className="materials-list">
+                    {shownMaterials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
+                      <button type="button" className="materials-select" aria-pressed={item.id===selectedId} disabled={liveInProgress} onClick={()=>openMaterial(item)}>
+                        <span className="materials-file-badge">▤</span>
+                        <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Study guide processing":item.summary?"Study guide ready":"Study guide not created yet"} · {item.questions?.length||0} questions</span></span>
+                        <span className="materials-open-label">Open <b aria-hidden="true">›</b></span>
+                      </button>
+                      <button type="button" className="materials-delete" title={"Remove "+item.title} aria-label={"Remove "+item.title} disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
+                    </div>)}
+                  </div>
+                  {!expanded&&remaining>0&&<p className="materials-preview-note">Showing 3 of {group.materials.length} uploads.</p>}
+                </section>;
+              })}
             </div>}
           {materials.length>0&&<div className="materials-library-footer"><span>Choose a material above to open its study features.</span><button type="button" className="materials-add-link" onClick={openUploadForm}>＋ Add another material</button></div>}
         </section>
