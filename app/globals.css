@@ -6113,3 +6113,82 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .content{animation:none}
 }
+
+
+/* ClerkMe motion quality pass: animate only intentional, decorative or actionable elements. */
+.content,
+.hero-card:after,
+.orbit-one,
+.orbit-two,
+.medical-cross,
+.art-note {
+  animation: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .content {
+    animation: clerkme-enter .38s cubic-bezier(.2,.75,.25,1) both;
+  }
+  .hero-card:after {
+    animation: clerkme-glow 11s ease-in-out infinite alternate;
+  }
+  .orbit-one { animation: clerkme-orbit 32s linear infinite; }
+  .orbit-two { animation: clerkme-orbit-reverse 38s linear infinite; }
+  .medical-cross { animation: clerkme-float 6s ease-in-out infinite; }
+  .art-note { animation: clerkme-float 7s ease-in-out infinite; }
+  .note-two { animation-delay: -2.2s; }
+  .note-three { animation-delay: -4s; }
+
+  /* Hover lift is reserved for devices that genuinely support hover. */
+  @media (hover: hover) and (pointer: fine) {
+    .tool-card:hover,
+    .template-card:hover,
+    .resource-card:hover {
+      transform: translateY(-3px);
+    }
+    .primary-button:hover:not(:disabled),
+    .public-primary-cta:hover,
+    .public-header-start:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  /* Short tactile feedback confirms a tap without shifting the layout. */
+  button:active:not(:disabled),
+  [role="button"]:active,
+  .tool-card:active,
+  .template-card:active,
+  .resource-card:active {
+    transform: scale(.985);
+  }
+}
+@media (max-width: 700px) {
+  /* Keep the mobile workspace calm and conserve battery/GPU resources. */
+  .hero-card:after,
+  .orbit-one,
+  .orbit-two,
+  .medical-cross,
+  .art-note {
+    animation: none;
+  }
+  .flight-sky .sky-cloud {
+    animation-duration: 26s;
+    will-change: auto;
+  }
+  .tool-card:hover,
+  .template-card:hover,
+  .resource-card:hover {
+    transform: none;
+    box-shadow: 0 5px 18px rgba(11,35,72,.035);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .content { opacity: 1; transform: none; }
+}
