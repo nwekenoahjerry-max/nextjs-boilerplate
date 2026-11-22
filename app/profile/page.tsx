@@ -138,7 +138,9 @@ export default function ProfilePage() {
       if (!response.ok) throw new Error(data.error || `Could not save your changes (error ${response.status}).`);
       if (!data.profile) throw new Error("The server did not confirm that your profile was saved. Please try again.");
       setProfile(data.profile);
-      setMessage("Your student profile has been saved successfully.");
+      // Return students to their workspace only after the API confirms the save.
+      window.location.replace("/?welcome=1");
+      return;
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not save your changes. Please try again.");
     } finally {
