@@ -654,6 +654,7 @@ export default function MaterialsPanel() {
       setTab("source");
       await summarise(material.id);
     } catch(e) {
+      setNotice("");
       setError(e instanceof Error?e.message:"Could not upload this material.");
     } finally { setUploading(false); }
   };
@@ -830,7 +831,7 @@ export default function MaterialsPanel() {
             <input type="file" accept={STUDY_FILE_ACCEPT} onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
           </label>
           <button className="primary-button materials-action-button" onClick={upload} disabled={!file||uploading}>
-            {uploading?"Uploading and preparing study guide…":"Upload material"} <span>→</span>
+            {uploading?"Reading and preparing your material…":"Upload material"} <span>→</span>
           </button>
           <div className="materials-processing-steps">
             <span>01 · Extract text</span><span>02 · Build study guide</span><span>03 · Generate practice</span>
