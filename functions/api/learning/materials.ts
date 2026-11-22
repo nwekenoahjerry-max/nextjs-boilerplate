@@ -11,6 +11,12 @@ const ALLOWED_UNITS = [
   "emergency", "psychiatry", "community-medicine", "orthopaedics"
 ];
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
+const isValidLibrarySubject = (value:string) => {
+  if (ALLOWED_UNITS.includes(value)) return true;
+  if (!value.startsWith("custom:")) return false;
+  const subject = value.slice("custom:".length).trim();
+  return subject.length >= 2 && subject.length <= 70 && /^[\p{L}\p{N}][\p{L}\p{N} &'().,\/_-]*$/u.test(subject);
+};
 function parseStored(value: string | null): unknown {
   if (!value) return null;
   try { return JSON.parse(value) as unknown; } catch { return null; }
@@ -124,7 +130,7 @@ export const onRequestPost = async (context: AppContext) => {
   const content = typeof contentValue === "string" ? contentValue : "";
 
   if (!title || !sourceName) return json({ error: "Add a title and select a source file." }, 400);
-  if (!ALLOWED_UNITS.includes(unit)) return json({ error: "Select a valid clinical unit." }, 400);
+  if (!isValidLibrarySubject(unit)) return json({ error: "Choose a valid clinical unit or enter a subject name between 2 and 70 characters." }, 400);
   if (!(originalFile instanceof File)) return json({ error: "The original file was not included. Please select it again." }, 400);
   const extension = (originalFile.name.split(".").pop() || "").toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(extension)) {
