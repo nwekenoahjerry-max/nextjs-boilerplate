@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ClerkMe | Your Clinical Clerking Companion",
-  description: "A structured clinical clerking and learning companion for medical students across Africa. Practise history taking, examination and clinical reasoning.",
+  title: "ClerkMe | AI Clinical Exam Prep & Clerking",
+  description: "AI-powered clinical exam preparation and clerking for medical students. Build study guides, practise SBAs, OSCEs and Viva, and strengthen clinical reasoning.",
   applicationName: "ClerkMe",
   manifest: "/manifest.webmanifest",
   icons: {
