@@ -208,6 +208,16 @@ export default function MaterialsPanel() {
     setMobileDetailOpen(false);
     window.scrollTo({top:0,behavior:"smooth"});
   };
+  const openLearningFormat = (nextTab:"summary"|"source"|"questions"|"ask") => {
+    if (!selectedMaterial) {
+      setNotice("Upload a lecture or open a saved resource first. You can then switch between these learning formats.");
+      document.getElementById("materials-upload-card")?.scrollIntoView({behavior:"smooth",block:"start"});
+      return;
+    }
+    setTab(nextTab);
+    setError("");
+    window.requestAnimationFrame(() => document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
+  };
   const activeQuestions = selectedMaterial?.questions || [];
   const activeQuestionCount = activeQuestions.length;
   const answeredCount = Object.keys(questionAnswers).length;
@@ -748,6 +758,36 @@ export default function MaterialsPanel() {
         <span>Remove patient names, hospital numbers, contact details and other identifying information. Your original uploaded file is stored privately and remains available in the Source Material tab alongside the study guide. ClerkMe analyses a separate text extraction; it does not replace or rewrite your original document. Scanned image-only files may need OCR or a text-based copy before AI study notes can be generated.</span>
       </div>
 
+      <section className="materials-format-picker" aria-labelledby="materials-format-title">
+        <div className="materials-format-heading">
+          <div className="eyebrow">ONE LECTURE · FOUR LEARNING FORMATS</div>
+          <h2 id="materials-format-title">What would you like to work on?</h2>
+          <p>Upload a lecture or select a saved resource, then move between its study formats.</p>
+        </div>
+        <div className="materials-format-grid">
+          <button type="button" className="materials-format-card" onClick={()=>openLearningFormat("summary")}>
+            <span className="materials-format-icon guide">▤</span>
+            <span className="materials-format-copy"><strong>High-Yield Points</strong><small>Detailed explanations, clinical patterns, diagnosis and management.</small></span>
+            <span className="materials-format-action">Open study guide <b>→</b></span>
+          </button>
+          <button type="button" className="materials-format-card" onClick={()=>openLearningFormat("questions")}>
+            <span className="materials-format-icon questions">▦</span>
+            <span className="materials-format-copy"><strong>Practice SBAs</strong><small>Lecture-based questions, with explanations for every option.</small></span>
+            <span className="materials-format-action">Practise questions <b>→</b></span>
+          </button>
+          <button type="button" className="materials-format-card" onClick={()=>openLearningFormat("ask")}>
+            <span className="materials-format-icon tutor">✧</span>
+            <span className="materials-format-copy"><strong>Ask this material</strong><small>Explore difficult concepts with answers grounded in your source.</small></span>
+            <span className="materials-format-action">Ask a question <b>→</b></span>
+          </button>
+          <button type="button" className="materials-format-card" onClick={()=>openLearningFormat("source")}>
+            <span className="materials-format-icon source">▧</span>
+            <span className="materials-format-copy"><strong>Original source</strong><small>Read your PDF, PowerPoint or document in its original form.</small></span>
+            <span className="materials-format-action">Read the source <b>→</b></span>
+          </button>
+        </div>
+      </section>
+
       <div className="materials-layout">
         <section id="materials-upload-card" className="materials-upload-card">
           <div className="eyebrow">ADD A RESOURCE</div>
@@ -820,7 +860,7 @@ export default function MaterialsPanel() {
       {error&&<p className="auth-error materials-feedback">{error}</p>}
       {notice&&<p className="success-note materials-feedback">{notice}</p>}
 
-      {selectedMaterial && <section className="materials-detail-card">
+      {selectedMaterial && <section id="materials-detail-card" className="materials-detail-card">
         <button type="button" className="materials-mobile-back" onClick={returnToLibrary} aria-label="Back to study library">← <span>All materials</span></button>
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
