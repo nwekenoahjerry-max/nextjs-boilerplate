@@ -6,6 +6,7 @@ import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/fi
 import ClinicalGuides from "./clinical-guides";
 import MaterialsPanel from "./materials-panel";
 import VideoLibraryPanel from "./video-library-panel";
+import FocusMusicPlayer from "./focus-music-player";
 import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
@@ -798,61 +799,17 @@ export default function Home() {
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
-            <div className="welcome-row dashboard-welcome">
-              <div>
-                <div className="eyebrow">YOUR CLINICAL WORKSPACE</div>
-                <h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
-                <p className="subheading">What would you like to work on today?</p>
-              </div>
-              <div className="date-chip"><span>●</span> Learn · Practise · Progress</div>
-            </div>
-
-
-            <section className="learning-rhythm" aria-label="Your learning activity">
-              <div className="learning-rhythm-main">
-                <div className="eyebrow">YOUR LEARNING RHYTHM</div>
-                <h2>Consistency builds confidence.</h2>
-                <p>{streakData.todayActive ? "You have checked in today. Keep the momentum going." : "Short, regular study sessions make it easier to retain what you learn."}</p>
-                <div className="learning-rhythm-metrics">
-                  <div><strong>{streakData.streak}</strong><span>Current streak</span></div>
-                  <div><strong>{streakData.bestStreak}</strong><span>Personal best</span></div>
-                  <div><strong>{streakData.activeDays}</strong><span>Days active</span></div>
-                </div>
-              </div>
-              <div className="learning-week">
-                <div className="learning-week-heading"><strong>This week</strong><span>Daily check-ins</span></div>
-                <div className="learning-week-days">
-                  {learningWeek.map(day => <div className={day.active ? "learning-week-day active" : day.today ? "learning-week-day today" : "learning-week-day"} key={day.key} aria-label={day.label + (day.active ? ", active" : ", no activity recorded")}>
-                    <span>{day.label}</span><i>{day.active ? "✓" : "·"}</i>
-                  </div>)}
-                </div>
-                <small className="learning-week-note">{streakData.todayActive ? "Today's learning activity is recorded." : "Your day is counted when you use ClerkMe."}</small>
-              </div>
-            </section>
-
-            <section className="dashboard-hero" aria-label="Start a learning session">
-              <div className="dashboard-hero-copy">
-                <span className="hero-kicker">CLERK · LEARN · PRACTISE</span>
-                <h2>Build clinical confidence,<br/>one focused session at a time.</h2>
-                <p>Start a structured patient history, revisit a lecture or practise the clinical decisions that matter.</p>
-                <div className="dashboard-hero-actions">
-                  <button type="button" className="primary-button" onClick={() => startClerking()}>Start clinical clerking <span>→</span></button>
-                  <button type="button" className="dashboard-hero-secondary" onClick={() => selectSection("materials")}>Study my lectures <span>↗</span></button>
-                </div>
-              </div>
-              <div className="dashboard-hero-path" aria-label="Your learning cycle">
-                <div className="dashboard-path-heading"><span>YOUR LEARNING CYCLE</span><b>01—04</b></div>
-                <button type="button" className="dashboard-path-step" onClick={() => selectSection("materials")}><span>01</span><div><strong>Prepare</strong><small>Review a guide or lecture</small></div></button>
-                <button type="button" className="dashboard-path-step" onClick={() => selectSection("clerking")}><span>02</span><div><strong>Practise</strong><small>Clerking, OSCE and viva</small></div></button>
-                <button type="button" className="dashboard-path-step" onClick={() => selectSection("qbank")}><span>03</span><div><strong>Test yourself</strong><small>Questions and simulation</small></div></button>
-                <button type="button" className="dashboard-path-step" onClick={() => selectSection("simulation")}><span>04</span><div><strong>Simulate & reflect</strong><small>Review your clinical reasoning</small></div></button>
-              </div>
-            </section>
-
-            <footer className="footer-note">ClerkME is an educational learning companion. It supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
-          </>}
-
-          {active === "study" && <>
+<section className="home-compact-header"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1><p>Make today a useful study day.</p></div><span className="home-greeting-mark" aria-hidden="true">✦</span></section>
+<section className="home-stats-strip" aria-label="Your learning statistics"><div><strong>{streakData.streak}</strong><span>Day streak</span></div><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><span className={streakData.todayActive?"home-checkin is-active":"home-checkin"}>{streakData.todayActive?"✓ Studied today":"Your next session starts here"}</span></section>
+<section className="home-motivation" aria-label="Daily motivation"><span className="home-motivation-icon" aria-hidden="true">✦</span><div><span className="eyebrow">A NOTE FOR YOUR JOURNEY</span><p>{["Small, consistent study sessions build the clinical judgement that lasts.","You do not need to master everything today. Understand one concept well, then build on it.","Every question you attempt is an opportunity to sharpen your clinical reasoning.","Progress is not measured by hours alone, but by what you understand and can apply.","Stay curious, practise deliberately, and let consistency do the heavy lifting."][(new Date().getDate()+new Date().getMonth())%5]}</p></div></section>
+<section className="home-quick-start" aria-label="Quick study actions"><div className="home-section-heading"><div><span className="eyebrow">YOUR NEXT STEP</span><h2>What would you like to work on?</h2></div></div><div className="home-action-grid">
+<button type="button" className="home-action-card" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span><strong>My materials</strong><small>Open lectures and study guides</small></span><b>→</b></button>
+<button type="button" className="home-action-card" onClick={()=>selectSection("qbank")}><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><span><strong>Question bank</strong><small>Test your knowledge</small></span><b>→</b></button>
+<button type="button" className="home-action-card" onClick={()=>selectSection("videos")}><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><span><strong>Video library</strong><small>Watch clinical lectures</small></span><b>→</b></button>
+<button type="button" className="home-action-card" onClick={()=>startClerking()}><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><span><strong>Clinical practice</strong><small>Start a patient clerking</small></span><b>→</b></button>
+</div></section>
+<footer className="footer-note home-compact-footer">ClerkME supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
+</>}{active === "study" && <>
             <div className="page-intro study-hub-intro">
               <div className="eyebrow">YOUR STUDY WORKSPACE</div>
               <h1>Study</h1>
@@ -971,6 +928,7 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
+          <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
         </div>
       </section>
       {showSignOutConfirm && (

@@ -215,6 +215,8 @@ export default function VideoLibraryPanel() {
     }
   };
 
+  useEffect(() => { if (activeVideo) window.dispatchEvent(new Event("clerkme:video-playing")); }, [activeVideo?.id]);
+
   const player = activeVideo && (
     <section className="video-library-player" aria-label="Video player" ref={playerRef} tabIndex={-1}>
       <div className="video-library-player-heading">
