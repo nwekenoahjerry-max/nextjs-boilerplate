@@ -19,12 +19,12 @@ const navItems = [
   ["My patients", "patients", "▤"],
   ["Clinical guides", "guides", "✚"],
   ["Clinical simulation", "simulation", "◉"],
-  ["Study home", "study", "▧"],
+  ["Study", "study", "▧"],
   ["My materials", "materials", "▤"],
   ["Video library", "videos", "▶"],
   ["OSCE & Viva", "osce", "◉"],
   ["Question bank", "qbank", "▦"],
-  ["Flight game", "game", "✈"],
+  ["Flight Academy", "game", "✈"],
   ["Account", "you", "◉"],
 ];
 
@@ -695,20 +695,21 @@ export default function Home() {
           {active === "you" && <>
             <div className="page-intro">
               <div className="eyebrow">ACCOUNT & PREFERENCES</div>
-              <h1>Your account</h1>
-              <p>Keep your student profile, device access and sign-in settings up to date.</p>
+              <h1>Account & settings</h1>
+              <p>Manage your academic profile, access ClerkME on your devices and control your current sign-in session.</p>
             </div>
 
-            <section className="panel you-account-panel">
-              <div className="you-account-avatar">{authUser?.name?.[0] || "C"}</div>
+            <section className="panel you-account-panel" aria-label="Account overview">
+              <div className="you-account-avatar">{authUser?.name?.trim()?.[0]?.toUpperCase() || "C"}</div>
               <div className="you-account-details">
-                <span className="eyebrow">YOUR CLERKME ACCOUNT</span>
+                <span className="eyebrow">ACCOUNT OVERVIEW</span>
                 <strong>{authUser?.name || "Medical student"}</strong>
                 <small>{authUser?.email || "Your ClerkME account"}</small>
-                <span className="you-account-status">{authUser?.profileComplete === 1 ? "✓ Profile complete" : "Profile needs attention"}</span>
+                <span className={authUser?.profileComplete === 1 ? "you-account-status is-complete" : "you-account-status is-incomplete"}>{authUser?.profileComplete === 1 ? "✓ Academic profile complete" : "Finish your academic profile"}</span>
               </div>
-              <a className="you-profile-link" href="/profile">Edit student profile <span aria-hidden="true">→</span></a>
+              <a className="you-profile-link" href="/profile">{authUser?.profileComplete === 1 ? "Manage profile" : "Complete profile"} <span aria-hidden="true">→</span></a>
             </section>
+            <div className="account-settings-section-heading"><div><span className="eyebrow">PREFERENCES & ACCESS</span><h2>Manage your settings</h2></div><p>Only the controls currently supported by ClerkME are shown here.</p></div>
 
             <section className="account-settings-grid" aria-label="Account settings">
               <article className="panel account-settings-group">
