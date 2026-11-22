@@ -714,6 +714,7 @@ export default function Home() {
               <article className="panel account-settings-group">
                 <div className="account-settings-group-heading"><span className="account-settings-icon">◎</span><div><h3>Personal & academic profile</h3><p>Keep your student information accurate and up to date.</p></div></div>
                 <a className="you-setting-action" href="/profile">
+                  <span className="account-settings-row-icon" aria-hidden="true">✎</span>
                   <span><strong>Student profile</strong><small>Name, university, level, location and career interests.</small></span>
                   <span className="you-action-label">Edit profile <b aria-hidden="true">→</b></span>
                 </a>
@@ -721,6 +722,7 @@ export default function Home() {
               <article className="panel account-settings-group">
                 <div className="account-settings-group-heading"><span className="account-settings-icon">▣</span><div><h3>App & device</h3><p>Make ClerkME easier to access on your devices.</p></div></div>
                 <div className="you-setting-action">
+                  <span className="account-settings-row-icon" aria-hidden="true">▣</span>
                   <span><strong>Install ClerkME</strong><small>Add ClerkME to your home screen or desktop where supported.</small></span>
                   <InstallAppButton/>
                 </div>
@@ -728,6 +730,7 @@ export default function Home() {
               <article className="panel account-settings-group account-settings-security">
                 <div className="account-settings-group-heading"><span className="account-settings-icon">⌑</span><div><h3>Session & security</h3><p>Manage your current sign-in session.</p></div></div>
                 <button ref={signOutTriggerRef} type="button" className="you-setting-action" disabled={signingOut} onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>
+                  <span className="account-settings-row-icon account-settings-danger-icon" aria-hidden="true">↗</span>
                   <span><strong>Sign out</strong><small>Securely end your current ClerkME session on this device.</small></span>
                   <span className="you-action-label">Sign out</span>
                 </button>
