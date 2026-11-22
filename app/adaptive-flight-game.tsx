@@ -378,9 +378,9 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   return <section className={"flight-quiz" + (started && !gameOver ? " flight-playing" : "") + (gameOver ? " flight-game-over" : "")}>
     <div className="flight-quiz-heading">
       <div>
-        <span className="eyebrow">UNIT-BASED CLINICAL GAME</span>
+        <span className="eyebrow">ADAPTIVE QUESTION GAME</span>
         <h2>Skyward <span>Flight Academy</span></h2>
-        <p>Fly through up to ten unique clinical missions drawn from your selected unit and lecture materials.</p>
+        <p>Fly through up to ten unique missions drawn from your selected subject and uploaded materials.</p>
       </div>
       <div className="flight-best">
         <span>ALTITUDE RECORD</span>
@@ -402,7 +402,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
       </label>
       <label>Question source
         <select value={materialId} onChange={(event) => changeMaterial(event.target.value)}>
-          <option value="all">All my uploaded materials for this unit</option>
+          <option value="all">All my uploaded materials for this subject</option>
           {unitMaterials.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
         </select>
       </label>
@@ -461,10 +461,10 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
               className={"flight-question-line" + (questionOverflow > 8 ? " is-overflowing" : "")}
               style={questionLineStyle}
               tabIndex={0}
-              aria-label={question?.question || "Your clinical question will appear here"}
-              title={question?.question || "Your clinical question will appear here"}
+              aria-label={question?.question || "Your question will appear here"}
+              title={question?.question || "Your question will appear here"}
             >
-              <span>{gameOver ? "Flight complete — review your result and launch another round." : started && question ? question.question : "Your clinical question appears here when the flight begins."}</span>
+              <span>{gameOver ? "Flight complete — review your result and launch another round." : started && question ? question.question : "Your question appears here when the flight begins."}</span>
             </div>
           </div>
 
@@ -501,7 +501,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
         <div className="flight-question-panel" aria-live="polite">
           <div className="question-topline">
             <span>MISSION {String(Math.min(index + 1, Math.max(1, roundLength))).padStart(2, "0")} / {roundLength || 0}</span>
-            <span>{question?.topic || "UNIT QUESTIONS"}</span>
+            <span>{question?.topic || "SUBJECT QUESTIONS"}</span>
           </div>
           <div className="question-progress"><span style={{ width: (roundLength ? completedMissions / roundLength * 100 : 0) + "%" }} /></div>
           <div className="question-meta-row">
@@ -514,7 +514,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             <div className="flight-timer-track"><span style={{ width: (timeLeft / QUESTION_SECONDS * 100) + "%" }} /></div>
           </div>}
 
-          <h3>{gameOver ? "Flight complete" : started && question ? "Choose the single best answer" : "Your next clinical question is ready."}</h3>
+          <h3>{gameOver ? "Flight complete" : started && question ? "Choose the single best answer" : "Your next question is ready."}</h3>
 
           {started && question && !gameOver
             ? <div className="flight-options">
