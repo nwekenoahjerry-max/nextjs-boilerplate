@@ -5367,3 +5367,14 @@ body{background:var(--paper);color:var(--ink)}
   .materials-selection-empty p{font-size:11px}
   .materials-selection-empty>.primary-button{grid-column:1/-1;width:100%;min-height:44px}
 }
+
+
+/* One typographic system across the public welcome page, workspace and account. */
+body{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+.app-shell,.auth-page,.profile-page{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+.app-shell :is(h1,h2,h3,h4,h5,h6),
+.auth-page :is(h1,h2,h3,h4,h5,h6),
+.profile-page :is(h1,h2,h3,h4,h5,h6){font-family:Manrope,"DM Sans",Inter,system-ui,sans-serif}
+.app-shell :is(button,input,select,textarea),
+.auth-page :is(button,input,select,textarea),
+.profile-page :is(button,input,select,textarea){font-family:"DM Sans",Inter,system-ui,sans-serif}
