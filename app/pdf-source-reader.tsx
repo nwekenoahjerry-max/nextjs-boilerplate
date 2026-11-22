@@ -27,6 +27,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderSequence = useRef(0);
   const renderTask = useRef<{ cancel?: () => void } | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const [documentFile, setDocumentFile] = useState<PdfDocument | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
@@ -152,7 +153,20 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
         </label>
       </div>
       <div className="pdf-source-progress" aria-hidden="true"><span style={{ width: percentage + "%" }} /></div>
-      <div className="pdf-source-canvas-wrap" ref={containerRef}>
+      <div
+        className="pdf-source-canvas-wrap"
+        ref={containerRef}
+        onPointerDown={event => { swipeStart.current = { x: event.clientX, y: event.clientY }; }}
+        onPointerUp={event => {
+          const start = swipeStart.current;
+          swipeStart.current = null;
+          if (!start) return;
+          const dx = event.clientX - start.x;
+          const dy = event.clientY - start.y;
+          if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.25) goToPage(pageNumber + (dx < 0 ? 1 : -1));
+        }}
+        onPointerCancel={() => { swipeStart.current = null; }}
+      >
         {loading && <div className="source-preview-loading" role="status">Opening your original PDF…</div>}
         {error && <div className="source-preview-error" role="alert"><p>{error}</p><button type="button" className="secondary-button" onClick={() => window.location.reload()}>Refresh ClerkME</button></div>}
         {!loading && !error && <div className="pdf-source-canvas-inner">
@@ -160,7 +174,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
           {rendering && <span className="pdf-source-rendering" role="status">Rendering page…</span>}
         </div>}
       </div>
-      <div className="pdf-source-footer"><span>Original PDF · {pageCount ? pageCount + " pages" : "Loading page count…"}</span><span>Use the page arrows or swipe/scroll to read.</span></div>
+      <div className="pdf-source-footer"><span>Original PDF · {pageCount ? pageCount + " pages" : "Loading page count…"}</span><span>Use the arrows, swipe left or right on a phone, or scroll the page to read.</span></div>
     </section>
   );
 }
