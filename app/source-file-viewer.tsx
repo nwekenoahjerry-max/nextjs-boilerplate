@@ -365,10 +365,13 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   }, [mode, sourceUrl, pptxRetry]);
 
   useEffect(() => {
-    if (mode !== "powerpoint" || !pptxReady || !pptxRendererRef.current) return;
+    const renderer = pptxRendererRef.current as (PptxRendererInstance & {
+      extractText: (slideIndex: number) => Promise<string>;
+    }) | null;
+    if (mode !== "powerpoint" || !pptxReady || !renderer) return;
     let cancelled = false;
     setPptxSlideText("");
-    pptxRendererRef.current.extractText(pptxCurrentSlide)
+    renderer.extractText(pptxCurrentSlide)
       .then(text => { if (!cancelled) setPptxSlideText(typeof text === "string" ? text : ""); })
       .catch(() => { if (!cancelled) setPptxSlideText(""); });
     return () => { cancelled = true; };
