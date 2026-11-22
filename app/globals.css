@@ -5378,3 +5378,40 @@ body{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-s
 .app-shell :is(button,input,select,textarea),
 .auth-page :is(button,input,select,textarea),
 .profile-page :is(button,input,select,textarea){font-family:"DM Sans",Inter,system-ui,sans-serif}
+
+
+/* Tablet workspace: keep every destination reachable without squeezing clinical content. */
+@media(min-width:761px) and (max-width:1040px){
+  .sidebar{
+    width:78px!important;
+    padding:22px 9px 15px!important;
+    align-items:stretch;
+  }
+  .sidebar .workspace-brand{
+    justify-content:center;
+    padding:0 0 27px!important;
+  }
+  .sidebar .workspace-brand strong,
+  .sidebar .workspace-brand small{display:none!important}
+  .sidebar .nav-section-label{display:none!important}
+  .sidebar .nav-list{gap:8px!important}
+  .sidebar .nav-item{
+    display:flex!important;
+    justify-content:center!important;
+    gap:0!important;
+    min-height:45px!important;
+    height:45px!important;
+    padding:0!important;
+    border-radius:12px!important;
+  }
+  .sidebar .nav-icon{width:auto!important;margin:0!important;font-size:21px!important}
+  .sidebar .nav-label,
+  .sidebar .nav-plus{display:none!important}
+  .sidebar .upgrade-card{display:none!important}
+  .sidebar-bottom{margin-top:auto!important}
+  .sidebar-account-button{justify-content:center!important;padding:12px 0!important}
+  .sidebar-account-button>div:not(.avatar){display:none!important}
+  .main-area{margin-left:78px!important;width:calc(100% - 78px)!important}
+  .topbar{padding-left:clamp(18px,3vw,30px)!important;padding-right:clamp(18px,3vw,30px)!important}
+  .content{max-width:none!important;padding:38px clamp(20px,3.5vw,44px) 46px!important}
+}
