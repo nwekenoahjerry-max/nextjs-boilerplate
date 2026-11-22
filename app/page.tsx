@@ -19,7 +19,8 @@ const navItems = [
   ["My patients", "patients", "▤"],
   ["Clinical guides", "guides", "✚"],
   ["Clinical simulation", "simulation", "◉"],
-  ["My materials", "materials", "▧"],
+  ["Study home", "study", "▧"],
+  ["My materials", "materials", "▤"],
   ["Video library", "videos", "▶"],
   ["OSCE & Viva", "osce", "◉"],
   ["Question bank", "qbank", "▦"],
@@ -525,13 +526,13 @@ export default function Home() {
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">STUDY & PRACTISE</div>
-          {navItems.slice(5, 10).map(([label, id, icon]) => (
+          {navItems.slice(5, 11).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
-          {navItems.slice(10).map(([label, id, icon]) => (
+          {navItems.slice(11).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
@@ -578,6 +579,8 @@ export default function Home() {
           </div>
           <div className="mobile-account-section-heading"><strong>Study & practise</strong><span>Resources built for your learning</span></div>
           <div className="mobile-account-tool-grid">
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("study")}><span className="mobile-account-tool-icon questions">▧</span><strong>Study home</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("materials")}><span className="mobile-account-tool-icon clinical">▤</span><strong>My materials</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("videos")}><span className="mobile-account-tool-icon video">▶</span><strong>YouTube library</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("osce")}><span className="mobile-account-tool-icon osce">◎</span><strong>OSCE & Viva</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions">▦</span><strong>Question bank</strong></button>
@@ -707,27 +710,28 @@ export default function Home() {
               <a className="you-profile-link" href="/profile">Edit student profile <span aria-hidden="true">→</span></a>
             </section>
 
-            <section className="panel you-settings-panel">
-              <div className="panel-heading">
-                <div><h3>Account and settings</h3><p>Personal details, app access and sign-in security.</p></div>
-              </div>
-              <div className="you-settings-actions">
+            <section className="account-settings-grid" aria-label="Account settings">
+              <article className="panel account-settings-group">
+                <div className="account-settings-group-heading"><span className="account-settings-icon">◎</span><div><h3>Personal & academic profile</h3><p>Keep your student information accurate and up to date.</p></div></div>
                 <a className="you-setting-action" href="/profile">
-                  <span className="template-icon">⚙</span>
-                  <span><strong>Student profile</strong><small>Update your name, university, level, location and career interests.</small></span>
-                  <span className="you-action-label">Edit profile</span>
+                  <span><strong>Student profile</strong><small>Name, university, level, location and career interests.</small></span>
+                  <span className="you-action-label">Edit profile <b aria-hidden="true">→</b></span>
                 </a>
+              </article>
+              <article className="panel account-settings-group">
+                <div className="account-settings-group-heading"><span className="account-settings-icon">▣</span><div><h3>App & device</h3><p>Make ClerkME easier to access on your devices.</p></div></div>
                 <div className="you-setting-action">
-                  <span className="template-icon">▣</span>
-                  <span><strong>Install ClerkME</strong><small>Add the app to your device for quicker access to your workspace.</small></span>
+                  <span><strong>Install ClerkME</strong><small>Add ClerkME to your home screen or desktop where supported.</small></span>
                   <InstallAppButton/>
                 </div>
+              </article>
+              <article className="panel account-settings-group account-settings-security">
+                <div className="account-settings-group-heading"><span className="account-settings-icon">⌑</span><div><h3>Session & security</h3><p>Manage your current sign-in session.</p></div></div>
                 <button ref={signOutTriggerRef} type="button" className="you-setting-action" disabled={signingOut} onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>
-                  <span className="template-icon">⏻</span>
                   <span><strong>Sign out</strong><small>Securely end your current ClerkME session on this device.</small></span>
                   <span className="you-action-label">Sign out</span>
                 </button>
-              </div>
+              </article>
             </section>
           </>}
           
