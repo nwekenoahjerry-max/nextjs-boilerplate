@@ -7203,3 +7203,142 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 .study-guide-read-aloud-status { flex:1 0 100%; color:#657991; font-size:10px; line-height:1.5; }
 @media(max-width:600px) { .study-guide-read-aloud { gap:7px; padding:9px; } .study-guide-read-aloud button { min-height:40px; } }
 @media(prefers-reduced-motion:reduce) { .study-guide-read-aloud button { transition:none!important; } }
+
+
+/* Flight Academy: compact focus mode while a timed round is active. */
+.flight-playing .flight-quiz-heading,
+.flight-playing .flight-source-controls,
+.flight-playing .flight-source-summary,
+.flight-playing .flight-material-prompt,
+.flight-playing .flight-generation-message,
+.flight-playing .flight-quiz-footer {
+  display:none!important;
+}
+.flight-playing .flight-quiz { padding:12px!important; }
+.flight-playing .flight-dashboard {
+  display:grid!important;
+  grid-template-columns:minmax(0,1.12fr) minmax(260px,.88fr)!important;
+  grid-template-rows:auto!important;
+  gap:12px!important;
+  align-items:stretch;
+}
+.flight-playing .flight-dashboard > .flight-question-panel {
+  grid-column:1!important; grid-row:1!important;
+  align-self:start; padding:13px!important;
+}
+.flight-playing .flight-dashboard > .flight-visual-panel {
+  grid-column:2!important; grid-row:1!important;
+  align-self:start; padding:11px!important;
+}
+.flight-playing .flight-dashboard > .flight-visual-panel .flight-sky {
+  height:clamp(185px,25vh,245px)!important;
+  min-height:185px!important; margin-top:8px;
+}
+.flight-playing .flight-dashboard > .flight-visual-panel .flight-altitude {
+  top:43px!important; left:14px!important;
+}
+.flight-playing .flight-dashboard > .flight-visual-panel .flight-plane {
+  width:76px; height:94px;
+}
+.flight-playing .flight-dashboard > .flight-visual-panel .flight-metrics,
+.flight-playing .flight-dashboard > .flight-visual-panel .flight-speed-readout,
+.flight-playing .flight-dashboard > .flight-visual-panel .sky-coordinate {
+  display:none!important;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .question-progress {
+  margin:7px 0 9px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .question-meta-row,
+.flight-playing .flight-dashboard > .flight-question-panel > h3 {
+  display:none!important;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-timer {
+  margin:7px 0 9px; padding:8px 10px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-statement-context {
+  margin:8px 0; padding:9px 11px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-statement-context p {
+  font-size:12px; line-height:1.45;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-statement-card {
+  margin:8px 0 10px; padding:11px 12px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-statement-card p {
+  margin-top:5px; font-size:15px; line-height:1.4;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-true-false-options { gap:9px; }
+.flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option {
+  min-height:70px!important; padding:9px 7px!important; gap:5px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option .flight-tf-symbol {
+  width:25px; height:25px; font-size:15px;
+}
+.flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option strong { font-size:15px; }
+.flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option .option-mark { font-size:6px; }
+
+@media(max-width:900px) {
+  .flight-playing .flight-dashboard {
+    grid-template-columns:minmax(0,1fr)!important;
+    gap:9px!important;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel {
+    grid-column:1!important; grid-row:1!important;
+  }
+  .flight-playing .flight-dashboard > .flight-visual-panel {
+    grid-column:1!important; grid-row:2!important;
+  }
+}
+@media(max-width:700px) {
+  .flight-playing .flight-quiz { padding:8px!important; }
+  .flight-playing .flight-dashboard { display:flex!important; flex-direction:column!important; gap:8px!important; }
+  .flight-playing .flight-dashboard > .flight-question-panel {
+    order:0!important; width:100%!important; padding:11px!important; border-radius:12px!important;
+  }
+  .flight-playing .flight-dashboard > .flight-visual-panel {
+    order:1!important; width:100%!important; min-height:78px!important;
+    padding:7px 9px!important; border-radius:11px!important;
+  }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-sky-label { display:none!important; }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-sky {
+    height:62px!important; min-height:62px!important; margin:0!important; border-radius:8px;
+  }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-altitude {
+    top:10px!important; left:10px!important; gap:1px;
+  }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-altitude>span { font-size:6px; }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-altitude strong { font-size:13px; }
+  .flight-playing .flight-dashboard > .flight-visual-panel .altitude-track { width:62px; height:3px; margin-top:2px; }
+  .flight-playing .flight-dashboard > .flight-visual-panel .flight-plane {
+    width:37px!important; height:46px!important; top:52%!important;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .question-topline {
+    font-size:7px; letter-spacing:.08em;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-timer {
+    margin:6px 0 8px; padding:7px 9px;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-context {
+    margin:7px 0; padding:8px 10px;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-context p {
+    font-size:11px; line-height:1.4;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-card {
+    margin:7px 0 9px; padding:10px;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-card p {
+    font-size:14px; line-height:1.4;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option {
+    min-height:62px!important; padding:8px 5px!important;
+  }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-tf-option .option-mark {
+    font-size:5px; letter-spacing:.04em;
+  }
+}
+@media(max-width:360px) {
+  .flight-playing .flight-dashboard > .flight-question-panel { padding:9px!important; }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-context p { font-size:10px; }
+  .flight-playing .flight-dashboard > .flight-question-panel .flight-statement-card p { font-size:13px; }
+}

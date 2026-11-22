@@ -104,9 +104,19 @@ function imagePrompt(aid: VisualAid, generalStudy = false) {
 }
 
 
+type GeminiImagePart = {
+  type?: string;
+  data?: string;
+  mime_type?: string;
+  image?: { data?: string; mime_type?: string };
+};
+
 type GeminiImageResponse = {
   output_image?: { data?: string; mime_type?: string };
-  output?: Array<{ type?: string; data?: string; mime_type?: string; image?: { data?: string; mime_type?: string } }>;
+  // Interactions can expose multimodal output through model_output steps.
+  steps?: Array<{ type?: string; content?: GeminiImagePart[] }>;
+  // Also accept SDK-normalised / legacy output shapes.
+  output?: GeminiImagePart[];
   error?: { message?: string; status?: string; code?: number };
 };
 
@@ -154,11 +164,17 @@ async function generateGeminiImage(apiKey: string, prompt: string): Promise<{ da
       }
       throw lastError;
     }
-    const imagePart = payload.output?.find(part => part.type === "image" && (part.data || part.image?.data));
+    const stepImage = payload.steps
+      ?.filter(step => step.type === "model_output")
+      .flatMap(step => Array.isArray(step.content) ? step.content : [])
+      .find(part => part.type === "image" && (part.data || part.image?.data));
+    const legacyImage = payload.output?.find(part => part.type === "image" && (part.data || part.image?.data));
+    const imagePart = stepImage || legacyImage;
     const imageData = payload.output_image?.data || imagePart?.data || imagePart?.image?.data || "";
     const mimeType = (payload.output_image?.mime_type || imagePart?.mime_type || imagePart?.image?.mime_type || "image/png").toLowerCase();
-    if (!imageData || !/^image\/(png|jpeg|webp)$/.test(mimeType)) {
-      throw new Error("Gemini returned no supported image payload.");
+    if (!imageData || !/^image\\/(png|jpeg|webp)$/.test(mimeType)) {
+      const returnedSteps = payload.steps?.map(step => step.type || "unknown").join(",") || "none";
+      throw new Error("Gemini returned no supported image payload (steps: " + returnedSteps + ").");
     }
     const data = imageData.replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "").replace(/\s/g, "");
     if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data) || data.length > 6_700_000) {
