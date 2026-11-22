@@ -912,43 +912,8 @@ export default function MaterialsPanel() {
               <div><strong>Quick-start notes are ready</strong><p>You can begin with the original material highlights now. ClerkMe is still building the full explanations, mnemonics, clinical links and exam-focused guide.</p></div>
             </div>}
             {!!selectedMaterial.summary.sections?.length&&<nav className="study-contents" aria-label="Study guide contents"><strong>In this guide</strong><div>{selectedMaterial.summary.sections.map((section,index)=><a key={index} href={`#study-section-${index+1}`}>{String(index+1).padStart(2,"0")} · {section.heading}</a>)}</div></nav>}
-            <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
-            {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
-            {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
-              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
-              <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
-              <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
-              
-            </section>}
-            <section className="study-summary-block study-visual-illustrations">
-              <div className="study-visual-illustrations-toolbar">
-                <div><div className="eyebrow">VISUAL LEARNING</div><h3>Illustrated concepts</h3><p>Topic-specific medical schematics selected from the uploaded material to make difficult anatomy and mechanisms easier to understand.</p></div>
-                <button type="button" className="study-illustration-action" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>
-                  {illustratingMaterialId===selectedMaterial.id?"Generating…":(illustrationsByMaterial[selectedMaterial.id]?.length?"Regenerate illustrations":"Generate illustrations")} <span aria-hidden="true">↗</span>
-                </button>
-              </div>
-              {illustratingMaterialId===selectedMaterial.id&&<div className="study-illustration-loading" role="status"><span className="study-illustration-spinner"/><span>Creating source-specific textbook illustrations…</span></div>}
-              {!!illustrationsByMaterial[selectedMaterial.id]?.length&&<div className="study-illustration-grid">
-                {illustrationsByMaterial[selectedMaterial.id].map((illustration,index)=><figure className="study-illustration-card" key={index}>
-                  <img src={illustration.imageDataUri} alt={illustration.altText} loading="lazy" decoding="async"/>
-                  <figcaption><strong>{illustration.title}</strong><p>{illustration.caption}</p>{illustration.sourceSection&&<small>Related topic: {illustration.sourceSection}</small>}</figcaption>
-                </figure>)}
-              </div>}
-              {!illustrationsByMaterial[selectedMaterial.id]?.length&&!illustratingMaterialId&&<p className="study-illustration-empty">{selectedMaterial.summary.visualAids?.length
-                ? "Illustration plans are ready. Select Generate illustrations to create the visual aids."
-                : "Generate up to two useful visual aids for this lecture. ClerkMe will not force an image where a table or written explanation is clearer."}</p>}
-              {!!illustrationErrors[selectedMaterial.id]&&<p className="study-illustration-error" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
-              <p className="study-illustration-disclaimer">Educational schematics are illustrative and may simplify anatomical detail. They are not diagnostic images or a substitute for verified clinical references.</p>
-            </section>
-            {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
-              <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
-              {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
-              {!!selectedMaterial.summary.examFocus.likelyShortNotes?.length&&<div className="study-exam-subsection"><h4>Short-note themes to prepare</h4><ul>{selectedMaterial.summary.examFocus.likelyShortNotes.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
-              {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
-              {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
-            </section>}
             <details className="study-dive-deeper-dropdown" id="study-detailed-topic-explanations" onToggle={event=>{if(event.currentTarget.open)setExpandedStudySections(Array.from({length:studySectionCount},(_,index)=>index));}}>
-              <summary><span><strong>Dive deeper</strong><small>Open all detailed explanations, clinical diagnosis patterns, investigations and management</small></span><span className="study-dive-deeper-chevron" aria-hidden="true">⌄</span></summary>
+              <summary><span className="study-dive-deeper-copy"><span className="study-dive-deeper-kicker"><span className="study-dive-deeper-spark" aria-hidden="true">✦</span> YOUR COMPLETE CLINICAL GUIDE</span><strong>Dive deeper</strong><small>Explore the full explanations, diagnosis patterns, investigations, differentials and step-by-step management.</small><span className="study-dive-deeper-meta"><span>{studySectionCount} detailed topics</span><span>Clinical insights</span><span>Exam-ready</span></span></span><span className="study-dive-deeper-action"><span>Explore guide</span><span className="study-dive-deeper-chevron" aria-hidden="true">⌄</span></span></summary>
               <div className="study-summary-sections">
               <div className="study-section-accordion-toolbar">
                 <div><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div><p>Open any topic to read its full explanation, clinical relevance and examination points.</p></div>
@@ -999,6 +964,42 @@ export default function MaterialsPanel() {
               })}
               </div>
             </details>
+            <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
+            {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
+            {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
+              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
+              <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
+              <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
+              
+            </section>}
+            <section className="study-summary-block study-visual-illustrations">
+              <div className="study-visual-illustrations-toolbar">
+                <div><div className="eyebrow">VISUAL LEARNING</div><h3>Illustrated concepts</h3><p>Topic-specific medical schematics selected from the uploaded material to make difficult anatomy and mechanisms easier to understand.</p></div>
+                <button type="button" className="study-illustration-action" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>
+                  {illustratingMaterialId===selectedMaterial.id?"Generating…":(illustrationsByMaterial[selectedMaterial.id]?.length?"Regenerate illustrations":"Generate illustrations")} <span aria-hidden="true">↗</span>
+                </button>
+              </div>
+              {illustratingMaterialId===selectedMaterial.id&&<div className="study-illustration-loading" role="status"><span className="study-illustration-spinner"/><span>Creating source-specific textbook illustrations…</span></div>}
+              {!!illustrationsByMaterial[selectedMaterial.id]?.length&&<div className="study-illustration-grid">
+                {illustrationsByMaterial[selectedMaterial.id].map((illustration,index)=><figure className="study-illustration-card" key={index}>
+                  <img src={illustration.imageDataUri} alt={illustration.altText} loading="lazy" decoding="async"/>
+                  <figcaption><strong>{illustration.title}</strong><p>{illustration.caption}</p>{illustration.sourceSection&&<small>Related topic: {illustration.sourceSection}</small>}</figcaption>
+                </figure>)}
+              </div>}
+              {!illustrationsByMaterial[selectedMaterial.id]?.length&&!illustratingMaterialId&&<p className="study-illustration-empty">{selectedMaterial.summary.visualAids?.length
+                ? "Illustration plans are ready. Select Generate illustrations to create the visual aids."
+                : "Generate up to two useful visual aids for this lecture. ClerkMe will not force an image where a table or written explanation is clearer."}</p>}
+              {!!illustrationErrors[selectedMaterial.id]&&<p className="study-illustration-error" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
+              <p className="study-illustration-disclaimer">Educational schematics are illustrative and may simplify anatomical detail. They are not diagnostic images or a substitute for verified clinical references.</p>
+            </section>
+            {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
+              <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
+              {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.likelyShortNotes?.length&&<div className="study-exam-subsection"><h4>Short-note themes to prepare</h4><ul>{selectedMaterial.summary.examFocus.likelyShortNotes.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
+              {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
+            </section>}
+            
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
