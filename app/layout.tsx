@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/clerkme-icon.svg",
-    apple: "/clerkme-icon.svg",
+    apple: "/clerkme-192.png",
   },
   keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b4a34",
+  themeColor: "#102D5A",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
