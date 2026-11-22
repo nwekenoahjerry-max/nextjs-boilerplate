@@ -792,13 +792,13 @@ export default function MaterialsPanel() {
             visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>No matching materials</strong><p>Try another title or clinical unit, or clear the search to see your uploaded files.</p><button type="button" className="secondary-button" onClick={()=>{setLibrarySearch("");setLibraryUnit("all");}}>Show all materials</button></div> :
             <div className="materials-unit-groups">
               {groupedVisibleMaterials.map(group=><section className="materials-unit-group" key={group.id}>
-                <div className="materials-unit-group-heading"><h3>{group.name}</h3><span>{group.materials.length} {group.materials.length===1?"resource":"resources"}</span></div>
+                <div className="materials-unit-group-heading"><h3>{group.name}</h3><span>{group.materials.length} {group.materials.length===1?"material":"materials"}</span></div>
                 <div className="materials-list">
                   {group.materials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
                     <button type="button" className="materials-select" aria-pressed={item.id===selectedId} disabled={liveInProgress} onClick={()=>openMaterial(item)}>
                       <span className="materials-file-badge">▤</span>
                       <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Study guide processing":item.summary?"Study guide ready":"Study guide not created yet"} · {item.questions?.length||0} questions</span></span>
-                      <span className="materials-open-label">View material <b aria-hidden="true">›</b></span>
+                      <span className="materials-open-label">Open <b aria-hidden="true">›</b></span>
                     </button>
                     <button type="button" className="materials-delete" title={"Remove "+item.title} aria-label={"Remove "+item.title} disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
                   </div>)}
@@ -869,7 +869,7 @@ export default function MaterialsPanel() {
         </div>
 
         {tab==="source" && <section className="materials-source-viewer">
-          <div className="eyebrow">SOURCE MATERIAL</div>
+          <div className="eyebrow">ORIGINAL FILE</div>
           <h3>{selectedMaterial.sourceName}</h3>
           <p className="materials-source-meta">{unitName(selectedMaterial.unit)} · {selectedMaterial.category} · {selectedMaterial.originalFileAvailable ? "Original file preserved" : "Older upload: original file not retained"}</p>
           {selectedMaterial.originalFileAvailable
@@ -888,7 +888,7 @@ export default function MaterialsPanel() {
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary">
             <div className="study-guide-toolbar">
-              <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR EXAM-READY REVISION GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, revise the high-yield points, then test yourself with the generated MCQs."}</p></div>
+              <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR STUDY GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, review the key exam points, then test yourself with the practice questions."}</p></div>
               <div className="study-guide-toolbar-actions">
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>Start MCQ practice <span>→</span></button>}
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
@@ -902,7 +902,7 @@ export default function MaterialsPanel() {
             <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
-              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"HIGH-YIELD POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
+              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
               <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
               <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
             </section>}
@@ -977,7 +977,7 @@ export default function MaterialsPanel() {
                       <div className="study-table-wrap study-clinical-table"><table><thead><tr><th>Phase / priority</th><th>Management action</th><th>Rationale</th><th>Monitoring</th><th>Safety / cautions</th></tr></thead><tbody>{section.managementPlan.map((item,i)=><tr key={i}><th>{item.phase}</th><td>{item.intervention}</td><td>{item.rationale||"Not specified in the uploaded source."}</td><td>{item.monitoring||"Not specified in the uploaded source."}</td><td>{item.cautions||"Not specified in the uploaded source."}</td></tr>)}</tbody></table></div>
                     </section>}
                     {section.clinicalRelevance&&<div className="study-clinical-relevance"><strong>Clinical relevance</strong><p>{section.clinicalRelevance}</p></div>}
-                    {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>High-yield points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
+                    {!!section.highYieldPoints?.length&&<div className="study-high-yield"><strong>Exam points</strong><ul>{section.highYieldPoints.map((point,i)=><li key={i}>{point}</li>)}</ul></div>}
                   </div>
                 </article>;
               })}
