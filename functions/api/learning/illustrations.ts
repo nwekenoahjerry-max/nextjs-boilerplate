@@ -37,12 +37,43 @@ function sanitiseVisualAids(value: unknown): VisualAid[] {
       altText: clean(item.altText, 500),
       sourceSection: clean(item.sourceSection, 180),
       visualPrompt: clean(item.visualPrompt, 1800),
-      coreConcept: clean(item.coreConcept, 500),
-      mustShow: Array.isArray(item.mustShow) ? item.mustShow.map(value => clean(value, 300)).filter(Boolean).slice(0, 8) : [],
-      mustAvoid: Array.isArray(item.mustAvoid) ? item.mustAvoid.map(value => clean(value, 300)).filter(Boolean).slice(0, 8) : [],
-      composition: clean(item.composition, 700)
+      coreConcept: clean(item.coreConcept, 500) || clean(item.title, 160) + ": " + clean(item.caption, 300),
+      mustShow: Array.isArray(item.mustShow) ? item.mustShow.map(value => clean(value, 300)).filter(Boolean).slice(0, 8) : [clean(item.title, 160), clean(item.caption, 300)].filter(Boolean),
+      mustAvoid: Array.isArray(item.mustAvoid) ? item.mustAvoid.map(value => clean(value, 300)).filter(Boolean).slice(0, 8) : ["Unmentioned anatomical structures, unsupported pathology or invented clinical findings"],
+      composition: clean(item.composition, 700) || "One clear, centred medical teaching concept with anatomically plausible relationships and a clean light background"
     };
-  }).filter(item => item.title && item.caption && item.altText && item.visualPrompt && item.coreConcept && item.mustShow.length >= 2 && item.composition);
+  }).filter(item => item.title && item.caption && item.altText && (item.visualPrompt || item.coreConcept));
+}
+
+function fallbackVisualAids(summary: Record<string, unknown>): VisualAid[] {
+  const sections = Array.isArray(summary.sections) ? summary.sections as Array<Record<string, unknown>> : [];
+  const visualConcept = /anatom|pathophysiolog|mechanism|physiolog|embryolog|blood supply|innervation|stages?|sequence|pathway|cycle|classification|structure|development|process/i;
+  return sections.filter(section => {
+    const heading = clean(section.heading, 180);
+    const detail = [clean(section.summary, 500), ...(Array.isArray(section.subsections) ? section.subsections.map((part: unknown) => clean((part as Record<string, unknown>)?.heading, 160)) : [])].join(" ");
+    return heading && visualConcept.test(heading + " " + detail);
+  }).slice(0, 2).map(section => {
+    const heading = clean(section.heading, 160);
+    const detail = clean(section.summary, 600);
+    const subtopics = Array.isArray(section.subsections)
+      ? section.subsections.map((part: unknown) => {
+          const item = part as Record<string, unknown>;
+          return [clean(item.heading, 140), clean(item.explanation, 260)].filter(Boolean).join(": ");
+        }).filter(Boolean).slice(0, 4)
+      : [];
+    const sourceFaithfulBrief = [heading, detail, ...subtopics].filter(Boolean).join(". ").slice(0, 1400);
+    return {
+      title: heading,
+      caption: detail || "A source-based visual explanation of this topic.",
+      altText: "Medical teaching illustration showing " + heading + " based on the uploaded lecture.",
+      sourceSection: heading,
+      coreConcept: sourceFaithfulBrief,
+      mustShow: [heading, ...subtopics.slice(0, 3)].filter(Boolean),
+      mustAvoid: ["Unsupported anatomy, invented labels, unrelated organs or findings not stated in the source"],
+      composition: "A single, uncluttered textbook-style teaching illustration focused on the exact concept in the source, with clear spatial relationships and no text labels.",
+      visualPrompt: "Create a precise educational medical illustration of the following source-supported concept only: " + sourceFaithfulBrief + ". Show the structures, stages or relationships explicitly described. Do not add unsupported details."
+    };
+  });
 }
 
 function imagePrompt(aid: VisualAid) {
@@ -149,6 +180,19 @@ ${material.content_text.slice(0, 22000)}
       ).bind(JSON.stringify(summary), material.id, user.id).run();
     }
 
+    // If the planner omits optional fields or declines a visual despite a clearly
+    // diagrammable lecture section, build a conservative source-derived brief.
+    if (!visualAids.length) {
+      visualAids = fallbackVisualAids(summary);
+      if (visualAids.length) {
+        summary.visualAids = visualAids;
+        summary.visualAidsReviewed = true;
+        await context.env.DB.prepare(
+          "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+        ).bind(JSON.stringify(summary), material.id, user.id).run();
+      }
+    }
+
     if (!visualAids.length) {
       return json({
         illustrations: [],
@@ -211,14 +255,19 @@ ${material.content_text.slice(0, 22000)}
       .filter((item): item is PromiseFulfilledResult<VisualAid & { imageDataUri: string }> => item.status === "fulfilled")
       .map(item => item.value);
     const failedCount = generated.length - illustrations.length;
+    const failureDetails = generated
+      .filter((item): item is PromiseRejectedResult => item.status === "rejected")
+      .map(item => item.reason instanceof Error ? item.reason.message : String(item.reason))
+      .filter(Boolean).slice(0, 2);
+    if (failedCount) console.error("[ClerkME illustrations] FLUX generation failed", failureDetails);
 
     return json({
       illustrations,
       visualAids,
-      warning: failedCount ? "Some illustrations could not be generated. You can retry the missing visuals." : "",
+      warning: failedCount ? "Some illustrations could not be generated. " + failureDetails.join(" ") : "",
       message: illustrations.length
         ? "Your topic illustrations are ready."
-        : "The illustration service could not create an image just now. Your detailed notes remain available; please try again."
+        : "Image generation failed: " + (failureDetails.join(" ") || "The image model returned no usable image.") + " Your detailed notes remain available; please try again."
     });
   } catch (error) {
     return aiFailureResponse(error, "Illustrations are temporarily unavailable. Your High-Yield Points remain available; please try again later.");
