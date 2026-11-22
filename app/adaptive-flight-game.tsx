@@ -413,7 +413,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
         ? "Loading your private study library..."
         : uploadedQuestions.length > 0
           ? <span><strong>{uploadedQuestions.length} uploaded-material questions</strong> · {unitMaterials.length} resource{unitMaterials.length === 1 ? "" : "s"} in {unitName(unit)}</span>
-          : <span><strong>{activeQuestions.length} {materialId === "all" ? "core" : "source"} questions</strong> · {unitMaterials.length ? "Your uploaded materials have not generated valid questions yet." : "Upload notes to personalise the game."}</span>}
+          : <span><strong>{activeQuestions.length} {materialId === "all" ? "core" : "source"} questions</strong> · {unitMaterials.length ? "Your uploaded materials have not generated valid questions yet." : "Add a subject resource and generate questions to personalise the game."}</span>}
       <button className="text-link" onClick={onOpenMaterials}>Manage study materials</button>
     </div>
 
