@@ -715,7 +715,7 @@ export default function Home() {
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
-    <main className="app-shell">
+    <main className={active === "overview" ? "app-shell home-app-shell" : "app-shell"}>
       <InstallAppPrompt promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
       <aside className="sidebar">
         <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
@@ -795,12 +795,12 @@ export default function Home() {
         </section>
       </div>}
 
-      <section className="main-area">
+      <section className={active === "overview" ? "main-area home-dashboard-active" : "main-area"}>
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
 <section className="home-compact-header"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1><p>Make today a useful study day.</p></div><span className="home-greeting-mark" aria-hidden="true">✦</span></section>
-<section className="home-stats-strip" aria-label="Your learning statistics"><div><strong>{streakData.streak}</strong><span>Day streak</span></div><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><span className={streakData.todayActive?"home-checkin is-active":"home-checkin"}>{streakData.todayActive?"✓ Studied today":"Your next session starts here"}</span></section>
+<section className="home-stats-strip" aria-label="Your learning statistics"><div className="home-streak-stat"><span className="home-streak-orbit" aria-hidden="true">✦</span><strong>{streakData.streak}</strong><span>Day streak</span></div><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><span className={streakData.todayActive?"home-checkin is-active":"home-checkin"}>{streakData.todayActive?"✓ Studied today":"Your next session starts here"}</span></section>
 <section className="home-motivation" aria-label="Daily motivation"><span className="home-motivation-icon" aria-hidden="true">✦</span><div><span className="eyebrow">A NOTE FOR YOUR JOURNEY</span><p>{["Small, consistent study sessions build the clinical judgement that lasts.","You do not need to master everything today. Understand one concept well, then build on it.","Every question you attempt is an opportunity to sharpen your clinical reasoning.","Progress is not measured by hours alone, but by what you understand and can apply.","Stay curious, practise deliberately, and let consistency do the heavy lifting."][(new Date().getDate()+new Date().getMonth())%5]}</p></div></section>
 <section className="home-quick-start" aria-label="Quick study actions"><div className="home-section-heading"><div><span className="eyebrow">YOUR NEXT STEP</span><h2>What would you like to work on?</h2></div></div><div className="home-action-grid">
 <button type="button" className="home-action-card" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span><strong>My materials</strong><small>Open lectures and study guides</small></span><b>→</b></button>
