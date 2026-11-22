@@ -3,14 +3,14 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ClerkMe | AI Clinical Exam Prep & Clerking",
-  description: "AI-powered clinical learning and exam preparation for medical students. Build detailed High-Yield study guides, generate SBAs, discover and watch YouTube lectures in-app, and practise clerking, OSCE, Viva and clinical simulation.",
+  description: "Clinical learning and exam preparation for medical students. Turn lectures into detailed study guides and SBA questions, read your source documents in-app, discover YouTube lectures, and practise clerking, OSCE, Viva and clinical simulation.",
   applicationName: "ClerkMe",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/clerkme-icon.svg",
     apple: "/clerkme-icon.svg",
   },
-  keywords: ["clinical clerking", "medical students", "AI exam preparation", "High-Yield Points", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
+  keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
 };
 
 export const viewport: Viewport = {
