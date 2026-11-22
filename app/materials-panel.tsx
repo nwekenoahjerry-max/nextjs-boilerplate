@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import SourceFileViewer from "./source-file-viewer";
+import StudyGuideReadAloud from "./study-guide-read-aloud";
 
 type StudyVisualAid = { title:string; caption:string; altText:string; sourceSection:string; visualPrompt:string; };
 type GeneratedStudyIllustration = StudyVisualAid & { imageDataUri:string; };
@@ -608,6 +609,7 @@ export default function MaterialsPanel() {
   };
 
   const summarise = async (materialId:string) => {
+    setTab("summary");
     const target = materials.find(item=>item.id===materialId);
     if (target?.hasExtractableText === false) {
       setTab("source");
@@ -725,8 +727,8 @@ export default function MaterialsPanel() {
       setLibraryUnit(uploadUnit);
       setUnit(uploadUnit);
       setTitle(""); setFile(null);
-      setNotice("Material uploaded. Opening the original file and building your study guide…");
-      setTab("source");
+      setNotice("Material uploaded. Your Study Guide is being prepared. Open the original file from the Study Guide whenever you need it.");
+      setTab("summary");
       await summarise(material.id);
     } catch(e) {
       setNotice("");
@@ -998,14 +1000,16 @@ export default function MaterialsPanel() {
         </section>}
 
         {tab==="summary" && <>
-          {selectedMaterial.summary ? <div className="study-summary">
+          {selectedMaterial.summary ? <div className="study-summary" id="study-guide-readable-content">
             <div className="study-guide-toolbar">
               <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR STUDY GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, review the key exam points, then test yourself with the practice questions."}</p></div>
               <div className="study-guide-toolbar-actions">
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>{selectedMaterialIsGeneral?"Start practice":"Start MCQ practice"} <span>→</span></button>}
+                <button type="button" className="secondary-button" onClick={()=>setTab("source")}>Open original file</button>
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
               </div>
             </div>
+            <StudyGuideReadAloud targetId="study-guide-readable-content" />
             {selectedMaterial.summary.quickPreview&&<div className="study-quick-preview-banner" role="status">
               <span className="study-preview-dot" aria-hidden="true"/>
               <div><strong>Quick-start notes are ready</strong><p>You can begin with the original material highlights now. ClerkMe is still building the full explanations, mnemonics, clinical links and exam-focused guide.</p></div>
