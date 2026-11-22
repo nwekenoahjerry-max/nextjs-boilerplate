@@ -683,7 +683,10 @@ export default function MaterialsPanel() {
 
   const upload = async () => {
     if (!file) { setError("Choose a document first."); return; }
-    const uploadUnit = libraryMode==="general" ? makeCustomSubjectUnit(customSubject) : unit;
+    const matchingSubject = libraryMode==="general"
+      ? materials.find(item=>isCustomSubjectUnit(item.unit) && unitName(item.unit).toLocaleLowerCase("en")===customSubject.trim().toLocaleLowerCase("en"))
+      : undefined;
+    const uploadUnit = libraryMode==="general" ? (matchingSubject?.unit || makeCustomSubjectUnit(customSubject)) : unit;
     if(libraryMode==="general" && customSubject.trim().length<2){
       setError("Enter the subject or course name for this material.");
       return;
