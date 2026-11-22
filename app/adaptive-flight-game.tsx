@@ -484,10 +484,17 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             <strong>{gameOver ? "Flight complete" : "Ready for take-off?"}</strong>
             <p>{gameOver
               ? "Review your score, then fly a fresh shuffled set of missions."
-              : "Answer up to " + Math.min(MAX_ROUND_LENGTH, activeQuestions.length) + " unique questions. You have 20 seconds per question; three missed answers end the flight."}</p>
+              : loading
+                ? "Getting your question set ready…"
+                : !activeQuestions.length
+                  ? unitMaterials.length
+                    ? "Your source is saved, but there are no usable questions yet. Generate a practice set from the material above to unlock your flight."
+                    : "Choose a subject with questions or add a study resource to your library. Generate a question set to unlock take-off."
+                  : "Answer up to " + Math.min(MAX_ROUND_LENGTH, activeQuestions.length) + " unique questions. You have 20 seconds per question; three missed answers end the flight."}</p>
             <button type="button" className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length || loading} aria-label={gameOver ? "Fly another round" : "Start Flight Academy game"}>
-              {gameOver ? "Fly again" : "Start your flight"} <span>→</span>
+              {gameOver ? "Fly again" : loading ? "Preparing…" : !activeQuestions.length ? "Questions needed first" : "Start your flight"} <span>→</span>
             </button>
+            {!gameOver && !loading && !activeQuestions.length && <button type="button" className="flight-launch-secondary" onClick={onOpenMaterials}>Open study library <span>→</span></button>}
           </div>}
         </div>
 
