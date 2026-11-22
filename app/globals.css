@@ -5421,3 +5421,20 @@ body{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-s
 .source-image-extracted-text>strong{color:#2d4d38;font:800 13px Manrope,sans-serif}
 .source-image-extracted-text pre{max-height:560px;overflow:auto;margin:0;padding:12px;border-radius:9px;background:#f7faf7;color:#31463a;font:12px/1.65 "DM Sans",sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:760px){.source-image-extracted-text{padding:11px}.source-image-extracted-text pre{max-height:420px;font-size:11px}}
+
+
+/* Study guide progressive disclosure and unmistakable YouTube identity */
+.study-dive-deeper-button{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;margin-top:16px;padding:13px 15px;border:1px solid #cfe1d4;border-radius:11px;background:linear-gradient(110deg,#f2f8f3,#fbfcf8);color:#315b45;text-align:left;cursor:pointer}
+.study-dive-deeper-button>span{font-size:12px;color:#62776a;line-height:1.45}
+.study-dive-deeper-button>b{display:inline-flex;align-items:center;gap:10px;flex:0 0 auto;color:#1e694e;font-size:12px;font-weight:800}
+.study-dive-deeper-button>b span{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#e1efe5;font-size:15px}
+.study-dive-deeper-button:hover{border-color:#8eb99c;background:#edf6ef}
+.study-dive-deeper-button:focus-visible{outline:3px solid #2b80604a;outline-offset:3px}
+.study-summary-sections[id]{scroll-margin-top:88px}
+.study-video-youtube-mark{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:#fff0ef;color:#e62117}
+.study-video-youtube-mark svg{display:block;width:26px;height:26px;fill:currentColor}
+.study-video-youtube-small{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border-radius:7px;background:#e62117;color:#fff;font-size:10px}
+.study-video-topic-button{display:inline-flex;align-items:center;gap:8px}
+.study-video-topic-button:before{content:"";display:inline-block;width:15px;height:11px;border-radius:4px;background:#e62117;box-shadow:inset 0 0 0 1px #c51d15}
+.study-video-topic-button:after{content:"";position:absolute}
+@media(max-width:600px){.study-dive-deeper-button{align-items:flex-start;padding:12px}.study-dive-deeper-button>span{font-size:11px}.study-video-youtube-mark{width:38px;height:38px;flex-basis:38px}}
