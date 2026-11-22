@@ -226,7 +226,8 @@ export default function MaterialsPanel() {
     const orderedIds = libraryMode==="clinical"
       ? clinicalUnits.map(item=>item.id).filter(id=>visibleMaterials.some(material=>material.unit===id))
       : [...new Set(visibleMaterials.map(item=>item.unit))].sort((a,b)=>unitName(a).localeCompare(unitName(b),"en"));
-    return orderedIds.map(id=>({id,name:unitName(id),materials:visibleMaterials.filter(item=>item.unit===id}))
+    return orderedIds
+      .map(id=>({id,name:unitName(id),materials:visibleMaterials.filter(item=>item.unit===id)}))
       .filter(group=>group.materials.length>0);
   },[visibleMaterials,libraryMode]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
@@ -241,6 +242,8 @@ export default function MaterialsPanel() {
     if(nextMode==="general"){
       const firstSubject=materials.find(item=>isCustomSubjectUnit(item.unit));
       setCustomSubject(firstSubject?unitName(firstSubject.unit):"");
+    } else {
+      setUnit("general-medicine");
     }
     setAnswer(null); setTab("summary"); setQuestionIndex(0); setQuestionAnswers({}); setQuizFinished(false); setQuizMode("practice"); setLiveDeadline(null); setLiveStartedAt(null); setLiveElapsedSeconds(0); setLiveTimedOut(false); setError("");
   };
@@ -852,7 +855,7 @@ export default function MaterialsPanel() {
       </section>
               <section className="materials-library-card materials-library-first-card">
           <div className="materials-library-heading">
-            <div><div className="eyebrow">YOUR UPLOADED FILES</div><h2>My library <span>{materials.length}</span></h2></div>
+            <div><div className="eyebrow">YOUR UPLOADED FILES</div><h2>My library <span>{modeMaterials.length}</span></h2></div>
             <button type="button" className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
           <label className="materials-library-search">
@@ -1276,13 +1279,13 @@ export default function MaterialsPanel() {
         {tab==="ask" && <div className="study-tutor-panel">
           <div className="study-tutor-intro"><div className="eyebrow">SOURCE-GROUNDED STUDY SUPPORT</div><h3>Ask questions about {selectedMaterial.title}</h3><p>ClerkMe will use this material first, explain the answer and identify where the source supports it. It will tell you when the document does not contain enough information.</p></div>
           <label className="study-question-input">Your question
-            <textarea rows={3} value={question} onChange={event=>{setQuestion(event.target.value);setAnswer(null);}} placeholder="e.g. Explain the pathophysiology of left ventricular failure using this lecture…"/>
+            <textarea rows={3} value={question} onChange={event=>{setQuestion(event.target.value);setAnswer(null);}} placeholder={libraryMode==="general"?"e.g. Explain the key ideas in this topic using the lecture…":"e.g. Explain the pathophysiology of left ventricular failure using this lecture…"}/>
           </label>
           <button className="primary-button" onClick={ask} disabled={answering||question.trim().length<5}>{answering?"Finding an answer in your material…":"Ask ClerkMe"} <span>→</span></button>
           {answer && <div className="study-tutor-answer">
             <div className="eyebrow">CLERKME EXPLANATION</div><p className="study-answer-main">{answer.answer}</p>
             {!!answer.keyPoints?.length&&<div className="study-summary-block"><h4>Key points</h4><ul>{answer.keyPoints.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
-            {answer.clinicalReasoning&&<div className="study-clinical-relevance"><strong>Clinical reasoning</strong><p>{answer.clinicalReasoning}</p></div>}
+            {answer.clinicalReasoning&&<div className="study-clinical-relevance"><strong>{libraryMode==="general"?"How to think it through":"Clinical reasoning"}</strong><p>{answer.clinicalReasoning}</p></div>}
             {!!answer.sourceSupport?.length&&<div className="study-summary-block"><h4>Support from your source</h4>{answer.sourceSupport.map((item,index)=><div className="study-source-support" key={index}><strong>{item.locator||"Relevant source section"}</strong><p>{item.support}</p></div>)}</div>}
             {answer.supplementaryContext&&<div className="study-supplementary"><strong>Additional explanation</strong><p>{answer.supplementaryContext}</p></div>}
             {!!answer.limitations?.length&&<div className="study-summary-warnings"><strong>Limitations / points to verify</strong><ul>{answer.limitations.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
