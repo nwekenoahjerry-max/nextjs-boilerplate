@@ -4934,3 +4934,9 @@ body{background:var(--paper);color:var(--ink)}
   .study-hub-card-copy small{font-size:10.5px}
   .study-hub-format-card{gap:10px}
 }
+
+
+/* The bottom You tab is the single mobile account entry point; keep the top bar focused on the ClerkME brand. */
+@media(max-width:760px){
+  .top-actions .account-avatar-button{display:none!important}
+}
