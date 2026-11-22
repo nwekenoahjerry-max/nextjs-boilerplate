@@ -912,7 +912,16 @@ export default function MaterialsPanel() {
               <div><strong>Quick-start notes are ready</strong><p>You can begin with the original material highlights now. ClerkMe is still building the full explanations, mnemonics, clinical links and exam-focused guide.</p></div>
             </div>}
             {!!selectedMaterial.summary.sections?.length&&<nav className="study-contents" aria-label="Study guide contents"><strong>In this guide</strong><div>{selectedMaterial.summary.sections.map((section,index)=><a key={index} href={`#study-section-${index+1}`}>{String(index+1).padStart(2,"0")} · {section.heading}</a>)}</div></nav>}
-            <details className="study-dive-deeper-dropdown" id="study-detailed-topic-explanations" onToggle={event=>{if(event.currentTarget.open)setExpandedStudySections(Array.from({length:studySectionCount},(_,index)=>index));}}>
+            
+            <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
+            {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
+            {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
+              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
+              <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
+              <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
+              
+            </section>}
+<details className="study-dive-deeper-dropdown" id="study-detailed-topic-explanations" onToggle={event=>{if(event.currentTarget.open)setExpandedStudySections(Array.from({length:studySectionCount},(_,index)=>index));}}>
               <summary><span className="study-dive-deeper-copy"><span className="study-dive-deeper-kicker"><span className="study-dive-deeper-spark" aria-hidden="true">✦</span> YOUR COMPLETE CLINICAL GUIDE</span><strong>Dive deeper</strong><small>Explore the full explanations, diagnosis patterns, investigations, differentials and step-by-step management.</small><span className="study-dive-deeper-meta"><span>{studySectionCount} detailed topics</span><span>Clinical insights</span><span>Exam-ready</span></span></span><span className="study-dive-deeper-action"><span>Explore guide</span><span className="study-dive-deeper-chevron" aria-hidden="true">⌄</span></span></summary>
               <div className="study-summary-sections">
               <div className="study-section-accordion-toolbar">
@@ -964,14 +973,6 @@ export default function MaterialsPanel() {
               })}
               </div>
             </details>
-            <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
-            {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
-            {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
-              <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":"Core facts, mechanisms and distinctions to master"}</h3>
-              <p className="study-section-intro">{selectedMaterial.summary.quickPreview?"These are direct extracts from your source to help you start revising while the complete guide is prepared. They have not yet been ranked or interpreted by the AI.":"These are the exam-relevant points to understand and retain. Each point should be read with its explanation and the detailed topic notes that follow."}</p>
-              <ol>{topHighYieldPoints.map((item,index)=><li key={index}>{item}</li>)}</ol>
-              
-            </section>}
             <section className="study-summary-block study-visual-illustrations">
               <div className="study-visual-illustrations-toolbar">
                 <div><div className="eyebrow">VISUAL LEARNING</div><h3>Illustrated concepts</h3><p>Topic-specific medical schematics selected from the uploaded material to make difficult anatomy and mechanisms easier to understand.</p></div>
@@ -1004,7 +1005,7 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.keyTerms?.length&&<section className="study-summary-block"><h3>Key terms</h3><div className="study-key-terms">{selectedMaterial.summary.keyTerms.map((item,index)=><div key={index}><strong>{item.term}</strong><p>{item.meaning}</p></div>)}</div></section>}
             {!!selectedMaterial.summary.flowcharts?.length&&<section className="study-summary-block study-flowcharts"><h3>Visual learning pathways</h3><p className="study-section-intro">Use these simplified sequences to connect the steps and understand how the process fits together.</p>{selectedMaterial.summary.flowcharts.map((flow,index)=><div className="study-flowchart" key={index}><strong>{flow.title}</strong><ol>{flow.steps.map((step,stepIndex)=><li key={stepIndex}><span>{String(stepIndex+1).padStart(2,"0")}</span><p>{step}</p></li>)}</ol>{flow.takeaway&&<p className="study-flowchart-takeaway"><b>Remember:</b> {flow.takeaway}</p>}</div>)}</section>}
             {!!recommendedVideoSuggestions.length&&<details className="study-summary-block study-video-resources">
-              <summary className="study-video-disclosure"><div><div className="eyebrow">OPTIONAL VIDEO SUPPORT</div><h3>One or two focused video recommendations</h3><p className="study-section-intro">The detailed notes are primary. Open this section when a visual explanation or an additional lecture would help.</p></div><span className="study-video-app-badge">1–2 resources</span></summary>
+              <summary className="study-video-disclosure"><div className="study-video-disclosure-heading"><span className="study-video-disclosure-brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4L15.8 12l-6.2 3.6Z"/></svg></span><div><div className="eyebrow">OPTIONAL VIDEO SUPPORT</div><h3>One or two focused video recommendations</h3></div></div><p className="study-section-intro">The detailed notes are primary. Open this section when a visual explanation or an additional lecture would help.</p></div><span className="study-video-app-badge">1–2 resources</span></summary>
 
               <form className="study-video-search-form" onSubmit={event=>{event.preventDefault();void searchYouTube(youtubeQuery);}}>
                 <label htmlFor="clerkme-youtube-search">Search for a lecture</label>
