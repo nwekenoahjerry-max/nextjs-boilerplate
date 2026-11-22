@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import PptxRenderer from "../lib/pptx-browser/index.js";
+import PdfSourceReader from "./pdf-source-reader";
 
 type Props = {
   materialId: string;
@@ -142,7 +143,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     extension === "pdf" ? "pdf" :
     extension === "pptx" ? "powerpoint" :
     extension === "docx" ? "word" :
-    ["txt", "md", "csv"].includes(extension) ? "text" :
+    ["txt", "md", "csv", "xlsx", "rtf", "html", "htm", "json"].includes(extension) ? "text" :
     (mimeType || "").startsWith("image/") ? "image" : "download";
 
   useEffect(() => {
@@ -437,16 +438,10 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
           <strong>{fileName}</strong>
           <small>{formatBytes(originalSizeBytes) || "Original file"} · Stored privately; the uploaded file is never overwritten</small>
         </div>
-        <a className="secondary-button source-download-button" href={downloadUrl} download={fileName} title="Download the original presentation to open or edit it in Microsoft PowerPoint">Download / open in PowerPoint</a>
+        <a className="secondary-button source-download-button" href={downloadUrl} download={fileName} title="Download the original uploaded file">Download original file</a>
       </div>
 
-      {mode === "pdf" && (
-        <iframe
-          className="source-pdf-frame"
-          title={"Original PDF: " + fileName}
-          src={sourceUrl + "#toolbar=1&navpanes=0&view=FitH"}
-        />
-      )}
+      {mode === "pdf" && <PdfSourceReader sourceUrl={sourceUrl} fileName={fileName}/ >}
 
       {mode === "image" && (
         <div className="source-image-frame">
