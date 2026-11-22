@@ -253,6 +253,61 @@ function extractXlsx(entries: Array<{ name: string; text: string }>) {
   }).join("\n\n");
 }
 
+export type XlsxWorksheet = { name: string; rows: string[][] };
+
+export async function readXlsxWorkbook(buffer: ArrayBuffer): Promise<XlsxWorksheet[]> {
+  const entries = await unzipTextFiles(buffer, name =>
+    name === "xl/sharedStrings.xml" ||
+    name === "xl/workbook.xml" ||
+    /^xl\/worksheets\/sheet\d+\.xml$/i.test(name)
+  );
+  const entry = (name: string) => entries.find(item => item.name.toLowerCase() === name.toLowerCase())?.text || "";
+  const sharedXml = entry("xl/sharedStrings.xml");
+  const sharedStrings = sharedXml
+    ? Array.from(parseXml(sharedXml).getElementsByTagName("*"))
+        .filter(node => node.localName === "si")
+        .map(node => Array.from(node.getElementsByTagName("*")).filter(child => child.localName === "t").map(child => child.textContent || "").join(""))
+    : [];
+  const sheetFiles = entries
+    .filter(item => /^xl\/worksheets\/sheet\d+\.xml$/i.test(item.name))
+    .sort((a, b) => Number(a.name.match(/sheet(\d+)/i)?.[1] || 0) - Number(b.name.match(/sheet(\d+)/i)?.[1] || 0));
+  const workbookXml = entry("xl/workbook.xml");
+  const sheetNames = workbookXml
+    ? Array.from(parseXml(workbookXml).getElementsByTagName("*")).filter(node => node.localName === "sheet").map(node => node.getAttribute("name") || "")
+    : [];
+  if (!sheetFiles.length) throw new Error("No readable worksheets were found in this Excel file.");
+  return sheetFiles.map((sheet, sheetIndex) => {
+    const doc = parseXml(sheet.text);
+    const rowNodes = Array.from(doc.getElementsByTagName("*")).filter(node => node.localName === "row");
+    const rows = rowNodes.map(rowNode => {
+      const values: string[] = [];
+      for (const cell of Array.from(rowNode.getElementsByTagName("*")).filter(node => node.localName === "c")) {
+        const ref = cell.getAttribute("r") || "";
+        const column = ref.match(/^([A-Z]+)/i)?.[1] || "";
+        let columnIndex = 0;
+        for (const letter of column.toUpperCase()) columnIndex = columnIndex * 26 + letter.charCodeAt(0) - 64;
+        columnIndex = Math.max(0, columnIndex - 1);
+        if (columnIndex > 79) continue;
+        const type = cell.getAttribute("t") || "";
+        const valueNode = Array.from(cell.getElementsByTagName("*")).find(node => node.localName === "v");
+        const inlineText = Array.from(cell.getElementsByTagName("*")).filter(node => node.localName === "t").map(node => node.textContent || "").join("");
+        const raw = valueNode?.textContent || "";
+        const formula = Array.from(cell.getElementsByTagName("*")).find(node => node.localName === "f")?.textContent || "";
+        const value = type === "s" ? (sharedStrings[Number(raw)] ?? raw)
+          : type === "inlineStr" ? inlineText
+          : type === "b" ? (raw === "1" ? "TRUE" : raw === "0" ? "FALSE" : raw)
+          : raw || (formula ? "=" + formula : "");
+        values[columnIndex] = value;
+      }
+      return values;
+    });
+    return {
+      name: sheetNames[sheetIndex] || "Sheet " + (sheetIndex + 1),
+      rows
+    };
+  });
+}
+
 function extractRtf(value: string) {
   return value
     .replace(/\\par[d]?\b/g, "\n")
