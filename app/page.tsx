@@ -35,15 +35,20 @@ const templates = [
 ];
 
 
-const publicFeatureCards = [
-  {number:"01",title:"Structured clinical clerking",description:"Work from biodata through presenting complaint, history, examination, assessment and case presentation.",detail:"A complete, guided workflow"},
-  {number:"02",title:"Clinical guides",description:"Find specialty- and presenting-complaint-based questions, red flags and examination priorities.",detail:"Eight clinical units"},
-  {number:"03",title:"Clinical simulation",description:"Practise patient interviews with interactive responses, optional voice exchange and examiner-style feedback.",detail:"Patient interview practice"},
-  {number:"04",title:"OSCE and Viva",description:"Prepare for practical stations and oral examinations with focused prompts and teaching points.",detail:"Practical exam preparation"},
-  {number:"05",title:"Question bank",description:"Revise with clinical questions organised by topic, unit and difficulty.",detail:"Active recall"},
-  {number:"06",title:"Flight Academy",description:"Turn revision into a responsive question-led game with automatic progression and a three-failure limit.",detail:"Learn while you play"},
-  {number:"07",title:"Your study materials",description:"Upload lecture notes and slides, build structured summaries and generate questions directly from your sources.",detail:"Your own lectures become practice"},
-  {number:"08",title:"Private case library",description:"Keep your learning cases, clerking records and progress together in your personal workspace.",detail:"Account-protected workspace"},
+const publicStudyFeatures = [
+  {number:"01",title:"Original source material",description:"Keep your uploaded lecture beside the study guide. Open the source file in its own viewer and return to the material you are revising.",detail:"Your lecture stays part of the workflow"},
+  {number:"02",title:"Ask your material",description:"Ask questions about a selected upload. ClerkME prioritises source-supported explanations and distinguishes additional context from what your document says.",detail:"A tutor grounded in your material"},
+  {number:"03",title:"SBA generation and question bank",description:"Generate distinct single-best-answer questions from your lecture, then practise them alongside the unit's ClerkME core questions with explanations and feedback.",detail:"Lecture-based and core questions"},
+  {number:"04",title:"Visual and memory tools",description:"Strengthen recall with comparison tables, flowcharts, mnemonics, memory hooks, illustrated concepts, exam-focus notes and active-recall prompts.",detail:"Understand it, then remember it"},
+];
+
+const publicClinicalFeatures = [
+  {number:"01",title:"Structured clinical clerking",description:"Work through patient history, examination, assessment, differential diagnoses and management using specialty-aware templates and a rough-note organiser.",detail:"A clearer route from history to presentation"},
+  {number:"02",title:"Presenting-complaint guides",description:"Search clinical presentations and work through focused questions, symptom analysis, red flags, examination priorities, differentials and investigations.",detail:"Guided clinical reasoning across 8 units"},
+  {number:"03",title:"Interactive clinical simulation",description:"Interview fictional patients by text or voice, then review your score, strengths, corrections, missed red flags, clinical reasoning and next steps.",detail:"Practise the conversation, not just the facts"},
+  {number:"04",title:"OSCE and Viva practice",description:"Use unit-based oral and practical examination prompts, formulate your response, then reveal examiner-style teaching points and explanations.",detail:"Focused practice for clinical examinations"},
+  {number:"05",title:"Flight Academy",description:"Turn unit and uploaded-material questions into a question-led flight game. Correct answers build speed, while missions progress automatically.",detail:"Revision with momentum"},
+  {number:"06",title:"Private cases and learning activity",description:"Keep your learning cases in your account and follow your current streak, personal best, active days and weekly study check-ins.",detail:"Your work and progress in one workspace"},
 ];
 
 function PublicLanding() {
@@ -60,9 +65,10 @@ function PublicLanding() {
       <header className="public-header">
         <ClerkMeBrand caption="AI CLINICAL LEARNING & EXAM PREP" className="public-brand"/>
         <nav aria-label="Public navigation">
-          <a href="#features">Explore features</a>
+          <a href="#study-tools">Study tools</a>
+          <a href="#youtube-library">YouTube library</a>
+          <a href="#clinical-practice">Clinical practice</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#contact">Contact</a>
         </nav>
         <div className="public-header-actions">
           <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
@@ -75,8 +81,8 @@ function PublicLanding() {
           <span className="public-eyebrow"><i/> AI-POWERED LEARNING FOR MEDICAL STUDENTS</span>
           <h1>Make every lecture count.<br/><em>Walk into exams ready.</em></h1>
           <p>
-            Turn your lecture materials into detailed study guides, high-quality SBAs and focused revision.
-            Build clinical confidence with clerking, OSCE, Viva and interactive simulation — all in one workspace.
+            Turn your lecture materials into detailed High-Yield Points, diagnosis and management guides, and source-based SBAs.
+            Get lecture-linked YouTube recommendations, watch videos inside ClerkME, and practise clinical skills in one connected workspace.
           </p>
           <div className="public-hero-actions">
             <a className="public-primary-cta" href="/login">Get started with ClerkME <span>→</span></a>
@@ -145,24 +151,112 @@ function PublicLanding() {
         </div>
       </section>
 
-      <section className="public-feature-section" id="features">
+      <section className="public-feature-section public-study-section" id="study-tools">
         <div className="public-section-heading">
           <div>
-            <span className="public-eyebrow">YOUR CLINICAL LEARNING TOOLKIT</span>
-            <h2>From lecture notes to confident clinical practice.</h2>
+            <span className="public-eyebrow">YOUR LECTURES, TURNED INTO A STUDY SYSTEM</span>
+            <h2>Go beyond reading. Understand, revise and test what you have learned.</h2>
           </div>
-          <p>Study from your own materials, strengthen your clinical reasoning and prepare for written and practical examinations.</p>
+          <p>ClerkME connects your original learning resources to detailed explanations, question practice and video support.</p>
         </div>
-        <div className="public-feature-grid">
-          {publicFeatureCards.map(item => (
+        <div className="public-spotlight-grid">
+          <article className="public-spotlight-card public-spotlight-study">
+            <div className="public-spotlight-copy">
+              <span className="public-spotlight-kicker">01 / LECTURE-TO-REVISION</span>
+              <h3>One upload. A structured, exam-focused study guide.</h3>
+              <p>Upload a PDF, PowerPoint, Word document or other supported study resource. ClerkME builds detailed High-Yield Points around the material instead of giving you a wall of unstructured text.</p>
+              <ul>
+                <li>Topic-by-topic explanations and learning objectives</li>
+                <li>Diagnosis patterns, red flags, investigations and management tables</li>
+                <li>Comparison tables, mnemonics, memory hooks and recall prompts</li>
+                <li>Distinct SBA questions generated from the uploaded source</li>
+              </ul>
+              <a href="/login" className="public-spotlight-link">Explore My Study Materials <span>→</span></a>
+            </div>
+            <div className="public-spotlight-visual public-study-visual" aria-label="Illustrative study guide preview">
+              <div className="public-visual-window">
+                <div className="public-visual-window-top"><span className="public-window-dots"><i/><i/><i/></span><span>CLERKME · STUDY GUIDE</span><b>READY</b></div>
+                <div className="public-visual-document">
+                  <span className="public-visual-label">HIGH-YIELD POINTS</span>
+                  <strong>Understand the pattern. Know the next step.</strong>
+                  <div className="public-visual-row"><span>01</span><div><b>Clinical presentation</b><small>Key symptoms · History clues · Red flags</small></div><i>✓</i></div>
+                  <div className="public-visual-row"><span>02</span><div><b>Investigations & interpretation</b><small>Expected findings · What they mean</small></div><i>✓</i></div>
+                  <div className="public-visual-row"><span>03</span><div><b>Management approach</b><small>Priorities · Rationale · Monitoring</small></div><i>✓</i></div>
+                  <div className="public-visual-pills"><span>COMPARISON TABLES</span><span>MEMORY HOOKS</span><span>SBA PRACTICE</span></div>
+                </div>
+              </div>
+              <span className="public-visual-caption">Illustrative preview of the study workflow</span>
+            </div>
+          </article>
+
+          <article className="public-spotlight-card public-spotlight-video" id="youtube-library">
+            <div className="public-spotlight-copy">
+              <span className="public-spotlight-kicker">02 / VIDEO LEARNING, BUILT IN</span>
+              <h3>Find the lecture. Watch it inside ClerkME. Save it for later.</h3>
+              <p>Your study guide can suggest one or two focused videos related to the topic. You can also search YouTube directly from ClerkME without leaving your learning workspace.</p>
+              <ul>
+                <li>Discover lectures by topic, disease, procedure or clinical unit</li>
+                <li>Sort playable results by relevance, views or publication date</li>
+                <li>Watch supported videos in ClerkME’s embedded player</li>
+                <li>Save useful videos into clinical-unit, revision or custom collections</li>
+              </ul>
+              <a href="/login" className="public-spotlight-link">Explore the YouTube Library <span>→</span></a>
+            </div>
+            <div className="public-spotlight-visual public-video-visual" aria-label="Illustrative YouTube library preview">
+              <div className="public-video-preview">
+                <div className="public-video-preview-top"><span>CLERKME VIDEO LIBRARY</span><b>DISCOVER</b></div>
+                <div className="public-video-search-preview"><span>⌕</span> Search a topic or lecture <i>↵</i></div>
+                <div className="public-video-recommendation">
+                  <div className="public-video-thumb"><span>▶</span><i>LECTURE</i></div>
+                  <div><small>LECTURE-LINKED RECOMMENDATION</small><strong>Relevant videos for your topic</strong><span>Choose a result to watch in ClerkME</span></div>
+                </div>
+                <div className="public-video-actions-preview"><span><b>▶</b> Play in ClerkME</span><span><b>＋</b> Save to collection</span></div>
+                <div className="public-video-collections"><span>YOUR COLLECTIONS</span><b>General Medicine</b><b>Exam Revision</b><b>Watch Later</b></div>
+              </div>
+              <span className="public-visual-caption">Illustrative preview of video discovery and saved collections</span>
+            </div>
+          </article>
+        </div>
+
+        <div className="public-study-tools-heading">
+          <div><span className="public-eyebrow">MORE WAYS TO LEARN FROM YOUR MATERIAL</span><h3>Everything stays connected to the source.</h3></div>
+          <p>Use these tools together, or open the one that matches what you need to do next.</p>
+        </div>
+        <div className="public-feature-grid public-study-feature-grid">
+          {publicStudyFeatures.map(item => (
             <a className="public-feature-card" href="/login" key={item.number}>
               <span className="public-feature-number">{item.number}</span>
               <strong>{item.title}</strong>
               <p>{item.description}</p>
               <span className="public-feature-detail">{item.detail}</span>
-              <b>Explore in your workspace <i>→</i></b>
+              <b>Explore in ClerkME <i>→</i></b>
             </a>
           ))}
+        </div>
+      </section>
+
+      <section className="public-clinical-section" id="clinical-practice">
+        <div className="public-section-heading">
+          <div>
+            <span className="public-eyebrow">FROM KNOWLEDGE TO CLINICAL CONFIDENCE</span>
+            <h2>Practise the skills that matter beyond the written paper.</h2>
+          </div>
+          <p>Build your clinical approach through structured workflows, guided presentations and interactive practice.</p>
+        </div>
+        <div className="public-clinical-grid">
+          {publicClinicalFeatures.map(item => (
+            <a className="public-clinical-card" href="/login" key={item.number}>
+              <span className="public-clinical-card-top"><span>{item.number}</span><i>↗</i></span>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+              <strong>{item.detail}</strong>
+            </a>
+          ))}
+        </div>
+        <div className="public-clinical-note">
+          <span className="public-clinical-note-icon">✦</span>
+          <div><strong>One connected clinical workspace</strong><p>Move from learning a topic to practising the history, testing your knowledge and reviewing your progress without switching between disconnected tools.</p></div>
+          <a href="/login">Enter your workspace <span>→</span></a>
         </div>
       </section>
 
