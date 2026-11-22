@@ -799,6 +799,7 @@ export default function Home() {
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
+<div className="home-dashboard-card">
 <section className="home-compact-header" aria-label="Welcome and current study streak">
   <div className="home-welcome-copy">
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
@@ -840,6 +841,7 @@ export default function Home() {
   </div>
 </section>
 <footer className="footer-note home-compact-footer">ClerkME supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
+</div>
 </>}{active === "study" && <>
             <div className="page-intro study-hub-intro">
               <div className="eyebrow">YOUR STUDY WORKSPACE</div>
