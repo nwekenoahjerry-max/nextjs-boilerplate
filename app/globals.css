@@ -6192,3 +6192,86 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   }
   .content { opacity: 1; transform: none; }
 }
+
+
+/* ClerkMe motion system: short entrance cues, quiet ambient movement, and tactile feedback. */
+@keyframes clerkme-mark-arrive {
+  0% { opacity: 0; transform: translateY(7px) scale(.88) rotate(-7deg); }
+  72% { opacity: 1; transform: translateY(-1px) scale(1.025) rotate(1deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+}
+@keyframes clerkme-copy-arrive {
+  from { opacity: 0; transform: translateX(-7px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes clerkme-public-hero-arrive {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes clerkme-ambient-wash {
+  0%,100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.clerkme-brand-icon,
+.clerkme-brand-copy {
+  animation: none;
+}
+.clerkme-public-home .public-hero-copy,
+.clerkme-public-home .public-hero-demo-wrap,
+.auth-card {
+  animation: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .clerkme-brand-icon {
+    animation: clerkme-mark-arrive .72s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .clerkme-brand-copy {
+    animation: clerkme-copy-arrive .48s ease-out .12s both;
+  }
+  .clerkme-public-home .public-hero-copy {
+    animation: clerkme-public-hero-arrive .62s cubic-bezier(.2,.75,.25,1) both;
+  }
+  .clerkme-public-home .public-hero-demo-wrap {
+    animation: clerkme-public-hero-arrive .7s cubic-bezier(.2,.75,.25,1) .12s both;
+  }
+  .auth-card {
+    animation: clerkme-public-hero-arrive .5s cubic-bezier(.2,.75,.25,1) both;
+  }
+  .clerkme-public-home .public-hero {
+    background-size: 160% 160%;
+    animation: clerkme-ambient-wash 22s ease-in-out infinite;
+  }
+  .clerkme-public-home .public-demo-card {
+    transition: transform .24s ease, box-shadow .24s ease;
+  }
+  .clerkme-public-home .public-demo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 24px 60px rgba(11,35,72,.13);
+  }
+  .clerkme-brand:hover .clerkme-brand-icon {
+    transform: translateY(-1px) rotate(-1deg);
+  }
+}
+@media (max-width: 700px) and (prefers-reduced-motion: no-preference) {
+  .clerkme-public-home .public-hero {
+    animation-duration: 30s;
+  }
+  .clerkme-public-home .public-demo-card:hover {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clerkme-brand-icon,
+  .clerkme-brand-copy,
+  .clerkme-public-home .public-hero-copy,
+  .clerkme-public-home .public-hero-demo-wrap,
+  .clerkme-public-home .public-hero,
+  .auth-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .clerkme-public-home .public-demo-card {
+    transition: none !important;
+  }
+}
