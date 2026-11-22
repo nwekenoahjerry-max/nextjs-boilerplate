@@ -139,6 +139,15 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     } catch {}
   }, [gameOver, points]);
 
+  const customUnits = useMemo(
+    () => [...new Set(materials.map(item=>item.unit).filter(value=>value.startsWith("custom:")))]
+      .sort((a,b)=>a.slice("custom:".length).localeCompare(b.slice("custom:".length),"en",{sensitivity:"base"})),
+    [materials]
+  );
+  const unitName = (value:string) => value.startsWith("custom:")
+    ? value.slice("custom:".length)
+    : clinicalUnits.find(item=>item.id===value)?.name || value;
+  const isCustomGame = unit.startsWith("custom:");
   const unitMaterials = useMemo(() => materials.filter((item) => item.unit === unit), [materials, unit]);
   const chosenMaterial = unitMaterials.find((item) => item.id === materialId);
 
@@ -381,9 +390,14 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     </div>
 
     <div className="flight-source-controls">
-      <label>Clinical unit
+      <label>Subject / unit
         <select value={unit} onChange={(event) => changeUnit(event.target.value)}>
-          {clinicalUnits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          <optgroup label="Clinical & health sciences">
+            {clinicalUnits.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </optgroup>
+          {customUnits.length>0&&<optgroup label="My general-study subjects">
+            {customUnits.map(value=><option key={value} value={value}>{unitName(value)}</option>)}
+          </optgroup>}
         </select>
       </label>
       <label>Question source
@@ -398,7 +412,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
       {loading
         ? "Loading your private study library..."
         : uploadedQuestions.length > 0
-          ? <span><strong>{uploadedQuestions.length} uploaded-material questions</strong> · {unitMaterials.length} resource{unitMaterials.length === 1 ? "" : "s"} in {clinicalUnits.find((item) => item.id === unit)?.name}</span>
+          ? <span><strong>{uploadedQuestions.length} uploaded-material questions</strong> · {unitMaterials.length} resource{unitMaterials.length === 1 ? "" : "s"} in {unitName(unit)}</span>
           : <span><strong>{activeQuestions.length} {materialId === "all" ? "core" : "source"} questions</strong> · {unitMaterials.length ? "Your uploaded materials have not generated valid questions yet." : "Upload notes to personalise the game."}</span>}
       <button className="text-link" onClick={onOpenMaterials}>Manage study materials</button>
     </div>
@@ -471,7 +485,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
             <p>{gameOver
               ? "Review your score, then fly a fresh shuffled set of missions."
               : "Answer up to " + Math.min(MAX_ROUND_LENGTH, activeQuestions.length) + " unique questions. You have 20 seconds per question; three missed answers end the flight."}</p>
-            <button className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length || loading}>
+            <button type="button" className="flight-launch-button" onClick={reset} disabled={!activeQuestions.length || loading} aria-label={gameOver ? "Fly another round" : "Start Flight Academy game"}>
               {gameOver ? "Fly again" : "Start your flight"} <span>→</span>
             </button>
           </div>}
@@ -521,8 +535,8 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
                 <p>{gameOver
                   ? "Your flight result is ready. Start another round to practise a new order with shuffled answer positions."
                   : activeQuestions.length
-                    ? "The clinical question appears in the translucent flight-screen strip. Choose the best answer here."
-                    : "No usable practice questions are available for this selection. Upload learning material and generate a question set."}</p>
+                    ? "Your next question appears in the flight-screen strip. Choose the best answer here."
+                    : "No usable questions are available for this selection yet. Add a subject resource and generate a question set."}</p>
               </div>}
 
           {selected !== null && question && <div className={"flight-feedback " + (selected === question.answerIndex ? "correct" : "wrong")}>
@@ -552,7 +566,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
     </div>
 
     <div className="flight-quiz-footer">
-      <span><i></i> EDUCATIONAL GAME · UNIT-SPECIFIC PRACTICE</span>
+      <span><i></i> EDUCATIONAL GAME · SUBJECT-SPECIFIC PRACTICE</span>
       <span>{activeQuestions.length} QUESTIONS AVAILABLE · UP TO {Math.min(MAX_ROUND_LENGTH, activeQuestions.length)} UNIQUE MISSIONS</span>
     </div>
   </section>;
