@@ -4243,3 +4243,118 @@ body{background:var(--paper);color:var(--ink)}
   .flight-question-panel .flight-auto-advance{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){.flight-sky .sky-cloud{animation:none;will-change:auto}}
+
+
+
+/* ClerkME welcome page refresh — exam-prep inspired, with original ClerkME branding. */
+.clerkme-public-home{background:#f7faf7;color:#173b2d}
+.clerkme-public-home .public-header{max-width:1280px;padding:20px 34px}
+.clerkme-public-home .public-header nav{gap:25px}
+.public-header-actions{display:flex;align-items:center;gap:10px}
+.clerkme-public-home .public-header-signin{min-height:42px;padding:10px 16px}
+.public-header-start{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 17px;border:1px solid #0b4a34;border-radius:10px;background:#0b4a34;color:#fff;text-decoration:none;font-size:13px;font-weight:800;transition:background .18s,transform .18s}
+.public-header-start:hover{background:#17664a;transform:translateY(-1px)}
+.clerkme-public-home .public-hero{max-width:1280px;padding:58px 34px 76px;grid-template-columns:minmax(0,1.02fr) minmax(380px,.98fr);gap:54px}
+.clerkme-public-home .public-hero h1{max-width:680px;font-size:clamp(42px,5vw,66px);line-height:1.03}
+.clerkme-public-home .public-hero-copy>p{max-width:620px;font-size:16px;line-height:1.8}
+.clerkme-public-home .public-hero-actions{margin-top:25px}
+.clerkme-public-home .public-primary-cta{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:49px;padding:13px 19px;border:1px solid #0b4a34;border-radius:10px;background:#0b4a34;color:#fff;text-decoration:none;font-size:13px;font-weight:800;box-shadow:0 10px 24px #0b4a3423;transition:background .18s,transform .18s}
+.clerkme-public-home .public-primary-cta:hover{background:#17664a;transform:translateY(-2px)}
+.clerkme-public-home .public-primary-cta span{font-size:17px}
+.clerkme-public-home .public-secondary-cta{display:inline-flex;align-items:center;justify-content:center;min-height:47px;padding:12px 17px;border:1px solid #d4e0d6;border-radius:10px;background:#fff;color:#315d43;text-decoration:none;font-size:13px;font-weight:750}
+.clerkme-public-home .public-secondary-cta:hover{background:#edf5ef}
+.public-hero-proof{display:flex;flex-wrap:wrap;gap:24px;margin-top:32px;padding-top:20px;border-top:1px solid #e3ece4}
+.public-hero-proof>div{display:grid;gap:3px}
+.public-hero-proof strong{color:#174d34;font:850 19px/1 Manrope,Inter,sans-serif;letter-spacing:-.5px}
+.public-hero-proof span{color:#7c8e80;font-size:10px;font-weight:700}
+.public-hero-demo-wrap{position:relative;min-width:0;padding:18px 13px 23px 20px}
+.public-hero-demo-wrap:before{content:"";position:absolute;inset:0 0 12px 9px;border:1px solid #dbe8dc;border-radius:24px;background:linear-gradient(145deg,#e9f2eb,#f8fbf8)}
+.public-demo-heading{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 7px 11px 4px;color:#748779;font-size:9px;font-weight:900;letter-spacing:1.2px}
+.public-demo-heading strong{color:#a17b27;font-size:9px}
+.public-demo-card{position:relative;z-index:1;padding:21px 22px 15px;border:1px solid #e0e9e1;border-radius:18px;background:#fff;box-shadow:0 24px 60px #183e2b16}
+.public-demo-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:14px;border-bottom:1px solid #edf2ed}
+.public-demo-live{display:inline-flex;align-items:center;gap:7px;color:#567461;font-size:8px;font-weight:900;letter-spacing:1px}
+.public-demo-live i{width:7px;height:7px;border-radius:50%;background:#319767;box-shadow:0 0 0 4px #31976719}
+.public-demo-no-login{padding:5px 8px;border-radius:20px;background:#eef6ef;color:#34734b;font-size:8px;font-weight:800;white-space:nowrap}
+.public-demo-meta{margin-top:17px;color:#a07b2a;font-size:8px;font-weight:900;letter-spacing:1.1px}
+.public-demo-meta span{padding:0 5px;color:#b8c4b9}
+.public-demo-card h2{margin:10px 0 16px;color:#203f2d;font:800 17px/1.5 Manrope,Inter,sans-serif;letter-spacing:-.25px}
+.public-demo-options{display:grid;gap:8px}
+.public-demo-option{display:flex;align-items:center;gap:11px;width:100%;min-height:44px;padding:9px 11px;border:1px solid #e3ebe4;border-radius:9px;background:#fff;color:#3e5947;text-align:left;transition:border-color .16s,background .16s}
+.public-demo-option:not(:disabled):hover{border-color:#94b89d;background:#f7fbf7}
+.public-demo-option>span{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border:1px solid #dce7dd;border-radius:7px;background:#f5f8f5;color:#50735a;font-size:10px;font-weight:900}
+.public-demo-option>strong{flex:1;font-size:11px;line-height:1.4;font-weight:700}
+.public-demo-option>b{color:#2f8a53;font-size:14px}
+.public-demo-option.is-correct{border-color:#7bb58d;background:#f0f8f1;color:#245d38}
+.public-demo-option.is-correct>span{border-color:#8fc39c;background:#dff0e2;color:#286a42}
+.public-demo-option.is-incorrect{border-color:#d99a8f;background:#fff5f3;color:#9b4f43}
+.public-demo-option.is-incorrect>span{border-color:#e5b4aa;background:#fbe7e3;color:#994f43}
+.public-demo-feedback{margin-top:12px;padding:12px 13px;border:1px solid #d7e8da;border-radius:10px;background:#f3faf4}
+.public-demo-feedback.is-review{border-color:#eadfc7;background:#fffaf0}
+.public-demo-feedback>strong{display:block;color:#28663f;font-size:11px}
+.public-demo-feedback.is-review>strong{color:#8a6a2d}
+.public-demo-feedback p{margin:6px 0 9px;color:#64786a;font-size:10px;line-height:1.65}
+.public-demo-feedback button{padding:0;border:0;background:none;color:#286a42;font-size:10px;font-weight:850}
+.public-demo-feedback button span{padding-left:5px}
+.public-demo-footer{display:flex;justify-content:space-between;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid #edf2ed;color:#8a9a8d;font-size:7px;font-weight:900;letter-spacing:1px}
+.public-demo-disclaimer{position:relative;margin:10px 6px 0;color:#829184;font-size:9px;line-height:1.6}
+.clerkme-public-home .public-feature-section{padding-top:68px;padding-bottom:73px}
+.clerkme-public-home .public-section-heading{align-items:flex-end}
+.clerkme-public-home .public-section-heading h2{font-size:clamp(28px,3.2vw,40px)}
+.clerkme-public-home .public-feature-card{min-height:232px}
+.clerkme-public-home .public-how-section{padding-top:68px;padding-bottom:72px}
+.clerkme-public-home .public-bottom-cta{max-width:1210px;margin-bottom:55px;padding:35px 38px}
+.clerkme-public-home .public-footer{max-width:1280px;grid-template-columns:minmax(180px,1fr) minmax(250px,1.4fr) minmax(230px,1fr);align-items:start;gap:28px;padding-top:25px}
+.public-footer-brand{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.public-footer-brand .public-brand{padding:0}
+.public-footer-copyright{color:#87948a;font-size:10px}
+.public-footer-disclaimer{max-width:520px;margin:3px 0 0;color:#7d8c80;font-size:11px;line-height:1.7}
+.public-footer-contact{display:grid;gap:8px;justify-items:start}
+.public-footer-contact>strong{color:#294e36;font-size:12px}
+.public-footer-contact a{color:#497357;font-size:11px;font-weight:650;text-decoration:none}
+.public-footer-contact a:hover{text-decoration:underline}
+.public-footer-contact small{margin-top:5px;color:#9a7a34;font-size:10px;font-weight:800}
+@media(max-width:950px){
+  .clerkme-public-home .public-hero{grid-template-columns:1fr;gap:25px;padding-top:45px}
+  .public-hero-demo-wrap{width:min(100%,680px);margin:0 auto}
+  .clerkme-public-home .public-footer{grid-template-columns:1fr 1fr}
+}
+@media(max-width:700px){
+  .clerkme-public-home .public-header{padding:13px 16px;flex-wrap:nowrap}
+  .clerkme-public-home .public-header nav{display:none}
+  .public-header-actions{gap:6px}
+  .clerkme-public-home .public-header-signin{min-height:38px;padding:8px 10px;font-size:11px}
+  .public-header-start{min-height:38px;padding:8px 11px;font-size:11px}
+  .clerkme-public-home .public-hero{display:block;padding:37px 18px 48px}
+  .clerkme-public-home .public-hero h1{font-size:clamp(36px,9.7vw,48px);line-height:1.05}
+  .clerkme-public-home .public-hero-copy>p{font-size:14px;line-height:1.75}
+  .clerkme-public-home .public-hero-actions{display:grid;grid-template-columns:1fr;gap:9px}
+  .clerkme-public-home .public-hero-actions a{width:100%}
+  .public-hero-proof{gap:15px;margin-top:23px;padding-top:16px}
+  .public-hero-proof>div{min-width:calc(33.333% - 12px)}
+  .public-hero-proof strong{font-size:17px}
+  .public-hero-proof span{font-size:8px;line-height:1.4}
+  .public-hero-demo-wrap{margin-top:31px;padding:13px 8px 20px 11px}
+  .public-demo-card{padding:16px 14px 13px;border-radius:14px}
+  .public-demo-card h2{font-size:15px;line-height:1.5}
+  .public-demo-option{min-height:46px;padding:8px}
+  .public-demo-option>strong{font-size:10px}
+  .public-demo-footer{font-size:6px}
+  .clerkme-public-home .public-feature-section{padding:50px 18px 54px}
+  .clerkme-public-home .public-section-heading h2,.clerkme-public-home .public-how-section h2{font-size:28px}
+  .clerkme-public-home .public-feature-grid{grid-template-columns:1fr;gap:9px}
+  .clerkme-public-home .public-feature-card{min-height:0;padding:16px}
+  .clerkme-public-home .public-feature-number{margin-bottom:10px}
+  .clerkme-public-home .public-how-section{padding:50px 18px;display:block}
+  .clerkme-public-home .public-how-steps{grid-template-columns:1fr;gap:9px;margin-top:20px}
+  .clerkme-public-home .public-how-steps>div{padding:14px;display:grid;grid-template-columns:34px minmax(0,1fr);gap:4px 10px}
+  .clerkme-public-home .public-how-steps>div>span{grid-row:span 2;margin:0}
+  .clerkme-public-home .public-how-steps p{margin:0}
+  .clerkme-public-home .public-bottom-cta{margin:0 16px 40px;padding:21px;display:grid;grid-template-columns:1fr;gap:16px}
+  .clerkme-public-home .public-bottom-cta h2{font-size:23px}
+  .clerkme-public-home .public-footer{padding:20px 18px 27px;grid-template-columns:1fr;gap:18px}
+  .public-footer-disclaimer{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .clerkme-public-home *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
