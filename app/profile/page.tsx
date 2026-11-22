@@ -43,6 +43,15 @@ export default function ProfilePage() {
 
   const isOutsideNigeria = stateSelection === "Outside Nigeria";
   const availableLgas = nigeriaLgasByState[stateSelection] || [];
+  const requiredProfileValues = [
+    name.trim(),
+    university.trim(),
+    level.trim(),
+    (isOutsideNigeria ? otherState : stateSelection).trim(),
+    lga.trim(),
+  ];
+  const completedRequiredFields = requiredProfileValues.filter(Boolean).length;
+  const profileCompletion = Math.round((completedRequiredFields / 5) * 100);
   useEffect(() => {
     fetch("/api/profile", { credentials: "same-origin", cache: "no-store" })
       .then(async response => {
@@ -146,10 +155,21 @@ export default function ProfilePage() {
           <ClerkMeBrand caption="STUDENT PROFILE"/>
           <a className="auth-back profile-back-link" href="/">Back to workspace</a>
         </div>
-        <div className="eyebrow">YOUR CLERKME ACCOUNT</div>
-        <h1>Complete your student profile</h1>
-        <p className="profile-intro">These details help personalise your learning workspace. Your future area of specialisation is optional and can be changed later.</p>
+        <div className="eyebrow">PROFILE & PREFERENCES</div>
+        <h1>Your student profile</h1>
+        <p className="profile-intro">Keep your academic details current so ClerkME can personalise your learning workspace. Your future area of specialisation is optional and can be changed at any time.</p>
         {profile && <div className="profile-account-summary"><strong>{profile.name || "Student account"}</strong><span>{profile.email}</span></div>}
+
+        <section className="profile-progress-card" aria-label="Student profile completion">
+          <div className="profile-progress-heading">
+            <div><span>PROFILE COMPLETION</span><p>{completedRequiredFields} of 5 required details completed</p></div>
+            <strong>{profileCompletion}%</strong>
+          </div>
+          <div className="profile-progress-track" role="progressbar" aria-label="Profile completion" aria-valuemin={0} aria-valuemax={100} aria-valuenow={profileCompletion}>
+            <span style={{ width: profileCompletion + "%" }}/>
+          </div>
+          <p className="profile-progress-note">{profileCompletion === 100 ? "Your required profile details are complete. You can update them whenever they change." : "Complete the required details below. Your career interest is optional."}</p>
+        </section>
 
         <form className="student-profile-form" onSubmit={save}>
           <div className="profile-form-section">
@@ -237,9 +257,12 @@ export default function ProfilePage() {
             <small>This is the email linked to your Google sign-in and cannot be changed here.</small>
           </label>
 
-          <button className="primary-button profile-save-button" type="submit" disabled={saving}>
-            {saving ? "Saving profile…" : "Save student profile"} <span>→</span>
-          </button>
+          <div className="profile-form-actions">
+            <p>Save your changes to keep your ClerkME workspace details up to date.</p>
+            <button className="primary-button profile-save-button" type="submit" disabled={saving}>
+              {saving ? "Saving profile…" : "Save changes"} <span>→</span>
+            </button>
+          </div>
         </form>
         {message && <div className="auth-message profile-save-success" role="status">
           <p>{message}</p>
