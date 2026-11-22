@@ -92,6 +92,28 @@ function formatBytes(bytes?: number | null) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+function chunkSpeechText(value: string, maxLength = 1100) {
+  const remainingText = value
+    .replace(/\u0000/g, " ")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const chunks: string[] = [];
+  let remaining = remainingText;
+  while (remaining.length > maxLength) {
+    const sentenceBreak = remaining.lastIndexOf(". ", maxLength);
+    const lineBreak = remaining.lastIndexOf("\n", maxLength);
+    let splitAt = Math.max(sentenceBreak >= 0 ? sentenceBreak + 1 : -1, lineBreak);
+    if (splitAt < Math.floor(maxLength * 0.55)) splitAt = remaining.lastIndexOf(" ", maxLength);
+    if (splitAt < 1) splitAt = maxLength;
+    chunks.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks.filter(Boolean);
+}
+
 function readableFileError(responseStatus: number) {
   if (responseStatus === 401 || responseStatus === 403) return "Your session has expired. Sign in again to read this material.";
   if (responseStatus === 404) return "The original file is not available. Re-upload this material to restore its original document.";
@@ -122,6 +144,14 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [pptxShowSlides, setPptxShowSlides] = useState(false);
   const [pptxFullscreen, setPptxFullscreen] = useState(false);
   const [pptxPresentationError, setPptxPresentationError] = useState("");
+  const [pptxSlideText, setPptxSlideText] = useState("");
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechStatus, setSpeechStatus] = useState<"idle" | "speaking" | "paused">("idle");
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechNotice, setSpeechNotice] = useState("");
+  const speechChunksRef = useRef<string[]>([]);
+  const speechRunRef = useRef(0);
+  const speechUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const [docxFrameReady, setDocxFrameReady] = useState(false);
   const [docxLoading, setDocxLoading] = useState(false);
@@ -151,6 +181,95 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     extension === "xlsx" ? "spreadsheet" :
     ["txt", "md", "csv", "rtf", "html", "htm", "json"].includes(extension) ? "text" :
     (mimeType || "").startsWith("image/") ? "image" : "download";
+
+  const speechTextReady = mode === "powerpoint"
+    ? Boolean(pptxSlideText.trim())
+    : Boolean(extractedText.trim() || textContent.trim());
+
+  useEffect(() => {
+    setSpeechSupported(typeof window !== "undefined" && "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined");
+  }, []);
+
+  useEffect(() => {
+    setSpeechStatus("idle");
+    setSpeechNotice("");
+    setPptxSlideText("");
+    return () => {
+      speechRunRef.current += 1;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, [sourceUrl]);
+
+  const stopReadAloud = () => {
+    speechRunRef.current += 1;
+    speechChunksRef.current = [];
+    speechUtteranceRef.current = null;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSpeechStatus("idle");
+    setSpeechNotice("Reading stopped.");
+  };
+
+  const speakNextChunk = (run: number, index: number) => {
+    if (run !== speechRunRef.current) return;
+    const chunks = speechChunksRef.current;
+    if (index >= chunks.length) {
+      setSpeechStatus("idle");
+      setSpeechNotice(mode === "powerpoint" ? "Finished reading this slide." : "Finished reading the uploaded source.");
+      speechUtteranceRef.current = null;
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(chunks[index]);
+    utterance.rate = speechRate;
+    utterance.onend = () => { if (run === speechRunRef.current) speakNextChunk(run, index + 1); };
+    utterance.onerror = () => {
+      if (run !== speechRunRef.current) return;
+      setSpeechStatus("idle");
+      setSpeechNotice("Your browser stopped the voice playback. Select Read aloud to try again.");
+      speechUtteranceRef.current = null;
+    };
+    speechUtteranceRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startReadAloud = () => {
+    if (!speechSupported || !("speechSynthesis" in window)) {
+      setSpeechNotice("Read aloud is not supported by this browser.");
+      return;
+    }
+    const sourceText = mode === "powerpoint" ? pptxSlideText : (extractedText.trim() || textContent.trim());
+    const chunks = chunkSpeechText(sourceText);
+    if (!chunks.length) {
+      setSpeechNotice(mode === "powerpoint"
+        ? "No selectable text was found on this slide. Image-only content cannot be read aloud."
+        : "No readable source text is available for this file.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const run = ++speechRunRef.current;
+    speechChunksRef.current = chunks;
+    setPptxPlaying(false);
+    setSpeechStatus("speaking");
+    setSpeechNotice(mode === "powerpoint"
+      ? "Reading slide " + (pptxCurrentSlide + 1) + " of " + pptxSlideCount + "."
+      : "Reading the extracted text from your uploaded file.");
+    speakNextChunk(run, 0);
+  };
+
+  const pauseReadAloud = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && speechStatus === "speaking") {
+      window.speechSynthesis.pause();
+      setSpeechStatus("paused");
+      setSpeechNotice("Reading paused.");
+    }
+  };
+
+  const resumeReadAloud = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && speechStatus === "paused") {
+      window.speechSynthesis.resume();
+      setSpeechStatus("speaking");
+      setSpeechNotice("Reading resumed.");
+    }
+  };
 
   useEffect(() => {
     if (!pptxPlaying || !pptxReady || pptxSlideCount < 1) return;
@@ -244,6 +363,16 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
       renderer.destroy();
     };
   }, [mode, sourceUrl, pptxRetry]);
+
+  useEffect(() => {
+    if (mode !== "powerpoint" || !pptxReady || !pptxRendererRef.current) return;
+    let cancelled = false;
+    setPptxSlideText("");
+    pptxRendererRef.current.extractText(pptxCurrentSlide)
+      .then(text => { if (!cancelled) setPptxSlideText(typeof text === "string" ? text : ""); })
+      .catch(() => { if (!cancelled) setPptxSlideText(""); });
+    return () => { cancelled = true; };
+  }, [mode, pptxReady, pptxCurrentSlide, pptxRetry]);
 
   // Render one slide at a time to keep memory use predictable for large lectures.
   useEffect(() => {
@@ -385,18 +514,22 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
 
   const handlePptxKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "ArrowLeft" && pptxCurrentSlide > 0) {
+      if (speechStatus !== "idle") stopReadAloud();
       event.preventDefault();
       setPptxCurrentSlide(value => Math.max(0, value - 1));
     } else if (event.key === "ArrowRight" && pptxCurrentSlide < pptxSlideCount - 1) {
+      if (speechStatus !== "idle") stopReadAloud();
       event.preventDefault();
       setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1));
     } else if (event.key === " " && pptxReady) {
       event.preventDefault();
       setPptxPlaying(value => !value);
     } else if (event.key === "Home") {
+      if (speechStatus !== "idle") stopReadAloud();
       event.preventDefault();
       setPptxCurrentSlide(0);
     } else if (event.key === "End") {
+      if (speechStatus !== "idle") stopReadAloud();
       event.preventDefault();
       setPptxCurrentSlide(Math.max(0, pptxSlideCount - 1));
     }
@@ -424,9 +557,11 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     // Ignore taps and vertical gestures; only a deliberate horizontal swipe changes slides.
     if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
     if (deltaX < 0 && pptxCurrentSlide < pptxSlideCount - 1) {
+      if (speechStatus !== "idle") stopReadAloud();
       setPptxPlaying(false);
       setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1));
     } else if (deltaX > 0 && pptxCurrentSlide > 0) {
+      if (speechStatus !== "idle") stopReadAloud();
       setPptxPlaying(false);
       setPptxCurrentSlide(value => Math.max(0, value - 1));
     }
@@ -446,6 +581,29 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         </div>
         <a className="secondary-button source-download-button" href={downloadUrl} download={fileName} title="Download the original uploaded file">Download original file</a>
       </div>
+
+      <section className="source-read-aloud" aria-label="Read uploaded material aloud">
+        <div className="source-read-aloud-copy">
+          <strong>Listen to your material</strong>
+          <small>{mode === "powerpoint"
+            ? "Reads the currently selected slide. Move to another slide to listen to it."
+            : "Reads the extracted text from this uploaded file."}</small>
+        </div>
+        <div className="source-read-aloud-actions">
+          <button type="button" className="source-speech-primary" onClick={startReadAloud} disabled={!speechSupported || !speechTextReady || speechStatus === "speaking"}>▶ Read aloud</button>
+          {speechStatus === "speaking" && <button type="button" onClick={pauseReadAloud}>Ⅱ Pause</button>}
+          {speechStatus === "paused" && <button type="button" onClick={resumeReadAloud}>▶ Resume</button>}
+          <button type="button" onClick={stopReadAloud} disabled={speechStatus === "idle"}>Stop</button>
+          <label>Speed
+            <select value={speechRate} onChange={event => setSpeechRate(Number(event.target.value))}>
+              <option value={0.8}>0.8×</option><option value={1}>1×</option><option value={1.15}>1.15×</option><option value={1.3}>1.3×</option>
+            </select>
+          </label>
+        </div>
+        {speechNotice && <small className="source-read-aloud-status" role="status">{speechNotice}</small>}
+        {!speechSupported && <small className="source-read-aloud-status">Voice playback is not available in this browser.</small>}
+        {speechSupported && !speechTextReady && <small className="source-read-aloud-status">{mode === "powerpoint" ? "Preparing this slide's text…" : "Waiting for readable source text…"}</small>}
+      </section>
 
       {mode === "pdf" && <PdfSourceReader sourceUrl={sourceUrl} fileName={fileName}/ >}
 
@@ -485,8 +643,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
               </div>
               <div className="source-pptx-toolbar" role="toolbar" aria-label="PowerPoint presentation controls">
                 <div className="source-pptx-toolbar-group">
-                  <button type="button" className="source-pptx-tool-button" onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(value => Math.max(0, value - 1)); }} disabled={pptxCurrentSlide === 0} aria-label="Previous slide">‹</button>
-                  <button type="button" className="source-pptx-tool-button" onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1)); }} disabled={pptxCurrentSlide >= pptxSlideCount - 1} aria-label="Next slide">›</button>
+                  <button type="button" className="source-pptx-tool-button" onClick={() => { if (speechStatus !== "idle") stopReadAloud(); setPptxPlaying(false); setPptxCurrentSlide(value => Math.max(0, value - 1)); }} disabled={pptxCurrentSlide === 0} aria-label="Previous slide">‹</button>
+                  <button type="button" className="source-pptx-tool-button" onClick={() => { if (speechStatus !== "idle") stopReadAloud(); setPptxPlaying(false); setPptxCurrentSlide(value => Math.min(pptxSlideCount - 1, value + 1)); }} disabled={pptxCurrentSlide >= pptxSlideCount - 1} aria-label="Next slide">›</button>
                   <button type="button" className="source-pptx-tool-button source-pptx-play-button" onClick={() => setPptxPlaying(value => !value)} aria-pressed={pptxPlaying}>
                     {pptxPlaying ? "Ⅱ Pause" : "▶ Play"}
                   </button>
@@ -521,7 +679,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
                       key={index}
                       className={index === pptxCurrentSlide ? "is-current" : ""}
                       aria-current={index === pptxCurrentSlide ? "page" : undefined}
-                      onClick={() => { setPptxPlaying(false); setPptxCurrentSlide(index); }}
+                      onClick={() => { if (speechStatus !== "idle") stopReadAloud(); setPptxPlaying(false); setPptxCurrentSlide(index); }}
                     >
                       <span className="source-pptx-slide-thumb">{String(index + 1).padStart(2, "0")}</span>
                       <small>Slide {index + 1}</small>
