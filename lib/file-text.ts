@@ -123,6 +123,44 @@ function xmlText(xml: string, tag: string) {
     .join(" ");
 }
 
+function paragraphText(element: Element) {
+  return Array.from(element.getElementsByTagName("*"))
+    .filter(node => node.localName === "t")
+    .map(node => node.textContent || "")
+    .join("")
+    .trim();
+}
+
+function extractPptxSlide(xml: string) {
+  const doc = parseXml(xml);
+  const textBodies = Array.from(doc.getElementsByTagName("*")).filter(node => node.localName === "txBody");
+  const blocks = textBodies.map((body, index) => {
+    const paragraphs = Array.from(body.getElementsByTagName("*"))
+      .filter(node => node.localName === "p")
+      .map(paragraphText)
+      .filter(Boolean);
+    return paragraphs.length ? "TEXT BLOCK " + (index + 1) + "\n" + paragraphs.join("\n") : "";
+  }).filter(Boolean);
+  return blocks.join("\n\n") || xmlText(xml, "t");
+}
+
+function extractDocx(xml: string) {
+  const doc = parseXml(xml);
+  const body = Array.from(doc.getElementsByTagName("*")).find(node => node.localName === "body");
+  if (!body) return xmlText(xml, "t");
+  const blocks = Array.from(body.children).map(child => {
+    if (child.localName === "p") return paragraphText(child);
+    if (child.localName !== "tbl") return "";
+    const rows = Array.from(child.getElementsByTagName("*")).filter(node => node.localName === "tr");
+    return rows.map(row => {
+      const cells = Array.from(row.children).filter(cell => cell.localName === "tc")
+        .map(cell => Array.from(cell.getElementsByTagName("*")).filter(node => node.localName === "p").map(paragraphText).filter(Boolean).join(" "));
+      return cells.length ? "| " + cells.join(" | ") + " |" : "";
+    }).filter(Boolean).join("\n");
+  }).filter(Boolean);
+  return blocks.join("\n\n");
+}
+
 function extractXlsx(entries: Array<{ name: string; text: string }>) {
   const entry = (name: string) => entries.find(item => item.name.toLowerCase() === name.toLowerCase())?.text || "";
   const sharedXml = entry("xl/sharedStrings.xml");
@@ -150,8 +188,10 @@ function extractXlsx(entries: Array<{ name: string; text: string }>) {
         const valueNode = Array.from(cell.getElementsByTagName("*")).find(node => node.localName === "v");
         const inlineNode = Array.from(cell.getElementsByTagName("*")).filter(node => node.localName === "t").map(node => node.textContent || "").join("");
         const raw = valueNode?.textContent || "";
+        const formula = Array.from(cell.getElementsByTagName("*")).find(node => node.localName === "f")?.textContent || "";
         const value = type === "s" ? (sharedStrings[Number(raw)] ?? raw) : type === "inlineStr" ? inlineNode : raw;
-        return value ? (ref ? ref + ": " : "") + value : "";
+        const displayed = value || (formula ? "=" + formula : "");
+        return displayed ? (ref ? ref + ": " : "") + displayed : "";
       }).filter(Boolean);
       return values.length ? "ROW " + (row.getAttribute("r") || String(rowIndex + 1)) + " · " + values.join(" | ") : "";
     }).filter(Boolean);
@@ -205,19 +245,21 @@ async function requestVisualExtraction(file: File, mimeType: string): Promise<st
   return typeof data.text === "string" ? data.text.trim() : "";
 }
 
-async function extractPdfText(file: File): Promise<{ text: string; numPages: number }> {
+async function extractPdfText(file: File): Promise<{ text: string; numPages: number; imageOnlyPages: number }> {
   const pdfjs = await loadPdfJs();
   const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-  if (pdf.numPages > 200) throw new Error("This PDF contains more than 200 pages. Split it into smaller sections so ClerkME can preserve the complete source.");
+  if (pdf.numPages > 200) throw new Error("This PDF contains more than 200 pages. Split it into smaller sections so ClerkMe can preserve the complete source.");
   const pages: string[] = [];
+  let imageOnlyPages = 0;
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push("PAGE " + pageNumber + "\n" + content.items.map(item => item.str || "").join(" "));
+    const pageText = content.items.map(item => item.str || "").join(" ").trim();
+    if (pageText.length < 20) imageOnlyPages++;
+    pages.push("PAGE " + pageNumber + "\n" + pageText);
   }
-  return { text: pages.join("\n\n"), numPages: pdf.numPages };
+  return { text: pages.join("\n\n"), numPages: pdf.numPages, imageOnlyPages };
 }
-
 export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> {
   if (file.size === 0) throw new Error("The selected file is empty.");
   if (file.size > MAX_FILE_BYTES) throw new Error("This file is larger than 20 MB. Please compress it or split it into smaller parts.");
@@ -238,11 +280,11 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
   } else if (extension === "pptx") {
     const entries = await unzipTextFiles(await file.arrayBuffer(), entry => /^ppt\/slides\/slide\d+\.xml$/i.test(entry));
     entries.sort((a, b) => Number(a.name.match(/slide(\d+)/i)?.[1] || 0) - Number(b.name.match(/slide(\d+)/i)?.[1] || 0));
-    text = entries.map((entry, index) => "SLIDE " + (index + 1) + "\n" + xmlText(entry.text, "t")).join("\n\n");
+    text = entries.map((entry, index) => "SLIDE " + (index + 1) + "\n" + extractPptxSlide(entry.text)).join("\n\n");
     if (!text.trim()) throw new Error("No readable text was found in this PowerPoint. Try exporting the slides as PDF if they contain images or scanned text.");
   } else if (extension === "docx") {
     const entries = await unzipTextFiles(await file.arrayBuffer(), entry => entry === "word/document.xml");
-    text = entries.map(entry => xmlText(entry.text, "t")).join("\n");
+    text = entries.map(entry => extractDocx(entry.text)).join("\n");
     if (!text.trim()) throw new Error("No readable text was found in this Word document. Try saving it as PDF and upload again.");
   } else if (extension === "xlsx") {
     const entries = await unzipTextFiles(await file.arrayBuffer(), entry => entry === "xl/sharedStrings.xml" || entry === "xl/workbook.xml" || /^xl\/worksheets\/sheet\d+\.xml$/i.test(entry));
@@ -251,15 +293,16 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
     try {
       const extracted = await extractPdfText(file);
       text = extracted.text;
+      // Some PDFs mix selectable pages with scans. Do not silently drop the
+      // image-only pages from the study guide.
+      if (extracted.imageOnlyPages > 0) text = await requestVisualExtraction(file, "application/pdf");
     } catch (error) {
       if (error instanceof Error && /more than 200 pages/.test(error.message)) throw error;
       // Scanned PDFs contain page images rather than selectable text. Let the
       // authenticated server-side Gemini OCR path read the original PDF.
-      text = "";
-    }
-    if (text.trim().length < MIN_USABLE_TEXT) {
       text = await requestVisualExtraction(file, "application/pdf");
     }
+
   } else {
     const imageMime = inferredImageMime(file, extension);
     if (imageMime) {
