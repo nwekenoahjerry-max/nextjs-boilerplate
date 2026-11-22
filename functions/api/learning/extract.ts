@@ -32,7 +32,7 @@ export const onRequestPost = async (context: AppContext) => {
 
   const apiKey = context.env.GEMINI_API_KEY;
   if (!apiKey) return json({
-    error: "Image and scanned-document reading is not configured right now. Your original file has not been uploaded. Please try a text-based PDF or document.",
+    error: "Scanned-document reading is not configured right now. Your file has not been uploaded. Please use a text-based document or try again later.",
     code: "DOCUMENT_READER_UNAVAILABLE"
   }, 503);
 
@@ -53,10 +53,10 @@ export const onRequestPost = async (context: AppContext) => {
     "Transcribe and extract the complete visible educational content. Do not summarise, paraphrase, correct or add medical knowledge.",
     "Preserve the original wording, section order, headings, numbered and bulleted lists, tables, labels, abbreviations, values, units, equations and references as closely as possible.",
     "For a PDF, keep page boundaries and label each page as PAGE 1, PAGE 2, and so on. For images, retain visible headings and the reading order.",
-    "Represent tables in Markdown table form when the columns and rows are legible. Preserve a value in its correct row and column.",
-    "Do not invent text that is blurred, hidden or unreadable. Mark such passages as [illegible] and continue with the readable material.",
-    "Do not output a general summary, introduction, commentary or a list of clinical recommendations. Output only the source transcription in reading order.",
-    "If the source is genuinely blank or contains no readable educational material, say so plainly."
+    "Represent tables in Markdown table form when the columns and rows are legible. Preserve each value in its correct row and column.",
+    "Do not invent text that is blurred, hidden or unreadable. Mark such passages as [illegible] and continue with readable content.",
+    "Do not output a general summary, introduction, commentary or clinical recommendations. Output only the source transcription in reading order.",
+    "If the source is blank or contains no readable educational material, say so plainly."
   ].join("\n");
 
   try {
@@ -67,13 +67,7 @@ export const onRequestPost = async (context: AppContext) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
-          contents: [{
-            role: "user",
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType, data: encoded } }
-            ]
-          }],
+          contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType, data: encoded } }] }],
           generationConfig: { temperature: 0.1, maxOutputTokens: 24000 }
         }),
         signal: AbortSignal.timeout(180000)
@@ -103,16 +97,12 @@ export const onRequestPost = async (context: AppContext) => {
       return json({ text, method: "visual-extraction" });
     }
     console.error("[ClerkME] Visual document extraction failed.", {
-      userId: user.id,
-      fileName: file.name.slice(0, 120),
-      mimeType,
-      message: lastError.slice(0, 240)
+      userId: user.id, fileName: file.name.slice(0, 120), mimeType, message: lastError.slice(0, 240)
     });
     return json({ error: "ClerkME could not read this scanned document just now. Your file has not been uploaded. Please retry or use a clearer, text-based copy." }, 502);
   } catch (error) {
     console.error("[ClerkME] Visual document extraction request failed.", {
-      userId: user.id,
-      mimeType,
+      userId: user.id, mimeType,
       message: error instanceof Error ? error.message.slice(0, 220) : "Unknown extraction error."
     });
     return json({
