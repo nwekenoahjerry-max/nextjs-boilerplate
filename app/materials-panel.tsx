@@ -572,6 +572,7 @@ export default function MaterialsPanel() {
     if (!force && illustrationsByMaterial[materialId]?.length) return illustrationsByMaterial[materialId];
     if (illustratingMaterialId) return [];
     setIllustratingMaterialId(materialId);
+    const imageFailureMessage = "Clerkme can't generate image at the moment, try again later.";
     setIllustrationErrors(current=>({...current,[materialId]:""}));
     setNotice("Preparing source-specific visual illustrations…");
     try {
@@ -590,18 +591,16 @@ export default function MaterialsPanel() {
       if (generated.length) {
         setIllustrationsByMaterial(current=>({...current,[materialId]:generated}));
         try { window.sessionStorage.setItem(illustrationSessionKey(materialId),JSON.stringify(generated)); } catch {}
-        setIllustrationErrors(current=>({...current,[materialId]:typeof data.warning==="string"?data.warning:""}));
+        setIllustrationErrors(current=>({...current,[materialId]:typeof data.warning==="string"&&data.warning?imageFailureMessage:""}));
         setNotice(data.message || "Your topic illustrations are ready.");
       } else {
-        const message = data.message || "No suitable illustration was generated for this topic.";
-        setIllustrationErrors(current=>({...current,[materialId]:message}));
-        setNotice("Your study guide is ready. The written notes and visual learning pathways remain available.");
+        setIllustrationErrors(current=>({...current,[materialId]:imageFailureMessage}));
+        setNotice("Your Study Guide remains available.");
       }
       return generated;
-    } catch(e) {
-      const message = e instanceof Error?e.message:"Could not generate the illustrations.";
-      setIllustrationErrors(current=>({...current,[materialId]:message}));
-      setNotice("Your study guide is saved. You can retry the visual illustrations from the study guide.");
+    } catch {
+      setIllustrationErrors(current=>({...current,[materialId]:imageFailureMessage}));
+      setNotice("Your Study Guide remains available.");
       return [];
     } finally {
       setIllustratingMaterialId("");

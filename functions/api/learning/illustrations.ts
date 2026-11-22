@@ -1,7 +1,9 @@
-import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
 const TEXT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const IMAGE_MODEL = "@cf/black-forest-labs/flux-2-klein-9b";
+const GEMINI_IMAGE_MODEL = "gemini-3.1-flash-lite-image";
+const GEMINI_IMAGE_FAILURE = "Clerkme can't generate image at the moment, try again later.";
+const GEMINI_IMAGE_API = "https://generativelanguage.googleapis.com/v1beta/interactions";
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 
 type VisualAid = {
@@ -101,11 +103,83 @@ function imagePrompt(aid: VisualAid, generalStudy = false) {
   ].join("\n").slice(0, 2048);
 }
 
+
+type GeminiImageResponse = {
+  output_image?: { data?: string; mime_type?: string };
+  output?: Array<{ type?: string; data?: string; mime_type?: string; image?: { data?: string; mime_type?: string } }>;
+  error?: { message?: string; status?: string; code?: number };
+};
+
+async function generateGeminiImage(apiKey: string, prompt: string): Promise<{ data: string; mimeType: string }> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let response: Response;
+    let payload: GeminiImageResponse = {};
+    try {
+      response = await fetch(GEMINI_IMAGE_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "x-goog-api-key": apiKey,
+          "Api-Revision": "2026-05-20"
+        },
+        body: JSON.stringify({
+          model: GEMINI_IMAGE_MODEL,
+          input: [{ type: "text", text: prompt }],
+          response_format: {
+            type: "image",
+            mime_type: "image/png",
+            aspect_ratio: "1:1",
+            image_size: "1K"
+          }
+        }),
+        signal: AbortSignal.timeout(90000)
+      });
+      payload = await response.json().catch(() => ({})) as GeminiImageResponse;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        continue;
+      }
+      throw error;
+    }
+    if (!response.ok) {
+      const providerMessage = typeof payload.error?.message === "string" ? payload.error.message.slice(0, 300) : "";
+      lastError = new Error("Gemini image request failed (" + response.status + "): " + providerMessage);
+      if (attempt === 0 && [408, 429, 500, 502, 503, 504].includes(response.status)) {
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        continue;
+      }
+      throw lastError;
+    }
+    const imagePart = payload.output?.find(part => part.type === "image" && (part.data || part.image?.data));
+    const imageData = payload.output_image?.data || imagePart?.data || imagePart?.image?.data || "";
+    const mimeType = (payload.output_image?.mime_type || imagePart?.mime_type || imagePart?.image?.mime_type || "image/png").toLowerCase();
+    if (!imageData || !/^image\/(png|jpeg|webp)$/.test(mimeType)) {
+      throw new Error("Gemini returned no supported image payload.");
+    }
+    const data = imageData.replace(/^data:image\/[a-z0-9.+-]+;base64,/i, "").replace(/\s/g, "");
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data) || data.length > 6_700_000) {
+      throw new Error("Gemini returned invalid or oversized image data.");
+    }
+    return { data, mimeType };
+  }
+  throw lastError instanceof Error ? lastError : new Error("Gemini image generation did not complete.");
+}
+
 export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  if (!context.env.AI) return json({ error: "The illustration service is not connected yet." }, 503);
+  if (!context.env.AI || !context.env.GEMINI_API_KEY) {
+    console.warn("[ClerkME illustrations] Image service configuration is unavailable.", {
+      workersAIConnected: Boolean(context.env.AI),
+      geminiApiKeyConfigured: Boolean(context.env.GEMINI_API_KEY)
+    });
+    return json({ error: GEMINI_IMAGE_FAILURE, message: GEMINI_IMAGE_FAILURE, code: "IMAGE_GENERATION_UNAVAILABLE" }, 503);
+  }
 
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; }
@@ -210,58 +284,18 @@ ${material.content_text.slice(0, 22000)}
       return json({
         illustrations: [],
         visualAids: [],
-        message: "This topic is best supported by its written explanations, tables and flowcharts; no additional illustration was recommended."
+        message: GEMINI_IMAGE_FAILURE,
+        error: GEMINI_IMAGE_FAILURE,
+        code: "IMAGE_GENERATION_UNAVAILABLE"
       });
     }
 
     const generated = await Promise.allSettled(visualAids.map(async aid => {
-      // FLUX.2 Klein is a Cloudflare-hosted Workers AI model. Unlike the
-      // third-party FLUX.2 Pro preview model, it requires multipart form data
-      // and returns the generated image as base64.
-      const form = new FormData();
-      form.append("prompt", imagePrompt(aid, material.unit.startsWith("custom:")));
-      form.append("width", "1024");
-      form.append("height", "1024");
-      form.append("guidance", "4");
-      // Workers AI requires the multipart boundary generated by serialising FormData.
-      // Use Response(form), as documented for the Workers AI binding (not a JSON request).
-      const multipartResponse = new Response(form);
-      const result = await context.env.AI!.run(IMAGE_MODEL, {
-        multipart: {
-          body: multipartResponse.body,
-          contentType: multipartResponse.headers.get("content-type")!
-        }
-      }) as { image?: unknown; result?: { image?: unknown } };
-      const rawImage = result?.image ?? result?.result?.image;
-      if (typeof rawImage !== "string" || !rawImage.trim()) {
-        const keys = result && typeof result === "object" ? Object.keys(result).join(", ") : typeof result;
-        throw new Error("The image model returned no base64 image payload (response fields: " + (keys || "none") + ").");
-      }
-      let image: string;
-      if (/^https:\/\//i.test(rawImage)) {
-        const imageResponse = await fetch(rawImage);
-        if (!imageResponse.ok) throw new Error("The generated image could not be retrieved.");
-        const contentType = imageResponse.headers.get("content-type") || "image/jpeg";
-        if (!contentType.startsWith("image/")) throw new Error("The image provider returned an invalid image format.");
-        const bytes = new Uint8Array(await imageResponse.arrayBuffer());
-        if (bytes.byteLength > 5_000_000) throw new Error("The generated illustration exceeded the supported size.");
-        let binary = "";
-        for (let offset = 0; offset < bytes.length; offset += 0x8000) {
-          binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + 0x8000, bytes.length)));
-        }
-        image = btoa(binary);
-      } else {
-        image = rawImage.replace(/\s/g, "");
-        if (!/^[A-Za-z0-9+/]+={0,2}$/.test(image)) throw new Error("The image data was not valid base64.");
-        if (image.length > 6_700_000) throw new Error("The generated illustration exceeded the supported size.");
-      }
-      // FLUX may return PNG or JPEG bytes. Match the data URI MIME type to the
-      // actual payload instead of labelling every generated image as JPEG.
-      const mimeType = image.startsWith("iVBORw0KGgo") ? "image/png"
-        : image.startsWith("/9j/") ? "image/jpeg"
-        : image.startsWith("UklGR") ? "image/webp"
-        : "image/png";
-      return { ...aid, imageDataUri: "data:" + mimeType + ";base64," + image };
+      const generatedImage = await generateGeminiImage(
+        context.env.GEMINI_API_KEY!,
+        imagePrompt(aid, material.unit.startsWith("custom:"))
+      );
+      return { ...aid, imageDataUri: "data:" + generatedImage.mimeType + ";base64," + generatedImage.data };
     }));
 
     const illustrations = generated
@@ -272,17 +306,34 @@ ${material.content_text.slice(0, 22000)}
       .filter((item): item is PromiseRejectedResult => item.status === "rejected")
       .map(item => item.reason instanceof Error ? item.reason.message : String(item.reason))
       .filter(Boolean).slice(0, 2);
-    if (failedCount) console.error("[ClerkME illustrations] FLUX generation failed", failureDetails);
+    if (failedCount) console.error("[ClerkME illustrations] Gemini image generation failed", failureDetails);
 
+    if (!illustrations.length) {
+      return json({
+        illustrations: [],
+        visualAids,
+        warning: GEMINI_IMAGE_FAILURE,
+        message: GEMINI_IMAGE_FAILURE,
+        error: GEMINI_IMAGE_FAILURE,
+        code: "IMAGE_GENERATION_UNAVAILABLE"
+      }, 502);
+    }
     return json({
       illustrations,
       visualAids,
-      warning: failedCount ? "Some illustrations could not be generated. " + failureDetails.join(" ") : "",
-      message: illustrations.length
-        ? "Your topic illustrations are ready."
-        : "Image generation failed: " + (failureDetails.join(" ") || "The image model returned no usable image.") + " Your detailed notes remain available; please try again."
+      warning: failedCount ? GEMINI_IMAGE_FAILURE : "",
+      message: "Your topic illustrations are ready.",
+      error: failedCount ? GEMINI_IMAGE_FAILURE : ""
     });
   } catch (error) {
-    return aiFailureResponse(error, "Illustrations are temporarily unavailable. Your High-Yield Points remain available; please try again later.");
+    console.error("[ClerkME illustrations] Gemini image generation failed.", {
+      materialId,
+      detail: error instanceof Error ? error.message.slice(0, 300) : "Unknown Gemini image error."
+    });
+    return json({
+      error: GEMINI_IMAGE_FAILURE,
+      message: GEMINI_IMAGE_FAILURE,
+      code: "IMAGE_GENERATION_UNAVAILABLE"
+    }, 502);
   }
 };
