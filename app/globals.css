@@ -5214,3 +5214,110 @@ body{background:var(--paper);color:var(--ink)}
   .account-settings-group .you-action-label{white-space:normal}
   .materials-unit-group{padding:9px}
 }
+
+
+/* ClerkME responsive product pass: laptop, tablet and phone use one predictable shell. */
+@media (min-width:761px) and (max-width:1100px){
+  .sidebar{width:224px!important;padding:22px 13px 16px!important}
+  .main-area{margin-left:224px!important;width:calc(100% - 224px)!important}
+  .topbar{padding-left:22px!important;padding-right:22px!important;gap:12px}
+  .content{padding:28px 22px 42px!important}
+  .nav-item{min-height:44px!important;padding:9px 10px!important;gap:9px!important;font-size:12px!important}
+  .nav-icon{width:19px!important;font-size:17px!important}
+  .nav-section-label{padding-left:9px!important}
+  .upgrade-card{padding:14px!important;margin-bottom:12px!important}
+  .upgrade-card p{font-size:11px!important}
+  .sidebar-bottom .profile{padding-top:12px!important}
+  .sidebar-bottom .profile strong{font-size:11px!important}
+  .account-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .account-settings-security{grid-column:1/-1}
+}
+@media (min-width:761px) and (max-width:900px){
+  .sidebar{width:210px!important;padding:19px 10px 14px!important}
+  .main-area{margin-left:210px!important;width:calc(100% - 210px)!important}
+  .topbar{height:66px!important;padding:0 16px!important}
+  .content{padding:22px 16px 36px!important}
+  .breadcrumb{font-size:11px!important}
+  .breadcrumb span{padding:0 5px!important}
+  .saved-label{display:none!important}
+  .profile-top-link{font-size:11px!important;padding:8px 9px!important}
+  .nav-item{font-size:11px!important;min-height:42px!important}
+  .nav-icon{width:18px!important}
+  .sidebar .brand{padding-bottom:24px!important}
+  .sidebar .brand strong{font-size:20px!important}
+  .sidebar-bottom .upgrade-card{display:none!important}
+}
+@media (min-width:1101px){
+  .account-settings-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  .account-settings-grid{grid-template-columns:1fr!important}
+}
+
+/* PDF reader: page-first controls, legible canvas and no dependency on the browser PDF plug-in. */
+.pdf-source-reader{display:grid;gap:0;min-width:0;overflow:hidden;border:1px solid #e0e9e2;border-radius:15px;background:#f1f5f1}
+.pdf-source-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:11px 13px;background:#fff;border-bottom:1px solid #e0e9e2}
+.pdf-source-page-controls{display:flex;align-items:center;gap:10px}
+.pdf-source-page-controls button{display:grid;place-items:center;width:36px;height:36px;border:1px solid #dce8df;border-radius:10px;background:#f8fbf8;color:#2c6946;font-size:23px;font-weight:800;cursor:pointer}
+.pdf-source-page-controls button:disabled{opacity:.35;cursor:not-allowed}
+.pdf-source-page-controls>span{color:#637469;font-size:12px;white-space:nowrap}
+.pdf-source-page-controls>span strong{color:#244d35}
+.pdf-source-zoom{display:flex;align-items:center;gap:8px;color:#68796d;font-size:11px;font-weight:750}
+.pdf-source-zoom select{min-height:36px;padding:6px 9px;border:1px solid #dce8df;border-radius:9px;background:#fff;color:#31523b;font-size:12px}
+.pdf-source-progress{height:3px;background:#e6eee7}
+.pdf-source-progress>span{display:block;height:100%;background:#439b62;transition:width .15s ease}
+.pdf-source-canvas-wrap{display:flex;align-items:flex-start;justify-content:center;min-width:0;min-height:300px;max-height:min(76vh,980px);overflow:auto;overscroll-behavior:contain;padding:16px;background:#e9eee9;-webkit-overflow-scrolling:touch}
+.pdf-source-canvas-inner{position:relative;display:inline-flex;justify-content:center;min-width:0;margin:0 auto}
+.pdf-source-canvas-inner canvas{display:block;max-width:none;height:auto;background:#fff;box-shadow:0 5px 22px rgba(18,43,26,.13)}
+.pdf-source-rendering{position:absolute;right:10px;bottom:10px;padding:6px 9px;border:1px solid #dce8df;border-radius:8px;background:rgba(255,255,255,.94);color:#587363;font-size:10px;font-weight:750}
+.pdf-source-footer{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 13px;border-top:1px solid #dfe9e1;background:#fff;color:#76867b;font-size:10px;line-height:1.4}
+.pdf-source-canvas-wrap .source-preview-loading{width:100%;min-height:260px}
+.pdf-source-canvas-wrap .source-preview-error{width:100%;margin:0}
+@media(max-width:760px){
+  .pdf-source-reader{border-radius:12px}
+  .pdf-source-toolbar{gap:8px;padding:9px}
+  .pdf-source-page-controls{gap:7px}
+  .pdf-source-page-controls button{width:34px;height:34px}
+  .pdf-source-page-controls>span{font-size:11px}
+  .pdf-source-zoom{font-size:10px}
+  .pdf-source-zoom select{min-height:35px;font-size:11px}
+  .pdf-source-canvas-wrap{min-height:260px;max-height:68vh;padding:9px 5px}
+  .pdf-source-footer{padding:8px 10px;font-size:9px}
+}
+@media(max-width:380px){
+  .pdf-source-toolbar{align-items:flex-start;flex-direction:column}
+  .pdf-source-zoom{width:100%;justify-content:flex-end}
+  .pdf-source-zoom select{flex:1;max-width:180px}
+}
+.pdf-source-reader :is(button,select):focus-visible{outline:3px solid rgba(31,111,69,.24)!important;outline-offset:2px}
+
+/* Materials browsing: unit selection controls the list; selection is always deliberate. */
+.materials-library-first-card .materials-unit-tabs>button{cursor:pointer}
+.materials-library-first-card .materials-list-item{min-width:0}
+.materials-library-first-card .materials-select[aria-pressed="true"]{background:#f0f8f2}
+.materials-library-first-card .materials-item-copy>span{display:block}
+.materials-library-first-card .materials-view-more{white-space:nowrap}
+.materials-upload-heading-row{position:relative}
+.materials-upload-expanded .materials-file-picker{min-height:76px}
+.materials-upload-expanded .materials-processing-steps{display:flex;flex-wrap:wrap;gap:7px 15px}
+.materials-upload-expanded .materials-processing-steps span{font-size:10px}
+@media(min-width:761px){
+  .materials-library-first-card{max-width:none}
+  .materials-library-search{max-width:760px}
+  .materials-unit-filter{width:100%}
+  .materials-unit-group{margin-top:11px}
+}
+
+/* Account is a real destination, not a catch-all menu; use clear groups and stable widths. */
+.account-settings-grid{align-items:stretch}
+.account-settings-group{min-width:0}
+.account-settings-group .you-setting-action{min-width:0}
+.account-settings-group .you-setting-action>span:nth-child(2){min-width:0}
+.account-settings-group .you-setting-action small{overflow-wrap:anywhere}
+.account-settings-group .install-app-wrap{max-width:100%}
+.you-account-panel{min-width:0}
+.you-account-details{min-width:0}
+.you-account-details strong,.you-account-details small{overflow-wrap:anywhere}
+@media(prefers-reduced-motion:reduce){
+  .pdf-source-progress>span{transition:none}
+}
