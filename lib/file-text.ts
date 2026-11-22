@@ -12,7 +12,7 @@ type PdfJsLibrary = {
     promise: Promise<{
       numPages: number;
       getPage: (page: number) => Promise<{
-        getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
+        getTextContent: () => Promise<{ items: Array<{ str?: string; transform?: number[] }> }>;
       }>;
     }>;
   };
@@ -254,7 +254,18 @@ async function extractPdfText(file: File): Promise<{ text: string; numPages: num
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str || "").join(" ").trim();
+    let previousY: number | null = null;
+    const pageLines: string[] = [];
+    for (const item of content.items) {
+      const value = (item.str || "").trim();
+      if (!value) continue;
+      const y = Array.isArray(item.transform) ? item.transform[5] : null;
+      if (y !== null && previousY !== null && Math.abs(y - previousY) > 2.5) pageLines.push("\n");
+      else if (pageLines.length && pageLines[pageLines.length - 1] !== "\n") pageLines.push(" ");
+      pageLines.push(value);
+      if (y !== null) previousY = y;
+    }
+    const pageText = pageLines.join("").trim();
     if (pageText.length < 20) imageOnlyPages++;
     pages.push("PAGE " + pageNumber + "\n" + pageText);
   }
