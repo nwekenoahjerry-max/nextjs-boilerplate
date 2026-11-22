@@ -47,45 +47,166 @@ const publicFeatureCards = [
 ];
 
 function PublicLanding() {
-  return <main className="public-landing">
-    <header className="public-header">
-      <ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/>
-      <nav aria-label="Public navigation"><a href="#features">Explore features</a><a href="#how-it-works">How it works</a></nav>
-      <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
-    </header>
-    <section className="public-hero">
-      <div className="public-hero-copy">
-        <span className="public-eyebrow"><i/> CLINICAL LEARNING, BUILT AROUND YOU</span>
-        <h1>Build clinical confidence.<br/><em>One patient at a time.</em></h1>
-        <p>ClerkME brings guided clerking, clinical learning, examination practice and interactive simulation into one focused workspace for medical students.</p>
-        <div className="public-hero-actions"><a className="public-primary-cta" href="/login">Enter your workspace <span>→</span></a><a className="public-secondary-cta" href="#features">Explore what’s inside</a></div>
-        <div className="public-trust-line"><span>CLERK</span><b>·</b><span>LEARN</span><b>·</b><span>PRACTISE</span><b>·</b><span>IMPROVE</span></div>
-      </div>
-      <div className="public-hero-visual" aria-label="ClerkME learning workflow preview">
-        <div className="public-preview-card">
-          <div className="public-preview-top"><span className="public-preview-dot"/> YOUR CLINICAL WORKSPACE <span>PREVIEW</span></div>
-          <div className="public-preview-title">From first question to confident presentation.</div>
-          <div className="public-preview-step"><span>01</span><div><strong>Clerk with structure</strong><small>History · Examination · Assessment</small></div><b>✓</b></div>
-          <div className="public-preview-step"><span>02</span><div><strong>Learn from your materials</strong><small>Lecture notes · Summaries · Question sets</small></div><b>✓</b></div>
-          <div className="public-preview-step"><span>03</span><div><strong>Practise and improve</strong><small>OSCE · Viva · Simulation · Flight Academy</small></div><b>✓</b></div>
-          <div className="public-preview-foot"><span>CLERKME</span><strong>LEARN WITH PURPOSE</strong></div>
-        </div>
-        <div className="public-floating-note"><span>✦</span> Your learning, in one place</div>
-      </div>
-    </section>
-    <section className="public-feature-section" id="features">
-      <div className="public-section-heading"><div><span className="public-eyebrow">ONE WORKSPACE · MULTIPLE WAYS TO GROW</span><h2>Everything you need to practise with purpose.</h2></div><p>Explore the tools before signing in. Your personal workspace opens after authentication.</p></div>
-      <div className="public-feature-grid">{publicFeatureCards.map(item=><a className="public-feature-card" href="/login" key={item.number}><span className="public-feature-number">{item.number}</span><strong>{item.title}</strong><p>{item.description}</p><span className="public-feature-detail">{item.detail}</span><b>Sign in to access <i>→</i></b></a>)}</div>
-    </section>
-    <section className="public-how-section" id="how-it-works">
-      <div><span className="public-eyebrow">A SIMPLE LEARNING LOOP</span><h2>Prepare. Practise. Progress.</h2><p>Bring your study resources, work through structured clinical tasks and use feedback to identify what to improve next.</p></div>
-      <div className="public-how-steps"><div><span>01</span><strong>Sign in securely</strong><p>Open your account and private learning workspace.</p></div><div><span>02</span><strong>Choose your focus</strong><p>Select a clinical unit, guide, simulation or revision tool.</p></div><div><span>03</span><strong>Build your skills</strong><p>Practise, review your performance and keep learning.</p></div></div>
-    </section>
-    <section className="public-bottom-cta"><div><span className="public-eyebrow">READY TO GET STARTED?</span><h2>Your next clinical learning session starts here.</h2><p>Sign in to access the tools and your private materials.</p></div><a className="public-primary-cta" href="/login">Sign in to ClerkME <span>→</span></a></section>
-    <footer className="public-footer"><ClerkMeBrand caption="CLINICAL CLERKING & LEARNING"/><p>ClerkME is an educational learning companion. It does not replace clinical supervision, institutional protocols or professional judgement. Do not upload identifiable patient information.</p><span>© {new Date().getFullYear()} ClerkME</span></footer>
-  </main>;
-}
+  const [sampleAnswer, setSampleAnswer] = useState<number | null>(null);
+  const sampleOptions = [
+    "Ruptured ectopic pregnancy",
+    "Threatened miscarriage",
+    "Pelvic inflammatory disease",
+    "Ovarian torsion",
+  ];
 
+  return (
+    <main className="public-landing clerkme-public-home">
+      <header className="public-header">
+        <ClerkMeBrand caption="AI CLINICAL LEARNING & EXAM PREP" className="public-brand"/>
+        <nav aria-label="Public navigation">
+          <a href="#features">Explore features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <div className="public-header-actions">
+          <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
+          <a className="public-header-start" href="/login">Get started</a>
+        </div>
+      </header>
+
+      <section className="public-hero">
+        <div className="public-hero-copy">
+          <span className="public-eyebrow"><i/> AI-POWERED LEARNING FOR MEDICAL STUDENTS</span>
+          <h1>Make every lecture count.<br/><em>Walk into exams ready.</em></h1>
+          <p>
+            Turn your lecture materials into detailed study guides, high-quality SBAs and focused revision.
+            Build clinical confidence with clerking, OSCE, Viva and interactive simulation — all in one workspace.
+          </p>
+          <div className="public-hero-actions">
+            <a className="public-primary-cta" href="/login">Get started with ClerkME <span>→</span></a>
+            <a className="public-secondary-cta" href="#features">Explore the study tools</a>
+          </div>
+          <div className="public-hero-proof" aria-label="ClerkME highlights">
+            <div><strong>8</strong><span>clinical units</span></div>
+            <div><strong>AI</strong><span>source-based study support</span></div>
+            <div><strong>1</strong><span>connected learning space</span></div>
+          </div>
+        </div>
+
+        <div className="public-hero-demo-wrap">
+          <div className="public-demo-heading">
+            <span>CLERKME QUICK PRACTICE</span>
+            <strong>Try a sample SBA</strong>
+          </div>
+          <article className="public-demo-card" aria-label="Sample single-best-answer question">
+            <div className="public-demo-top">
+              <span className="public-demo-live"><i/> INTERACTIVE QUESTION</span>
+              <span className="public-demo-no-login">No sign-in needed</span>
+            </div>
+            <div className="public-demo-meta">OBSTETRICS & GYNAECOLOGY <span>·</span> SINGLE BEST ANSWER</div>
+            <h2>
+              A 26-year-old woman presents with 7 weeks of amenorrhoea, lower abdominal pain and vaginal bleeding.
+              She is dizzy and hypotensive. What is the most likely diagnosis?
+            </h2>
+            <div className="public-demo-options">
+              {sampleOptions.map((option, index) => (
+                <button
+                  type="button"
+                  key={option}
+                  className={[
+                    "public-demo-option",
+                    sampleAnswer === index ? "is-selected" : "",
+                    sampleAnswer !== null && index === 0 ? "is-correct" : "",
+                    sampleAnswer !== null && sampleAnswer === index && index !== 0 ? "is-incorrect" : "",
+                  ].filter(Boolean).join(" ")}
+                  aria-pressed={sampleAnswer === index}
+                  disabled={sampleAnswer !== null}
+                  onClick={() => setSampleAnswer(index)}
+                >
+                  <span>{String.fromCharCode(65 + index)}</span>
+                  <strong>{option}</strong>
+                  <b>{sampleAnswer !== null && index === 0 ? "✓" : sampleAnswer === index && index !== 0 ? "×" : ""}</b>
+                </button>
+              ))}
+            </div>
+            {sampleAnswer !== null && (
+              <div className={sampleAnswer === 0 ? "public-demo-feedback is-correct" : "public-demo-feedback is-review"} role="status">
+                <strong>{sampleAnswer === 0 ? "Correct — well done." : "Not quite. Review the key clues."}</strong>
+                <p>
+                  Amenorrhoea, abdominal pain, vaginal bleeding and haemodynamic instability are red flags for a
+                  ruptured ectopic pregnancy. This is a time-critical emergency requiring immediate resuscitation
+                  and urgent senior/obstetric assessment.
+                </p>
+                <button type="button" onClick={() => setSampleAnswer(null)}>Try again <span>↻</span></button>
+              </div>
+            )}
+            <div className="public-demo-footer">
+              <span>ACTIVE RECALL</span>
+              <span>LEARN · TEST · IMPROVE</span>
+            </div>
+          </article>
+          <p className="public-demo-disclaimer">Example revision question for learning. ClerkME does not replace clinical judgement or supervision.</p>
+        </div>
+      </section>
+
+      <section className="public-feature-section" id="features">
+        <div className="public-section-heading">
+          <div>
+            <span className="public-eyebrow">YOUR CLINICAL LEARNING TOOLKIT</span>
+            <h2>From lecture notes to confident clinical practice.</h2>
+          </div>
+          <p>Study from your own materials, strengthen your clinical reasoning and prepare for written and practical examinations.</p>
+        </div>
+        <div className="public-feature-grid">
+          {publicFeatureCards.map(item => (
+            <a className="public-feature-card" href="/login" key={item.number}>
+              <span className="public-feature-number">{item.number}</span>
+              <strong>{item.title}</strong>
+              <p>{item.description}</p>
+              <span className="public-feature-detail">{item.detail}</span>
+              <b>Explore in your workspace <i>→</i></b>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="public-how-section" id="how-it-works">
+        <div>
+          <span className="public-eyebrow">A SIMPLE, CONNECTED WORKFLOW</span>
+          <h2>Upload. Understand. Practise. Improve.</h2>
+          <p>Bring your own lecture resources, build revision tools around them and practise the knowledge and skills you will need in examinations and clinical placements.</p>
+        </div>
+        <div className="public-how-steps">
+          <div><span>01</span><strong>Bring your materials</strong><p>Upload supported lecture notes, PDFs and slide decks to your private study space.</p></div>
+          <div><span>02</span><strong>Build your revision</strong><p>Create structured study guides and question sets based on your learning materials.</p></div>
+          <div><span>03</span><strong>Practise and progress</strong><p>Use SBAs, OSCE, Viva and clinical simulation to strengthen recall and reasoning.</p></div>
+        </div>
+      </section>
+
+      <section className="public-bottom-cta">
+        <div>
+          <span className="public-eyebrow">YOUR NEXT STUDY SESSION STARTS HERE</span>
+          <h2>Prepare with purpose. Practise with confidence.</h2>
+          <p>Sign in to open your ClerkME workspace and continue learning.</p>
+        </div>
+        <a className="public-primary-cta" href="/login">Enter ClerkME <span>→</span></a>
+      </section>
+
+      <footer className="public-footer" id="contact">
+        <div className="public-footer-brand">
+          <ClerkMeBrand caption="CLINICAL CLERKING & EXAM PREP"/>
+          <span className="public-footer-copyright">© {new Date().getFullYear()} ClerkME</span>
+        </div>
+        <p className="public-footer-disclaimer">
+          ClerkME is an educational learning companion. AI-generated content may contain errors and should be checked
+          against original learning resources, current local guidance and clinical supervision. Do not upload identifiable patient information.
+        </p>
+        <div className="public-footer-contact">
+          <strong>Contact</strong>
+          <a href="https://wa.me/2349047324936" target="_blank" rel="noreferrer">WhatsApp · +234 904 732 4936</a>
+          <a href="mailto:nwekenoahjerry@gmail.com">nwekenoahjerry@gmail.com</a>
+          <small>Designed by Noah Chidindu Nweke</small>
+        </div>
+      </footer>
+    </main>
+  );
+}
 export default function Home() {
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
