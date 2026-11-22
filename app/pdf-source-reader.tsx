@@ -52,7 +52,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
         if (!response.ok) throw new Error(readError(response.status));
         const buffer = await response.arrayBuffer();
         if (cancelled) return;
-        const pdfjs = await loadPdfJsLibrary() as PdfRuntime;
+        const pdfjs = await loadPdfJsLibrary() as unknown as PdfRuntime;
         const pdf = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
         if (cancelled) return;
         if (!pdf.numPages) throw new Error("No pages were found in this PDF.");
