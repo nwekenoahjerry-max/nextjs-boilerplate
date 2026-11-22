@@ -652,20 +652,11 @@ export default function Home() {
             <div className="page-intro study-hub-intro">
               <div className="eyebrow">YOUR STUDY WORKSPACE</div>
               <h1>Study tools</h1>
-              <p>Turn your lectures into focused revision, test your understanding and find useful teaching videos — all in one place.</p>
+              <p>Turn a lecture into focused revision, question practice and video learning.</p>
             </div>
 
-            <section className="study-hub-start" aria-label="Start studying from a lecture">
-              <div className="study-hub-start-copy">
-                <span className="study-hub-kicker">START WITH YOUR LECTURE</span>
-                <h2>One source. A complete study session.</h2>
-                <p>Upload a lecture or open a saved resource to build detailed High-Yield Points and source-based SBA questions together.</p>
-              </div>
-              <button type="button" className="study-hub-start-button" onClick={()=>selectSection("materials")}>Open my study materials <span>→</span></button>
-            </section>
-
             <div className="study-hub-section-heading">
-              <div><h2>What would you like to do?</h2><p>Choose a study format to get started.</p></div>
+              <div><h2>What would you like to make?</h2><p>Choose a format to turn your learning material into practice.</p></div>
             </div>
             <div className="study-hub-primary-grid">
               <button type="button" className="study-hub-card" onClick={()=>selectSection("materials")}>
@@ -675,8 +666,8 @@ export default function Home() {
               </button>
               <button type="button" className="study-hub-card" onClick={()=>selectSection("qbank")}>
                 <span className="study-hub-card-icon quiz">☑</span>
-                <span className="study-hub-card-copy"><strong>Quiz questions</strong><small>Practise single-best-answer questions, check explanations and strengthen your understanding across clinical units.</small></span>
-                <span className="study-hub-card-link">Start question practice <b>→</b></span>
+                <span className="study-hub-card-copy"><strong>SBA questions</strong><small>Practise single-best-answer questions generated from your lectures, review explanations and strengthen your clinical reasoning.</small></span>
+                <span className="study-hub-card-link">Practise questions <b>→</b></span>
               </button>
               <button type="button" className="study-hub-card" onClick={()=>selectSection("videos")}>
                 <span className="study-hub-card-icon videos">▶</span>
