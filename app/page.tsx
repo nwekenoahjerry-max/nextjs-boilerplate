@@ -715,7 +715,7 @@ export default function Home() {
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
-    <main className={active === "overview" ? "app-shell home-app-shell" : "app-shell"}>
+    <main className="app-shell">
       <InstallAppPrompt promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
       <aside className="sidebar">
         <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
@@ -799,15 +799,46 @@ export default function Home() {
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
-<section className="home-compact-header"><div><div className="eyebrow">YOUR CLINICAL WORKSPACE</div><h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1><p>Make today a useful study day.</p></div><span className="home-greeting-mark" aria-hidden="true">✦</span></section>
-<section className="home-stats-strip" aria-label="Your learning statistics"><div className="home-streak-stat"><span className="home-streak-orbit" aria-hidden="true">✦</span><strong>{streakData.streak}</strong><span>Day streak</span></div><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><span className={streakData.todayActive?"home-checkin is-active":"home-checkin"}>{streakData.todayActive?"✓ Studied today":"Your next session starts here"}</span></section>
-<section className="home-motivation" aria-label="Daily motivation"><span className="home-motivation-icon" aria-hidden="true">✦</span><div><span className="eyebrow">A NOTE FOR YOUR JOURNEY</span><p>{["Small, consistent study sessions build the clinical judgement that lasts.","You do not need to master everything today. Understand one concept well, then build on it.","Every question you attempt is an opportunity to sharpen your clinical reasoning.","Progress is not measured by hours alone, but by what you understand and can apply.","Stay curious, practise deliberately, and let consistency do the heavy lifting."][(new Date().getDate()+new Date().getMonth())%5]}</p></div></section>
-<section className="home-quick-start" aria-label="Quick study actions"><div className="home-section-heading"><div><span className="eyebrow">YOUR NEXT STEP</span><h2>What would you like to work on?</h2></div></div><div className="home-action-grid">
-<button type="button" className="home-action-card" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span><strong>My materials</strong><small>Open lectures and study guides</small></span><b>→</b></button>
-<button type="button" className="home-action-card" onClick={()=>selectSection("qbank")}><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><span><strong>Question bank</strong><small>Test your knowledge</small></span><b>→</b></button>
-<button type="button" className="home-action-card" onClick={()=>selectSection("videos")}><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><span><strong>Video library</strong><small>Watch clinical lectures</small></span><b>→</b></button>
-<button type="button" className="home-action-card" onClick={()=>startClerking()}><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><span><strong>Clinical practice</strong><small>Start a patient clerking</small></span><b>→</b></button>
-</div></section>
+<section className="home-compact-header" aria-label="Welcome and current study streak">
+  <div className="home-welcome-copy">
+    <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
+    <h1>Good to see you, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
+    <p>Make today a useful study day. Small steps, strong clinical judgement.</p>
+    <div className={streakData.todayActive ? "home-hero-status is-active" : "home-hero-status"}>
+      <span className="home-status-dot" aria-hidden="true"></span>
+      {streakData.todayActive ? "You have studied today. Keep your momentum going." : "A focused session today can keep your progress moving."}
+    </div>
+  </div>
+  <div className="home-hero-streak">
+    <div className="home-streak-ring" role="img" aria-label={`${streakData.streak} day study streak`}>
+      <div className="home-streak-ring-inner">
+        <span className="home-streak-spark" aria-hidden="true">✦</span>
+        <strong>{streakData.streak}</strong>
+        <small>DAY STREAK</small>
+      </div>
+    </div>
+    <div className="home-streak-caption"><strong>Consistency looks good on you.</strong><span>Come back tomorrow to extend your run.</span></div>
+  </div>
+</section>
+<section className="home-stats-strip" aria-label="Your learning statistics">
+  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">↗</span><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div><small>Personal best</small></div>
+  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{streakData.activeDays}</strong><span>Active days</span></div><small>Days with study activity</small></div>
+  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done for today" : "Your next session"}</strong><span>Daily check-in</span></div><small>{streakData.todayActive ? "Learning logged today" : "Ready when you are"}</small></div>
+</section>
+<section className="home-motivation" aria-label="Daily motivation">
+  <span className="home-motivation-icon" aria-hidden="true">✦</span>
+  <div><span className="eyebrow">A NOTE FOR YOUR JOURNEY</span><p>{["Small, consistent study sessions build the clinical judgement that lasts.","You do not need to master everything today. Understand one concept well, then build on it.","Every question you attempt is an opportunity to sharpen your clinical reasoning.","Progress is not measured by hours alone, but by what you understand and can apply.","Stay curious, practise deliberately, and let consistency do the heavy lifting."][(new Date().getDate()+new Date().getMonth())%5]}</p></div>
+  <span className="home-motivation-mark" aria-hidden="true">01 / DAILY</span>
+</section>
+<section className="home-quick-start" aria-label="Quick study actions">
+  <div className="home-section-heading"><div><span className="eyebrow">YOUR NEXT STEP</span><h2>What would you like to work on?</h2></div><span className="home-section-hint">Choose a tool to continue</span></div>
+  <div className="home-action-grid">
+    <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><b>01</b></span><span className="home-action-card-copy"><strong>My materials</strong><small>Open lectures and study guides</small></span><span className="home-action-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" className="home-action-card home-action-qbank" onClick={()=>selectSection("qbank")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><b>02</b></span><span className="home-action-card-copy"><strong>Question bank</strong><small>Test your knowledge</small></span><span className="home-action-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" className="home-action-card home-action-videos" onClick={()=>selectSection("videos")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><b>03</b></span><span className="home-action-card-copy"><strong>Video library</strong><small>Watch clinical lectures</small></span><span className="home-action-arrow" aria-hidden="true">↗</span></button>
+    <button type="button" className="home-action-card home-action-clinical" onClick={()=>startClerking()}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><b>04</b></span><span className="home-action-card-copy"><strong>Clinical practice</strong><small>Start a patient clerking</small></span><span className="home-action-arrow" aria-hidden="true">↗</span></button>
+  </div>
+</section>
 <footer className="footer-note home-compact-footer">ClerkME supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
 </>}{active === "study" && <>
             <div className="page-intro study-hub-intro">
