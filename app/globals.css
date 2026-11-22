@@ -5321,3 +5321,34 @@ body{background:var(--paper);color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   .pdf-source-progress>span{transition:none}
 }
+
+
+/* Excel original-source reader: worksheet tabs and a responsive spreadsheet surface. */
+.xlsx-source-reader{display:grid;min-width:0;gap:0;overflow:hidden;border:1px solid #e0e9e2;border-radius:15px;background:#fff}
+.xlsx-source-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #e7eee8}
+.xlsx-source-toolbar>div{display:grid;gap:3px;min-width:0}
+.xlsx-source-toolbar strong{color:#294b36;font:800 13px/1.4 Manrope,sans-serif}
+.xlsx-source-toolbar small{color:#7a897e;font-size:10px;overflow-wrap:anywhere}
+.xlsx-source-format{display:grid;place-items:center;flex:0 0 auto;min-width:44px;height:31px;padding:0 8px;border-radius:8px;background:#eaf4ec;color:#2b7548;font-size:10px;font-weight:900;letter-spacing:.08em}
+.xlsx-source-tabs{display:flex;gap:6px;overflow-x:auto;padding:9px 11px;border-bottom:1px solid #e7eee8;background:#f8fbf8;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.xlsx-source-tabs button{flex:0 0 auto;min-height:35px;padding:7px 12px;border:1px solid #e2eae3;border-radius:8px;background:#fff;color:#65766a;font-size:11px;font-weight:750;white-space:nowrap}
+.xlsx-source-tabs button.active{border-color:#9fc6a9;background:#eaf5ed;color:#176b4d}
+.xlsx-source-table-wrap{max-width:100%;max-height:min(68vh,760px);overflow:auto;overscroll-behaviour:contain;background:#fff;-webkit-overflow-scrolling:touch}
+.xlsx-source-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.xlsx-source-table thead th{position:sticky;top:0;z-index:2;min-width:105px;padding:8px 10px;border-right:1px solid #e6ece7;border-bottom:1px solid #dce7de;background:#f2f7f3;color:#597061;font-size:10px;font-weight:850;text-align:center}
+.xlsx-source-table thead th:first-child{left:0;z-index:4}
+.xlsx-source-table .xlsx-source-row-number{position:sticky;left:0;z-index:3;min-width:39px;width:39px;padding:7px 6px;border-right:1px solid #e0e8e1;border-bottom:1px solid #e4ebe5;background:#f6f8f6;color:#8a978e;font-size:10px;font-weight:750;text-align:center}
+.xlsx-source-table tbody td{min-width:105px;max-width:320px;padding:8px 10px;border-right:1px solid #edf1ed;border-bottom:1px solid #edf1ed;color:#3c4d41;font-size:11px;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+.xlsx-source-table tbody tr:nth-child(even) td{background:#fbfdfb}
+.xlsx-source-table tbody tr:hover td{background:#f1f8f2}
+.xlsx-source-empty{padding:20px;color:#7a897e;font-size:12px}
+.xlsx-source-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 13px;border-top:1px solid #e5ece6;background:#fbfdfb;color:#77877b;font-size:10px}
+@media(max-width:760px){
+  .xlsx-source-reader{border-radius:12px}
+  .xlsx-source-toolbar{padding:11px 12px}
+  .xlsx-source-table-wrap{max-height:62vh}
+  .xlsx-source-table thead th,.xlsx-source-table tbody td{min-width:90px;padding:7px 8px;font-size:10px}
+  .xlsx-source-table .xlsx-source-row-number{min-width:33px;width:33px}
+  .xlsx-source-footer{font-size:9px;padding:8px 10px}
+}
+.xlsx-source-reader :is(button):focus-visible{outline:3px solid rgba(31,111,69,.24)!important;outline-offset:2px}
