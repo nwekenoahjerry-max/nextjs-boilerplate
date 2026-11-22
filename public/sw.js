@@ -1,5 +1,5 @@
-const CACHE_NAME = "clerkme-shell-v7";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/clerkme-mark.svg", "/clerkme-192.png"];
+const CACHE_NAME = "clerkme-shell-v8";
+const APP_SHELL = ["/", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -42,7 +42,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark.svg") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark-navy.svg") {
     event.respondWith(
       fetch(request)
         .then(response => {

@@ -9,21 +9,12 @@
   "orientation": "any",
   "background_color": "#F5F8FC",
   "theme_color": "#102D5A",
-  "categories": [
-    "education",
-    "medical"
-  ],
+  "categories": ["education", "medical"],
   "icons": [
     {
-      "src": "/clerkme-mark.svg",
+      "src": "/clerkme-mark-navy.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/clerkme-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any"
     }
   ]
