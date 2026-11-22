@@ -626,38 +626,6 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="workspace-shortcuts" aria-labelledby="workspace-shortcuts-title">
-              <div className="dashboard-section-heading">
-                <div>
-                  <span className="eyebrow">QUICK ACCESS</span>
-                  <h2 id="workspace-shortcuts-title">What would you like to do next?</h2>
-                  <p>Go straight to a clinical task or your next study session.</p>
-                </div>
-              </div>
-              <div className="workspace-shortcut-grid">
-                <button type="button" className="workspace-shortcut-card" onClick={() => startClerking()}>
-                  <span className="workspace-shortcut-icon">✚</span>
-                  <span className="workspace-shortcut-copy"><strong>Start clinical clerking</strong><small>Structure a patient history, examination, assessment and plan.</small></span>
-                  <span className="workspace-shortcut-footer">Open clerking <b>→</b></span>
-                </button>
-                <button type="button" className="workspace-shortcut-card" onClick={() => selectSection("simulation")}>
-                  <span className="workspace-shortcut-icon simulation">◉</span>
-                  <span className="workspace-shortcut-copy"><strong>Clinical simulation</strong><small>Practise with fictional patients and review your clinical reasoning.</small></span>
-                  <span className="workspace-shortcut-footer">Start a simulation <b>→</b></span>
-                </button>
-                <button type="button" className="workspace-shortcut-card" onClick={() => selectSection("patients")}>
-                  <span className="workspace-shortcut-icon cases">▤</span>
-                  <span className="workspace-shortcut-copy"><strong>My saved cases</strong><small>Return to clerking cases and continue your documentation.</small></span>
-                  <span className="workspace-shortcut-footer">View my cases <b>→</b></span>
-                </button>
-                <button type="button" className="workspace-shortcut-card" onClick={() => selectSection("materials")}>
-                  <span className="workspace-shortcut-icon study">▧</span>
-                  <span className="workspace-shortcut-copy"><strong>Study materials</strong><small>Build a guide, ask your material or generate lecture-based SBAs.</small></span>
-                  <span className="workspace-shortcut-footer">Open materials <b>→</b></span>
-                </button>
-              </div>
-            </section>
-
             <footer className="footer-note">ClerkME is an educational learning companion. It supports learning and practice; it does not replace clinical supervision, current local protocols or professional judgement. Do not upload identifiable patient information.</footer>
           </>}
 
