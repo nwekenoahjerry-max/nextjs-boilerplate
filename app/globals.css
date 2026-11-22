@@ -4714,3 +4714,17 @@ body{background:var(--paper);color:var(--ink)}
   .main-area .content :is(.panel,.form-panel,.guide-card,.template-card,.materials-upload-card,.materials-library-card,.study-summary-block,.video-library-search,.video-library-player){min-width:0;max-width:100%}
   .main-area .content :is(input,select,textarea){max-width:100%;font-size:16px!important}
 }
+
+
+/* Tablet welcome-header: keep every navigation item on one line without crowding the brand. */
+@media(min-width:701px) and (max-width:1120px){
+  .clerkme-public-home .public-header{gap:12px;padding:15px 22px}
+  .clerkme-public-home .public-header nav{display:flex;flex:1 1 auto;justify-content:center;gap:12px;min-width:0}
+  .clerkme-public-home .public-header nav a{font-size:11px;white-space:nowrap}
+  .clerkme-public-home .public-header-actions{flex:0 0 auto;gap:6px}
+  .clerkme-public-home .public-header-signin,.clerkme-public-home .public-header-start{min-height:39px;padding:8px 11px;font-size:11px}
+}
+@media(min-width:701px) and (max-width:900px){
+  .clerkme-public-home .public-header nav{display:none}
+  .clerkme-public-home .public-header-actions{margin-left:auto}
+}
