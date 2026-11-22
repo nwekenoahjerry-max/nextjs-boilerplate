@@ -5121,3 +5121,96 @@ body{background:var(--paper);color:var(--ink)}
 @media(prefers-reduced-motion:reduce){
   .materials-view-more{transition:none}
 }
+
+
+/* ClerkME responsive refinement: clearer unit browsing and a more useful account home. */
+.account-settings-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:8px 0 13px}
+.account-settings-section-heading>div{display:grid;gap:4px}
+.account-settings-section-heading h2{margin:0;color:#203e2d;font:800 21px/1.25 Manrope,sans-serif;letter-spacing:-.035em}
+.account-settings-section-heading>p{max-width:340px;margin:0;color:#7d8c81;font-size:11px;line-height:1.55;text-align:right}
+.you-account-panel{position:relative;overflow:hidden;min-height:126px;padding:22px!important;border:1px solid #dce9df!important;border-radius:19px!important;background:linear-gradient(115deg,#f3f9f4 0%,#fff 70%)!important;box-shadow:0 8px 28px rgba(26,76,44,.055)!important}
+.you-account-panel:after{position:absolute;right:-42px;top:-68px;width:190px;height:190px;border:1px solid rgba(39,113,66,.07);border-radius:50%;content:"";pointer-events:none}
+.you-account-avatar{position:relative;z-index:1;width:58px;height:58px;flex-basis:58px;border:1px solid #d8e9dc;border-radius:17px;background:#e5f2e8;color:#176b4d;font-size:22px}
+.you-account-details{position:relative;z-index:1;gap:5px}
+.you-account-details .eyebrow{font-size:9px;letter-spacing:.11em}
+.you-account-details strong{color:#1d3e2b;font:800 17px/1.3 Manrope,sans-serif;letter-spacing:-.02em}
+.you-account-details small{max-width:100%;color:#718278;font-size:12px}
+.you-account-status{display:inline-flex;align-items:center;align-self:start;width:max-content;max-width:100%;margin-top:3px;padding:5px 9px;border-radius:999px;background:#e7f4ea;color:#267248;font-size:10px;font-weight:800}
+.you-account-status.is-incomplete{background:#fff4df;color:#8a6422}
+.you-profile-link{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 14px;border:1px solid #cfe2d3;border-radius:11px;background:#fff;color:#176b4d;font-size:12px;font-weight:850;white-space:nowrap}
+.you-profile-link:hover{border-color:#a9cfb3;background:#f6fbf7}
+.account-settings-section-heading{margin-top:23px}
+.account-settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:0}
+.account-settings-group{gap:15px;padding:17px!important;border-radius:15px!important}
+.account-settings-group-heading{gap:10px}
+.account-settings-group-heading h3{font-size:14px}
+.account-settings-group-heading p{font-size:11px;line-height:1.5}
+.account-settings-icon{width:36px;height:36px;flex-basis:36px;border-radius:11px}
+.account-settings-group .you-setting-action{min-height:80px;align-items:center;gap:10px;padding:12px!important;border-radius:12px!important;background:#fbfdfb!important}
+.account-settings-group .you-setting-action strong{font-size:12px!important;line-height:1.35}
+.account-settings-group .you-setting-action small{font-size:10.5px!important;line-height:1.5}
+.account-settings-group .you-action-label{font-size:10px!important;white-space:nowrap}
+.account-settings-group .install-app-trigger{min-height:39px!important;padding:8px 11px!important;font-size:11px!important}
+.materials-unit-filter{padding:13px 13px 11px;border:1px solid #e6eee8;border-radius:13px;background:#fbfdfb}
+.materials-unit-filter-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+.materials-unit-filter-heading strong{color:#31513c;font-size:12px;font-weight:850}
+.materials-unit-filter-heading small{color:#829087;font-size:10px}
+.materials-unit-tabs{display:flex;gap:7px;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 1px 7px;scrollbar-width:thin;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.materials-unit-tabs>button{flex:0 0 auto;min-height:37px;padding:8px 11px;border:1px solid #e1eae3;border-radius:999px;background:#fff;color:#617368;font-size:11px;font-weight:750;white-space:nowrap;scroll-snap-align:start;transition:background .15s,border-color .15s,color .15s}
+.materials-unit-tabs>button span{display:inline-grid;place-items:center;min-width:19px;height:19px;margin-left:4px;padding:0 5px;border-radius:999px;background:#f0f4f1;color:#718078;font-size:9px;font-weight:850}
+.materials-unit-tabs>button.active{border-color:#a9cdb2;background:#eaf5ed;color:#176b4d}
+.materials-unit-tabs>button.active span{background:#d5eadb;color:#176b4d}
+.materials-unit-tabs>button:focus-visible{outline:3px solid rgba(29,110,72,.22);outline-offset:2px}
+.materials-unit-group{min-width:0;padding:15px;border:1px solid #e7eee8;border-radius:14px;background:#fff}
+.materials-unit-group-heading h3{color:#284b36;font:800 14px/1.3 Manrope,sans-serif}
+.materials-unit-group-heading>div>span{font-size:10px}
+.materials-unit-group .materials-list{gap:8px}
+.materials-unit-group .materials-list-item{min-width:0;border-radius:11px}
+.materials-unit-group .materials-item-copy strong{font-size:12px;line-height:1.4}
+.materials-unit-group .materials-item-copy small,.materials-unit-group .materials-item-copy>span{font-size:10px;line-height:1.45}
+.materials-unit-group .materials-open-label{font-size:10px;white-space:nowrap}
+.materials-preview-note{margin:8px 2px 0;color:#849187;font-size:10px;line-height:1.45}
+.materials-view-more{min-height:39px;padding:8px 12px;font-size:11px}
+@media(max-width:1050px){
+  .account-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .account-settings-security{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .account-settings-section-heading{align-items:flex-start;flex-direction:column;gap:5px;margin:19px 0 10px}
+  .account-settings-section-heading h2{font-size:19px}
+  .account-settings-section-heading>p{max-width:none;font-size:10px;text-align:left}
+  .you-account-panel{display:grid!important;grid-template-columns:52px minmax(0,1fr);gap:11px 12px;min-height:0;padding:15px!important;border-radius:15px!important}
+  .you-account-avatar{width:52px;height:52px;flex-basis:52px;grid-row:1}
+  .you-account-details{grid-column:2;grid-row:1;min-width:0}
+  .you-account-details strong{font-size:15px}
+  .you-account-details small{font-size:11px}
+  .you-account-status{font-size:9px}
+  .you-profile-link{grid-column:1/-1;width:100%;min-height:43px;margin:0!important}
+  .account-settings-grid{grid-template-columns:1fr;gap:10px}
+  .account-settings-security{grid-column:auto}
+  .account-settings-group{gap:11px;padding:14px!important;border-radius:13px!important}
+  .account-settings-group-heading h3{font-size:13px}
+  .account-settings-group-heading p{font-size:10px}
+  .account-settings-group .you-setting-action{min-height:68px;padding:10px!important}
+  .account-settings-group .you-setting-action strong{font-size:12px!important}
+  .account-settings-group .you-setting-action small{font-size:10px!important}
+  .account-settings-group .you-action-label{font-size:9px!important}
+  .materials-unit-filter{padding:11px 10px 8px}
+  .materials-unit-filter-heading{align-items:flex-start;flex-direction:column;gap:3px}
+  .materials-unit-filter-heading strong{font-size:11px}
+  .materials-unit-filter-heading small{font-size:9px}
+  .materials-unit-tabs{margin-right:-2px;padding-bottom:8px}
+  .materials-unit-tabs>button{min-height:39px;padding:8px 10px;font-size:10px}
+  .materials-unit-group{padding:11px;border-radius:12px}
+  .materials-unit-group-heading h3{font-size:12px!important}
+  .materials-unit-group-heading>div>span{font-size:9px}
+  .materials-unit-group .materials-item-copy strong{font-size:11px}
+  .materials-unit-group .materials-item-copy small,.materials-unit-group .materials-item-copy>span{font-size:9px}
+  .materials-view-more{min-height:38px;padding:7px 9px;font-size:10px}
+}
+@media(max-width:380px){
+  .account-settings-group .you-setting-action{gap:7px}
+  .account-settings-group .you-setting-action small{font-size:9px!important}
+  .account-settings-group .you-action-label{white-space:normal}
+  .materials-unit-group{padding:9px}
+}
