@@ -302,6 +302,139 @@ function PublicLanding() {
     </main>
   );
 }
+
+type ClerkMeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+function InstallAppPrompt() {
+  const [visible, setVisible] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
+  const deferredPrompt = useRef<ClerkMeInstallPromptEvent | null>(null);
+  const installActionRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("welcome") !== "1") return;
+
+    // Keep the welcome URL tidy after consuming the one-time invitation.
+    url.searchParams.delete("welcome");
+    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+
+    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    if (standalone) return;
+
+    try {
+      const dismissedUntil = Number(window.localStorage.getItem("clerkme-install-invite-dismissed-until") || 0);
+      if (dismissedUntil > Date.now()) return;
+    } catch {
+      // Continue with the invitation when storage is unavailable.
+    }
+
+    const userAgent = navigator.userAgent;
+    if (/iphone|ipad|ipod/i.test(userAgent)) setPlatform("ios");
+    else if (/android/i.test(userAgent)) setPlatform("android");
+
+    const timer = window.setTimeout(() => setVisible(true), 650);
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      deferredPrompt.current = event as ClerkMeInstallPromptEvent;
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setVisible(false);
+      deferredPrompt.current = null;
+      try {
+        window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 365 * 24 * 60 * 60 * 1000));
+      } catch {
+        // The installed state is also detected through display-mode on later visits.
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    installActionRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismissInvitation();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [visible]);
+
+  const dismissInvitation = () => {
+    try {
+      // Do not ask again for 30 days after the student chooses "Maybe later".
+      window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+    } catch {
+      // Dismiss for this page view even when browser storage is unavailable.
+    }
+    setVisible(false);
+  };
+
+  const install = async () => {
+    const promptEvent = deferredPrompt.current;
+    if (!promptEvent) {
+      setShowInstructions(true);
+      return;
+    }
+    deferredPrompt.current = null;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice.outcome === "accepted") {
+        setInstalled(true);
+        setVisible(false);
+      } else {
+        setShowInstructions(true);
+      }
+    } catch {
+      setShowInstructions(true);
+    }
+  };
+
+  if (!visible || installed) return null;
+
+  return (
+    <div className="install-invite-backdrop" role="presentation">
+      <section className="install-invite-dialog" role="dialog" aria-modal="true" aria-labelledby="install-invite-title" aria-describedby="install-invite-description">
+        <button className="install-invite-close" type="button" onClick={dismissInvitation} aria-label="Close installation invitation">×</button>
+        <div className="install-invite-mark" aria-hidden="true"><span>↥</span><i/></div>
+        <span className="install-invite-eyebrow">YOUR CLERKME WORKSPACE</span>
+        <h2 id="install-invite-title">Keep ClerkMe one tap away.</h2>
+        <p id="install-invite-description">Add ClerkMe to your device for quicker access to your clinical learning workspace.</p>
+        {showInstructions && (
+          <div className="install-invite-steps" role="status">
+            <strong>Install from your browser</strong>
+            {platform === "ios" && <p>Open ClerkMe in Safari, tap the Share icon, then choose <b>Add to Home Screen</b>.</p>}
+            {platform === "android" && <p>Open your browser menu <b>⋮</b>, then choose <b>Install app</b> or <b>Add to Home screen</b>.</p>}
+            {platform === "desktop" && <p>In Chrome or Edge, select the install icon in the address bar, or open the browser menu and choose <b>Install ClerkMe</b>.</p>}
+          </div>
+        )}
+        <div className="install-invite-actions">
+          <button ref={installActionRef} className="install-invite-primary" type="button" onClick={showInstructions ? dismissInvitation : install}>
+            {showInstructions ? "Got it" : "Install ClerkMe"} <span aria-hidden="true">→</span>
+          </button>
+          {!showInstructions && <button className="install-invite-later" type="button" onClick={dismissInvitation}>Maybe later</button>}
+        </div>
+        <span className="install-invite-footnote">You can also install ClerkMe later from Account settings.</span>
+      </section>
+    </div>
+  );
+}
+
 export default function Home() {
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
@@ -515,6 +648,7 @@ export default function Home() {
 
   return (
     <main className="app-shell">
+      <InstallAppPrompt/>
       <aside className="sidebar">
         <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
         <nav className="nav-list" aria-label="Workspace navigation">
