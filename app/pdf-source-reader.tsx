@@ -36,6 +36,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
   const [loading, setLoading] = useState(true);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +72,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
       renderTask.current?.cancel?.();
       renderTask.current = null;
     };
-  }, [sourceUrl]);
+  }, [sourceUrl, retry]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -168,7 +169,7 @@ export default function PdfSourceReader({ sourceUrl, fileName }: Props) {
         onPointerCancel={() => { swipeStart.current = null; }}
       >
         {loading && <div className="source-preview-loading" role="status">Opening your original PDF…</div>}
-        {error && <div className="source-preview-error" role="alert"><p>{error}</p><button type="button" className="secondary-button" onClick={() => window.location.reload()}>Refresh ClerkME</button></div>}
+        {error && <div className="source-preview-error" role="alert"><p>{error}</p><button type="button" className="secondary-button" onClick={() => { setError(""); setLoading(true); setRetry(value => value + 1); }}>Try again</button></div>}
         {!loading && !error && <div className="pdf-source-canvas-inner">
           <canvas ref={canvasRef} aria-label={"Page " + pageNumber + " of " + pageCount} />
           {rendering && <span className="pdf-source-rendering" role="status">Rendering page…</span>}
