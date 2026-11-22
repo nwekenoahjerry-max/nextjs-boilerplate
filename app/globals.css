@@ -5521,3 +5521,24 @@ body{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-s
   .study-dive-deeper-dropdown *:before,
   .study-dive-deeper-dropdown *:after{transition:none!important;animation:none!important}
 }
+
+
+/* Keep the requested order: Dive deeper follows the core exam-facts panel. */
+.study-dive-deeper-dropdown{position:relative;top:auto;z-index:1;margin:20px 0 24px}
+.study-dive-deeper-dropdown>summary{min-height:110px}
+.study-video-disclosure-heading{display:flex;align-items:center;gap:13px}
+.study-video-disclosure-brand{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border-radius:14px;background:#e62117;box-shadow:0 5px 13px rgba(230,33,23,.2)}
+.study-video-disclosure-brand svg{display:block;width:28px;height:28px;fill:#fff}
+.study-video-disclosure-heading>div{min-width:0}
+.study-video-resources>summary{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.study-video-link .study-video-youtube-mark{display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;min-width:126px!important;height:48px!important;padding:0 14px!important;border-radius:12px!important;background:#e62117!important;color:#fff!important;box-shadow:0 5px 13px rgba(230,33,23,.18)!important}
+.study-video-link .study-video-youtube-mark svg{width:29px!important;height:25px!important;flex-basis:29px!important;fill:#fff!important}
+.study-video-link .study-video-youtube-mark b{font-size:14px!important;font-weight:900!important;letter-spacing:-.02em}
+.study-video-topic-button:before{width:20px!important;height:16px!important;font-size:9px!important}
+.study-video-youtube-small{width:30px!important;height:30px!important;flex-basis:30px!important;font-size:12px!important}
+@media(max-width:600px){
+ .study-video-disclosure-brand{width:42px;height:42px;flex-basis:42px;border-radius:12px}
+ .study-video-disclosure-brand svg{width:25px;height:25px}
+ .study-video-link .study-video-youtube-mark{min-width:112px!important;height:43px!important}
+ .study-video-link .study-video-youtube-mark b{font-size:13px!important}
+}
