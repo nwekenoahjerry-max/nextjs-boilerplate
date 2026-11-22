@@ -30,11 +30,11 @@ const DOCX_PREVIEW_FRAME = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ClerkMe Word document preview</title>
   <style>
-    html, body { margin: 0; min-height: 100%; background: #edf0ed; color: #25372c; }
+    html, body { margin: 0; min-height: 100%; background: #F5F8FC; color: #102D5A; }
     body { padding: 16px 0 32px; overflow-x: auto; }
     #docx-preview { min-height: 80vh; }
-    .docx-wrapper { padding: 18px 0 30px !important; background: #edf0ed !important; }
-    .docx { margin: 0 auto 18px !important; box-shadow: 0 3px 16px rgba(28,48,34,.12); }
+    .docx-wrapper { padding: 18px 0 30px !important; background: #F5F8FC !important; }
+    .docx { margin: 0 auto 18px !important; box-shadow: 0 3px 16px rgba(16,45,90,.12); }
     @media(max-width:640px) {
       body { padding: 8px 0 20px; }
       .docx-wrapper { padding: 8px 0 18px !important; }
