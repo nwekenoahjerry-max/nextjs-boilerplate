@@ -1,6 +1,6 @@
 export type ExtractedStudyFile = { name: string; text: string };
 export const STUDY_FILE_ACCEPT = ".pdf,.pptx,.docx,.xlsx,.txt,.md,.csv,.rtf,.html,.htm,.json,.png,.jpg,.jpeg,.webp,.heic,.heif";
-export const STUDY_FILE_TYPES = "PDF, PowerPoint, Word, Excel, text, CSV, RTF, HTML, JSON and common image files";
+export const STUDY_FILE_TYPES = "PDF, PPTX, DOCX, XLSX, TXT, MD, CSV, RTF, HTML, JSON and common image files";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_EXTRACTED_CHARS = 120000;
@@ -135,7 +135,7 @@ async function unzipTextFiles(
     const localOffset = view.getUint32(offset + 42, true);
     const name = new TextDecoder().decode(bytes.slice(offset + 46, offset + 46 + nameLength));
     if (predicate(name)) {
-      if (view.getUint32(localOffset, true) !== 0x04034b50) throw new Error("A document or spreadsheet section could not be read.");
+      if (view.getUint32(localOffset, true) !== 0x04034b50) return unzipWithJsZip(buffer, predicate);
       const localNameLength = view.getUint16(localOffset + 26, true);
       const localExtraLength = view.getUint16(localOffset + 28, true);
       const dataStart = localOffset + 30 + localNameLength + localExtraLength;
@@ -159,7 +159,7 @@ async function unzipTextFiles(
     }
     offset += 46 + nameLength + extraLength + commentLength;
   }
-  return output;
+  return output.length ? output : unzipWithJsZip(buffer, predicate);
 }
 
 function parseXml(xml: string): Document {
