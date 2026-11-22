@@ -5352,3 +5352,18 @@ body{background:var(--paper);color:var(--ink)}
   .xlsx-source-footer{font-size:9px;padding:8px 10px}
 }
 .xlsx-source-reader :is(button):focus-visible{outline:3px solid rgba(31,111,69,.24)!important;outline-offset:2px}
+
+
+.materials-selection-empty{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:15px;margin:14px 0;padding:19px 20px;border:1px dashed #cbded0;border-radius:15px;background:linear-gradient(115deg,#f7fbf7,#fff)}
+.materials-selection-empty-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#eaf4ec;color:#2c794a;font-size:22px}
+.materials-selection-empty>div{min-width:0}
+.materials-selection-empty h2{margin:4px 0 5px;color:#264b35;font:800 17px/1.3 Manrope,sans-serif;letter-spacing:-.02em}
+.materials-selection-empty p{max-width:720px;margin:0;color:#718176;font-size:12px;line-height:1.55}
+.materials-selection-empty>.primary-button{min-height:42px;white-space:nowrap}
+@media(max-width:760px){
+  .materials-selection-empty{grid-template-columns:42px minmax(0,1fr);gap:11px;margin:11px 0;padding:14px 13px}
+  .materials-selection-empty-icon{width:40px;height:40px;border-radius:11px;font-size:19px}
+  .materials-selection-empty h2{font-size:15px}
+  .materials-selection-empty p{font-size:11px}
+  .materials-selection-empty>.primary-button{grid-column:1/-1;width:100%;min-height:44px}
+}
