@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -316,6 +316,16 @@ function InstallAppPrompt() {
   const deferredPrompt = useRef<ClerkMeInstallPromptEvent | null>(null);
   const installActionRef = useRef<HTMLButtonElement>(null);
 
+  const dismissInvitation = useCallback(() => {
+    try {
+      // Do not ask again for 30 days after the student chooses "Maybe later".
+      window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+    } catch {
+      // Dismiss for this page view even when browser storage is unavailable.
+    }
+    setVisible(false);
+  }, []);
+
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("welcome") !== "1") return;
@@ -335,10 +345,6 @@ function InstallAppPrompt() {
       // Continue with the invitation when storage is unavailable.
     }
 
-    const userAgent = navigator.userAgent;
-    if (/iphone|ipad|ipod/i.test(userAgent)) setPlatform("ios");
-    else if (/android/i.test(userAgent)) setPlatform("android");
-
     const timer = window.setTimeout(() => setVisible(true), 650);
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -351,7 +357,7 @@ function InstallAppPrompt() {
       try {
         window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 365 * 24 * 60 * 60 * 1000));
       } catch {
-        // The installed state is also detected through display-mode on later visits.
+        // Standalone display mode will identify the installed app on later visits.
       }
     };
 
@@ -372,22 +378,20 @@ function InstallAppPrompt() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [visible]);
+  }, [visible, dismissInvitation]);
 
-  const dismissInvitation = () => {
-    try {
-      // Do not ask again for 30 days after the student chooses "Maybe later".
-      window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
-    } catch {
-      // Dismiss for this page view even when browser storage is unavailable.
-    }
-    setVisible(false);
+  const showManualInstructions = () => {
+    const userAgent = navigator.userAgent;
+    if (/iphone|ipad|ipod/i.test(userAgent)) setPlatform("ios");
+    else if (/android/i.test(userAgent)) setPlatform("android");
+    else setPlatform("desktop");
+    setShowInstructions(true);
   };
 
   const install = async () => {
     const promptEvent = deferredPrompt.current;
     if (!promptEvent) {
-      setShowInstructions(true);
+      showManualInstructions();
       return;
     }
     deferredPrompt.current = null;
@@ -398,10 +402,10 @@ function InstallAppPrompt() {
         setInstalled(true);
         setVisible(false);
       } else {
-        setShowInstructions(true);
+        showManualInstructions();
       }
     } catch {
-      setShowInstructions(true);
+      showManualInstructions();
     }
   };
 
