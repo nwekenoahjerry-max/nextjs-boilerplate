@@ -520,20 +520,20 @@ export default function Home() {
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">CLINICAL WORK</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
-            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
               {id === "clerking" && <span className="nav-plus">+</span>}
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">STUDY & PRACTISE</div>
           {navItems.slice(5, 11).map(([label, id, icon]) => (
-            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
           {navItems.slice(11).map(([label, id, icon]) => (
-            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-current={active === id ? "page" : undefined}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
             </button>
           ))}
