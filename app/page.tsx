@@ -304,7 +304,22 @@ function PublicLanding() {
 export default function Home() {
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
+  const mobileAccountCloseRef = useRef<HTMLButtonElement>(null);
   const selectSection = (id: string) => { setActive(id); setShowNew(id === "clerking"); setMoreOpen(false); };
+  useEffect(() => {
+    if (!moreOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    mobileAccountCloseRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [moreOpen]);
 
   const [osceUnit, setOsceUnit] = useState("general-medicine");
   const [osceIndex, setOsceIndex] = useState(0);
@@ -532,47 +547,51 @@ export default function Home() {
       </aside>
 
       <nav className="mobile-dock" aria-label="Main navigation">
-        {navItems.filter(([,id])=>["overview","clerking","simulation","patients"].includes(id)).map(([label,id,icon])=>(
-          <button type="button" key={id} className={active===id?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection(id)} aria-current={active===id?"page":undefined}>
-            <span>{icon}</span><small>{id==="clerking"?"Clerk":id==="patients"?"Cases":id==="simulation"?"Sim":label}</small>
-          </button>
-        ))}
-        <button type="button" className={moreOpen||!["overview","clerking","patients","simulation"].includes(active)?"mobile-dock-item more-active":"mobile-dock-item"} onClick={()=>setMoreOpen(value=>!value)} aria-expanded={moreOpen} aria-controls="mobile-more-panel">
-          <span>•••</span><small>More</small>
+        <button type="button" className={active==="overview"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("overview")} aria-current={active==="overview"?"page":undefined}>
+          <span>⌂</span><small>Home</small>
+        </button>
+        <button type="button" className={active==="clerking"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("clerking")} aria-current={active==="clerking"?"page":undefined}>
+          <span>＋</span><small>Clerk</small>
+        </button>
+        <button type="button" className={["materials","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("materials")} aria-current={["materials","videos","osce","qbank","game"].includes(active)?"page":undefined}>
+          <span>▧</span><small>Study</small>
+        </button>
+        <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
+          <span>◉</span><small>Sim</small>
+        </button>
+        <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
+          <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
         </button>
       </nav>
       {moreOpen && <div className="mobile-more-scrim" onClick={()=>setMoreOpen(false)}>
-        <div id="mobile-more-panel" className="mobile-more-panel" role="dialog" aria-modal="true" aria-label="More from ClerkME" onClick={event=>event.stopPropagation()}>
-          <div className="mobile-more-heading"><div><strong>More from ClerkME</strong><small>Clinical tools, study resources and account</small></div><button type="button" onClick={()=>setMoreOpen(false)} aria-label="Close menu">×</button></div>
-          <div className="mobile-more-group">
-            <span className="mobile-more-group-label">CLINICAL WORK</span>
-            {navItems.filter(([,id])=>id==="guides").map(([label,id,icon])=>(
-              <button type="button" key={id} className={active===id?"mobile-more-link active":"mobile-more-link"} onClick={()=>selectSection(id)}>
-                <span>{icon}</span><strong>{label}</strong><b>→</b>
-              </button>
-            ))}
+        <section id="mobile-account-sheet" className="mobile-more-panel mobile-account-sheet" role="dialog" aria-modal="true" aria-label="Your ClerkME account and tools" onClick={event=>event.stopPropagation()}>
+          <div className="mobile-account-sheet-topline"><span>YOUR CLERKME</span><button ref={mobileAccountCloseRef} type="button" onClick={()=>setMoreOpen(false)} aria-label="Close account menu">×</button></div>
+          <button type="button" className="mobile-account-profile" onClick={()=>selectSection("you")}>
+            <span className="mobile-account-avatar">{authUser?.name?.[0] || "C"}</span>
+            <span className="mobile-account-profile-copy"><strong>{authUser?.name || "Medical student"}</strong><small>{authUser?.email || "Your student account"}</small><em>Profile & settings <b>→</b></em></span>
+            <span className="mobile-account-profile-arrow">›</span>
+          </button>
+          <div className="mobile-account-section-heading"><strong>Clinical workspace</strong><span>Patient care and clinical skills</span></div>
+          <div className="mobile-account-tool-grid">
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("guides")}><span className="mobile-account-tool-icon clinical">✚</span><strong>Clinical guides</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("patients")}><span className="mobile-account-tool-icon cases">▤</span><strong>My cases</strong></button>
           </div>
-          <div className="mobile-more-group">
-            <span className="mobile-more-group-label">STUDY & PRACTISE</span>
-            {navItems.filter(([,id])=>["materials","videos","osce","qbank","game"].includes(id)).map(([label,id,icon])=>(
-              <button type="button" key={id} className={active===id?"mobile-more-link active":"mobile-more-link"} onClick={()=>selectSection(id)}>
-                <span>{icon}</span><strong>{label}</strong><b>→</b>
-              </button>
-            ))}
+          <div className="mobile-account-section-heading"><strong>Study & practise</strong><span>Resources built for your learning</span></div>
+          <div className="mobile-account-tool-grid">
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("videos")}><span className="mobile-account-tool-icon video">▶</span><strong>YouTube library</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("osce")}><span className="mobile-account-tool-icon osce">◎</span><strong>OSCE & Viva</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions">▦</span><strong>Question bank</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("game")}><span className="mobile-account-tool-icon flight">✈</span><strong>Flight Academy</strong></button>
           </div>
-          <div className="mobile-more-group">
-            <span className="mobile-more-group-label">ACCOUNT</span>
-            {navItems.filter(([,id])=>id==="you").map(([label,id,icon])=>(
-              <button type="button" key={id} className={active===id?"mobile-more-link active":"mobile-more-link"} onClick={()=>selectSection(id)}>
-                <span>{icon}</span><strong>{label} & settings</strong><b>→</b>
-              </button>
-            ))}
+          <div className="mobile-account-settings-row">
+            <span><strong>Install ClerkME</strong><small>Add ClerkME to your device for easier access.</small></span>
+            <InstallAppButton/>
           </div>
-        </div>
+        </section>
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => selectSection("you")} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || "Overview"}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
             <div className="welcome-row dashboard-welcome">
