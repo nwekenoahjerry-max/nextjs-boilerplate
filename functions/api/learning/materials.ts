@@ -2,6 +2,10 @@ import { json, requireUser, isResponse, validSameOrigin, type AppContext } from 
 
 const MAX_TEXT = 120000;
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = new Set([
+  "pdf", "pptx", "docx", "xlsx", "txt", "md", "csv", "rtf", "html", "htm", "json",
+  "png", "jpg", "jpeg", "webp", "heic", "heif"
+]);
 const ALLOWED_UNITS = [
   "general-medicine", "surgery", "paediatrics", "obstetrics-gynaecology",
   "emergency", "psychiatry", "community-medicine", "orthopaedics"
@@ -122,6 +126,10 @@ export const onRequestPost = async (context: AppContext) => {
   if (!title || !sourceName) return json({ error: "Add a title and select a source file." }, 400);
   if (!ALLOWED_UNITS.includes(unit)) return json({ error: "Select a valid clinical unit." }, 400);
   if (!(originalFile instanceof File)) return json({ error: "The original file was not included. Please select it again." }, 400);
+  const extension = (originalFile.name.split(".").pop() || "").toLowerCase();
+  if (!ALLOWED_EXTENSIONS.has(extension)) {
+    return json({ error: "This file format is not supported. Upload PDF, PPTX, DOCX, XLSX, TXT, MD, CSV, RTF, HTML, JSON, PNG, JPG, WEBP, HEIC or HEIF. Older PPT, DOC and XLS files should be saved as a modern format or PDF." }, 415);
+  }
   if (!originalFile.size) return json({ error: "The selected file is empty." }, 400);
   if (originalFile.size > MAX_FILE_BYTES) return json({ error: "This file is larger than 20 MB. Please compress it or split it into smaller parts." }, 413);
   if (content.length > MAX_TEXT) return json({ error: "The extracted document is too long. Split it into smaller files and upload each part separately." }, 413);
