@@ -116,12 +116,20 @@ function formatTimer(seconds:number) {
 const ACTIVE_LIVE_MATERIAL_KEY = "clerkme:live-test:active-material";
 const liveSessionKey = (materialId:string) => "clerkme:live-test:"+materialId;
 const illustrationSessionKey = (materialId:string) => "clerkme:illustrations:"+materialId;
+type LibraryMode = "clinical" | "general";
+const CUSTOM_SUBJECT_PREFIX = "custom:";
+const isCustomSubjectUnit = (value:string) => value.startsWith(CUSTOM_SUBJECT_PREFIX);
+const customSubjectLabel = (value:string) => isCustomSubjectUnit(value) ? value.slice(CUSTOM_SUBJECT_PREFIX.length) : value;
+const makeCustomSubjectUnit = (value:string) => CUSTOM_SUBJECT_PREFIX + value.trim();
 
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
   const [libraryUnit,setLibraryUnit] = useState("all");
+  const [libraryMode,setLibraryMode] = useState<LibraryMode>("clinical");
+  const [customSubject,setCustomSubject] = useState("");
+  const [libraryModeReady,setLibraryModeReady] = useState(false);
   const [category,setCategory] = useState("Lecture notes");
   const [title,setTitle] = useState("");
   const [file,setFile] = useState<File|null>(null);
@@ -174,6 +182,18 @@ export default function MaterialsPanel() {
   const [videoSaveError,setVideoSaveError] = useState("");
 
   useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("clerkme-library-mode");
+      if (saved === "general" || saved === "clinical") setLibraryMode(saved);
+    } catch {}
+    setLibraryModeReady(true);
+  }, []);
+  useEffect(() => {
+    if (!libraryModeReady) return;
+    try { window.localStorage.setItem("clerkme-library-mode",libraryMode); } catch {}
+  },[libraryMode,libraryModeReady]);
+
+  useEffect(() => {
     if (!activeYoutubeVideo) return;
     const frame = window.requestAnimationFrame(() => {
       youtubePlayerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -181,14 +201,49 @@ export default function MaterialsPanel() {
     return () => window.cancelAnimationFrame(frame);
   }, [activeYoutubeVideo?.id]);
 
-  const unitName = (id:string)=>clinicalUnits.find(item=>item.id===id)?.name || id;
-  const unitFilteredMaterials = useMemo(()=>libraryUnit==="all"?materials:materials.filter(item=>item.unit===libraryUnit),[materials,libraryUnit]);
+  const unitName = (id:string)=>isCustomSubjectUnit(id)
+    ? customSubjectLabel(id)
+    : clinicalUnits.find(item=>item.id===id)?.name || id;
+  const modeMaterials = useMemo(
+    ()=>materials.filter(item=>libraryMode==="general"?isCustomSubjectUnit(item.unit):!isCustomSubjectUnit(item.unit)),
+    [materials,libraryMode]
+  );
+  const unitFilteredMaterials = useMemo(
+    ()=>libraryUnit==="all"?modeMaterials:modeMaterials.filter(item=>item.unit===libraryUnit),
+    [modeMaterials,libraryUnit]
+  );
   const visibleMaterials = useMemo(()=>{
     const query=librarySearch.trim().toLocaleLowerCase();
     return query?unitFilteredMaterials.filter(item=>[item.title,item.sourceName,item.category,unitName(item.unit)].some(value=>value.toLocaleLowerCase().includes(query))):unitFilteredMaterials;
   },[unitFilteredMaterials,librarySearch]);
-  const groupedVisibleMaterials = useMemo(()=>clinicalUnits.map(unit=>({...unit,materials:visibleMaterials.filter(item=>item.unit===unit.id)})).filter(unit=>unit.materials.length>0),[visibleMaterials]);
+  const libraryBrowseUnits = useMemo(()=>{
+    if(libraryMode==="clinical") return clinicalUnits.map(item=>({id:item.id,name:item.name}));
+    return [...new Set(modeMaterials.map(item=>item.unit))]
+      .sort((a,b)=>unitName(a).localeCompare(unitName(b),"en",{sensitivity:"base"}))
+      .map(id=>({id,name:unitName(id)}));
+  },[libraryMode,modeMaterials]);
+  const groupedVisibleMaterials = useMemo(()=>{
+    const orderedIds = libraryMode==="clinical"
+      ? clinicalUnits.map(item=>item.id).filter(id=>visibleMaterials.some(material=>material.unit===id))
+      : [...new Set(visibleMaterials.map(item=>item.unit))].sort((a,b)=>unitName(a).localeCompare(unitName(b),"en"));
+    return orderedIds.map(id=>({id,name:unitName(id),materials:visibleMaterials.filter(item=>item.unit===id}))
+      .filter(group=>group.materials.length>0);
+  },[visibleMaterials,libraryMode]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
+  const selectLibraryMode = (nextMode:LibraryMode) => {
+    setLibraryMode(nextMode);
+    setLibraryUnit("all");
+    setLibrarySearch("");
+    setExpandedUnits({});
+    setSelectedId("");
+    setMobileDetailOpen(false);
+    setShowUploadForm(false);
+    if(nextMode==="general"){
+      const firstSubject=materials.find(item=>isCustomSubjectUnit(item.unit));
+      setCustomSubject(firstSubject?unitName(firstSubject.unit):"");
+    }
+    setAnswer(null); setTab("summary"); setQuestionIndex(0); setQuestionAnswers({}); setQuizFinished(false); setQuizMode("practice"); setLiveDeadline(null); setLiveStartedAt(null); setLiveElapsedSeconds(0); setLiveTimedOut(false); setError("");
+  };
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
     setUnit(nextUnit==="all"?"general-medicine":nextUnit);
@@ -624,6 +679,15 @@ export default function MaterialsPanel() {
 
   const upload = async () => {
     if (!file) { setError("Choose a document first."); return; }
+    const uploadUnit = libraryMode==="general" ? makeCustomSubjectUnit(customSubject) : unit;
+    if(libraryMode==="general" && customSubject.trim().length<2){
+      setError("Enter the subject or course name for this material.");
+      return;
+    }
+    if(libraryMode==="general" && customSubject.trim().length>70){
+      setError("Keep the subject or course name under 70 characters.");
+      return;
+    }
     setUploading(true); setError(""); setNotice(""); setAnswer(null);
     try {
       setNotice("Reading your file and preparing it for study…");
@@ -635,7 +699,7 @@ export default function MaterialsPanel() {
       const uploadForm = new FormData();
       uploadForm.append("title",title.trim() || file.name.replace(/\\.[^.]+$/,""));
       uploadForm.append("sourceName",file.name);
-      uploadForm.append("unit",unit);
+      uploadForm.append("unit",uploadUnit);
       uploadForm.append("category",category);
       uploadForm.append("contentText",extractedText);
       uploadForm.append("originalFile",file,file.name);
@@ -650,7 +714,8 @@ export default function MaterialsPanel() {
       setMobileDetailOpen(true);
       window.requestAnimationFrame(()=>document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
       setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
-      setLibraryUnit(unit);
+      setLibraryUnit(uploadUnit);
+      setUnit(uploadUnit);
       setTitle(""); setFile(null);
       setNotice("Material uploaded. Opening the original file and building your study guide…");
       setTab("source");
@@ -763,8 +828,28 @@ export default function MaterialsPanel() {
       </div>
       <div className="materials-safety-note materials-privacy-reminder">
         <strong>Privacy reminder:</strong>
-        <span>Remove patient names, hospital numbers and other identifying details before uploading learning resources.</span>
+        <span>Remove patient identifiers and confidential personal or institutional information before uploading learning resources.</span>
       </div>
+      <section className="materials-library-personaliser" aria-label="Customise your library">
+        <div className="materials-library-personaliser-copy">
+          <span className="materials-library-personaliser-kicker">MAKE CLERKME YOURS</span>
+          <h2>What are you studying?</h2>
+          <p>Choose the library structure that fits your course. You can switch at any time without deleting or moving your uploads.</p>
+        </div>
+        <div className="materials-library-mode-options" role="group" aria-label="Choose your library type">
+          <button type="button" className={libraryMode==="clinical"?"active":""} aria-pressed={libraryMode==="clinical"} onClick={()=>selectLibraryMode("clinical")} disabled={liveInProgress}>
+            <span className="materials-library-mode-icon">✚</span>
+            <span><strong>Clinical & health sciences</strong><small>Medicine, nursing, pharmacy and allied health</small></span>
+            <i aria-hidden="true">{libraryMode==="clinical"?"✓":"○"}</i>
+          </button>
+          <button type="button" className={libraryMode==="general"?"active":""} aria-pressed={libraryMode==="general"} onClick={()=>selectLibraryMode("general")} disabled={liveInProgress}>
+            <span className="materials-library-mode-icon">▤</span>
+            <span><strong>General study</strong><small>Any course, subject or professional learning</small></span>
+            <i aria-hidden="true">{libraryMode==="general"?"✓":"○"}</i>
+          </button>
+        </div>
+        {libraryMode==="general" && <p className="materials-library-mode-note"><strong>Your subjects, your structure.</strong> Name the subject when you upload a file — for example Economics, Law, Computer Science, Psychology, Research Methods or Project Management. ClerkMe will organise resources and build revision questions from the uploaded source.</p>}
+      </section>
               <section className="materials-library-card materials-library-first-card">
           <div className="materials-library-heading">
             <div><div className="eyebrow">YOUR UPLOADED FILES</div><h2>My library <span>{materials.length}</span></h2></div>
@@ -776,17 +861,17 @@ export default function MaterialsPanel() {
             {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
           </label>
           <div className="materials-unit-filter">
-            <div className="materials-unit-filter-heading"><strong>Browse your uploads by unit</strong><small>Select a unit to see its lectures and notes.</small></div>
-            <div className="materials-unit-tabs" role="group" aria-label="Filter study materials by clinical unit">
-              <button type="button" className={libraryUnit==="all"?"active":""} aria-pressed={libraryUnit==="all"} onClick={()=>selectLibraryUnit("all")} disabled={liveInProgress}>All units <span>{materials.length}</span></button>
-              {clinicalUnits.map(item=>{
-                const count=materials.filter(material=>material.unit===item.id).length;
+            <div className="materials-unit-filter-heading"><strong>{libraryMode==="clinical"?"Browse by clinical unit":"Browse by subject"}</strong><small>{libraryMode==="clinical"?"Select a unit to see its lectures and notes.":"Choose one of your own subjects to filter its resources."}</small></div>
+            <div className="materials-unit-tabs" role="group" aria-label={libraryMode==="clinical"?"Filter study materials by clinical unit":"Filter study materials by subject"}>
+              <button type="button" className={libraryUnit==="all"?"active":""} aria-pressed={libraryUnit==="all"} onClick={()=>selectLibraryUnit("all")} disabled={liveInProgress}>All {libraryMode==="clinical"?"units":"subjects"} <span>{modeMaterials.length}</span></button>
+              {libraryBrowseUnits.map(item=>{
+                const count=modeMaterials.filter(material=>material.unit===item.id).length;
                 return <button type="button" key={item.id} className={libraryUnit===item.id?"active":""} aria-pressed={libraryUnit===item.id} onClick={()=>selectLibraryUnit(item.id)} disabled={liveInProgress}>{item.name} <span>{count}</span></button>;
               })}
             </div>
           </div>
-          {materials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. You will find it here whenever you return.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
-            visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?"Upload a lecture or choose a clinical unit to start building your library.":"Upload a lecture for this unit and it will appear here. Your other unit libraries will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
+          {modeMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. You will find it here whenever you return.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
+            visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?(libraryMode==="clinical"?"Upload a lecture or choose a clinical unit to start building your library.":"Add your first subject and upload a resource. Your subjects will become the folders for your library."):"Upload a resource for this "+(libraryMode==="clinical"?"unit":"subject")+" and it will appear here. Your other "+(libraryMode==="clinical"?"units":"subjects")+" will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
             <div className="materials-unit-groups">
               {groupedVisibleMaterials.map(group=>{
                 const expanded=!!expandedUnits[group.id];
@@ -812,38 +897,44 @@ export default function MaterialsPanel() {
             </div>}
           {materials.length>0&&<div className="materials-library-footer"><span>Choose a material above to open its study features.</span><button type="button" className="materials-add-link" onClick={openUploadForm}>＋ Add another material</button></div>}
         </section>
-      {showUploadForm&&        <section id="materials-upload-card" className="materials-upload-card">
-          <div className="materials-upload-heading-row"><div><div className="eyebrow">ADD TO YOUR LIBRARY</div><h2>Upload a new material</h2><p>Your existing materials will stay in your library.</p></div><button type="button" className="materials-upload-close" onClick={closeUploadForm} aria-label="Close upload form">×</button></div>
-          <label>Clinical unit
-            <select value={unit} onChange={event=>setUnit(event.target.value)}>
-              {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
-          <label>Material type
-            <select value={category} onChange={event=>setCategory(event.target.value)}>
-              <option>Lecture notes</option><option>Lecture slides</option><option>Textbook extract</option><option>Clinical guideline</option><option>Personal revision notes</option><option>Other study resource</option>
-            </select>
-          </label>
-          <label>Display title (optional)
-            <input value={title} onChange={event=>setTitle(event.target.value)} placeholder="e.g. Acute coronary syndromes — lecture 2"/>
-          </label>
-          <label className="materials-file-picker">
-            <span className="materials-file-icon">⇧</span>
-            <span><strong>{file?file.name:"Choose a file to upload"}</strong><small>{file?`${Math.max(1,Math.round(file.size/1024))} KB · ready to extract`:STUDY_FILE_TYPES+" · up to 20 MB"}</small></span>
-            <input type="file" accept={STUDY_FILE_ACCEPT} onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
-          </label>
-          <button className="primary-button materials-action-button" onClick={upload} disabled={!file||uploading}>
-            {uploading?"Reading and preparing your material…":"Upload material"} <span>→</span>
-          </button>
-          <div className="materials-processing-steps">
-            <span>01 · Extract text</span><span>02 · Build study guide</span><span>03 · Generate practice</span>
-          </div>
-        </section>}
+      {showUploadForm&&<section id="materials-upload-card" className="materials-upload-card">
+        <div className="materials-upload-heading-row"><div><div className="eyebrow">ADD TO YOUR LIBRARY</div><h2>Upload a new material</h2><p>{libraryMode==="clinical"?"Choose the clinical unit for this resource.":"Choose the subject this resource belongs to. You can create a new subject by typing its name."}</p></div><button type="button" className="materials-upload-close" onClick={closeUploadForm} aria-label="Close upload form">×</button></div>
+        {libraryMode==="clinical"
+          ? <label>Clinical unit
+              <select value={unit} onChange={event=>setUnit(event.target.value)}>
+                {clinicalUnits.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+          : <label>Subject / course <span className="materials-field-required">Required</span>
+              <input value={customSubject} onChange={event=>setCustomSubject(event.target.value)} maxLength={70} list="clerkme-custom-subjects" placeholder="e.g. Economics, Computer Science, Psychology"/>
+              <datalist id="clerkme-custom-subjects">{libraryBrowseUnits.map(item=><option key={item.id} value={item.name}/>)}</datalist>
+              <small>Use any course, subject, module or professional-learning topic.</small>
+            </label>}
+        <label>Material type
+          <select value={category} onChange={event=>setCategory(event.target.value)}>
+            {libraryMode==="clinical"
+              ? <><option>Lecture notes</option><option>Lecture slides</option><option>Textbook extract</option><option>Clinical guideline</option><option>Personal revision notes</option><option>Other study resource</option></>
+              : <><option>Lecture notes</option><option>Lecture slides</option><option>Textbook extract</option><option>Research paper</option><option>Coursework / assignment</option><option>Personal revision notes</option><option>Reference material</option><option>Other study resource</option></>}
+          </select>
+        </label>
+        <label>Display title (optional)
+          <input value={title} onChange={event=>setTitle(event.target.value)} placeholder={libraryMode==="clinical"?"e.g. Acute coronary syndromes — lecture 2":"e.g. Introduction to microeconomics — week 2"}/>
+        </label>
+        <label className="materials-file-picker">
+          <span className="materials-file-icon">⇧</span>
+          <span><strong>{file?file.name:"Choose a file to upload"}</strong><small>{file?`${Math.max(1,Math.round(file.size/1024))} KB · ready to extract`:STUDY_FILE_TYPES+" · up to 20 MB"}</small></span>
+          <input type="file" accept={STUDY_FILE_ACCEPT} onChange={event=>{setFile(event.target.files?.[0]||null);setError("");setNotice("");}}/>
+        </label>
+        <button className="primary-button materials-action-button" onClick={upload} disabled={!file||uploading||(libraryMode==="general"&&customSubject.trim().length<2)}>
+          {uploading?"Reading and preparing your material…":"Upload material"} <span>→</span>
+        </button>
+        <div className="materials-processing-steps"><span>01 · Extract content</span><span>02 · Build study guide</span><span>03 · Generate practice</span></div>
+      </section>}
       
 
       {materials.length>0&&!mobileDetailOpen&&!showUploadForm&&<section className="materials-selection-empty">
         <span className="materials-selection-empty-icon" aria-hidden="true">▤</span>
-        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>{selectedMaterial?"Your library is ready":"Choose a material to begin"}</h2><p>{selectedMaterial?"Your selected material is saved. Open it to continue with the Study Guide, original file, practice questions or Ask ClerkME.":"Select any uploaded lecture above to open its Study Guide, original file, practice questions or Ask ClerkME. Your files stay organised by clinical unit."}</p></div>
+        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>{selectedMaterial?"Your library is ready":"Choose a material to begin"}</h2><p>{selectedMaterial?"Your selected material is saved. Open it to continue with the Study Guide, original file, practice questions or Ask ClerkME.":"Select any uploaded resource above to open its Study Guide, original file, practice questions or Ask ClerkME. Your files stay organised by "+(libraryMode==="clinical"?"clinical unit":"subject")+"."}</p></div>
         {selectedMaterial
           ? <button type="button" className="primary-button" onClick={()=>openMaterial(selectedMaterial)}>Open selected material <span>→</span></button>
           : <button type="button" className="primary-button" onClick={openUploadForm}>＋ Upload a material</button>}
