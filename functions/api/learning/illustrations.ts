@@ -172,7 +172,7 @@ async function generateGeminiImage(apiKey: string, prompt: string): Promise<{ da
     const imagePart = stepImage || legacyImage;
     const imageData = payload.output_image?.data || imagePart?.data || imagePart?.image?.data || "";
     const mimeType = (payload.output_image?.mime_type || imagePart?.mime_type || imagePart?.image?.mime_type || "image/png").toLowerCase();
-    if (!imageData || !/^image\\/(png|jpeg|webp)$/.test(mimeType)) {
+    if (!imageData || !/^image\/(png|jpeg|webp)$/.test(mimeType)) {
       const returnedSteps = payload.steps?.map(step => step.type || "unknown").join(",") || "none";
       throw new Error("Gemini returned no supported image payload (steps: " + returnedSteps + ").");
     }
