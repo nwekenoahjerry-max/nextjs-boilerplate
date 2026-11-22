@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v8";
+const CACHE_NAME = "clerkme-shell-v9";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {

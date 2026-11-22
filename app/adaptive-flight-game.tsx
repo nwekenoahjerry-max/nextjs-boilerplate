@@ -113,6 +113,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   const [flightSpeed, setFlightSpeed] = useState(INITIAL_SPEED_KNOTS);
   const [altitude, setAltitude] = useState(1000);
   const [jetMotion, setJetMotion] = useState<"cruise" | "boost" | "drop">("cruise");
+  const [jetAnimationKey, setJetAnimationKey] = useState(0);
   const [bestAltitude, setBestAltitude] = useState(1000);
   const [correct, setCorrect] = useState(0);
   const [wrong, setWrong] = useState(0);
@@ -329,6 +330,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
   const answerQuestion = useCallback((option: number) => {
     if (answerLockedRef.current || !question || gameOver) return;
     answerLockedRef.current = true;
+    setJetAnimationKey((value) => value + 1);
     setSelected(option);
     setAnswerHistory((current) => [...current, {
       id: question.id,
@@ -491,7 +493,7 @@ export default function AdaptiveFlightGame({ onOpenMaterials }: { onOpenMaterial
           <div className="sky-cloud cloud-c"></div><div className="sky-cloud cloud-d"></div>
           <div className="sky-cloud cloud-e"></div><div className="flight-route-line"></div>
 
-          <div className={"flight-plane " + (flightSpeed >= 600 ? "plane-fast " : "") + (gameOver && wrong >= 3 ? "plane-crashed" : "plane-" + jetMotion)} style={flightPlaneStyle} aria-label="Jet aircraft">
+          <div key={jetAnimationKey} className={"flight-plane " + (flightSpeed >= 600 ? "plane-fast " : "") + (gameOver && wrong >= 3 ? "plane-crashed" : "plane-" + jetMotion)} style={flightPlaneStyle} aria-label="Jet aircraft">
             <svg viewBox="0 0 120 150" role="img" aria-label="Silver jet pointing upwards">
               <defs><linearGradient id="adaptiveJetMetal" x1="0" x2="1"><stop offset="0" stopColor="#647d91" /><stop offset=".48" stopColor="#f5fbff" /><stop offset="1" stopColor="#526b80" /></linearGradient></defs>
               <path d="M60 7 C69 28 72 57 75 83 L109 111 L108 122 L72 108 L68 137 L52 137 L48 108 L12 122 L11 111 L45 83 C48 57 51 28 60 7Z" fill="url(#adaptiveJetMetal)" stroke="#d9e8f1" strokeWidth="2" />
