@@ -99,6 +99,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
   const [textContent, setTextContent] = useState("");
   const [textLoading, setTextLoading] = useState(false);
   const [textError, setTextError] = useState("");
+  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   const [pptxLoading, setPptxLoading] = useState(false);
   const [pptxProgress, setPptxProgress] = useState(0);
@@ -137,6 +138,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     [materialId]
   );
   const downloadUrl = sourceUrl + "&download=1";
+  useEffect(() => { setImagePreviewError(false); }, [sourceUrl]);
   const extension = (fileName.split(".").pop() || "").toLowerCase();
 
   const mode: ViewerMode =
@@ -445,7 +447,9 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
 
       {mode === "image" && (
         <div className="source-image-frame">
-          <img src={sourceUrl} alt={"Original image file: " + fileName} />
+          {imagePreviewError
+            ? <div className="source-preview-fallback"><p>This browser cannot display this image format. The original file is still available.</p><a className="secondary-button" href={downloadUrl} download={fileName}>Download original image</a></div>
+            : <img src={sourceUrl} alt={"Original image file: " + fileName} onError={() => setImagePreviewError(true)} />}
         </div>
       )}
 
