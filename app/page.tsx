@@ -308,7 +308,7 @@ type ClerkMeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-function InstallAppPrompt() {
+function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: { promptEvent: ClerkMeInstallPromptEvent | null; onPromptConsumed: () => void }) {
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -389,12 +389,13 @@ function InstallAppPrompt() {
   };
 
   const install = async () => {
-    const promptEvent = deferredPrompt.current;
+    const promptEvent = deferredPrompt.current || sharedPromptEvent;
     if (!promptEvent) {
       showManualInstructions();
       return;
     }
     deferredPrompt.current = null;
+    onPromptConsumed();
     try {
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
@@ -475,6 +476,7 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number}|null>(null);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
@@ -518,6 +520,22 @@ export default function Home() {
   const [assessment, setAssessment] = useState("");
   const [differentials, setDifferentials] = useState("");
   const [plan, setPlan] = useState("");
+  useEffect(() => {
+    // Capture the browser event while authentication is still resolving.
+    // The invitation can then use it even when the dashboard renders later.
+    const onBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event as ClerkMeInstallPromptEvent);
+    };
+    const onInstalled = () => setDeferredInstallPrompt(null);
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     fetch("/api/auth/me", {credentials:"same-origin",cache:"no-store"})
@@ -652,7 +670,7 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <InstallAppPrompt/>
+      <InstallAppPrompt promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
       <aside className="sidebar">
         <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
         <nav className="nav-list" aria-label="Workspace navigation">
