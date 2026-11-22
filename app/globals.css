@@ -5435,6 +5435,5 @@ body{font-family:"DM Sans",Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-s
 .study-video-youtube-mark svg{display:block;width:26px;height:26px;fill:currentColor}
 .study-video-youtube-small{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;border-radius:7px;background:#e62117;color:#fff;font-size:10px}
 .study-video-topic-button{display:inline-flex;align-items:center;gap:8px}
-.study-video-topic-button:before{content:"";display:inline-block;width:15px;height:11px;border-radius:4px;background:#e62117;box-shadow:inset 0 0 0 1px #c51d15}
-.study-video-topic-button:after{content:"";position:absolute}
+.study-video-topic-button:before{content:"▶";display:inline-grid;place-items:center;width:17px;height:13px;border-radius:4px;background:#e62117;color:#fff;font-size:7px;line-height:1;box-shadow:inset 0 0 0 1px #c51d15}
 @media(max-width:600px){.study-dive-deeper-button{align-items:flex-start;padding:12px}.study-dive-deeper-button>span{font-size:11px}.study-video-youtube-mark{width:38px;height:38px;flex-basis:38px}}
