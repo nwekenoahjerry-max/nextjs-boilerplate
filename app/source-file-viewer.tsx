@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import PptxRenderer from "../lib/pptx-browser/index.js";
 import PdfSourceReader from "./pdf-source-reader";
+import XlsxSourceReader from "./xlsx-source-reader";
 
 type Props = {
   materialId: string;
@@ -11,7 +12,7 @@ type Props = {
   originalSizeBytes?: number | null;
 };
 
-type ViewerMode = "pdf" | "powerpoint" | "word" | "text" | "image" | "download";
+type ViewerMode = "pdf" | "powerpoint" | "word" | "spreadsheet" | "text" | "image" | "download";
 
 type PptxRendererInstance = InstanceType<typeof PptxRenderer>;
 
@@ -145,7 +146,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
     extension === "pdf" ? "pdf" :
     extension === "pptx" ? "powerpoint" :
     extension === "docx" ? "word" :
-    ["txt", "md", "csv", "xlsx", "rtf", "html", "htm", "json"].includes(extension) ? "text" :
+    extension === "xlsx" ? "spreadsheet" :
+    ["txt", "md", "csv", "rtf", "html", "htm", "json"].includes(extension) ? "text" :
     (mimeType || "").startsWith("image/") ? "image" : "download";
 
   useEffect(() => {
@@ -583,6 +585,8 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
           <p className="source-preview-note">The Word pages are rendered in ClerkMe for reading. Page breaks, fonts and some advanced Word features can vary slightly from Microsoft Word; download the original DOCX for the exact desktop layout.</p>
         </section>
       )}
+
+      {mode === "spreadsheet" && <XlsxSourceReader sourceUrl={sourceUrl} fileName={fileName}/>}
 
       {mode === "text" && (
         textLoading
