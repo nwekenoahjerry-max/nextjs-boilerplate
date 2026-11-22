@@ -20,6 +20,56 @@ type PdfJsLibrary = {
 
 let pdfJsPromise: Promise<PdfJsLibrary> | null = null;
 
+type JsZipEntry = { dir?: boolean; async: (format: "string") => Promise<string> };
+type JsZipLibrary = { loadAsync: (data: ArrayBuffer) => Promise<{ files: Record<string, JsZipEntry> }> };
+let jsZipPromise: Promise<JsZipLibrary> | null = null;
+
+async function loadJsZip(): Promise<JsZipLibrary> {
+  const getLibrary = () => (window as unknown as Record<string, unknown>).JSZip as JsZipLibrary | undefined;
+  const ready = getLibrary();
+  if (ready) return ready;
+  if (!jsZipPromise) {
+    jsZipPromise = new Promise<JsZipLibrary>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-clerkme-jszip="true"]');
+      const script = existing || document.createElement("script");
+      let settled = false;
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        if (error) { reject(error); return; }
+        const library = getLibrary();
+        if (!library) { reject(new Error("The Office document reader did not initialise.")); return; }
+        resolve(library);
+      };
+      const timeout = window.setTimeout(() => finish(new Error("The Office document reader took too long to load.")), 15000);
+      script.addEventListener("load", () => finish(), { once: true });
+      script.addEventListener("error", () => finish(new Error("The Office document reader could not load.")), { once: true });
+      if (!existing) {
+        script.src = "/vendor/jszip.min.js";
+        script.async = true;
+        script.dataset.clerkmeJszip = "true";
+        script.setAttribute("data-clerkme-jszip", "true");
+        document.head.appendChild(script);
+      } else if (getLibrary()) finish();
+    }).catch(error => {
+      jsZipPromise = null;
+      throw error;
+    });
+  }
+  return jsZipPromise;
+}
+
+async function unzipWithJsZip(buffer: ArrayBuffer, predicate: (name: string) => boolean) {
+  const library = await loadJsZip();
+  const zip = await library.loadAsync(buffer);
+  const entries: Array<{ name: string; text: string }> = [];
+  for (const [name, item] of Object.entries(zip.files)) {
+    if (!item.dir && predicate(name)) entries.push({ name, text: await item.async("string") });
+  }
+  return entries;
+}
+
 function getPdfJsGlobal(): PdfJsLibrary | undefined {
   return (window as unknown as Record<string, unknown>).pdfjsLib as PdfJsLibrary | undefined;
 }
@@ -71,7 +121,7 @@ async function unzipTextFiles(
   for (let i = Math.max(0, bytes.length - 65557); i <= bytes.length - 22; i++) {
     if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
   }
-  if (eocd < 0) throw new Error("This file is not a readable Office Open XML document. Please try saving it as PPTX, DOCX or XLSX.");
+  if (eocd < 0) return unzipWithJsZip(buffer, predicate);
   const entries = view.getUint16(eocd + 10, true);
   let offset = view.getUint32(eocd + 16, true);
   const output: Array<{ name: string; text: string }> = [];
@@ -93,10 +143,14 @@ async function unzipTextFiles(
       let uncompressed: Uint8Array;
       if (method === 0) uncompressed = compressed;
       else if (method === 8) {
-        if (typeof DecompressionStream === "undefined") throw new Error("This browser cannot unpack this Office file. Please save it as PDF and upload it again.");
-        const payload = compressed.buffer.slice(compressed.byteOffset, compressed.byteOffset + compressed.byteLength) as ArrayBuffer;
-        const stream = new Blob([payload]).stream().pipeThrough(new DecompressionStream("deflate-raw" as CompressionFormat));
-        uncompressed = new Uint8Array(await new Response(stream).arrayBuffer());
+        try {
+          if (typeof DecompressionStream === "undefined") throw new Error("Native ZIP decompression is unavailable.");
+          const payload = compressed.buffer.slice(compressed.byteOffset, compressed.byteOffset + compressed.byteLength) as ArrayBuffer;
+          const stream = new Blob([payload]).stream().pipeThrough(new DecompressionStream("deflate-raw" as CompressionFormat));
+          uncompressed = new Uint8Array(await new Response(stream).arrayBuffer());
+        } catch {
+          return unzipWithJsZip(buffer, predicate);
+        }
       } else {
         offset += 46 + nameLength + extraLength + commentLength;
         continue;
