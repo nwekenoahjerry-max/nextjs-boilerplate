@@ -356,6 +356,7 @@ export default function MaterialsPanel() {
         } catch {}
       }
       setSelectedId(savedMaterialExists ? savedMaterialId : "");
+      setMobileDetailOpen(Boolean(savedMaterialExists));
     }
     return next;
   };
@@ -840,16 +841,18 @@ export default function MaterialsPanel() {
         </section>}
       
 
-      {materials.length>0&&!selectedMaterial&&!showUploadForm&&<section className="materials-selection-empty">
+      {materials.length>0&&!mobileDetailOpen&&!showUploadForm&&<section className="materials-selection-empty">
         <span className="materials-selection-empty-icon" aria-hidden="true">▤</span>
-        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>Choose a material to begin</h2><p>Select any uploaded lecture above to open its original file, detailed Study Guide, generated SBA questions or Ask ClerkME. Your files stay organised by clinical unit.</p></div>
-        <button type="button" className="primary-button" onClick={openUploadForm}>＋ Upload a material</button>
+        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>{selectedMaterial?"Your library is ready":"Choose a material to begin"}</h2><p>{selectedMaterial?"Your selected material is saved. Open it to continue with the Study Guide, original file, practice questions or Ask ClerkME.":"Select any uploaded lecture above to open its Study Guide, original file, practice questions or Ask ClerkME. Your files stay organised by clinical unit."}</p></div>
+        {selectedMaterial
+          ? <button type="button" className="primary-button" onClick={()=>openMaterial(selectedMaterial)}>Open selected material <span>→</span></button>
+          : <button type="button" className="primary-button" onClick={openUploadForm}>＋ Upload a material</button>}
       </section>}
 
       {error&&<p className="auth-error materials-feedback">{error}</p>}
       {notice&&<p className="success-note materials-feedback">{notice}</p>}
 
-      {selectedMaterial && <section id="materials-detail-card" className="materials-detail-card">
+      {selectedMaterial && mobileDetailOpen && <section id="materials-detail-card" className="materials-detail-card">
         <button type="button" className="materials-mobile-back" onClick={returnToLibrary} aria-label="Back to study library">← <span>All materials</span></button>
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
