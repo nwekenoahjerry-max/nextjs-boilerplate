@@ -231,6 +231,7 @@ export default function MaterialsPanel() {
       .filter(group=>group.materials.length>0);
   },[visibleMaterials,libraryMode]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
+  const selectedMaterialIsGeneral = !!selectedMaterial && isCustomSubjectUnit(selectedMaterial.unit);
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
     setLibraryUnit("all");
@@ -968,7 +969,7 @@ export default function MaterialsPanel() {
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{questionsWorking?"Generating SBA questions…":summaryWorking?"Building study resources…":selectedMaterial.questions?.length?"Generate more SBA questions":"Generate "+questionCount+" SBA questions"} <span>→</span></button>
+            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{questionsWorking?(selectedMaterialIsGeneral?"Generating practice questions…":"Generating SBA questions…"):summaryWorking?"Building study resources…":selectedMaterial.questions?.length?(selectedMaterialIsGeneral?"Generate more practice questions":"Generate more SBA questions"):"Generate "+questionCount+(selectedMaterialIsGeneral?" practice questions":" SBA questions")} <span>→</span></button>
           </div>
         </div>
         <div className="materials-action-caption"><strong>What would you like to do with this material?</strong><span>Choose a study option below.</span></div>
@@ -1020,10 +1021,10 @@ export default function MaterialsPanel() {
               
             </section>}
 <details className="study-dive-deeper-dropdown" id="study-detailed-topic-explanations" onToggle={event=>{if(event.currentTarget.open)setExpandedStudySections(Array.from({length:studySectionCount},(_,index)=>index));}}>
-              <summary><span className="study-dive-deeper-copy"><span className="study-dive-deeper-kicker"><span className="study-dive-deeper-spark" aria-hidden="true">✦</span> YOUR COMPLETE CLINICAL GUIDE</span><strong>Dive deeper</strong><small>Explore the full explanations, diagnosis patterns, investigations, differentials and step-by-step management.</small><span className="study-dive-deeper-meta"><span>{studySectionCount} detailed topics</span><span>Clinical insights</span><span>Exam-ready</span></span></span><span className="study-dive-deeper-action"><span>Explore guide</span><span className="study-dive-deeper-chevron" aria-hidden="true">⌄</span></span></summary>
+              <summary><span className="study-dive-deeper-copy"><span className="study-dive-deeper-kicker"><span className="study-dive-deeper-spark" aria-hidden="true">✦</span> {selectedMaterialIsGeneral?"YOUR COMPLETE STUDY GUIDE":"YOUR COMPLETE CLINICAL GUIDE"}</span><strong>Dive deeper</strong><small>{selectedMaterialIsGeneral?"Explore detailed explanations, key concepts, methods, comparisons and practical applications.":"Explore the full explanations, diagnosis patterns, investigations, differentials and step-by-step management."}</small><span className="study-dive-deeper-meta"><span>{studySectionCount} detailed topics</span><span>{selectedMaterialIsGeneral?"Practical insights":"Clinical insights"}</span><span>{selectedMaterialIsGeneral?"Ready to revise":"Exam-ready"}</span></span><span className="study-dive-deeper-action"><span>Explore guide</span><span className="study-dive-deeper-chevron" aria-hidden="true">⌄</span></span></summary>
               <div className="study-summary-sections">
               <div className="study-section-accordion-toolbar">
-                <div><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div><p>Open any topic to read its full explanation, clinical relevance and examination points.</p></div>
+                <div><div className="eyebrow study-detailed-notes-label">DETAILED TOPIC EXPLANATIONS</div><p>{selectedMaterialIsGeneral?"Open any topic to explore its explanation, real-world relevance and assessment points.":"Open any topic to read its full explanation, clinical relevance and examination points."}</p></div>
                 <button type="button" className="study-expand-all-button" onClick={toggleAllStudySections}>{allStudySectionsExpanded?"Collapse all":"Expand all"} <span aria-hidden="true">{allStudySectionsExpanded?"⌃":"⌄"}</span></button>
               </div>
               {selectedMaterial.summary.sections?.map((section,index)=>{
@@ -1096,7 +1097,7 @@ export default function MaterialsPanel() {
               {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.likelyShortNotes?.length&&<div className="study-exam-subsection"><h4>Short-note themes to prepare</h4><ul>{selectedMaterial.summary.examFocus.likelyShortNotes.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
               {!!selectedMaterial.summary.examFocus.clinicalApplications?.length&&<div className="study-exam-subsection"><h4>Clinical application</h4><ul>{selectedMaterial.summary.examFocus.clinicalApplications.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
-              {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>Viva practice</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
+              {!!selectedMaterial.summary.examFocus.vivaQuestions?.length&&<div className="study-exam-subsection"><h4>{selectedMaterialIsGeneral?"Oral / presentation practice":"Viva practice"}</h4>{selectedMaterial.summary.examFocus.vivaQuestions.map((item,index)=><details className="study-revision-question" key={index}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>}
             </section>}
             
             {!!selectedMaterial.summary.comparisonTables?.length&&<section className="study-summary-block"><h3>Comparison tables</h3>{selectedMaterial.summary.comparisonTables.map((table,index)=><div className="study-table-wrap" key={index}><strong>{table.title}</strong><table><thead><tr>{table.columns.map((column,i)=><th key={i}>{column}</th>)}</tr></thead><tbody>{table.rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody></table></div>)}</section>}
@@ -1165,7 +1166,7 @@ export default function MaterialsPanel() {
           {questionGenerationStatus[selectedMaterial.id]==="failed"&&<div className="study-summary-warnings" role="status"><strong>SBA generation needs another attempt</strong><p>{questionGenerationErrors[selectedMaterial.id]||"ClerkMe could not complete the new question set. Your uploaded source and any questions already saved remain available."}</p><button type="button" className="secondary-button" onClick={generateQuestions} disabled={working||selectedMaterial.hasExtractableText===false}>Retry SBA generation</button></div>}
           {activeQuestions.length>0 ? <>
             <div className="study-mcq-heading">
-              <div><div className="eyebrow">SOURCE-SPECIFIC EXAM PRACTICE</div><h3>{selectedMaterial.title}: SBA practice</h3><p>USMLE-style single-best-answer questions with five options (A-E), clinically framed stems where appropriate, and explanations for every option. Choose Practice for immediate feedback or Live test for a timed examination simulation.</p></div>
+              <div><div className="eyebrow">{selectedMaterialIsGeneral?"SOURCE-SPECIFIC PRACTICE":"SOURCE-SPECIFIC EXAM PRACTICE"}</div><h3>{selectedMaterial.title}: {selectedMaterialIsGeneral?"Practice questions":"SBA practice"}</h3><p>{selectedMaterialIsGeneral?"Subject-appropriate single-best-answer questions with five options (A–E), source-based scenarios where useful, and explanations for every option. Choose Practice for immediate feedback or Live test for a timed assessment.":"USMLE-style single-best-answer questions with five options (A-E), clinically framed stems where appropriate, and explanations for every option. Choose Practice for immediate feedback or Live test for a timed examination simulation."}</p></div>
               <div className="study-mcq-heading-actions"><button type="button" className="text-link" onClick={()=>setTab("summary")} disabled={liveInProgress}>← Read study guide</button></div>
             </div>
 
