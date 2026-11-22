@@ -14,7 +14,7 @@ import ClerkMeBrand from "../components/clerkme-brand";
 import { unitClerkingFrameworks } from "../lib/unit-clerking";
 
 const navItems = [
-  ["Overview", "overview", "⌂"],
+  ["Home", "overview", "⌂"],
   ["New clerking", "clerking", "＋"],
   ["My patients", "patients", "▤"],
   ["Clinical guides", "guides", "✚"],
@@ -594,7 +594,7 @@ export default function Home() {
       </div>}
 
       <section className="main-area">
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Overview")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
+        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
         <div className="content">
 {active === "overview" && <>
             <div className="welcome-row dashboard-welcome">
