@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import PptxRenderer from "../lib/pptx-browser/index.js";
+import { formatSourceTextPreview } from "../lib/file-text";
 import PdfSourceReader from "./pdf-source-reader";
 import XlsxSourceReader from "./xlsx-source-reader";
 
@@ -373,7 +374,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
         if (!response.ok) throw new Error(readableFileError(response.status));
         return response.text();
       })
-      .then(content => { if (!cancelled) setTextContent(content); })
+      .then(content => { if (!cancelled) setTextContent(formatSourceTextPreview(content, extension)); })
       .catch(problem => {
         if (!cancelled) setTextError(problem instanceof Error ? problem.message : "The text file could not be opened.");
       })
