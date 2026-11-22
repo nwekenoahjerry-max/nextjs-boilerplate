@@ -86,7 +86,7 @@ function PublicLanding() {
           </p>
           <div className="public-hero-actions">
             <a className="public-primary-cta" href="/login">Get started with ClerkME <span>→</span></a>
-            <a className="public-secondary-cta" href="#features">Explore the study tools</a>
+            <a className="public-secondary-cta" href="#study-tools">Explore the study tools</a>
           </div>
           <div className="public-hero-proof" aria-label="ClerkME highlights">
             <div><strong>8</strong><span>clinical units</span></div>
@@ -267,9 +267,9 @@ function PublicLanding() {
           <p>Bring your own lecture resources, build revision tools around them and practise the knowledge and skills you will need in examinations and clinical placements.</p>
         </div>
         <div className="public-how-steps">
-          <div><span>01</span><strong>Bring your materials</strong><p>Upload supported lecture notes, PDFs and slide decks to your private study space.</p></div>
-          <div><span>02</span><strong>Build your revision</strong><p>Create structured study guides and question sets based on your learning materials.</p></div>
-          <div><span>03</span><strong>Practise and progress</strong><p>Use SBAs, OSCE, Viva and clinical simulation to strengthen recall and reasoning.</p></div>
+          <div><span>01</span><strong>Upload your source</strong><p>Add a lecture or study document and keep the original alongside your study resources.</p></div>
+          <div><span>02</span><strong>Build your study pack</strong><p>Review detailed High-Yield Points, generate lecture-based SBAs and explore related video recommendations.</p></div>
+          <div><span>03</span><strong>Practise and apply</strong><p>Use the question bank, clerking guides, OSCE, Viva, simulation and Flight Academy to keep improving.</p></div>
         </div>
       </section>
 
