@@ -860,11 +860,12 @@ export default function MaterialsPanel() {
             <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{questionsWorking?"Generating SBA questions…":summaryWorking?"Building study resources…":selectedMaterial.questions?.length?"Generate more SBA questions":"Generate "+questionCount+" SBA questions"} <span>→</span></button>
           </div>
         </div>
-        <div className="materials-tabs">
-          <button className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study Guide</button>
-          <button className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Source material</button>
-          <button className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice MCQs <span className="materials-tab-count">{selectedMaterial.questions?.length|| (questionGenerationStatus[selectedMaterial.id]==="generating"?"…":0)}</span></button>
-          <button className={tab==="ask"?"active":""} disabled={liveInProgress||(selectedMaterial.hasExtractableText===false&&!selectedMaterial.summary)} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask this material</button>
+        <div className="materials-action-caption"><strong>What would you like to do with this material?</strong><span>Choose a study option below.</span></div>
+        <div className="materials-tabs" role="tablist" aria-label="Study options for this material">
+          <button type="button" role="tab" aria-selected={tab==="summary"} className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study Guide</button>
+          <button type="button" role="tab" aria-selected={tab==="source"} className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Original file</button>
+          <button type="button" role="tab" aria-selected={tab==="questions"} className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice questions <span className="materials-tab-count">{selectedMaterial.questions?.length|| (questionGenerationStatus[selectedMaterial.id]==="generating"?"…":0)}</span></button>
+          <button type="button" role="tab" aria-selected={tab==="ask"} className={tab==="ask"?"active":""} disabled={liveInProgress||(selectedMaterial.hasExtractableText===false&&!selectedMaterial.summary)} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask ClerkME</button>
         </div>
 
         {tab==="source" && <section className="materials-source-viewer">
