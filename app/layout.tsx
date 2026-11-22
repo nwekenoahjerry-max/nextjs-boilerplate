@@ -7,7 +7,10 @@ export const metadata: Metadata = {
   applicationName: "ClerkMe",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/clerkme-icon.svg",
+    icon: [
+      { url: "/clerkme-icon.svg", type: "image/svg+xml" },
+      { url: "/clerkme-192.png", sizes: "192x192", type: "image/png" },
+    ],
     apple: "/clerkme-192.png",
   },
   keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
