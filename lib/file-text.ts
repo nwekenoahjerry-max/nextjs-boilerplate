@@ -278,3 +278,5 @@ export async function extractStudyFile(file: File): Promise<ExtractedStudyFile> 
   }
   return { name, text };
 }
+
+export function loadPdfJsLibrary() { return loadPdfJs(); }
