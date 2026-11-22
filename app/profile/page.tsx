@@ -155,9 +155,11 @@ export default function ProfilePage() {
           <ClerkMeBrand caption="STUDENT PROFILE"/>
           <a className="auth-back profile-back-link" href="/">Back to workspace</a>
         </div>
-        <div className="eyebrow">PROFILE & PREFERENCES</div>
-        <h1>Your student profile</h1>
-        <p className="profile-intro">Keep your academic details current so ClerkME can personalise your learning workspace. Your future area of specialisation is optional and can be changed at any time.</p>
+        <div className="profile-page-heading">
+          <div className="eyebrow">YOUR CLERKME PROFILE</div>
+          <h1>Your student profile</h1>
+          <p className="profile-intro">A few details help ClerkME organise your clinical learning. You can update them whenever your academic information changes.</p>
+        </div>
         {profile && <div className="profile-account-summary"><strong>{profile.name || "Student account"}</strong><span>{profile.email}</span></div>}
 
         <section className="profile-progress-card" aria-label="Student profile completion">
@@ -173,7 +175,7 @@ export default function ProfilePage() {
 
         <form className="student-profile-form" onSubmit={save}>
           <div className="profile-form-section">
-            <div><h2>Personal and academic details</h2><p>Fields marked required must be completed.</p></div>
+            <div className="profile-form-section-heading"><span>01</span><div><h2>Personal and academic details</h2><p>Tell us who you are and where you study.</p></div></div>
             <label>Full name <span className="required-mark">Required</span>
               <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Enter your full name"/>
             </label>
@@ -223,7 +225,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-form-section">
-            <div><h2>Location</h2><p>Select your state first; the LGA list will update automatically.</p></div>
+            <div className="profile-form-section-heading"><span>02</span><div><h2>Location</h2><p>Select your state first; your local area options will update automatically.</p></div></div>
             <label>State / province <span className="required-mark">Required</span>
               <select required value={stateSelection} onChange={event => changeState(event.target.value)}>
                 <option value="">Choose your state</option>
@@ -245,7 +247,7 @@ export default function ProfilePage() {
           </div>
 
           <div className="profile-form-section">
-            <div><h2>Career interests</h2><p>Keep your future clinical direction in view. You can leave this blank.</p></div>
+            <div className="profile-form-section-heading"><span>03</span><div><h2>Career interests</h2><p>Your future clinical direction is optional and can be changed at any time.</p></div></div>
             <label>Future area of specialisation <span className="optional-mark">Optional</span>
               <input list="clerkme-specialties" maxLength={120} value={futureSpecialty} onChange={event => setFutureSpecialty(event.target.value)} placeholder="e.g. Paediatrics, Surgery, Psychiatry"/>
               <datalist id="clerkme-specialties">{specialtySuggestions.map(item => <option key={item} value={item}/>)}</datalist>
