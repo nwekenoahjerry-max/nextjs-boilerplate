@@ -6890,3 +6890,163 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 .source-read-aloud-status{flex:1 0 100%}
 .source-read-aloud :is(button,select):focus-visible{outline:3px solid rgba(74,116,169,.28);outline-offset:2px}
 @media(max-width:600px){.source-read-aloud{align-items:flex-start;flex-direction:column;padding:11px}.source-read-aloud-actions{width:100%}.source-read-aloud-actions button{min-height:38px}.source-read-aloud-actions label{margin-left:auto}}
+
+
+/* ClerkMe navigation: crisp, recognisable line icons instead of generic glyphs. */
+.nav-icon{display:grid;place-items:center;flex:0 0 21px;width:21px;height:21px}
+.nav-icon svg{display:block;width:19px;height:19px}
+.mobile-dock-item>span:not(.mobile-dock-avatar){display:grid;place-items:center;width:28px;height:25px}
+.mobile-dock-item>span svg{width:21px;height:21px}
+.mobile-account-tool-icon{display:grid;place-items:center}
+.mobile-account-tool-icon svg{display:block;width:20px;height:20px}
+.install-app-icon svg{display:block}
+.nav-item{min-height:46px}
+.nav-item:focus-visible,.mobile-dock-item:focus-visible,.mobile-account-tool:focus-visible{
+  outline:3px solid rgba(74,116,169,.32);outline-offset:2px
+}
+
+/* Flight Academy layout correction: give the aircraft the full canvas and move
+   the answer card below it. Questions never sit over the plane or squeeze it. */
+.flight-dashboard{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%;min-width:0;gap:14px
+}
+.flight-dashboard>.flight-visual-panel{
+  width:100%;min-width:0;box-sizing:border-box
+}
+.flight-visual-panel{
+  position:relative!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;box-sizing:border-box
+}
+.flight-sky{
+  position:relative;order:1;
+  width:100%;height:clamp(245px,27vw,345px)!important;
+  min-height:235px;margin-top:12px;flex:0 0 auto;
+  overflow:hidden;border-radius:14px
+}
+.flight-altitude{
+  position:absolute!important;z-index:2;top:66px!important;left:26px!important;
+  right:auto!important;bottom:auto!important;margin:0!important
+}
+.flight-plane{
+  left:50%!important;top:59%!important;
+  width:100px;height:124px
+}
+.flight-route-line{left:50%!important;top:12%;height:76%}
+.flight-start-overlay{z-index:8;inset:0}
+.flight-metrics{
+  position:relative!important;order:2;z-index:2;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;padding:13px 4px 2px;margin:0
+}
+.flight-metrics>div{min-width:0}
+.flight-metrics strong{font-variant-numeric:tabular-nums}
+.flight-question-panel{
+  position:relative!important;inset:auto!important;
+  order:3;display:block!important;
+  width:100%!important;height:auto!important;min-width:0;
+  max-height:none!important;overflow:visible!important;
+  margin:14px 0 0!important;padding:20px!important;
+  box-sizing:border-box;border-radius:15px
+}
+.flight-question-panel h3{overflow-wrap:anywhere}
+.flight-options{grid-template-columns:minmax(0,1fr);width:100%;min-width:0}
+.flight-option{
+  display:flex;align-items:center;width:100%;min-width:0;
+  min-height:50px;padding:12px 14px;gap:12px;
+  box-sizing:border-box;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent
+}
+.flight-option>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}
+.flight-option .option-mark{flex:0 0 auto}
+.flight-question-panel .flight-timer{min-width:0}
+.flight-quick-prompt{white-space:normal;text-align:right}
+.flight-answer-review{width:100%;box-sizing:border-box}
+.flight-answer-review-card li{min-width:0}
+@media(max-width:900px){
+  .flight-dashboard{grid-template-columns:minmax(0,1fr)!important}
+  .flight-visual-panel{padding:14px!important}
+  .flight-sky{height:300px!important}
+  .flight-question-panel{padding:17px!important}
+  .flight-plane{width:90px;height:114px}
+}
+@media(max-width:700px){
+  .flight-quiz{width:100%;max-width:100%;padding:12px!important;box-sizing:border-box}
+  .flight-quiz-heading{align-items:flex-start!important;flex-direction:row;gap:10px}
+  .flight-quiz-heading>div:first-child{min-width:0;flex:1}
+  .flight-quiz-heading h2{font-size:clamp(18px,5vw,22px)!important;line-height:1.16}
+  .flight-quiz-heading p{max-width:none!important;font-size:11px!important}
+  .flight-best{flex:0 0 auto;min-width:92px;max-width:116px;padding:8px 9px!important}
+  .flight-best strong{font-size:16px!important}
+  .flight-record-sub{white-space:normal;font-size:7px}
+  .flight-quiz .flight-source-controls{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:9px}
+  .flight-quiz .flight-source-controls label{width:100%;min-width:0}
+  .flight-quiz .flight-source-controls select{width:100%;min-width:0;min-height:46px;font-size:13px}
+  .flight-source-summary{align-items:flex-start;flex-direction:column;gap:7px}
+  .flight-source-summary .text-link{min-height:34px;display:inline-flex;align-items:center}
+  .flight-visual-panel{padding:11px!important;border-radius:14px!important}
+  .flight-sky{height:250px!important;min-height:235px;margin-top:10px}
+  .flight-plane{top:60%!important;width:76px;height:98px}
+  .flight-altitude{top:62px!important;left:16px!important}
+  .flight-altitude strong{font-size:19px}
+  .flight-question-overlay{top:9px;left:8px;right:8px;padding:8px 10px}
+  .flight-question-overlay>span{font-size:7px}
+  .flight-question-line{font-size:12px;line-height:1.35}
+  .flight-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:10px 0 0}
+  .flight-metrics>div{padding:6px 3px;text-align:center}
+  .flight-metrics span{font-size:7px;letter-spacing:.25px}
+  .flight-metrics strong{font-size:15px}
+  .flight-question-panel{margin-top:12px!important;padding:13px!important;border-radius:13px!important}
+  .question-topline{align-items:flex-start;flex-wrap:wrap;gap:6px 10px;font-size:8px}
+  .question-topline span:last-child{overflow-wrap:anywhere}
+  .question-progress{margin:9px 0 12px}
+  .question-meta-row{align-items:flex-start;flex-wrap:wrap;gap:6px}
+  .flight-question-panel h3{font-size:16px!important;line-height:1.4!important;margin:8px 0 11px}
+  .flight-options{gap:8px}
+  .flight-option,.flight-playing .flight-option{
+    min-height:52px!important;padding:12px 11px!important;
+    gap:9px;font-size:14px!important;line-height:1.4!important;
+    border-radius:11px
+  }
+  .option-letter{width:29px;height:29px;flex-basis:29px;font-size:10px}
+  .option-mark{font-size:9px}
+  .flight-timer{grid-template-columns:auto minmax(0,1fr);gap:8px;margin:9px 0 11px;padding:9px}
+  .flight-answer-locked{align-items:flex-start;flex-direction:column}
+  .flight-answer-locked p{text-align:left}
+  .flight-game-over-note,.flight-answer-review{width:100%;min-width:0}
+  .flight-answer-review-card li{align-items:flex-start;flex-wrap:wrap}
+  .flight-quiz-footer{gap:7px;flex-wrap:wrap}
+  .flight-quiz-footer span{font-size:7px;line-height:1.4}
+  .flight-start-overlay{padding:14px!important}
+  .flight-start-overlay strong{font-size:18px}
+  .flight-start-overlay p{max-width:290px;font-size:11px}
+  .flight-start-overlay .flight-launch-button{
+    width:min(100%,250px);min-height:54px;font-size:14px;
+    border-radius:12px;touch-action:manipulation
+  }
+}
+@media(max-width:390px){
+  .flight-quiz-heading{flex-wrap:wrap}
+  .flight-best{max-width:none}
+  .flight-sky{height:235px!important}
+  .flight-question-panel{padding:11px!important}
+  .flight-option,.flight-playing .flight-option{font-size:13px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .flight-option{transition:none!important}
+}
+
+.install-app-icon{display:grid;place-items:center}
+.install-app-icon svg{width:18px;height:18px}
+.install-app-trigger{min-height:44px;cursor:pointer}
+.install-app-trigger:focus-visible{outline:3px solid rgba(74,116,169,.32);outline-offset:2px}
+.install-invite-backdrop{z-index:140;padding:calc(18px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom))}
+.install-invite-dialog{width:min(100%,460px);max-height:calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto}
+@media(max-width:600px){
+  .install-invite-backdrop{align-items:end;justify-items:center;padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom))}
+  .install-invite-dialog{width:100%;max-width:480px;max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:25px 21px 20px;border-radius:22px}
+  .install-invite-actions button{min-height:48px}
+}

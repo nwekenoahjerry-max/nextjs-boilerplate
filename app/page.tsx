@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -14,19 +14,41 @@ import ClerkMeBrand from "../components/clerkme-brand";
 import { unitClerkingFrameworks } from "../lib/unit-clerking";
 
 const navItems = [
-  ["Home", "overview", "⌂"],
-  ["New clerking", "clerking", "＋"],
-  ["My patients", "patients", "▤"],
-  ["Clinical guides", "guides", "✚"],
-  ["Clinical simulation", "simulation", "◉"],
-  ["Study", "study", "▧"],
-  ["My materials", "materials", "▤"],
-  ["Video library", "videos", "▶"],
-  ["OSCE & Viva", "osce", "◉"],
-  ["Question bank", "qbank", "▦"],
-  ["Flight Academy", "game", "✈"],
-  ["Account", "you", "◉"],
+  ["Home", "overview", "home"],
+  ["New clerking", "clerking", "file-plus"],
+  ["My patients", "patients", "users"],
+  ["Clinical guides", "guides", "book-check"],
+  ["Clinical simulation", "simulation", "stethoscope"],
+  ["Study", "study", "book-open"],
+  ["My materials", "materials", "folder-open"],
+  ["Video library", "videos", "play-square"],
+  ["OSCE & Viva", "osce", "clipboard-list"],
+  ["Question bank", "qbank", "list-checks"],
+  ["Flight Academy", "game", "plane"],
+  ["Account", "you", "user-round"],
 ];
+
+const workspaceIconShapes: Record<string, ReactNode> = {
+  home: <><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></>,
+  "file-plus": <><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M13 2v7h7"/><path d="M12 12v6"/><path d="M9 15h6"/></>,
+  users: <><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  "book-check": <><path d="M12 7v14"/><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13"/><path d="M3 18h6a3 3 0 0 1 3 3"/><path d="M21 18h-6a3 3 0 0 0-3 3"/><path d="m15 10 1.5 1.5L19 9"/></>,
+  stethoscope: <><path d="M6 3v5a5 5 0 0 0 10 0V3"/><path d="M4 3h4M14 3h4"/><path d="M11 13v2a5 5 0 0 0 10 0v-1"/><circle cx="20" cy="12" r="2"/><path d="M11 18v2a3 3 0 0 0 6 0v-1"/></>,
+  "book-open": <><path d="M12 7v14"/><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13"/><path d="M3 18h6a3 3 0 0 1 3 3"/><path d="M21 18h-6a3 3 0 0 0-3 3"/></>,
+  "folder-open": <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v1"/><path d="M3 17V7"/><path d="M2 17l2-6a2 2 0 0 1 2-1h15a1 1 0 0 1 1 1l-2 7a2 2 0 0 1-2 1H4a2 2 0 0 1-2-2Z"/></>,
+  "play-square": <><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m10 8 6 4-6 4z"/></>,
+  "clipboard-list": <><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M8 10h8M8 14h8M8 18h5"/></>,
+  "list-checks": <><path d="m3 6 2 2 3-3"/><path d="M11 6h10"/><path d="m3 12 2 2 3-3"/><path d="M11 12h10"/><path d="m3 18 2 2 3-3"/><path d="M11 18h10"/></>,
+  plane: <><path d="m12 2 4 8 6 3v2l-7-1-2 8h-2l-2-8-7 1v-2l6-3z"/></>,
+  "user-round": <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+  download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></>,
+};
+
+function WorkspaceIcon({ name, className }: { name: string; className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    {workspaceIconShapes[name] || workspaceIconShapes.home}
+  </svg>;
+}
 
 const templates = [
   { id: "general-medicine", title: "General medical clerking", detail: "Presenting complaint, HPC, PMH, drug and social history", tag: "MEDICINE", icon: "✚" },
@@ -319,7 +341,7 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
   const dismissInvitation = useCallback(() => {
     try {
       // Do not ask again for 30 days after the student chooses "Maybe later".
-      window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+      window.localStorage.setItem("clerkme-install-invite-dismissed-until-v2", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
     } catch {
       // Dismiss for this page view even when browser storage is unavailable.
     }
@@ -328,24 +350,19 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get("welcome") !== "1") return;
-
-    // Keep the welcome URL tidy after consuming the one-time invitation.
-    url.searchParams.delete("welcome");
-    window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-
-    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-    if (standalone) return;
-
-    try {
-      const dismissedUntil = Number(window.localStorage.getItem("clerkme-install-invite-dismissed-until") || 0);
-      if (dismissedUntil > Date.now()) return;
-    } catch {
-      // Continue with the invitation when storage is unavailable.
+    if (url.searchParams.get("welcome") === "1") {
+      url.searchParams.delete("welcome");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
     }
 
-    const timer = window.setTimeout(() => setVisible(true), 650);
+    const isStandalone = () =>
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
+    if (isStandalone()) {
+      setInstalled(true);
+      return;
+    }
+
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       deferredPrompt.current = event as ClerkMeInstallPromptEvent;
@@ -355,16 +372,37 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
       setVisible(false);
       deferredPrompt.current = null;
       try {
-        window.localStorage.setItem("clerkme-install-invite-dismissed-until", String(Date.now() + 365 * 24 * 60 * 60 * 1000));
+        window.localStorage.setItem("clerkme-install-invite-dismissed-until-v2", String(Date.now() + 365 * 24 * 60 * 60 * 1000));
       } catch {
         // Standalone display mode will identify the installed app on later visits.
       }
     };
 
+    // Register the app shell as soon as the signed-in workspace opens. Do not
+    // depend on visiting Account settings before the browser can offer install.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        // The in-app instructions remain available if registration is unavailable.
+      });
+    }
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
+
+    let timer: number | undefined;
+    let dismissedUntil = 0;
+    try {
+      dismissedUntil = Number(window.localStorage.getItem("clerkme-install-invite-dismissed-until-v2") || 0);
+    } catch {
+      // Continue with the invitation when storage is unavailable.
+    }
+    if (dismissedUntil <= Date.now()) {
+      timer = window.setTimeout(() => {
+        if (!isStandalone()) setVisible(true);
+      }, 1250);
+    }
+
     return () => {
-      window.clearTimeout(timer);
+      if (timer !== undefined) window.clearTimeout(timer);
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
     };
@@ -382,7 +420,9 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
 
   const showManualInstructions = () => {
     const userAgent = navigator.userAgent;
-    if (/iphone|ipad|ipod/i.test(userAgent)) setPlatform("ios");
+    const isAppleMobile = /iphone|ipad|ipod/i.test(userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isAppleMobile) setPlatform("ios");
     else if (/android/i.test(userAgent)) setPlatform("android");
     else setPlatform("desktop");
     setShowInstructions(true);
@@ -521,13 +561,18 @@ export default function Home() {
   const [differentials, setDifferentials] = useState("");
   const [plan, setPlan] = useState("");
   useEffect(() => {
-    // Capture the browser event while authentication is still resolving.
-    // The invitation can then use it even when the dashboard renders later.
+    // Capture the browser's install event as soon as the workspace loads so
+    // both the invitation and Account settings can use the same one-shot prompt.
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event as ClerkMeInstallPromptEvent);
     };
     const onInstalled = () => setDeferredInstallPrompt(null);
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        // Manual installation guidance remains available.
+      });
+    }
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
@@ -677,20 +722,20 @@ export default function Home() {
           <div className="nav-section-label">CLINICAL WORK</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
-              <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
               {id === "clerking" && <span className="nav-plus">+</span>}
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">STUDY & PRACTISE</div>
           {navItems.slice(5, 11).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
-              <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
           {navItems.slice(11).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
-              <span className="nav-icon">{icon}</span><span className="nav-label">{label}</span>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
           ))}
         </nav>
@@ -705,16 +750,16 @@ export default function Home() {
 
       <nav className="mobile-dock" aria-label="Main navigation">
         <button type="button" className={active==="overview"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("overview")} aria-current={active==="overview"?"page":undefined}>
-          <span>⌂</span><small>Home</small>
+          <span><WorkspaceIcon name="home"/></span><small>Home</small>
         </button>
         <button type="button" className={active==="clerking"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("clerking")} aria-current={active==="clerking"?"page":undefined}>
-          <span>＋</span><small>Clerk</small>
+          <span><WorkspaceIcon name="file-plus"/></span><small>Clerk</small>
         </button>
         <button type="button" className={["study","materials","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","videos","osce","qbank","game"].includes(active)?"page":undefined}>
-          <span>▧</span><small>Study</small>
+          <span><WorkspaceIcon name="book-open"/></span><small>Study</small>
         </button>
         <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
-          <span>◉</span><small>Sim</small>
+          <span><WorkspaceIcon name="stethoscope"/></span><small>Sim</small>
         </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
@@ -730,21 +775,21 @@ export default function Home() {
           </button>
           <div className="mobile-account-section-heading"><strong>Clinical workspace</strong><span>Patient care and clinical skills</span></div>
           <div className="mobile-account-tool-grid">
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("guides")}><span className="mobile-account-tool-icon clinical">✚</span><strong>Clinical guides</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("patients")}><span className="mobile-account-tool-icon cases">▤</span><strong>My cases</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("guides")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="book-check"/></span><strong>Clinical guides</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("patients")}><span className="mobile-account-tool-icon cases"><WorkspaceIcon name="users"/></span><strong>My cases</strong></button>
           </div>
           <div className="mobile-account-section-heading"><strong>Study & practise</strong><span>Resources built for your learning</span></div>
           <div className="mobile-account-tool-grid">
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("study")}><span className="mobile-account-tool-icon questions">▧</span><strong>Study home</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("materials")}><span className="mobile-account-tool-icon clinical">▤</span><strong>My materials</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("videos")}><span className="mobile-account-tool-icon video">▶</span><strong>YouTube library</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("osce")}><span className="mobile-account-tool-icon osce">◎</span><strong>OSCE & Viva</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions">▦</span><strong>Question bank</strong></button>
-            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("game")}><span className="mobile-account-tool-icon flight">✈</span><strong>Flight Academy</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("study")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="book-open"/></span><strong>Study home</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("materials")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="folder-open"/></span><strong>My materials</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("videos")}><span className="mobile-account-tool-icon video"><WorkspaceIcon name="play-square"/></span><strong>YouTube library</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("osce")}><span className="mobile-account-tool-icon osce"><WorkspaceIcon name="clipboard-list"/></span><strong>OSCE & Viva</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="list-checks"/></span><strong>Question bank</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("game")}><span className="mobile-account-tool-icon flight"><WorkspaceIcon name="plane"/></span><strong>Flight Academy</strong></button>
           </div>
           <div className="mobile-account-settings-row">
             <span><strong>Install ClerkME</strong><small>Add ClerkME to your device for easier access.</small></span>
-            <InstallAppButton/>
+            <InstallAppButton promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
           </div>
         </section>
       </div>}
@@ -881,7 +926,7 @@ export default function Home() {
                 <div className="you-setting-action">
                   <span className="account-settings-row-icon" aria-hidden="true">▣</span>
                   <span><strong>Install ClerkME</strong><small>Add ClerkME to your home screen or desktop where supported.</small></span>
-                  <InstallAppButton/>
+                  <InstallAppButton promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
                 </div>
               </article>
               <article className="panel account-settings-group account-settings-security">

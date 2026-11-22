@@ -7,7 +7,15 @@ type InstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-export default function InstallAppButton({ variant = "card" }: { variant?: "card" | "menu" }) {
+export default function InstallAppButton({
+  variant = "card",
+  promptEvent: sharedPromptEvent = null,
+  onPromptConsumed
+}: {
+  variant?: "card" | "menu";
+  promptEvent?: InstallPromptEvent | null;
+  onPromptConsumed?: () => void;
+}) {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -42,14 +50,23 @@ export default function InstallAppButton({ variant = "card" }: { variant?: "card
 
   const handleInstall = async () => {
     if (installed) return;
-    if (!installPrompt) {
+    const prompt = installPrompt || sharedPromptEvent;
+    if (!prompt) {
       setShowHelp(value => !value);
       return;
     }
     try {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") setInstalled(true);
+      onPromptConsumed?.();
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice.outcome === "accepted") {
+        setInstalled(true);
+        setShowHelp(false);
+      } else {
+        setShowHelp(true);
+      }
+    } catch {
+      setShowHelp(true);
     } finally {
       setInstallPrompt(null);
     }
@@ -58,7 +75,7 @@ export default function InstallAppButton({ variant = "card" }: { variant?: "card
   return (
     <div className={`install-app-wrap install-app-${variant}`}>
       <button className="install-app-trigger" type="button" onClick={handleInstall} aria-expanded={showHelp}>
-        <span className="install-app-icon">↓</span>
+        <span className="install-app-icon"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></svg></span>
         <span>{installed ? "ClerkMe is installed" : "Install ClerkMe"}</span>
         {variant === "card" && <small>Use it like an app on your device</small>}
       </button>
