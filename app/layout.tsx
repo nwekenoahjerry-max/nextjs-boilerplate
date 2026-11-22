@@ -7,14 +7,17 @@ export const metadata: Metadata = {
   applicationName: "ClerkMe",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/clerkme-icon.svg",
-    apple: "/clerkme-icon.svg",
+    icon: [
+      { url: "/clerkme-icon.svg", type: "image/svg+xml" },
+      { url: "/clerkme-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/clerkme-192.png",
   },
   keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b4a34",
+  themeColor: "#102D5A",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
