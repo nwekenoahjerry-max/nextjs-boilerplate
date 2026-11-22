@@ -330,6 +330,15 @@ function extractHtml(value: string) {
   return (doc.body.textContent || "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+export function formatSourceTextPreview(value: string, extension: string) {
+  if (extension === "rtf") return extractRtf(value);
+  if (extension === "html" || extension === "htm") return extractHtml(value);
+  if (extension === "json") {
+    try { return JSON.stringify(JSON.parse(value), null, 2); } catch { return value; }
+  }
+  return value;
+}
+
 function inferredImageMime(file: File, extension: string) {
   if (file.type && file.type.startsWith("image/")) return file.type;
   const known: Record<string, string> = {
