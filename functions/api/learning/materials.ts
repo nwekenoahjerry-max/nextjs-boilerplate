@@ -24,9 +24,20 @@ function inferMimeType(fileName: string, supplied: string): string {
     pdf: "application/pdf",
     docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     doc: "application/msword",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    rtf: "application/rtf",
+    html: "text/html",
+    htm: "text/html",
+    json: "application/json",
     txt: "text/plain",
     md: "text/markdown",
-    csv: "text/csv"
+    csv: "text/csv",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    heic: "image/heic",
+    heif: "image/heif"
   };
   return types[ext || ""] || "application/octet-stream";
 }
