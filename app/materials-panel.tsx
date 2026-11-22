@@ -214,6 +214,12 @@ export default function MaterialsPanel() {
       document.getElementById("materials-upload-card")?.scrollIntoView({behavior:"smooth",block:"start"});
       return;
     }
+    if (nextTab !== "source" && selectedMaterial.hasExtractableText === false) {
+      setTab("source");
+      setError("This file has no selectable text for reliable AI study tools. You can still read the original source here.");
+      window.requestAnimationFrame(() => document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
+      return;
+    }
     setTab(nextTab);
     setError("");
     window.requestAnimationFrame(() => document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
