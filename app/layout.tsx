@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/clerkme-icon.svg", type: "image/svg+xml" },
+      { url: "/clerkme-mark.svg", type: "image/svg+xml" },
       { url: "/clerkme-192.png", sizes: "192x192", type: "image/png" },
     ],
     apple: "/clerkme-192.png",
