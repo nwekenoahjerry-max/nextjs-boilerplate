@@ -4854,3 +4854,83 @@ body{background:var(--paper);color:var(--ink)}
   /* Keep the brand header calm; the persistent You tab owns account access on phones. */
   .main-area .topbar .top-actions{display:none!important}
 }
+
+
+/* Study tools hub: clear choice architecture with direct routes to existing ClerkME features. */
+.study-hub-intro{margin-bottom:20px!important}
+.study-hub-intro h1{margin:7px 0 9px!important}
+.study-hub-intro p{max-width:730px}
+.study-hub-start{
+  display:flex;align-items:center;justify-content:space-between;gap:22px;
+  padding:23px 25px;margin:0 0 25px;border:1px solid #d5e7da;border-radius:18px;
+  background:radial-gradient(circle at 90% 5%,rgba(255,255,255,.68),transparent 38%),linear-gradient(120deg,#eaf4ed,#f5f9f5);
+}
+.study-hub-start-copy{min-width:0;max-width:650px}
+.study-hub-kicker{color:#47745a;font-size:10px;font-weight:900;letter-spacing:.14em}
+.study-hub-start-copy h2{margin:7px 0 6px;color:#1c422e;font:800 clamp(20px,2.2vw,25px)/1.2 Manrope,sans-serif;letter-spacing:-.045em}
+.study-hub-start-copy p{margin:0;color:#65786b;font-size:13px!important;line-height:1.65!important}
+.study-hub-start-button{display:inline-flex;align-items:center;justify-content:center;gap:12px;flex:0 0 auto;min-height:46px;padding:12px 16px;border:1px solid #145a3a;border-radius:10px;background:#145a3a;color:#fff;font-size:13px;font-weight:850;cursor:pointer;transition:background .16s,transform .16s}
+.study-hub-start-button:hover{background:#0d482e;transform:translateY(-1px)}
+.study-hub-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 13px}
+.study-hub-section-heading h2{margin:0 0 4px;color:#203c2c;font:800 21px/1.25 Manrope,sans-serif;letter-spacing:-.035em}
+.study-hub-section-heading p{margin:0;color:#78867d;font-size:13px!important;line-height:1.5!important}
+.study-hub-primary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.study-hub-card{
+  display:flex;min-width:0;min-height:224px;flex-direction:column;align-items:flex-start;gap:13px;
+  padding:19px;border:1px solid #e0e9e2;border-radius:17px;background:#fff;color:#244432;text-align:left;
+  box-shadow:0 4px 15px rgba(13,55,38,.035);cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.study-hub-card:hover{transform:translateY(-3px);border-color:#b5d5bf;box-shadow:0 13px 28px rgba(13,55,38,.085)}
+.study-hub-card:active{transform:translateY(-1px)}
+.study-hub-card:focus-visible,.study-hub-format-card:focus-visible{outline:3px solid rgba(231,179,79,.72)!important;outline-offset:3px!important}
+.study-hub-card-icon{display:grid;place-items:center;width:45px;height:45px;flex:0 0 45px;border-radius:14px;background:#eaf4ed;color:#176b4d;font-size:21px;font-weight:850}
+.study-hub-card-icon.quiz{background:#eef2f8;color:#4f6f91}
+.study-hub-card-icon.videos{background:#f8f0e5;color:#946c2b}
+.study-hub-card-copy{display:grid;gap:7px;min-width:0;flex:1}
+.study-hub-card-copy strong{color:#213e2d;font:800 15px/1.35 Manrope,sans-serif}
+.study-hub-card-copy small{color:#718076;font-size:12px;line-height:1.65}
+.study-hub-card-link{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:2px;padding-top:12px;border-top:1px solid #edf2ee;color:#176b4d;font-size:11px;font-weight:850}
+.study-hub-card-link b{font-size:16px}
+.study-hub-more-heading{margin-top:27px}
+.study-hub-secondary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.study-hub-format-card{display:flex;align-items:center;gap:13px;min-width:0;min-height:91px;padding:15px;border:1px solid #e2ebe4;border-radius:14px;background:#fff;color:#284936;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,transform .16s}
+.study-hub-format-card:hover{border-color:#bdd9c5;background:#fbfefc;transform:translateY(-1px)}
+.study-hub-format-icon{display:grid;place-items:center;width:41px;height:41px;flex:0 0 41px;border-radius:12px;background:#eaf4ed;color:#176b4d;font-size:20px}
+.study-hub-format-icon.flight{background:#f5f0e5;color:#8d6d35}
+.study-hub-format-card>span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}
+.study-hub-format-card strong{color:#2c4c38;font-size:13px;font-weight:850;line-height:1.4}
+.study-hub-format-card small{color:#7b887f;font-size:11px;line-height:1.55}
+.study-hub-format-card>b{color:#7b9c85;font-size:17px}
+@media(max-width:1050px){
+  .study-hub-primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .study-hub-card:last-child{grid-column:1/-1;min-height:180px}
+}
+@media(max-width:760px){
+  .study-hub-intro{margin:3px 0 18px!important}
+  .study-hub-intro h1{font-size:clamp(29px,7.5vw,36px)!important}
+  .study-hub-intro p{font-size:14px!important;line-height:1.65!important}
+  .study-hub-start{display:grid;gap:14px;padding:18px 17px;margin-bottom:22px;border-radius:16px}
+  .study-hub-start-copy h2{font-size:21px}
+  .study-hub-start-copy p{font-size:13px!important}
+  .study-hub-start-button{width:100%;min-height:47px}
+  .study-hub-section-heading h2{font-size:19px}
+  .study-hub-section-heading p{font-size:12px!important}
+  .study-hub-primary-grid{grid-template-columns:1fr;gap:10px}
+  .study-hub-card,.study-hub-card:last-child{display:grid;grid-template-columns:45px minmax(0,1fr);grid-template-rows:1fr auto;align-items:start;gap:7px 12px;min-height:0;padding:15px}
+  .study-hub-card-icon{grid-row:1/3;width:42px;height:42px}
+  .study-hub-card-copy{gap:5px}
+  .study-hub-card-copy strong{font-size:14px}
+  .study-hub-card-copy small{font-size:11px;line-height:1.55}
+  .study-hub-card-link{grid-column:2;padding-top:8px;margin-top:3px;font-size:10px}
+  .study-hub-more-heading{margin-top:23px}
+  .study-hub-secondary-grid{grid-template-columns:1fr;gap:9px}
+  .study-hub-format-card{min-height:78px;padding:12px}
+  .study-hub-format-card strong{font-size:12px}
+  .study-hub-format-card small{font-size:10px}
+}
+@media(max-width:390px){
+  .study-hub-card{padding:13px;gap:6px 10px}
+  .study-hub-card-copy small{font-size:10.5px}
+  .study-hub-format-card{gap:10px}
+}
