@@ -11,6 +11,7 @@ type Props = {
   fileName: string;
   mimeType: string | null;
   originalSizeBytes?: number | null;
+  extractedText?: string;
 };
 
 type ViewerMode = "pdf" | "powerpoint" | "word" | "spreadsheet" | "text" | "image" | "download";
@@ -97,7 +98,7 @@ function readableFileError(responseStatus: number) {
   return "ClerkMe could not retrieve the original file. Please try again.";
 }
 
-export default function SourceFileViewer({ materialId, fileName, mimeType, originalSizeBytes }: Props) {
+export default function SourceFileViewer({ materialId, fileName, mimeType, originalSizeBytes, extractedText = "" }: Props) {
   const [textContent, setTextContent] = useState("");
   const [textLoading, setTextLoading] = useState(false);
   const [textError, setTextError] = useState("");
@@ -451,7 +452,7 @@ export default function SourceFileViewer({ materialId, fileName, mimeType, origi
       {mode === "image" && (
         <div className="source-image-frame">
           {imagePreviewError
-            ? <div className="source-preview-fallback"><p>This browser cannot display this image format. The original file is still available.</p><a className="secondary-button" href={downloadUrl} download={fileName}>Download original image</a></div>
+            ? <div className="source-preview-fallback"><p>This browser cannot display this image format. The original file is still available. ClerkME has also extracted readable text from the image where possible.</p><a className="secondary-button" href={downloadUrl} download={fileName}>Download original image</a>{extractedText.trim()&&<section className="source-image-extracted-text"><strong>Readable text from this image</strong><pre>{extractedText}</pre></section>}</div>
             : <img src={sourceUrl} alt={"Original image file: " + fileName} onError={() => setImagePreviewError(true)} />}
         </div>
       )}
