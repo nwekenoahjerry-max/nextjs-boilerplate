@@ -29,7 +29,7 @@ export default function LoginPage() {
         const response = await fetch("/api/auth/google", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ credential }) });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Sign-in failed.");
-        window.location.replace("/");
+        window.location.replace("/?welcome=1");
       } catch (e) { setError(e instanceof Error ? e.message : "Sign-in failed."); setBusy(false); }
     }});
     buttonRef.current.innerHTML = "";
