@@ -6707,24 +6707,24 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 }
 
 /* Flight Academy launch state: give take-off its own space and keep the CTA unobstructed. */
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-visual-panel {
+.flight-quiz:not(.flight-playing) .flight-visual-panel {
   height: auto !important;
   min-height: 0 !important;
   overflow: visible !important;
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-sky {
+.flight-quiz:not(.flight-playing) .flight-sky {
   height: 350px !important;
   min-height: 280px;
   overflow: hidden;
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay {
+.flight-quiz:not(.flight-playing) .flight-start-overlay {
   z-index: 20 !important;
   display: flex;
   justify-content: center;
   padding: 24px;
   background: linear-gradient(135deg,rgba(5,21,45,.76),rgba(13,43,78,.67));
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay .flight-launch-button {
+.flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button {
   position: relative;
   z-index: 22;
   display: inline-flex;
@@ -6743,17 +6743,17 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   pointer-events: auto;
   transition: transform .18s ease,box-shadow .18s ease,filter .18s ease;
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay .flight-launch-button:hover:not(:disabled) {
+.flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 16px 34px rgba(2,12,26,.34),inset 0 1px 0 rgba(255,255,255,.5);
   filter: brightness(1.04);
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay .flight-launch-button:disabled {
+.flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button:disabled {
   opacity: .58;
   cursor: not-allowed;
   filter: grayscale(.18);
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-question-panel {
+.flight-quiz:not(.flight-playing) .flight-question-panel {
   position: relative !important;
   inset: auto !important;
   width: 100% !important;
@@ -6764,45 +6764,45 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   z-index: auto !important;
   box-shadow: 0 8px 25px rgba(11,35,72,.06) !important;
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-metrics {
+.flight-quiz:not(.flight-playing) .flight-metrics {
   position: relative;
   z-index: 1;
 }
-.flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-mission-placeholder {
+.flight-quiz:not(.flight-playing) .flight-mission-placeholder {
   margin-top: 8px;
 }
 @media(max-width:900px) {
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-sky {
+  .flight-quiz:not(.flight-playing) .flight-sky {
     height: 330px !important;
   }
 }
 @media(max-width:600px) {
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-visual-panel {
+  .flight-quiz:not(.flight-playing) .flight-visual-panel {
     padding: 12px !important;
   }
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-sky {
+  .flight-quiz:not(.flight-playing) .flight-sky {
     height: 270px !important;
     min-height: 250px;
     margin-top: 10px;
   }
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay {
+  .flight-quiz:not(.flight-playing) .flight-start-overlay {
     padding: 16px 12px;
   }
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay strong {
+  .flight-quiz:not(.flight-playing) .flight-start-overlay strong {
     font-size: 18px;
   }
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay p {
+  .flight-quiz:not(.flight-playing) .flight-start-overlay p {
     max-width: 300px;
     margin: 7px 0 12px;
     font-size: 11px;
     line-height: 1.55;
   }
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay .flight-launch-button {
+  .flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button {
     min-width: 190px;
     min-height: 52px;
     font-size: 14px;
   }
 }
 @media(prefers-reduced-motion:reduce) {
-  .flight-quiz:not(.flight-playing):not(.flight-game-over) .flight-start-overlay .flight-launch-button { transition: none !important; }
+  .flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button { transition: none !important; }
 }
