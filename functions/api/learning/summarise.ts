@@ -449,7 +449,7 @@ async function runStudyGuideJob(
   material: StudyMaterialRecord,
   jobId: string,
   sendProgress: (message: string) => void,
-  mode: "rapid" | "comprehensive" = "rapid"
+  mode: "rapid" | "comprehensive" = "comprehensive"
 ): Promise<Response> {
   const generationStartedAt = Date.now();
   const geminiApiKey = context.env.GEMINI_API_KEY;
@@ -785,7 +785,7 @@ export const onRequestPost = async (context: AppContext) => {
   try { body = await context.request.json() as Record<string, unknown>; }
   catch { return json({ error: "Invalid request body." }, 400); }
   const materialId = clean(body.materialId, 80);
-  const mode: "rapid" | "comprehensive" = body.mode === "comprehensive" ? "comprehensive" : "rapid";
+  const mode: "rapid" | "comprehensive" = body.mode === "rapid" ? "rapid" : "comprehensive";
   if (!materialId) return json({ error: "Select an uploaded material first." }, 400);
 
   const material = await context.env.DB.prepare(`

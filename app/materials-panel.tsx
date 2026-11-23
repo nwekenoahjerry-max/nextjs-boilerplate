@@ -153,6 +153,7 @@ export default function MaterialsPanel() {
   const [expandedUnits,setExpandedUnits] = useState<Record<string,boolean>>({});
   const [uploading,setUploading] = useState(false);
   const [summaryWorking,setSummaryWorking] = useState(false);
+  const [studyGuideMode,setStudyGuideMode] = useState<"rapid"|"comprehensive">("comprehensive");
   const [questionsWorking,setQuestionsWorking] = useState(false);
   const working = summaryWorking || questionsWorking;
   const [questionGenerationStatus,setQuestionGenerationStatus] = useState<Record<string,"generating"|"ready"|"failed">>({});
@@ -673,8 +674,9 @@ export default function MaterialsPanel() {
     }
   };
 
-  const summarise = async (materialId:string, mode:"rapid"|"comprehensive"="rapid") => {
+  const summarise = async (materialId:string, mode:"rapid"|"comprehensive"="comprehensive") => {
     const startedAt = Date.now();
+    setStudyGuideMode(mode);
     setTab("summary");
     const target = materials.find(item=>item.id===materialId);
     if (target?.hasExtractableText === false) {
@@ -684,7 +686,7 @@ export default function MaterialsPanel() {
     }
     const existingQuestionCount = target?.questions?.length || 0;
     const sbaQuestionCount = Math.max(1, questionCount - existingQuestionCount);
-    const shouldStartSba = mode === "rapid" && existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
+    const shouldStartSba = existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
     setSummaryWorking(true);
     setError("");
     setNotice(mode === "rapid"
@@ -708,7 +710,7 @@ export default function MaterialsPanel() {
           if (event.type === "preview" && event.preview && typeof event.preview === "object") {
             const preview = event.preview as StudySummary;
             setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
-            setNotice("Your quick source outline is ready. ClerkME is now building the detailed guide and SBA questions…");
+            setNotice("Your quick source outline is ready. ClerkME is now building your " + (mode === "rapid" ? "rapid revision guide" : "detailed study guide") + "…");
           } else if (event.type === "progress" && typeof event.message === "string") {
             setNotice(event.message);
           } else if (event.type === "completed" && event.summary && typeof event.summary === "object") {
@@ -732,7 +734,7 @@ export default function MaterialsPanel() {
         if (started.preview && typeof started.preview === "object") {
           const preview = started.preview as StudySummary;
           setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
-          setNotice("Quick source outline ready. Your detailed guide and SBA questions are being generated independently…");
+          setNotice("Quick source outline ready. Your " + (mode === "rapid" ? "rapid revision guide" : "detailed study guide") + " is being generated…");
         }
         if (!summary && typeof started.jobId === "string") {
           const jobId = started.jobId;
@@ -767,8 +769,8 @@ export default function MaterialsPanel() {
         : "Comprehensive study guide ready in " + elapsedSeconds + " seconds. Visual illustrations load separately.");
       setTab("summary");
       void generateIllustrations(materialId);
-      // Start the SBA task only after the rapid guide has completed. This avoids
-      // competing Gemini requests during the first, speed-sensitive generation.
+      // Start SBA generation only after the selected study guide has completed.
+      // It runs independently so the learner can begin reading the guide immediately.
       if (shouldStartSba) void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
     } catch(e) {
       setError(safeStudyError(e instanceof Error?e.message:"Could not prepare this study guide."));
@@ -821,7 +823,7 @@ export default function MaterialsPanel() {
       setTitle(""); setFile(null);
       setNotice("Material uploaded. Your Study Guide is being prepared. Open the original file from the Study Guide whenever you need it.");
       setTab("summary");
-      await summarise(material.id);
+      await summarise(material.id,"comprehensive");
     } catch(e) {
       setNotice("");
       setError(e instanceof Error?e.message:"Could not upload this material.");
@@ -1059,8 +1061,37 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id,"rapid")} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{summaryWorking?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh rapid guide":"Create rapid study guide"}</button>
-            {selectedMaterial.summary?.generationMode==="rapid"&&<button className="secondary-button" onClick={()=>summarise(selectedMaterial.id,"comprehensive")} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>Expand into comprehensive guide</button>}
+            <div className="materials-summary-mode-picker">
+              <div className="materials-summary-mode-heading">
+                <strong>Choose your study guide</strong>
+                <small>Pick the level of detail that suits your study session.</small>
+              </div>
+              <div className="materials-summary-mode-options" role="group" aria-label="Study guide format">
+                <button type="button" className={studyGuideMode==="comprehensive"?"selected":""} aria-pressed={studyGuideMode==="comprehensive"} onClick={()=>setStudyGuideMode("comprehensive")} disabled={working||liveInProgress}>
+                  <span><strong>Detailed study guide</strong><small>Fuller explanations, mechanisms, clinical links and exam-focused coverage.</small></span>
+                  <em>Recommended</em>
+                </button>
+                <button type="button" className={studyGuideMode==="rapid"?"selected":""} aria-pressed={studyGuideMode==="rapid"} onClick={()=>setStudyGuideMode("rapid")} disabled={working||liveInProgress}>
+                  <span><strong>Rapid revision</strong><small>Short, high-yield notes when you need a quicker overview.</small></span>
+                </button>
+              </div>
+              <p className="materials-summary-mode-note">
+                {selectedMaterial.summary?.generationMode===studyGuideMode
+                  ? "This format is already saved for this material. You can refresh it whenever the source changes."
+                  : studyGuideMode==="comprehensive"
+                    ? "Detailed mode takes longer because it covers more of the uploaded source. A quick source outline appears while it is being prepared."
+                    : "Rapid mode is shorter and prioritises the most examinable points. Some supporting details may be left out."}
+              </p>
+              <button className="secondary-button materials-summary-generate" onClick={()=>summarise(selectedMaterial.id,studyGuideMode)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>
+                {summaryWorking
+                  ? "Building your " + (studyGuideMode==="rapid"?"rapid revision":"detailed") + " guide…"
+                  : selectedMaterial.hasExtractableText===false
+                    ? "AI notes need readable text"
+                    : selectedMaterial.summary?.generationMode===studyGuideMode
+                      ? "Refresh " + (studyGuideMode==="rapid"?"rapid revision":"detailed study") + " guide"
+                      : "Create " + (studyGuideMode==="rapid"?"rapid revision":"detailed study") + " guide"}
+              </button>
+            </div>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
