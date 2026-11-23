@@ -626,7 +626,7 @@ ${material.content_text}
 
 
     sendProgress("Writing the detailed explanations, clinical links and exam-focused revision points…");
-    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages, 3, 26000, "MEDIUM");
+    const outputText = await requestGeminiStudyGuide(geminiApiKey, messages, 3, 26000, "MEDIUM");
     const parsed = parseAIResult({ response: outputText });
     const summary = normaliseStudySummary(parsed);
 
@@ -645,8 +645,8 @@ ${material.content_text}
     return json({ materialId: material.id, jobId, status: "completed", summary });
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown Gemini study-generation error.";
-    const safeDetail = context.env.GEMINI_API_KEY
-      ? detail.split(context.env.GEMINI_API_KEY).join("[redacted]").slice(0, 500)
+    const safeDetail = geminiApiKey
+      ? detail.split(geminiApiKey).join("[redacted]").slice(0, 500)
       : detail.slice(0, 500);
     console.error("[ClerkMe] Gemini study-guide generation failed.", {
       materialId: material.id,
