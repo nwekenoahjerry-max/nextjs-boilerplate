@@ -826,10 +826,10 @@ export default function MaterialsPanel() {
             }
             const elapsedSeconds = Math.floor((Date.now()-startedAt)/1000);
             setNotice(elapsedSeconds < 30
-              ? "Analysing your lecture and organising its key concepts while SBA items are prepared…"
+              ? "Analysing your lecture and organising its key concepts…"
               : elapsedSeconds < 90
-                ? "Building detailed explanations, clinical links and exam points. SBA generation is running alongside it…"
-                : "Your study guide and SBA set are processing. Your uploaded material is safe; ClerkMe is continuing both jobs.");
+                ? "Building detailed explanations, clinical links and exam-focused revision points…"
+                : "Your study guide is taking a little longer than usual. Your uploaded material is safe; ClerkMe is still working.");
           }
         }
       }
