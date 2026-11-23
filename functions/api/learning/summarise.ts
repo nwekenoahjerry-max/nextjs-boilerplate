@@ -141,6 +141,79 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   if (start >= 0 && end > start) text = text.slice(start, end + 1);
   return JSON.parse(text) as Record<string, unknown>;
 }
+
+function adaptStudyGuidePayload(value: Record<string, unknown>): Record<string, unknown> {
+  const nested = value.study_guide && typeof value.study_guide === "object"
+    ? value.study_guide as Record<string, unknown>
+    : value.studyGuide && typeof value.studyGuide === "object"
+      ? value.studyGuide as Record<string, unknown>
+      : value;
+  const pick = (record: Record<string, unknown>, ...keys: string[]) => {
+    for (const key of keys) if (record[key] !== undefined && record[key] !== null) return record[key];
+    return undefined;
+  };
+  const mapArray = (input: unknown, mapper: (item: Record<string, unknown>) => Record<string, unknown>) =>
+    Array.isArray(input) ? input.filter(item => item && typeof item === "object").map(item => mapper(item as Record<string, unknown>)) : [];
+  const sections = mapArray(pick(nested, "sections", "studySections", "study_sections"), section => ({
+    ...section,
+    heading: pick(section, "heading", "section_title", "title"),
+    summary: pick(section, "summary", "section_summary", "overview", "description") || "",
+    subsections: mapArray(pick(section, "subsections", "sub_sections"), subsection => ({
+      ...subsection,
+      heading: pick(subsection, "heading", "subsection_title", "title"),
+      explanation: pick(subsection, "explanation", "content", "details") || "",
+      keyPoints: pick(subsection, "keyPoints", "key_points") || [],
+      mentalModel: pick(subsection, "mentalModel", "mental_model") || "",
+      memoryHook: pick(subsection, "memoryHook", "memory_hook") || "",
+      recallQuestion: pick(subsection, "recallQuestion", "recall_question") || "",
+      recallAnswer: pick(subsection, "recallAnswer", "recall_answer") || ""
+    })),
+    diagnosisPattern: pick(section, "diagnosisPattern", "diagnosis_pattern") || null,
+    managementPlan: pick(section, "managementPlan", "management_plan") || [],
+    clinicalRelevance: pick(section, "clinicalRelevance", "clinical_relevance") || "",
+    highYieldPoints: pick(section, "highYieldPoints", "high_yield_points") || [],
+    sourceLocator: pick(section, "sourceLocator", "source_locator") || ""
+  }));
+  const examValue = pick(nested, "examFocus", "exam_focus");
+  const exam = examValue && typeof examValue === "object" ? examValue as Record<string, unknown> : {};
+  const examFocus = typeof examValue === "string"
+    ? { mustKnow: [examValue] }
+    : {
+        mustKnow: pick(exam, "mustKnow", "must_know") || [],
+        likelyShortNotes: pick(exam, "likelyShortNotes", "likely_short_notes") || [],
+        vivaQuestions: pick(exam, "vivaQuestions", "viva_questions") || [],
+        clinicalApplications: pick(exam, "clinicalApplications", "clinical_applications") || []
+      };
+  return {
+    ...nested,
+    overview: pick(nested, "overview", "introduction", "topic_overview") || "",
+    highYieldPoints: pick(nested, "highYieldPoints", "high_yield_points") || [],
+    visualAids: mapArray(pick(nested, "visualAids", "visual_aids"), item => ({
+      ...item,
+      altText: pick(item, "altText", "alt_text") || "",
+      sourceSection: pick(item, "sourceSection", "source_section") || "",
+      visualPrompt: pick(item, "visualPrompt", "visual_prompt") || ""
+    })),
+    learningObjectives: pick(nested, "learningObjectives", "learning_objectives") || [],
+    sections,
+    keyTerms: mapArray(pick(nested, "keyTerms", "key_terms"), item => ({
+      ...item,
+      meaning: pick(item, "meaning", "definition", "description") || ""
+    })),
+    comparisonTables: pick(nested, "comparisonTables", "comparison_tables") || [],
+    examFocus,
+    flowcharts: pick(nested, "flowcharts", "flow_charts") || [],
+    videoSuggestions: pick(nested, "videoSuggestions", "video_suggestions") || [],
+    mnemonics: pick(nested, "mnemonics", "memory_mnemonics") || [],
+    memoryAids: pick(nested, "memoryAids", "memory_aids") || [],
+    commonPitfalls: pick(nested, "commonPitfalls", "common_pitfalls") || [],
+    revisionQuestions: pick(nested, "revisionQuestions", "revision_questions") || [],
+    unclearOrMissing: pick(nested, "unclearOrMissing", "unclear_or_missing") || [],
+    sourceCoverage: pick(nested, "sourceCoverage", "source_coverage") || [],
+    disclaimer: pick(nested, "disclaimer", "study_note") || ""
+  };
+}
+
 async function requestCloudflareStudyGuide(
   context: AppContext,
   messages: ReadonlyArray<{ role: string; content: string }>,
@@ -197,7 +270,7 @@ async function requestCloudflareStudyGuide(
       if (finishReason === "length" || finishReason === "max_tokens") {
         throw new Error("The backup model reached its output limit before completing the study guide.");
       }
-      const parsed = parseAIResult(result);
+      const parsed = adaptStudyGuidePayload(parseAIResult(result));
       if (typeof parsed.overview !== "string" || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
         throw new Error("The backup model returned an incomplete study guide.");
       }
