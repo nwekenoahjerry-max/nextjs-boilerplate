@@ -1,5 +1,5 @@
 import { json, sha256, type AppContext } from "../../_lib/auth";
-import { checkAuthRateLimit, hashPassword, randomHex } from "../../_lib/email-auth";
+import { checkAuthRateLimit, hashPassword, randomHex, verifyPassword } from "../../_lib/email-auth";
 
 /**
  * Temporary, non-destructive production diagnostic for the registration path.
@@ -42,9 +42,16 @@ export const onRequestGet = async ({ request, env }: AppContext) => {
   });
 
   await run("password_hashing", async () => {
-    const result = await hashPassword("Temporary diagnostic passphrase only", randomHex(16));
-    if (!result.startsWith("pbkdf2_sha256$600000$")) {
+    const salt = randomHex(16);
+    const result = await hashPassword("Temporary diagnostic passphrase only", salt);
+    if (!result.startsWith("pbkdf2_sha256$100000$")) {
       throw new Error("Password hashing returned an unexpected format.");
+    }
+    if (!(await verifyPassword("Temporary diagnostic passphrase only", salt, result))) {
+      throw new Error("Password verification did not match the generated hash.");
+    }
+    if (await verifyPassword("Incorrect diagnostic passphrase", salt, result)) {
+      throw new Error("Password verification accepted an incorrect password.");
     }
   });
 
