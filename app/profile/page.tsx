@@ -28,7 +28,7 @@ const specialtySuggestions = [
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [name, setName] = useState("");
-  const [country, setCountry] = useState("Nigeria");
+  const [country, setCountry] = useState("");
   const [countryOptions, setCountryOptions] = useState<CountryOption[]>([]);
   const [worldUniversities, setWorldUniversities] = useState<UniversityRecord[]>([]);
   const [worldDirectoryLoaded, setWorldDirectoryLoaded] = useState(false);
@@ -109,7 +109,7 @@ export default function ProfilePage() {
         if (!value) return;
         setProfile(value);
         setName(value.name || "");
-        const savedCountry = value.country || (value.state?.startsWith("Outside Nigeria") ? "" : "Nigeria");
+        const savedCountry = value.country || "";
         setCountry(savedCountry);
         const savedUniversity = value.university || "";
         setUniversity(savedUniversity);

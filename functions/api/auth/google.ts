@@ -56,7 +56,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     const existing = await env.DB.prepare("SELECT id FROM student_profiles WHERE email = ? COLLATE NOCASE").bind(email).first<{ id: string }>();
     userId = existing?.id || crypto.randomUUID();
     if (!existing) {
-      await env.DB.prepare("INSERT INTO student_profiles (id, email, password_salt, password_hash, full_name, school, level, created_at, updated_at) VALUES (?, ?, ?, ?, ?, '', '', unixepoch(), unixepoch())")
+      await env.DB.prepare("INSERT INTO student_profiles (id, email, password_salt, password_hash, full_name, school, level, country, created_at, updated_at) VALUES (?, ?, ?, ?, ?, '', '', '', unixepoch(), unixepoch())")
         .bind(userId, email, randomHex(16), randomHex(32), claims.name || "ClerkMe user").run();
     }
     await env.DB.prepare("INSERT INTO google_identities (google_sub, user_id, created_at) VALUES (?, ?, unixepoch())").bind(claims.sub!, userId).run();
