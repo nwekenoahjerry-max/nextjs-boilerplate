@@ -222,7 +222,7 @@ export default function MaterialsPanel() {
   const [question,setQuestion] = useState("");
   const [answer,setAnswer] = useState<TutorAnswer|null>(null);
   const [answering,setAnswering] = useState(false);
-  const [questionCount,setQuestionCount] = useState(25);
+  const [questionCount,setQuestionCount] = useState(10);
   const [questionDifficulty,setQuestionDifficulty] = useState("Mixed");
   const [illustrationsByMaterial,setIllustrationsByMaterial] = useState<Record<string,GeneratedStudyIllustration[]>>({});
   const [illustratingMaterialId,setIllustratingMaterialId] = useState("");
@@ -759,6 +759,7 @@ export default function MaterialsPanel() {
     }
     const existingQuestionCount = target?.questions?.length || 0;
     const sbaQuestionCount = Math.max(1, questionCount - existingQuestionCount);
+    let sbaStarted = false;
     const shouldStartSba = existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
     setSummaryWorking(true);
     setError("");
@@ -784,6 +785,10 @@ export default function MaterialsPanel() {
             const preview = event.preview as StudySummary;
             setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
             setNotice("Your quick source outline is ready. ClerkME is now building your " + (mode === "rapid" ? "rapid revision guide" : "detailed study guide") + "…");
+            if (shouldStartSba && !sbaStarted) {
+              sbaStarted = true;
+              void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
+            }
           } else if (event.type === "progress" && typeof event.message === "string") {
             setNotice(event.message);
           } else if (event.type === "completed" && event.summary && typeof event.summary === "object") {
@@ -808,6 +813,10 @@ export default function MaterialsPanel() {
           const preview = started.preview as StudySummary;
           setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
           setNotice("Quick source outline ready. Your " + (mode === "rapid" ? "rapid revision guide" : "detailed study guide") + " is being generated…");
+          if (shouldStartSba && !sbaStarted) {
+            sbaStarted = true;
+            void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
+          }
         }
         if (!summary && typeof started.jobId === "string") {
           const jobId = started.jobId;
@@ -847,7 +856,10 @@ export default function MaterialsPanel() {
       void generateIllustrations(materialId);
       // Start SBA generation only after the selected study guide has completed.
       // It runs independently so the learner can begin reading the guide immediately.
-      if (shouldStartSba) void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
+      if (shouldStartSba && !sbaStarted) {
+        sbaStarted = true;
+        void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
+      }
     } catch(e) {
       setError(safeStudyError(e instanceof Error?e.message:"Could not prepare this study guide."));
       setNotice("Your uploaded material is saved. study guide can be generated again when the study service is available.");
@@ -926,7 +938,7 @@ export default function MaterialsPanel() {
       let added = 0;
       let batchWarning = "";
       while (remaining > 0) {
-        const batchCount = Math.min(3, remaining);
+        const batchCount = Math.min(5, remaining);
         setNotice(`Creating your SBA questions… ${added} of ${count} completed`);
         const response = await fetch("/api/learning/generate",{
           method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
@@ -937,6 +949,8 @@ export default function MaterialsPanel() {
         added += batchAdded;
         remaining -= batchAdded;
         if (data.warning) batchWarning = String(data.warning);
+        // Publish each saved batch while the rest of the question set is built.
+        if (batchAdded > 0) await loadMaterialStudy(materialId);
         if (batchAdded < batchCount || data.complete === false) break;
       }
       await loadMaterials();
