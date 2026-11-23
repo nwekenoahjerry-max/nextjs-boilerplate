@@ -759,7 +759,7 @@ export default function MaterialsPanel() {
       }
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
-      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary,hasSummary:true,studyLoaded:true}:item));
+      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:summary || null,hasSummary:true,studyLoaded:true}:item));
       setNotice("Your detailed study guide is ready. SBA questions continue building if they have not finished yet; visual illustrations load separately.");
       setTab("summary");
       void generateIllustrations(materialId);
