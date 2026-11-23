@@ -801,21 +801,45 @@ export default function Home() {
           <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
 {active === "overview" && <>
 <div className="home-dashboard-card">
-<section className="home-compact-header" aria-label="Welcome and study streak">
+<section className="home-compact-header" aria-label="Welcome to your ClerkMe workspace">
   <div className="home-welcome-copy">
-    <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
+    <span className="home-hero-kicker">YOUR CLERKME LEARNING SPACE</span>
     <h1>Welcome back, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
-    <p className="home-hero-subtitle">Study, revise and practise clinical skills in one place.</p>
-  </div>
-  <div className="home-hero-streak">
-    <div className="home-streak-ring" role="img" aria-label={`${streakData.streak} day study streak`}>
-      <div className="home-streak-ring-inner">
-        <span className="home-streak-spark" aria-hidden="true">✦</span>
-        <strong>{streakData.streak}</strong>
-        <small>DAY STREAK</small>
-      </div>
+    <p className="home-hero-subtitle">Learn with purpose. Think clinically. Prepare with confidence.</p>
+    <div className="home-hero-actions">
+      <button type="button" className="home-hero-primary" onClick={()=>startClerking()}>
+        <WorkspaceIcon name="file-plus"/> Start a new clerking
+      </button>
+      <button type="button" className="home-hero-secondary" onClick={()=>selectSection("study")}>
+        Explore study tools
+      </button>
     </div>
-    <div className="home-streak-caption"><strong>Your study streak</strong><span>Keep it going</span></div>
+    <div className="home-hero-promise"><span>STUDY</span><i/><span>CLINICAL PRACTICE</span><i/><span>EXAM PREPARATION</span></div>
+  </div>
+  <div className="home-hero-visual" aria-hidden="true">
+    <div className="home-hero-orbit home-hero-orbit-one"/>
+    <div className="home-hero-orbit home-hero-orbit-two"/>
+    <div className="home-hero-glow"/>
+    <div className="home-hero-ui-card">
+      <div className="home-hero-ui-brand">
+        <img src="/clerkme-mark-navy.svg" alt="" width="34" height="34" decoding="async"/>
+        <span><strong>ClerkMe</strong><small>CLINICAL LEARNING</small></span>
+        <i/>
+      </div>
+      <div className="home-hero-ui-heading">From knowledge<br/>to clinical confidence.</div>
+      <div className="home-hero-ui-steps">
+        <div><span><WorkspaceIcon name="book-open"/></span><b>Learn</b><small>Understand deeply</small></div>
+        <div><span><WorkspaceIcon name="stethoscope"/></span><b>Practise</b><small>Apply your thinking</small></div>
+        <div><span><WorkspaceIcon name="clipboard-list"/></span><b>Prepare</b><small>Perform with confidence</small></div>
+      </div>
+      <div className="home-hero-ui-foot"><span>BUILT FOR THE CLINICAL JOURNEY</span><b>✦</b></div>
+    </div>
+    <div className="home-hero-float home-hero-float-streak">
+      <span>✦</span><div><strong>{streakData.streak} day streak</strong><small>Consistency counts</small></div>
+    </div>
+    <div className="home-hero-float home-hero-float-focus">
+      <span><WorkspaceIcon name="stethoscope"/></span><strong>Think clinically</strong>
+    </div>
   </div>
 </section>
 <section className="home-stats-strip" aria-label="Your learning statistics">
@@ -824,12 +848,31 @@ export default function Home() {
   <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Today's check-in</span></div></div>
 </section>
 <section className="home-quick-start" aria-label="Quick study actions">
-  <div className="home-section-heading"><div><span className="eyebrow">QUICK ACCESS</span><h2>Where would you like to start?</h2></div></div>
+  <div className="home-section-heading">
+    <div><span className="eyebrow">YOUR NEXT STEP</span><h2>Everything you need to move forward.</h2></div>
+    <p>Choose a starting point and make this session count.</p>
+  </div>
   <div className="home-action-grid">
-    <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span></span><span className="home-action-card-copy"><strong>My materials</strong><small>Lectures and study guides</small></span></button>
-    <button type="button" className="home-action-card home-action-qbank" onClick={()=>selectSection("qbank")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span></span><span className="home-action-card-copy"><strong>Question bank</strong><small>Practise exam-style questions</small></span></button>
-    <button type="button" className="home-action-card home-action-videos" onClick={()=>selectSection("videos")}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span></span><span className="home-action-card-copy"><strong>Video library</strong><small>Find and watch lectures</small></span></button>
-    <button type="button" className="home-action-card home-action-clinical" onClick={()=>startClerking()}><span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span></span><span className="home-action-card-copy"><strong>Clinical practice</strong><small>Clerk a patient</small></span></button>
+    <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}>
+      <span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span className="home-action-card-index">01 / STUDY</span></span>
+      <span className="home-action-card-copy"><strong>My materials</strong><small>Turn your lectures into focused study guides and revision resources.</small></span>
+      <span className="home-action-card-foot">OPEN YOUR LIBRARY</span>
+    </button>
+    <button type="button" className="home-action-card home-action-qbank" onClick={()=>selectSection("qbank")}>
+      <span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><span className="home-action-card-index">02 / TEST</span></span>
+      <span className="home-action-card-copy"><strong>Question bank</strong><small>Strengthen recall with exam-style questions and clear explanations.</small></span>
+      <span className="home-action-card-foot">PRACTISE QUESTIONS</span>
+    </button>
+    <button type="button" className="home-action-card home-action-videos" onClick={()=>selectSection("videos")}>
+      <span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><span className="home-action-card-index">03 / WATCH</span></span>
+      <span className="home-action-card-copy"><strong>Video library</strong><small>Discover useful teaching videos and keep your favourites close.</small></span>
+      <span className="home-action-card-foot">EXPLORE VIDEOS</span>
+    </button>
+    <button type="button" className="home-action-card home-action-clinical" onClick={()=>startClerking()}>
+      <span className="home-action-card-top"><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><span className="home-action-card-index">04 / APPLY</span></span>
+      <span className="home-action-card-copy"><strong>Clinical practice</strong><small>Build a structured history and sharpen your clinical reasoning.</small></span>
+      <span className="home-action-card-foot">START CLERKING</span>
+    </button>
   </div>
 </section>
 <footer className="footer-note home-compact-footer">Learning support only. Follow clinical supervision and local protocols. Never upload identifiable patient information.</footer>

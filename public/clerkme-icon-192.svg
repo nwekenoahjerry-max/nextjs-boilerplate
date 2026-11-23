@@ -1,9 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">ClerkMe</title>
-  <desc id="desc">A geometric deep navy C with an integrated navy M, separated by a fine white outline.</desc>
-  <rect width="512" height="512" rx="112" fill="#F5F8FC"/>
-  <rect x="1" y="1" width="510" height="510" rx="111" fill="none" stroke="#E2E8F0" stroke-width="2"/>
-  <path d="M 389 150 A 184 184 0 1 0 389 362" fill="none" stroke="#102D5A" stroke-width="60" stroke-linecap="round"/>
-  <path d="M 166 334 V 178 L 256 267 L 346 178 V 334" fill="none" stroke="#F5F8FC" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M 166 334 V 178 L 256 267 L 346 178 V 334" fill="none" stroke="#102D5A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <desc id="desc">A refined navy C enclosing an integrated geometric M, with a clean white separation.</desc>
+  <defs>
+    <linearGradient id="tile" x1="58" y1="26" x2="456" y2="488" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#EAF1F9"/>
+    </linearGradient>
+    <linearGradient id="navy" x1="92" y1="76" x2="423" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#173E70"/>
+      <stop offset=".52" stop-color="#102D5A"/>
+      <stop offset="1" stop-color="#081D3C"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="488" height="488" rx="124" fill="url(#tile)"/>
+  <rect x="13" y="13" width="486" height="486" rx="123" fill="none" stroke="#D9E4F0" stroke-width="2"/>
+  <path d="M 387 151 A 180 180 0 1 0 387 361" fill="none" stroke="url(#navy)" stroke-width="62" stroke-linecap="round"/>
+  <path d="M 160 341 V 177 L 256 268 L 352 177 V 341" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 160 341 V 177 L 256 268 L 352 177 V 341" fill="none" stroke="url(#navy)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
