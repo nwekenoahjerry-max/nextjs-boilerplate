@@ -460,6 +460,20 @@ export const onRequestPost = async (context: AppContext) => {
     }
 
     const complete = questions.length === count;
+    const notificationId = crypto.randomUUID();
+    await context.env.DB.prepare(
+      "INSERT INTO student_notifications (id, user_id, dedupe_key, kind, title, message, destination, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch())"
+    ).bind(
+      notificationId,
+      user.id,
+      "sba:" + notificationId,
+      "sba_ready",
+      "Your SBA questions are ready",
+      questions.length + " new questions from " + sourceTitle + " are ready to practise.",
+      "qbank"
+    ).run().catch(error => {
+      console.warn("[ClerkMe] Could not save the SBA notification.", error instanceof Error ? error.message : "Unknown error.");
+    });
     return json({
       questions: allQuestions,
       requested: count,
