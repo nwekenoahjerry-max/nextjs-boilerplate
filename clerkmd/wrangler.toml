@@ -10,9 +10,3 @@ database_id = "ccfafcf6-4ce7-43de-b406-fc2b1130f683"
 [ai]
 binding = "AI"
 
-[observability]
-enabled = true
-
-[observability.logs]
-invocation_logs = true
-head_sampling_rate = 1
