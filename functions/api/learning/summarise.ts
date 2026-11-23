@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, type AppContext, type AppUser } from "../../_lib/auth";
 
 
 
@@ -387,66 +387,65 @@ function normaliseStudySummary(parsed: Record<string, unknown>) {
   return summary;
 }
 
-export const onRequestPost = async (context: AppContext) => {
-  if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
-  const user = await requireUser(context);
-  if (isResponse(user)) return user;
-  if (!context.env.GEMINI_API_KEY) {
-    return json({
-      error: "The study-guide service is temporarily unavailable. Your uploaded material is safe. Please try again shortly.",
-      code: "STUDY_SERVICE_UNAVAILABLE"
-    }, 503);
-  }
+type StudyMaterialRecord = { id:string; title:string; source_name:string; unit:string; content_text:string; };
 
-  let body: Record<string, unknown>;
-  try { body = await context.request.json() as Record<string, unknown>; }
-  catch { return json({ error: "Invalid request body." }, 400); }
-  const materialId = clean(body.materialId, 80);
-  if (!materialId) return json({ error: "Select an uploaded material first." }, 400);
+function createQuickSourcePreview(material: StudyMaterialRecord): Record<string, unknown> {
+  const text = material.content_text.replace(/\r/g, "");
+  const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+  const headingLines = lines.filter(line =>
+    line.length >= 4 && line.length <= 100 &&
+    !/[.!?;:]$/.test(line) &&
+    !/^[-*•]/.test(line) &&
+    !/^\d{1,3}[.)]\s/.test(line)
+  );
+  const headings = Array.from(new Set(headingLines)).slice(0, 6);
+  const paragraphs = text.split(/\n{2,}/).map(value => value.replace(/\s+/g, " ").trim()).filter(value => value.length > 80);
+  const bullets = lines
+    .filter(line => /^([-*•]|\d{1,3}[.)])\s+/.test(line))
+    .map(line => line.replace(/^([-*•]|\d{1,3}[.)])\s+/, "").trim())
+    .filter(line => line.length > 25 && line.length <= 260)
+    .slice(0, 8);
+  const sectionSource = headings.length
+    ? headings.map((heading, index) => ({ heading, summary: paragraphs[index] || "" }))
+    : paragraphs.slice(0, 6).map((paragraph, index) => ({
+        heading: "Source extract " + (index + 1),
+        summary: paragraph.slice(0, 520)
+      }));
+  return {
+    overview: (paragraphs[0] || text.slice(0, 650)).slice(0, 900),
+    quickPreview: true,
+    highYieldPoints: bullets,
+    sections: sectionSource.map(item => ({
+      heading: item.heading,
+      summary: item.summary.slice(0, 700),
+      subsections: []
+    })),
+    learningObjectives: [],
+    keyTerms: [],
+    comparisonTables: [],
+    mnemonics: [],
+    memoryAids: [],
+    commonPitfalls: [],
+    revisionQuestions: [],
+    unclearOrMissing: [],
+    sourceCoverage: headings,
+    examFocus: { mustKnow: [], likelyShortNotes: [], vivaQuestions: [], clinicalApplications: [] },
+    disclaimer: "Quick outline extracted from the uploaded source. The detailed Gemini study guide is still being prepared."
+  };
+}
 
-  const material = await context.env.DB.prepare(`
-    SELECT id, title, source_name, unit, content_text
-    FROM learning_materials
-    WHERE id = ? AND user_id = ?
-  `).bind(materialId, user.id).first<{
-    id: string; title: string; source_name: string; unit: string; content_text: string;
-  }>();
-  if (!material) return json({ error: "This material could not be found in your private library." }, 404);
-  if (material.content_text.trim().length < 100) {
-    return json({ error: "Your original file is saved and can be read in Source Material, but ClerkMe could not extract enough selectable text to create reliable AI notes. Use OCR or a text-based copy, then upload it again for study-guide generation." }, 400);
-  }
-
-  const activeJob = await context.env.DB.prepare(`
-    SELECT id, interaction_id
-    FROM study_generation_jobs
-    WHERE user_id = ? AND material_id = ?
-      AND status IN ('queued', 'in_progress')
-      AND created_at > unixepoch() - 900
-    ORDER BY created_at DESC
-    LIMIT 1
-  `).bind(user.id, material.id).first<{ id: string; interaction_id: string }>();
-  if (activeJob?.interaction_id.startsWith("gemini:")) {
-    return json({ jobId: activeJob.id, status: "processing", resumed: true }, 202);
-  }
-  if (activeJob) {
-    await context.env.DB.prepare(
-      "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
-    ).bind(
-      SAFE_STUDY_FAILURE,
-      activeJob.id,
-      user.id
-    ).run();
-  }
-
-  const jobId = crypto.randomUUID();
-  const now = Math.floor(Date.now() / 1000);
-  await context.env.DB.prepare(`
-    INSERT INTO study_generation_jobs
-      (id, user_id, material_id, interaction_id, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'in_progress', ?, ?)
-  `).bind(jobId, user.id, material.id, "gemini:" + jobId, now, now).run();
-
+async function runStudyGuideJob(
+  context: AppContext,
+  user: AppUser,
+  material: StudyMaterialRecord,
+  jobId: string,
+  sendProgress: (message: string) => void
+): Promise<Response> {
+  await context.env.DB.prepare(
+    "UPDATE study_generation_jobs SET status = 'in_progress', updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+  ).bind(jobId, user.id).run();
   try {
+  sendProgress("Reviewing your uploaded lecture and mapping its main topics…");
   let sourceBlueprint: Record<string, unknown> | null = null;
   if (material.content_text.length >= 14000 && !material.unit.startsWith("custom:")) {
     try {
@@ -624,7 +623,8 @@ ${material.content_text}
       ] as const;
 
 
-    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages, 3, 30000, "HIGH");
+    sendProgress("Writing the detailed explanations, clinical links and exam-focused revision points…");
+    const outputText = await requestGeminiStudyGuide(context.env.GEMINI_API_KEY, messages, 3, 26000, "MEDIUM");
     const parsed = parseAIResult({ response: outputText });
     const summary = normaliseStudySummary(parsed);
 
@@ -685,4 +685,103 @@ ${material.content_text}
     const status = authFailure ? 503 : rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
     return json({ error: message, code: "STUDY_GUIDE_" + failureClass.toUpperCase(), retryable: !authFailure }, status);
   }
+}
+
+export const onRequestPost = async (context: AppContext) => {
+  if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
+  const user = await requireUser(context);
+  if (isResponse(user)) return user;
+  if (!context.env.GEMINI_API_KEY) {
+    return json({
+      error: "The study-guide service is temporarily unavailable. Your uploaded material is safe. Please try again shortly.",
+      code: "STUDY_SERVICE_UNAVAILABLE"
+    }, 503);
+  }
+
+  let body: Record<string, unknown>;
+  try { body = await context.request.json() as Record<string, unknown>; }
+  catch { return json({ error: "Invalid request body." }, 400); }
+  const materialId = clean(body.materialId, 80);
+  if (!materialId) return json({ error: "Select an uploaded material first." }, 400);
+
+  const material = await context.env.DB.prepare(`
+    SELECT id, title, source_name, unit, content_text
+    FROM learning_materials
+    WHERE id = ? AND user_id = ?
+  `).bind(materialId, user.id).first<{
+    id: string; title: string; source_name: string; unit: string; content_text: string;
+  }>();
+  if (!material) return json({ error: "This material could not be found in your private library." }, 404);
+  if (material.content_text.trim().length < 100) {
+    return json({ error: "Your original file is saved and can be read in Source Material, but ClerkMe could not extract enough selectable text to create reliable AI notes. Use OCR or a text-based copy, then upload it again for study-guide generation." }, 400);
+  }
+
+  const activeJob = await context.env.DB.prepare(`
+    SELECT id, interaction_id
+    FROM study_generation_jobs
+    WHERE user_id = ? AND material_id = ?
+      AND status IN ('queued', 'in_progress')
+      AND created_at > unixepoch() - 900
+    ORDER BY created_at DESC
+    LIMIT 1
+  `).bind(user.id, material.id).first<{ id: string; interaction_id: string }>();
+  if (activeJob?.interaction_id.startsWith("gemini:")) {
+    return json({ jobId: activeJob.id, status: "processing", resumed: true }, 202);
+  }
+  if (activeJob) {
+    await context.env.DB.prepare(
+      "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+    ).bind(
+      SAFE_STUDY_FAILURE,
+      activeJob.id,
+      user.id
+    ).run();
+  }
+
+  const jobId = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  await context.env.DB.prepare(`
+    INSERT INTO study_generation_jobs
+      (id, user_id, material_id, interaction_id, status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'in_progress', ?, ?)
+  `).bind(jobId, user.id, material.id, "gemini:" + jobId, now, now).run();
+
+
+  const preview = createQuickSourcePreview(material);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const emit = (event: Record<string, unknown>) => {
+        try { controller.enqueue(encoder.encode(JSON.stringify(event) + "\n")); } catch {}
+      };
+      emit({ type: "preview", preview });
+      const sendProgress = (message: string) => emit({ type: "progress", message });
+      void (async () => {
+        const response = await runStudyGuideJob(context, user, material, jobId, sendProgress);
+        const result = await response.json().catch(() => ({})) as Record<string, unknown>;
+        if (response.ok && result.summary) {
+          emit({ type: "completed", summary: result.summary });
+        } else {
+          emit({ type: "failed", error: typeof result.error === "string" ? result.error : "ClerkMe could not complete this study guide. Your upload is safe; please retry." });
+        }
+      })().catch(async error => {
+        const message = error instanceof Error ? error.message : "ClerkMe could not complete this study guide. Your upload is safe; please retry.";
+        await context.env.DB.prepare(
+          "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
+        ).bind(SAFE_STUDY_FAILURE, jobId, user.id).run().catch(() => undefined);
+        emit({ type: "failed", error: message.includes("GEMINI") ? SAFE_STUDY_FAILURE : message });
+      }).finally(() => {
+        try { controller.close(); } catch {}
+      });
+    }
+  });
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "Cache-Control": "no-store, no-transform",
+      "X-Content-Type-Options": "nosniff",
+      "X-Accel-Buffering": "no"
+    }
+  });
 };

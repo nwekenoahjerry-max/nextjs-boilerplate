@@ -415,7 +415,18 @@ export default function MaterialsPanel() {
   const loadMaterials = async (preserveId = true) => {
     const response = await fetch("/api/learning/materials",{credentials:"same-origin",cache:"no-store"});
     const data = await readResponse(response);
-    const next = Array.isArray(data.materials) ? data.materials as StudyMaterial[] : [];
+    const cached = new Map(materials.map(item=>[item.id,item]));
+    const next = (Array.isArray(data.materials) ? data.materials as StudyMaterial[] : []).map(item=>{
+      const existing = cached.get(item.id);
+      return existing?.studyLoaded ? {
+        ...item,
+        summary: existing.summary || null,
+        questions: existing.questions || [],
+        hasSummary: existing.hasSummary,
+        questionCount: existing.questionCount,
+        studyLoaded: true
+      } : item;
+    });
     setMaterials(next);
     if (!preserveId || !next.some(item=>item.id===selectedId)) {
       let savedMaterialId = "";
@@ -683,47 +694,72 @@ export default function MaterialsPanel() {
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({materialId})
       });
-      const started = await readResponse(response);
-      let summary = started.summary as StudySummary|undefined;
-      if (started.preview && typeof started.preview === "object") {
-        const preview = started.preview as StudySummary;
-        setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
-        setNotice("Quick source outline ready. Your detailed guide and SBA questions are being generated independently…");
-      }
-
-      if (!summary && typeof started.jobId === "string") {
-        const jobId = started.jobId;
-        const startedAt = Date.now();
-        const maximumWaitMs = 12 * 60 * 1000;
-        while (Date.now() - startedAt < maximumWaitMs) {
-          await new Promise(resolve=>window.setTimeout(resolve,2000));
-          const statusResponse = await fetch(
-            "/api/learning/summarise?jobId="+encodeURIComponent(jobId),
-            {credentials:"same-origin",cache:"no-store"}
-          );
-          const job = await readResponse(statusResponse);
-          if (job.status === "completed" && job.summary) {
-            summary = job.summary as StudySummary;
-            break;
+      let summary: StudySummary|undefined;
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/x-ndjson") && response.body) {
+        if (!response.ok) await readResponse(response);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const handleEvent = (line:string) => {
+          if (!line.trim()) return;
+          const event = JSON.parse(line) as Record<string,unknown>;
+          if (event.type === "preview" && event.preview && typeof event.preview === "object") {
+            const preview = event.preview as StudySummary;
+            setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
+            setNotice("Your quick source outline is ready. ClerkME is now building the detailed guide and SBA questions…");
+          } else if (event.type === "progress" && typeof event.message === "string") {
+            setNotice(event.message);
+          } else if (event.type === "completed" && event.summary && typeof event.summary === "object") {
+            summary = event.summary as StudySummary;
+          } else if (event.type === "failed") {
+            throw new Error(typeof event.error === "string" ? event.error : "ClerkME could not complete this study guide. Your uploaded material is safe.");
           }
-          if (job.status === "failed") {
-            throw new Error(job.error || "ClerkMe could not complete this study guide. Your uploaded material is safe.");
-          }
-          const elapsedSeconds = Math.floor((Date.now()-startedAt)/1000);
-          setNotice(elapsedSeconds < 30
-            ? "Analysing your lecture and organising its key concepts while SBA items are prepared…"
-            : elapsedSeconds < 90
-              ? "Building detailed explanations, clinical links and exam points. SBA generation is running alongside it…"
-              : "Your study guide and SBA set are processing. Your uploaded material is safe; ClerkMe is continuing both jobs.");
+        };
+        while (true) {
+          const chunk = await reader.read();
+          buffer += decoder.decode(chunk.value || new Uint8Array(), {stream:!chunk.done});
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() || "";
+          for (const line of lines) handleEvent(line);
+          if (chunk.done) break;
         }
-        if (!summary) {
-          setNotice("Your quick source outline is ready. The complete guide is still processing; SBA generation continues separately.");
-          return;
+        if (buffer.trim()) handleEvent(buffer);
+      } else {
+        const started = await readResponse(response);
+        summary = started.summary as StudySummary|undefined;
+        if (started.preview && typeof started.preview === "object") {
+          const preview = started.preview as StudySummary;
+          setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
+          setNotice("Quick source outline ready. Your detailed guide and SBA questions are being generated independently…");
+        }
+        if (!summary && typeof started.jobId === "string") {
+          const jobId = started.jobId;
+          const startedAt = Date.now();
+          const maximumWaitMs = 12 * 60 * 1000;
+          while (Date.now() - startedAt < maximumWaitMs) {
+            await new Promise(resolve=>window.setTimeout(resolve,2500));
+            const statusResponse = await fetch(
+              "/api/learning/summarise?jobId="+encodeURIComponent(jobId),
+              {credentials:"same-origin",cache:"no-store"}
+            );
+            const job = await readResponse(statusResponse);
+            if (job.status === "completed" && job.summary) {
+              summary = job.summary as StudySummary;
+              break;
+            }
+            const elapsedSeconds = Math.floor((Date.now()-startedAt)/1000);
+            setNotice(elapsedSeconds < 30
+              ? "Analysing your lecture and organising its key concepts while SBA items are prepared…"
+              : elapsedSeconds < 90
+                ? "Building detailed explanations, clinical links and exam points. SBA generation is running alongside it…"
+                : "Your study guide and SBA set are processing. Your uploaded material is safe; ClerkMe is continuing both jobs.");
+          }
         }
       }
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
-      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary}:item));
+      setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary,hasSummary:true,studyLoaded:true}:item));
       setNotice("Your detailed study guide is ready. SBA questions continue building if they have not finished yet; visual illustrations load separately.");
       setTab("summary");
       void generateIllustrations(materialId);
