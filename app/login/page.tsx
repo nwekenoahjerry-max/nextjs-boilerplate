@@ -27,6 +27,9 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/config").then(r => r.ok ? r.json() : null)
@@ -75,11 +78,18 @@ export default function LoginPage() {
     setMode(next);
     clearMessages();
     setPassword("");
+    setConfirmPassword("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy) return;
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Your passwords do not match. Please check them and try again.");
+      return;
+    }
     setBusy(true);
     clearMessages();
     try {
@@ -196,11 +206,30 @@ export default function LoginPage() {
               </label>
               <label className="auth-field">
                 <span>Password</span>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : undefined} maxLength={128}/>
+                <div className="auth-password-wrap">
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} required minLength={isSignup ? 12 : undefined} maxLength={128}/>
+                  <button className="auth-password-toggle" type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword}>
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
                 {isSignup && <small>Use at least 12 characters.</small>}
               </label>
+              {isSignup && <label className="auth-field">
+                <span>Confirm password</span>
+                <div className="auth-password-wrap">
+                  <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password" required minLength={12} maxLength={128} aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}/>
+                  <button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword(value => !value)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>
+                    {showConfirmPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                {confirmPassword.length > 0 && (
+                  <small className={password === confirmPassword ? "auth-password-match" : "auth-password-mismatch"}>
+                    {password === confirmPassword ? "Passwords match." : "Passwords do not match yet."}
+                  </small>
+                )}
+              </label>}
               {!isSignup && <div className="auth-forgot-row"><button type="button" className="auth-text-button" onClick={() => switchMode("forgot")}>Forgot password?</button></div>}
-              <button className="auth-submit" type="submit" disabled={busy}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in with email"}</button>
+              <button className="auth-submit" type="submit" disabled={busy || (isSignup && password !== confirmPassword)}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in with email"}</button>
             </form>
             <div className="auth-divider"><span>or continue with</span></div>
             {clientId ? <div className="google-button" ref={buttonRef}/> : <p className="auth-google-unavailable">Google sign-in is temporarily unavailable. You can still use email and password.</p>}

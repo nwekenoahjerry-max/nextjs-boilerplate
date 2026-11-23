@@ -8368,3 +8368,14 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 .auth-card .auth-message{background:#edf5ff;color:#194b83}
 .auth-card .auth-error{background:#fff0ed;color:#a34436}
 @media(max-width:600px){.auth-page{padding:16px}.auth-card{padding:24px 19px}.auth-card .auth-brand{padding-bottom:24px}}
+
+
+/* Accessible reveal controls and live password confirmation */
+.auth-password-wrap{position:relative;display:flex;align-items:center}
+.auth-password-wrap input{padding-right:66px}
+.auth-password-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);min-width:42px;min-height:32px;padding:5px 7px;border:0;border-radius:6px;background:#eef3f9;color:#173d75;font:700 10px 'DM Sans',Arial,sans-serif;cursor:pointer}
+.auth-password-toggle:hover{background:#e1eaf5}
+.auth-password-toggle:focus-visible{outline:2px solid #315b95;outline-offset:2px}
+.auth-password-match{color:#167348!important}
+.auth-password-mismatch{color:#b54737!important}
+.auth-field input[aria-invalid="true"]{border-color:#d66a5c}

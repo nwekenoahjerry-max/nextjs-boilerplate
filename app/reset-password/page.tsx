@@ -7,6 +7,8 @@ export default function ResetPasswordPage() {
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState("");
@@ -50,13 +52,28 @@ export default function ResetPasswordPage() {
       {!complete && <form className="auth-form" onSubmit={submit}>
         <label className="auth-field">
           <span>New password</span>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" required minLength={12} maxLength={128}/>
+          <div className="auth-password-wrap">
+            <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" required minLength={12} maxLength={128}/>
+            <button className="auth-password-toggle" type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "Hide new password" : "Show new password"} aria-pressed={showPassword}>
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
         </label>
         <label className="auth-field">
           <span>Confirm new password</span>
-          <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password" required minLength={12} maxLength={128}/>
+          <div className="auth-password-wrap">
+            <input type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password" required minLength={12} maxLength={128} aria-invalid={confirmPassword.length > 0 && password !== confirmPassword}/>
+            <button className="auth-password-toggle" type="button" onClick={() => setShowConfirmPassword(value => !value)} aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"} aria-pressed={showConfirmPassword}>
+              {showConfirmPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+          {confirmPassword.length > 0 && (
+            <small className={password === confirmPassword ? "auth-password-match" : "auth-password-mismatch"}>
+              {password === confirmPassword ? "Passwords match." : "Passwords do not match yet."}
+            </small>
+          )}
         </label>
-        <button className="auth-submit" type="submit" disabled={busy || !token}>{busy ? "Updating password…" : "Update password"}</button>
+        <button className="auth-submit" type="submit" disabled={busy || !token || password !== confirmPassword}>{busy ? "Updating password…" : "Update password"}</button>
       </form>}
       {error && <p className="auth-error" role="alert">{error}</p>}
       {complete && <a className="auth-submit auth-action-link" href="/login">Sign in to ClerkME</a>}
