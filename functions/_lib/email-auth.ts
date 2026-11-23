@@ -116,20 +116,47 @@ export async function sendAuthEmail(
     : "Use the secure link below to choose a new password. This link expires in 1 hour.";
   const button = isVerification ? "Verify email address" : "Reset my password";
   const safeUrl = escapeHtml(actionUrl.toString());
+  // Use the production PNG mark: raster logos are more consistently rendered
+  // by email clients than SVG images.
+  const logoUrl = "https://clerkme.com.ng/clerkme-192.png";
+  const safeLogoUrl = escapeHtml(logoUrl);
   const html =
-    '<div style="margin:0;padding:36px 16px;background:#f4f7fb;font-family:Arial,sans-serif;color:#102d5a">' +
-    '<div style="max-width:520px;margin:0 auto;padding:34px 30px;background:#ffffff;border:1px solid #e4eaf2;border-radius:16px">' +
-    '<div style="font-size:12px;font-weight:800;letter-spacing:2px;color:#102d5a">CLERKME</div>' +
-    '<h1 style="margin:26px 0 12px;font-size:25px;line-height:1.25;color:#102d5a">' + heading + '</h1>' +
-    '<p style="font-size:15px;line-height:1.7;color:#51627a">' + explanation + '</p>' +
-    '<p style="margin:28px 0"><a href="' + safeUrl + '" style="display:inline-block;padding:14px 22px;border-radius:8px;background:#102d5a;color:#ffffff;text-decoration:none;font-weight:700">' + button + '</a></p>' +
-    '<p style="font-size:12px;line-height:1.7;color:#68778c">If the button does not work, copy this link into your browser:<br><a href="' + safeUrl + '" style="color:#2456a6;word-break:break-all">' + safeUrl + '</a></p>' +
-    '<hr style="border:0;border-top:1px solid #e8edf4;margin:26px 0">' +
-    '<p style="font-size:11px;line-height:1.7;color:#7b8798">If you did not request this, you can ignore this email. Never share this link with anyone.</p>' +
-    '</div></div>';
+    '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:0;background:#f2f5fa;font-family:Arial,Helvetica,sans-serif;color:#18304f">' +
+    '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">' + escapeHtml(heading) + ' — secure account access from ClerkMe.</div>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:#f2f5fa;border-collapse:collapse">' +
+    '<tr><td align="center" style="padding:36px 14px">' +
+    '<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;border-collapse:separate;border-spacing:0;background:#ffffff;border:1px solid #e1e8f1;border-radius:18px;overflow:hidden">' +
+    '<tr><td style="padding:26px 30px;background:#102d5a">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>' +
+    '<td valign="middle" style="padding-right:15px">' +
+    '<img src="' + safeLogoUrl + '" width="68" height="68" alt="ClerkMe logo" style="display:block;width:68px;height:68px;border:0;border-radius:15px;outline:none;text-decoration:none">' +
+    '</td><td valign="middle">' +
+    '<div style="font-size:25px;line-height:1.2;font-weight:800;letter-spacing:-.5px;color:#ffffff">ClerkMe</div>' +
+    '<div style="padding-top:5px;font-size:10px;line-height:1.5;font-weight:700;letter-spacing:1.5px;color:#dbe7f7">CLINICAL LEARNING WORKSPACE</div>' +
+    '</td></tr></table>' +
+    '</td></tr>' +
+    '<tr><td style="padding:38px 34px 30px">' +
+    '<p style="margin:0 0 12px;font-size:13px;line-height:1.5;font-weight:700;letter-spacing:.4px;color:#6b7d95">HELLO FROM CLERKME</p>' +
+    '<h1 style="margin:0 0 14px;font-size:27px;line-height:1.25;font-weight:800;letter-spacing:-.5px;color:#102d5a">' + heading + '</h1>' +
+    '<p style="margin:0 0 24px;font-size:15px;line-height:1.75;color:#53657d">' + explanation + '</p>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px;border-collapse:collapse"><tr><td align="center" bgcolor="#102d5a" style="border-radius:9px;background:#102d5a">' +
+    '<a href="' + safeUrl + '" style="display:inline-block;padding:15px 25px;border:1px solid #102d5a;border-radius:9px;background:#102d5a;color:#ffffff;text-decoration:none;font-size:15px;line-height:1.2;font-weight:700">' + button + '</a>' +
+    '</td></tr></table>' +
+    '<div style="margin:0 0 10px;font-size:12px;line-height:1.6;color:#6b7d95;font-weight:700">Having trouble with the button?</div>' +
+    '<p style="margin:0;font-size:12px;line-height:1.7;color:#718198">Copy and paste this secure link into your browser:</p>' +
+    '<p style="margin:7px 0 0;font-size:12px;line-height:1.7;word-break:break-all"><a href="' + safeUrl + '" style="color:#2456a6;text-decoration:underline">' + safeUrl + '</a></p>' +
+    '<div style="height:1px;margin:28px 0 20px;background:#e8edf4;font-size:0;line-height:0">&nbsp;</div>' +
+    '<p style="margin:0;font-size:12px;line-height:1.75;color:#7a8799">Security note: If you did not request this email, you can safely ignore it. Never share this link with anyone.</p>' +
+    '</td></tr>' +
+    '<tr><td align="center" style="padding:19px 24px;background:#f8fafd;border-top:1px solid #edf1f6">' +
+    '<p style="margin:0;font-size:11px;line-height:1.7;color:#8491a3">ClerkMe · Your clinical learning workspace<br><a href="https://clerkme.com.ng" style="color:#2456a6;text-decoration:none">clerkme.com.ng</a></p>' +
+    '</td></tr></table>' +
+    '<p style="margin:18px 0 0;font-size:10px;line-height:1.5;color:#9aa5b3">This is an automated account-security message.</p>' +
+    '</td></tr></table></body></html>';
 
-  const text = heading + "\n\n" + explanation + "\n\n" + actionUrl.toString() +
-    "\n\nIf you did not request this, ignore this email. Never share this link with anyone.";
+  const text = "ClerkMe\\n" + heading + "\\n\\n" + explanation + "\\n\\n" + button + ": " + actionUrl.toString() +
+    "\\n\\nIf you did not request this email, ignore it. Never share this link with anyone.\\n\\nClerkMe · Your clinical learning workspace\\nhttps://clerkme.com.ng";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -141,7 +168,7 @@ export async function sendAuthEmail(
     body: JSON.stringify({
       from: "ClerkMe Accounts <accounts@mail.clerkme.com.ng>",
       to: [recipient],
-      subject: isVerification ? "Verify your ClerkMe email address" : "Reset your ClerkMe password",
+      subject: isVerification ? "Welcome to ClerkMe — verify your email" : "Reset your ClerkMe password",
       html,
       text
     })
