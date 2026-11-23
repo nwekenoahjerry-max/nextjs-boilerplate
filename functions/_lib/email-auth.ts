@@ -2,7 +2,9 @@ import type { Env, D1Database } from "./auth";
 import { sha256 } from "./auth";
 
 export type EmailActionPurpose = "verify_email" | "password_reset";
-const PASSWORD_ITERATIONS = 600000;
+// Cloudflare Workers currently enforces a 100,000-iteration PBKDF2 ceiling.
+// Keep this at the runtime-supported maximum; raise it only with a different KDF/runtime.
+const PASSWORD_ITERATIONS = 100000;
 
 export function normaliseEmail(value: string): string {
   return value.trim().toLowerCase();
