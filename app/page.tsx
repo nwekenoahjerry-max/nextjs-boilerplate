@@ -516,7 +516,7 @@ export default function Home() {
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
-  const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number}|null>(null);
+  const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number;role?:string}|null>(null);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
@@ -890,7 +890,10 @@ export default function Home() {
                 <small>{authUser?.email || "Your ClerkME account"}</small>
                 <span className={authUser?.profileComplete === 1 ? "you-account-status is-complete" : "you-account-status is-incomplete"}>{authUser?.profileComplete === 1 ? "✓ Academic profile complete" : "Finish your academic profile"}</span>
               </div>
-              <a className="you-profile-link" href="/profile">{authUser?.profileComplete === 1 ? "Manage profile" : "Complete profile"} <span aria-hidden="true">→</span></a>
+              <div className="you-account-actions">
+                <a className="you-profile-link" href="/profile">{authUser?.profileComplete === 1 ? "Manage profile" : "Complete profile"} <span aria-hidden="true">→</span></a>
+                {authUser?.role === "admin" && <a className="you-profile-link admin-account-link" href="/admin/">Open admin dashboard <span aria-hidden="true">→</span></a>}
+              </div>
             </section>
             <div className="account-settings-section-heading"><div><span className="eyebrow">PREFERENCES & ACCESS</span><h2>Manage your settings</h2></div><p>Only the controls currently supported by ClerkME are shown here.</p></div>
 

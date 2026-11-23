@@ -1,4 +1,4 @@
-import { cookieHeader, json, sha256, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { cookieHeader, hasAdminAccess, json, sha256, validSameOrigin, type AppContext } from "../../_lib/auth";
 const randomHex = (bytes: number) => Array.from(crypto.getRandomValues(new Uint8Array(bytes)), b => b.toString(16).padStart(2, "0")).join("");
 const decodePart = (part: string) => {
   const normalized = part.replace(/-/g, "+").replace(/_/g, "/");
@@ -66,6 +66,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
   const sessionHash = await sha256(sessionToken);
   await env.DB.prepare("INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, unixepoch() + 604800, unixepoch())")
     .bind(sessionHash, userId).run();
-  const user = await env.DB.prepare("SELECT id, email, full_name AS name, NULL AS picture, 'student' AS role FROM student_profiles WHERE id = ?").bind(userId).first();
+  const role = hasAdminAccess(email, env) ? "admin" : "student";
+  const user = await env.DB.prepare("SELECT id, email, full_name AS name, NULL AS picture, ? AS role FROM student_profiles WHERE id = ?").bind(role, userId).first();
   return json({ user }, 200, { "Set-Cookie": cookieHeader(sessionToken, 60 * 60 * 24 * 7) });
 };

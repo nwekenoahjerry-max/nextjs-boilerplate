@@ -16,6 +16,7 @@ export interface R2BucketLike {
 export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID: string;
+  CLERKME_ADMIN_EMAILS?: string;
   YOUTUBE_API_KEY?: string;
   GEMINI_API_KEY?: string;
   ZAI_API_KEY?: string;
@@ -40,6 +41,10 @@ export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
 }
 export function cookieHeader(token: string, maxAge: number) { return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`; }
 export function clearSessionCookie() { return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`; }
+export function hasAdminAccess(email: string, env: Pick<Env, "CLERKME_ADMIN_EMAILS">): boolean {
+  const allowed = (env.CLERKME_ADMIN_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean);
+  return allowed.includes(email.trim().toLowerCase());
+}
 export async function requireUser(context: AppContext): Promise<AppUser | Response> {
   const cookie = context.request.headers.get("Cookie") || "";
   const token = cookie.split(";").map(v => v.trim()).find(v => v.startsWith(SESSION_COOKIE + "="))?.slice(SESSION_COOKIE.length + 1);
@@ -59,7 +64,14 @@ export async function requireUser(context: AppContext): Promise<AppUser | Respon
     WHERE s.token_hash = ? AND s.expires_at > unixepoch()
   `).bind(tokenHash).first<AppUser>();
   if (!row) return json({ error: "Session expired. Please sign in again." }, 401, { "Set-Cookie": clearSessionCookie() });
+  if (hasAdminAccess(row.email, context.env)) row.role = "admin";
   return row;
+}
+export async function requireAdmin(context: AppContext): Promise<AppUser | Response> {
+  const user = await requireUser(context);
+  if (isResponse(user)) return user;
+  if (user.role !== "admin") return json({ error: "This account is not authorised to access the ClerkME admin console." }, 403);
+  return user;
 }
 export function aiFailureResponse(error: unknown, fallback: string): Response {
   const detail = typeof error === "string" ? error
