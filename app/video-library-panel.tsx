@@ -216,6 +216,11 @@ export default function VideoLibraryPanel() {
   };
 
   useEffect(() => { if (activeVideo) window.dispatchEvent(new Event("clerkme:video-playing")); }, [activeVideo?.id]);
+  useEffect(() => {
+    const stopLecture = () => setActiveVideo(null);
+    window.addEventListener("clerkme:focus-music-playing", stopLecture);
+    return () => window.removeEventListener("clerkme:focus-music-playing", stopLecture);
+  }, []);
 
   const player = activeVideo && (
     <section className="video-library-player" aria-label="Video player" ref={playerRef} tabIndex={-1}>

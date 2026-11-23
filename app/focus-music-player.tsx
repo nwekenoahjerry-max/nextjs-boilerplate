@@ -1,19 +1,195 @@
 "use client";
-import {useCallback,useEffect,useRef,useState} from "react";
-const tracks=[{id:"piano",name:"Soft piano tones",detail:"Gentle, piano-inspired notes",notes:[261.63,329.63,392,493.88,392,329.63],wave:"sine" as OscillatorType,filter:1500},{id:"ambient",name:"Quiet ambient",detail:"Warm, slow-moving focus chords",notes:[174.61,220,261.63,329.63,261.63,220],wave:"triangle" as OscillatorType,filter:700},{id:"rain",name:"Rainy evening",detail:"Soft atmospheric tones",notes:[196,246.94,293.66,369.99,293.66,246.94],wave:"sine" as OscillatorType,filter:950}];
-export default function FocusMusicPlayer({inVideoLibrary}:{inVideoLibrary:boolean}){
-const[playing,setPlaying]=useState(false),[selected,setSelected]=useState("piano"),[volume,setVolume]=useState(35),[supported,setSupported]=useState(true);
-const ctx=useRef<AudioContext|null>(null),master=useRef<GainNode|null>(null),timer=useRef<number|null>(null),voices=useRef<OscillatorNode[]>([]),step=useRef(0);
-const track=tracks.find(t=>t.id===selected)||tracks[0];
-const stopVoices=useCallback(()=>{voices.current.forEach(v=>{try{v.stop()}catch{}});voices.current=[]},[]);
-const phrase=useCallback(()=>{const c=ctx.current,g=master.current;if(!c||!g||c.state!=="running")return;stopVoices();const t=tracks.find(x=>x.id===selected)||tracks[0],base=t.notes[step.current%t.notes.length],now=c.currentTime,created:OscillatorNode[]=[];[1,1.25,1.5].forEach((ratio,i)=>{const o=c.createOscillator(),gain=c.createGain(),filter=c.createBiquadFilter();o.type=t.wave;o.frequency.value=base*ratio;filter.type="lowpass";filter.frequency.value=t.filter;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(i===0?0.11:0.045,now+1.6);gain.gain.setTargetAtTime(.0001,now+5.2,1.1);o.connect(filter);filter.connect(gain);gain.connect(g);o.start(now);o.stop(now+9);created.push(o)});voices.current=created;step.current++},[selected,stopVoices]);
-const stop=useCallback(()=>{if(timer.current!==null)window.clearInterval(timer.current);timer.current=null;stopVoices();if(master.current&&ctx.current)master.current.gain.setTargetAtTime(.0001,ctx.current.currentTime,.12);setPlaying(false)},[stopVoices]);
-const start=useCallback(async()=>{if(!("AudioContext"in window)){setSupported(false);return}try{const c=ctx.current||new window.AudioContext();ctx.current=c;if(c.state==="suspended")await c.resume();if(!master.current){const g=c.createGain();g.gain.value=Math.max(.001,volume/100);g.connect(c.destination);master.current=g}master.current.gain.setTargetAtTime(Math.max(.001,volume/100),c.currentTime,.08);setPlaying(true);phrase();if(timer.current!==null)window.clearInterval(timer.current);timer.current=window.setInterval(phrase,7000)}catch{setSupported(false);setPlaying(false)}},[phrase,volume]);
-useEffect(()=>{if(master.current&&ctx.current)master.current.gain.setTargetAtTime(Math.max(.0001,volume/100),ctx.current.currentTime,.08)},[volume]);
-useEffect(()=>{if(!playing)return;if(timer.current!==null)window.clearInterval(timer.current);stopVoices();phrase();timer.current=window.setInterval(phrase,7000)},[selected,playing,phrase,stopVoices]);
-useEffect(()=>{const pause=()=>stop();window.addEventListener("clerkme:video-playing",pause);return()=>window.removeEventListener("clerkme:video-playing",pause)},[stop]);
-useEffect(()=>()=>{if(timer.current!==null)window.clearInterval(timer.current);stopVoices();void ctx.current?.close()},[stopVoices]);
-const toggle=()=>playing?stop():void start();
-if(!inVideoLibrary&&!playing)return null;
-return <section className={inVideoLibrary?"focus-music-panel":"focus-music-dock"} aria-label="ClerkME focus music">{inVideoLibrary?<><div className="focus-music-heading"><div><span className="eyebrow">A QUIETER STUDY SPACE</span><h2>Focus music</h2><p>Original, gentle soundscapes to accompany independent study.</p></div><span className="focus-music-note" aria-hidden="true">♫</span></div><div className="focus-music-controls"><div className="focus-music-track-icon" aria-hidden="true">♫</div><div className="focus-music-track-info"><strong>{track.name}</strong><small>{track.detail}</small><span>{playing?"Now playing · No lyrics":"Ready when you are · No autoplay"}</span></div><button type="button" className="focus-music-play" onClick={toggle} aria-label={playing?"Pause focus music":"Play focus music"}>{playing?"Ⅱ":"▶"} <span>{playing?"Pause":"Play"}</span></button></div><div className="focus-music-options"><label>Soundscape<select value={selected} onChange={e=>setSelected(e.target.value)}>{tracks.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><label className="focus-music-volume">Volume <span>{volume}%</span><input type="range" min="0" max="70" value={volume} onChange={e=>setVolume(Number(e.target.value))}/></label></div>{!supported&&<p className="focus-music-support" role="status">Audio is not available in this browser. Try a current version of Chrome, Edge or Safari.</p>}<p className="focus-music-disclaimer">Use headphones at a comfortable volume. Starting a video lecture automatically pauses focus music; it will not restart without your action.</p></>:<div className="focus-music-dock-inner"><span className="focus-music-dock-symbol">♫</span><span><strong>Focus music</strong><small>{track.name}</small></span><button type="button" onClick={toggle} aria-label={playing?"Pause focus music":"Play focus music"}>{playing?"Ⅱ":"▶"}</button><button type="button" className="focus-music-return" onClick={()=>window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"videos"}}))}>Library</button></div>}</section>
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type FocusTrack = {
+  id: string;
+  title: string;
+  description: string;
+  channelTitle: string;
+  publishedAt: string;
+  thumbnailUrl: string;
+  duration?: string;
+  durationSeconds?: number;
+  viewCount?: number;
+};
+
+const musicStyles = [
+  { id: "lofi", label: "Lo-fi", query: "lofi hip hop beats for studying no lyrics long mix" },
+  { id: "piano", label: "Piano", query: "soft piano instrumental music for studying long mix" },
+  { id: "classical", label: "Classical", query: "classical music for concentration studying long mix" },
+  { id: "ambient", label: "Ambient", query: "ambient instrumental music deep focus long mix" },
+  { id: "rain", label: "Rain & nature", query: "rain sounds with soft instrumental study music long mix" },
+  { id: "jazz", label: "Jazz", query: "instrumental jazz music for studying focus long mix" }
+] as const;
+
+async function readMusicResponse(response: Response) {
+  const data = await response.json().catch(() => ({ error: "YouTube returned an unreadable response." }));
+  if (!response.ok) throw new Error(data.error || "YouTube music recommendations are unavailable.");
+  return data as { videos?: FocusTrack[] };
+}
+
+export default function FocusMusicPlayer({ inVideoLibrary }: { inVideoLibrary: boolean }) {
+  const [style, setStyle] = useState<string>("lofi");
+  const [recommendations, setRecommendations] = useState<FocusTrack[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [activeTrack, setActiveTrack] = useState<FocusTrack | null>(null);
+  const initialLoadStarted = useRef(false);
+
+  const loadRecommendations = useCallback(async (styleId: string) => {
+    const selectedStyle = musicStyles.find(item => item.id === styleId) || musicStyles[0];
+    setStyle(selectedStyle.id);
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/learning/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          query: selectedStyle.query,
+          order: "relevance",
+          mode: "focus-music"
+        })
+      });
+      const data = await readMusicResponse(response);
+      const videos = Array.isArray(data.videos) ? data.videos : [];
+      setRecommendations(videos);
+      if (!videos.length) setError("No long-form music recommendations were found in this category. Try another style.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load YouTube music recommendations. Please try again.");
+      setRecommendations([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inVideoLibrary || initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
+    void loadRecommendations("lofi");
+  }, [inVideoLibrary, loadRecommendations]);
+
+  useEffect(() => {
+    const stopForLecture = () => setActiveTrack(null);
+    window.addEventListener("clerkme:video-playing", stopForLecture);
+    return () => window.removeEventListener("clerkme:video-playing", stopForLecture);
+  }, []);
+
+  const playTrack = (track: FocusTrack) => {
+    setActiveTrack(track);
+    window.dispatchEvent(new Event("clerkme:focus-music-playing"));
+  };
+
+  const player = activeTrack && (
+    <div className="focus-music-player" aria-label="YouTube music player">
+      <div className="focus-music-player-heading">
+        <div>
+          <span className="focus-music-live"><i /> SELECTED FOR YOUR SESSION</span>
+          <strong>{activeTrack.title}</strong>
+          <small>{activeTrack.channelTitle}{activeTrack.duration ? " · " + activeTrack.duration : ""}</small>
+        </div>
+        <button type="button" className="focus-music-stop" onClick={() => setActiveTrack(null)}>Stop music</button>
+      </div>
+      <div className="focus-music-player-frame">
+        <iframe
+          src={"https://www.youtube-nocookie.com/embed/" + activeTrack.id + "?autoplay=1&controls=1&rel=0&playsinline=1"}
+          title={activeTrack.title + " — YouTube music player"}
+          allow="autoplay; encrypted-media; picture-in-picture; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
+        />
+      </div>
+      <p className="focus-music-player-note">Playback is provided by YouTube. Use the player controls to pause, resume or adjust the volume.</p>
+    </div>
+  );
+
+  if (!inVideoLibrary && !activeTrack) return null;
+
+  if (!inVideoLibrary) {
+    return (
+      <section className="focus-music-dock" aria-label="YouTube focus music">
+        <div className="focus-music-dock-heading">
+          <span><strong>Focus music</strong><small>{activeTrack?.title}</small></span>
+          <div>
+            <button type="button" onClick={() => setActiveTrack(null)}>Stop</button>
+            <button type="button" className="focus-music-return" onClick={() => window.dispatchEvent(new CustomEvent("clerkme:navigate", { detail: { section: "videos" } }))}>Library</button>
+          </div>
+        </div>
+        {player}
+      </section>
+    );
+  }
+
+  return (
+    <section className="focus-music-panel" aria-label="ClerkME focus music">
+      <div className="focus-music-heading">
+        <div>
+          <span className="eyebrow">YOUTUBE MUSIC FOR STUDY</span>
+          <h2>Focus music</h2>
+          <p>Choose a long-form mix for revision, quiet study or a focused session.</p>
+        </div>
+        <span className="focus-music-note" aria-hidden="true">♫</span>
+      </div>
+
+      <div className="focus-music-style-row" role="group" aria-label="Choose a music style">
+        {musicStyles.map(item => (
+          <button
+            key={item.id}
+            type="button"
+            className={style === item.id ? "is-active" : ""}
+            aria-pressed={style === item.id}
+            disabled={loading}
+            onClick={() => void loadRecommendations(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {player}
+
+      <div className="focus-music-recommendation-heading">
+        <div>
+          <strong>{style === "lofi" ? "Recommended for focus" : musicStyles.find(item => item.id === style)?.label + " recommendations"}</strong>
+          <span>Long-form YouTube music · Updated when you choose a style</span>
+        </div>
+        <button type="button" onClick={() => void loadRecommendations(style)} disabled={loading}>
+          {loading ? "Finding music…" : "Refresh"}
+        </button>
+      </div>
+
+      {loading && (
+        <div className="focus-music-loading" role="status">
+          <span className="focus-music-spinner" />
+          <span>Finding playable YouTube music for you…</span>
+        </div>
+      )}
+
+      {error && !loading && <p className="focus-music-error" role="alert">{error}</p>}
+
+      {!loading && recommendations.length > 0 && (
+        <div className="focus-music-recommendations">
+          {recommendations.map(track => (
+            <article className={"focus-music-recommendation" + (activeTrack?.id === track.id ? " is-playing" : "")} key={track.id}>
+              <div className="focus-music-thumbnail">
+                <img src={track.thumbnailUrl} alt="" loading="lazy" />
+                <span>{track.duration || "Long-form mix"}</span>
+              </div>
+              <div className="focus-music-recommendation-copy">
+                <strong title={track.title}>{track.title}</strong>
+                <small>{track.channelTitle}</small>
+                <button type="button" onClick={() => playTrack(track)}>
+                  {activeTrack?.id === track.id ? "Play again" : "Play music"}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <p className="focus-music-disclaimer">Videos play in YouTube’s embedded player. Some tracks may include visuals or adverts. Starting a lecture automatically stops focus music.</p>
+    </section>
+  );
 }

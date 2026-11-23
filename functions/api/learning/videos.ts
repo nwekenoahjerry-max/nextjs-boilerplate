@@ -43,10 +43,11 @@ export const onRequestPost = async (context: AppContext) => {
   const query = clean(body.query, 120);
   const orderValue = clean(body.order, 20);
   const order = ["relevance", "viewCount", "date"].includes(orderValue) ? orderValue : "relevance";
+  const focusMusicMode = body.mode === "focus-music";
   if (query.length < 2) return json({ error: "Enter a topic to search for." }, 400);
   const apiKey = context.env.YOUTUBE_API_KEY;
   if (!apiKey) return json({
-    error: "In-app video search needs a YouTube Data API key, which has not been configured yet. You can still paste a YouTube video link above and play it inside ClerkMe."
+    error: focusMusicMode ? "YouTube music recommendations need a valid YouTube Data API key. Please try again later." : "In-app video search needs a YouTube Data API key, which has not been configured yet. You can still paste a YouTube video link above and play it inside ClerkMe."
   }, 503);
 
   const params = new URLSearchParams({
@@ -55,12 +56,16 @@ export const onRequestPost = async (context: AppContext) => {
     q: query,
     type: "video",
     videoEmbeddable: "true",
-    maxResults: "5",
+    maxResults: focusMusicMode ? "8" : "5",
     regionCode: "NG",
     relevanceLanguage: "en",
     safeSearch: "strict",
     order
   });
+  if (focusMusicMode) {
+    params.set("videoCategoryId", "10");
+    params.set("videoDuration", "long");
+  }
   try {
     const response = await fetch("https://www.googleapis.com/youtube/v3/search?" + params.toString(), {
       headers: { Accept: "application/json" }

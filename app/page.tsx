@@ -797,7 +797,7 @@ export default function Home() {
 
       <section className={active === "overview" ? "main-area home-dashboard-active" : "main-area"}>
         <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
-        <div className="content">
+        <div className="content">\n          <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
 {active === "overview" && <>
 <div className="home-dashboard-card">
 <section className="home-compact-header" aria-label="Welcome and study streak">
@@ -952,7 +952,6 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
-          <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
         </div>
       </section>
       {showSignOutConfirm && (
