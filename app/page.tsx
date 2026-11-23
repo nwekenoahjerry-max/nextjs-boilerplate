@@ -10,7 +10,6 @@ import FocusMusicPlayer from "./focus-music-player";
 import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
-import InstallAppButton from "./install-app-button";
 import NotificationCenter from "../components/notification-center";
 import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
@@ -959,14 +958,6 @@ export default function Home() {
                   <span className="account-settings-row-icon" aria-hidden="true">♧</span>
                   <span><strong>Study and account updates</strong><small>Study-guide completion and important learning updates appear in the notification bell above.</small></span>
                   <span className="you-action-label">In-app</span>
-                </div>
-              </article>
-              <article className="panel account-settings-group">
-                <div className="account-settings-group-heading"><span className="account-settings-icon">▣</span><div><h3>App & device</h3><p>Use ClerkMe as an app on supported devices.</p></div></div>
-                <div className="you-setting-action">
-                  <span className="account-settings-row-icon" aria-hidden="true">▣</span>
-                  <span><strong>Install ClerkMe</strong><small>Add it to your home screen or desktop when your browser supports installation.</small></span>
-                  <InstallAppButton promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
                 </div>
               </article>
             </section>
