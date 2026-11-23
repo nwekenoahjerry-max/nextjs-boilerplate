@@ -11,6 +11,8 @@ import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
 import InstallAppButton from "./install-app-button";
+import NotificationCenter from "../components/notification-center";
+import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
 import { unitClerkingFrameworks } from "../lib/unit-clerking";
 
@@ -482,6 +484,7 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
 }
 
 export default function Home() {
+  const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
   const mobileAccountCloseRef = useRef<HTMLButtonElement>(null);
@@ -806,15 +809,18 @@ export default function Home() {
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="list-checks"/></span><strong>Question bank</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("game")}><span className="mobile-account-tool-icon flight"><WorkspaceIcon name="plane"/></span><strong>Flight Academy</strong></button>
           </div>
-          <div className="mobile-account-settings-row">
-            <span><strong>Install ClerkME</strong><small>Add ClerkME to your device for easier access.</small></span>
-            <InstallAppButton promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
-          </div>
         </section>
       </div>}
 
       <section className={active === "overview" ? "main-area home-dashboard-active" : "main-area"}>
-        <header className="topbar"><ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/><div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div><div className="top-actions"><button type="button" className="profile-top-link" onClick={() => setActive("you")}>Account</button><span className="status-dot"></span><span className="saved-label">{authUser ? authUser.name : "Your workspace"}</span><button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button></div></header>
+        <header className="topbar">
+          <ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/>
+          <div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div>
+          <div className="top-actions">
+            {authUser && <NotificationCenter onNavigate={selectSection}/>}
+            <button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button>
+          </div>
+        </header>
         <div className="content">
           <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
 {active === "overview" && <>
@@ -897,7 +903,7 @@ export default function Home() {
             <div className="page-intro">
               <div className="eyebrow">ACCOUNT & PREFERENCES</div>
               <h1>Account & settings</h1>
-              <p>Manage your academic profile, access ClerkME on your devices and control your current sign-in session.</p>
+              <p>Manage your academic profile, personalise ClerkME and review important learning updates.</p>
             </div>
 
             <section className="panel you-account-panel" aria-label="Account overview">
@@ -913,7 +919,7 @@ export default function Home() {
                 {authUser?.role === "admin" && <a className="you-profile-link admin-account-link" href="/admin/">Open admin dashboard <span aria-hidden="true">→</span></a>}
               </div>
             </section>
-            <div className="account-settings-section-heading"><div><span className="eyebrow">PREFERENCES & ACCESS</span><h2>Manage your settings</h2></div><p>Only the controls currently supported by ClerkME are shown here.</p></div>
+            <div className="account-settings-section-heading"><div><span className="eyebrow">PREFERENCES & ACCESS</span><h2>Manage your settings</h2></div><p>Make your learning space feel right for you.</p></div>
 
             <section className="account-settings-grid" aria-label="Account settings">
               <article className="panel account-settings-group">
@@ -923,24 +929,51 @@ export default function Home() {
                   <span><strong>Student profile</strong><small>Name, university, level, location and career interests.</small></span>
                   <span className="you-action-label">Edit profile <b aria-hidden="true">→</b></span>
                 </a>
+                {authUser?.role === "admin" && <a className="you-setting-action" href="/admin/">
+                  <span className="account-settings-row-icon" aria-hidden="true">▦</span>
+                  <span><strong>Administration</strong><small>Manage the ClerkMe platform.</small></span>
+                  <span className="you-action-label">Open dashboard <b aria-hidden="true">→</b></span>
+                </a>}
               </article>
               <article className="panel account-settings-group">
-                <div className="account-settings-group-heading"><span className="account-settings-icon">▣</span><div><h3>App & device</h3><p>Make ClerkME easier to access on your devices.</p></div></div>
+                <div className="account-settings-group-heading"><span className="account-settings-icon">◐</span><div><h3>Appearance</h3><p>Choose the display that feels most comfortable for study.</p></div></div>
+                <div className="appearance-options" role="group" aria-label="Choose ClerkMe appearance">
+                  <button type="button" className="appearance-option" aria-pressed={theme === "light"} onClick={() => setTheme("light")}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+                    <span>Light</span>
+                  </button>
+                  <button type="button" className="appearance-option" aria-pressed={theme === "dark"} onClick={() => setTheme("dark")}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20.5 14.1A8.5 8.5 0 0 1 9.9 3.5 8.6 8.6 0 1 0 20.5 14.1Z"/></svg>
+                    <span>Dark</span>
+                  </button>
+                  <button type="button" className="appearance-option" aria-pressed={theme === "system"} onClick={() => setTheme("system")}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    <span>System</span>
+                  </button>
+                </div>
+                <p className="appearance-help">Your choice is saved to your account and follows you across devices. System uses your device setting.</p>
+              </article>
+              <article className="panel account-settings-group">
+                <div className="account-settings-group-heading"><span className="account-settings-icon">♧</span><div><h3>Learning notifications</h3><p>Stay informed without interrupting your study session.</p></div></div>
+                <div className="you-setting-action">
+                  <span className="account-settings-row-icon" aria-hidden="true">♧</span>
+                  <span><strong>Study and account updates</strong><small>Study-guide completion and important learning updates appear in the notification bell above.</small></span>
+                  <span className="you-action-label">In-app</span>
+                </div>
+              </article>
+              <article className="panel account-settings-group">
+                <div className="account-settings-group-heading"><span className="account-settings-icon">▣</span><div><h3>App & device</h3><p>Use ClerkMe as an app on supported devices.</p></div></div>
                 <div className="you-setting-action">
                   <span className="account-settings-row-icon" aria-hidden="true">▣</span>
-                  <span><strong>Install ClerkME</strong><small>Add ClerkME to your home screen or desktop where supported.</small></span>
+                  <span><strong>Install ClerkMe</strong><small>Add it to your home screen or desktop when your browser supports installation.</small></span>
                   <InstallAppButton promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
                 </div>
               </article>
-              <article className="panel account-settings-group account-settings-security">
-                <div className="account-settings-group-heading"><span className="account-settings-icon">⌑</span><div><h3>Session & security</h3><p>Manage your current sign-in session.</p></div></div>
-                <button ref={signOutTriggerRef} type="button" className="you-setting-action" disabled={signingOut} onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>
-                  <span className="account-settings-row-icon account-settings-danger-icon" aria-hidden="true">↗</span>
-                  <span><strong>Sign out</strong><small>Securely end your current ClerkME session on this device.</small></span>
-                  <span className="you-action-label">Sign out</span>
-                </button>
-              </article>
             </section>
+            <div className="account-session-footer">
+              <span className="account-session-copy"><strong>Signed in securely</strong><small>Sign out when you are using a shared or public device.</small></span>
+              <button ref={signOutTriggerRef} type="button" className="account-signout-button" disabled={signingOut} onClick={() => { setSignOutError(""); setShowSignOutConfirm(true); }}>Sign out</button>
+            </div>
           </>}
           
 {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
