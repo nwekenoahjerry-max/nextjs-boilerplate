@@ -152,7 +152,7 @@ const makeCustomSubjectUnit = (value:string) => CUSTOM_SUBJECT_PREFIX + value.tr
 
 
 function visualMatchesHeading(sourceSection:string, heading:string):boolean {
-  const normalise=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+  const normalise=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
   const source=normalise(sourceSection),target=normalise(heading);
   if(!source||!target)return false;
   if(source===target||source.includes(target)||target.includes(source))return true;
@@ -835,6 +835,9 @@ export default function MaterialsPanel() {
         ? "Rapid study guide ready in " + elapsedSeconds + " seconds. Relevant images appear alongside matching topics when available."
         : "Comprehensive study guide ready in " + elapsedSeconds + " seconds. Relevant images appear alongside matching topics when available.");
       setTab("summary");
+      illustrationAttemptsRef.current.delete(materialId);
+      setIllustrationsByMaterial(current=>({...current,[materialId]:[]}));
+      try { window.sessionStorage.removeItem(illustrationSessionKey(materialId)); } catch {}
       void generateIllustrations(materialId);
       // Start SBA generation only after the selected study guide has completed.
       // It runs independently so the learner can begin reading the guide immediately.
