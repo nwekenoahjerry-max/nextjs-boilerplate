@@ -2,7 +2,7 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 type GeneratedQuestion = { question: string; options: string[]; answerIndex: number; explanation: string; optionRationales: string[]; topic: string; difficulty: string };
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_FALLBACK_MODELS = ["gemini-3.1-flash-lite"] as const;
+const CLOUDFLARE_SBA_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -23,7 +23,7 @@ async function requestGeminiSba(
 ): Promise<string> {
   const system = messages.find(message => message.role === "system")?.content || "";
   const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
-  const models = [GEMINI_MODEL, ...GEMINI_FALLBACK_MODELS];
+  const models = [GEMINI_MODEL];
   let lastError: unknown = null;
 
   for (const model of models) {
@@ -47,10 +47,10 @@ async function requestGeminiSba(
                 temperature: 0.25,
                 maxOutputTokens,
                 responseMimeType: "application/json",
-                thinkingConfig: { thinkingLevel: "MEDIUM" }
+                thinkingConfig: { thinkingLevel: "MINIMAL" }
               }
             }),
-            signal: AbortSignal.timeout(35000)
+            signal: AbortSignal.timeout(15000)
           }
         );
         data = await response.json().catch(() => ({})) as GeminiSbaResponse;
@@ -130,8 +130,13 @@ function isRetryableGenerationError(error: unknown): boolean {
 }
 
 function parseAIResult(value: unknown): Record<string, unknown> {
-  const outer = value as { response?: unknown; result?: { response?: unknown } };
-  let raw = outer?.response ?? outer?.result?.response ?? value;
+  const outer = value as {
+    response?: unknown;
+    result?: { response?: unknown; choices?: Array<{ message?: { content?: unknown } }> };
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  let raw = outer?.response ?? outer?.result?.response ??
+    outer?.choices?.[0]?.message?.content ?? outer?.result?.choices?.[0]?.message?.content ?? value;
   if (typeof raw === "object" && raw !== null) return raw as Record<string, unknown>;
   if (typeof raw !== "string") throw new Error("The AI service returned an unexpected response.");
   let text = raw.trim().replace(/^\u0060{3}(?:json)?\s*/i, "").replace(/\s*\u0060{3}$/i, "");
@@ -260,7 +265,7 @@ export const onRequestPost = async (context: AppContext) => {
   }
 
   const rawCount = Number(body.count);
-  const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(3, Math.floor(rawCount))) : 3;
+  const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(5, Math.floor(rawCount))) : 5;
   const requestedLevel = clean(body.level, 40) || "Mixed";
   const allowedLevels = ["Mixed", "Easy", "Moderate", "Hard"];
   const level = allowedLevels.includes(requestedLevel) ? requestedLevel : "Mixed";
@@ -277,7 +282,7 @@ export const onRequestPost = async (context: AppContext) => {
         ? "\nNON-REPETITION RULE: Do not repeat, closely paraphrase, or test the same specific learning objective, key fact, clinical decision or reasoning step already covered below. Reusing a broad disease or topic is allowed only when the new item tests a genuinely different examinable point.\nPreviously generated questions for this material:\n" +
           exclude.slice(-60).map((item, index) => (index + 1) + ". " + item).join("\n")
         : "";
-      const result = await requestGeminiSba(apiKey, [
+      const messages = [
           {
             role: "system",
             content: isCustomStudy
@@ -293,8 +298,30 @@ export const onRequestPost = async (context: AppContext) => {
                 : "For Mixed difficulty, use a sensible balance of foundational knowledge, mechanism, interpretation and clinical application, with most application questions framed as short clinical vignettes. For Easy, test core understanding with clear SBA stems. For Moderate, emphasise clinical interpretation and application. For Hard, prioritise multi-step clinical reasoning, prioritisation and discriminating between plausible diagnoses or management choices. Each item must have one best answer, not simply a technically true answer. Keep the lead-in focused and all five options parallel. Do not exceed the source.") +
               exclusionNote + "\n\nUPLOADED STUDY MATERIAL:\n---\n" + source + "\n---"
           }
-      ], Math.min(10000, requested * 1400 + 1200));
-      const parsed = parseAIResult({ response: result });
+      ] as const;
+      const maxOutputTokens = Math.min(6500, requested * 950 + 900);
+      let parsed: Record<string, unknown>;
+      try {
+        const result = await requestGeminiSba(apiKey, messages, maxOutputTokens);
+        parsed = parseAIResult({ response: result });
+      } catch (primaryError) {
+        if (!context.env.AI) throw primaryError;
+        console.warn("[ClerkMe] Gemini SBA route unavailable; using the backup question engine.", {
+          materialId,
+          detail: primaryError instanceof Error ? primaryError.message.slice(0, 180) : "Primary question engine unavailable."
+        });
+        const result = await context.env.AI.run(CLOUDFLARE_SBA_MODEL, {
+          messages: [
+            ...messages,
+            { role: "system", content: "Return a complete JSON object only. Keep every question source-faithful, with exactly five options, one best answer, a concise explanation and five concise A-E option rationales. Do not add unsupported facts." }
+          ],
+          response_format: { type: "json_object" },
+          max_tokens: maxOutputTokens,
+          temperature: 0.15,
+          chat_template_kwargs: { enable_thinking: false }
+        }, { rejectIfBusy: true });
+        parsed = parseAIResult(result);
+      }
       return normaliseQuestions(parsed.questions, level).slice(0, requested);
     };
 
@@ -324,7 +351,7 @@ export const onRequestPost = async (context: AppContext) => {
 
     let questions: GeneratedQuestion[] = [];
     let completionWarning = "";
-    let batchSize = Math.min(3, count);
+    let batchSize = Math.min(5, count);
     let successfulReducedBatches = 0;
     let emptyBatchAttempts = 0;
 
@@ -392,7 +419,7 @@ export const onRequestPost = async (context: AppContext) => {
       if (batchSize < 5) {
         successfulReducedBatches++;
         if (successfulReducedBatches >= 2) {
-          batchSize = Math.min(3, batchSize + 1);
+          batchSize = Math.min(5, batchSize + 1);
           successfulReducedBatches = 0;
         }
       }
