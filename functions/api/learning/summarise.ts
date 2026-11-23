@@ -516,7 +516,7 @@ function createQuickSourcePreview(material: StudyMaterialRecord): Record<string,
     unclearOrMissing: [],
     sourceCoverage: headings,
     examFocus: { mustKnow: [], likelyShortNotes: [], vivaQuestions: [], clinicalApplications: [] },
-    disclaimer: "Quick outline extracted from the uploaded source. The detailed Gemini study guide is still being prepared."
+    disclaimer: "Quick outline extracted from your uploaded material. Your detailed study guide is still being prepared and will appear here automatically."
   };
 }
 
@@ -804,7 +804,7 @@ ${material.content_text}
         jobId,
         reason: reason.slice(0, 240)
       });
-      sendProgress("Gemini is temporarily unavailable. ClerkMe is switching to its backup study engine…");
+      sendProgress("No worries — your study guide is still on its way. ClerkMe is working behind the scenes to keep your learning on track…");
       try {
         parsed = await requestCloudflareStudyGuide(context, messages, mode);
         generationProvider = "Cloudflare Workers AI";
