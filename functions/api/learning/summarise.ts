@@ -441,6 +441,8 @@ async function runStudyGuideJob(
   jobId: string,
   sendProgress: (message: string) => void
 ): Promise<Response> {
+  const geminiApiKey = context.env.GEMINI_API_KEY;
+  if (!geminiApiKey) return json({ error: "The study-guide service is temporarily unavailable. Your uploaded material is safe.", code: "STUDY_SERVICE_UNAVAILABLE" }, 503);
   await context.env.DB.prepare(
     "UPDATE study_generation_jobs SET status = 'in_progress', updated_at = unixepoch() WHERE id = ? AND user_id = ?"
   ).bind(jobId, user.id).run();
@@ -449,7 +451,7 @@ async function runStudyGuideJob(
   let sourceBlueprint: Record<string, unknown> | null = null;
   if (material.content_text.length >= 14000 && !material.unit.startsWith("custom:")) {
     try {
-      sourceBlueprint = await createStudyBlueprint(context.env.GEMINI_API_KEY, {
+      sourceBlueprint = await createStudyBlueprint(geminiApiKey, {
         title: material.title,
         unit: material.unit,
         sourceName: material.source_name,
