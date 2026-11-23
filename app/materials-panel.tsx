@@ -30,6 +30,7 @@ type SummarySection = {
 type StudySummary = {
   overview: string;
   quickPreview?: boolean;
+  generationMode?: "rapid" | "comprehensive";
   visualAids?: StudyVisualAid[];
   highYieldPoints?: string[];
   learningObjectives?: string[];
@@ -668,7 +669,8 @@ export default function MaterialsPanel() {
     }
   };
 
-  const summarise = async (materialId:string) => {
+  const summarise = async (materialId:string, mode:"rapid"|"comprehensive"="rapid") => {
+    const startedAt = Date.now();
     setTab("summary");
     const target = materials.find(item=>item.id===materialId);
     if (target?.hasExtractableText === false) {
@@ -678,21 +680,16 @@ export default function MaterialsPanel() {
     }
     const existingQuestionCount = target?.questions?.length || 0;
     const sbaQuestionCount = Math.max(1, questionCount - existingQuestionCount);
-    const shouldStartSba = existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
+    const shouldStartSba = mode === "rapid" && existingQuestionCount < questionCount && questionGenerationStatus[materialId] !== "generating";
     setSummaryWorking(true);
     setError("");
-    setNotice(shouldStartSba
-      ? "Building your detailed study guide and generating your SBA questions at the same time…"
-      : "Starting your detailed study guide…");
-    // Keep both AI jobs independent. The SBA builder reads the same saved source
-    // text and writes only questions_json while the study guide writes summary_json.
-    if (shouldStartSba) {
-      void generateQuestionsForMaterial(materialId, sbaQuestionCount, questionDifficulty, true);
-    }
+    setNotice(mode === "rapid"
+      ? "Preparing your rapid study guide. The deeper guide and practice questions remain available separately…"
+      : "Expanding your study guide into comprehensive source coverage…");
     try {
       const response = await fetch("/api/learning/summarise",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({materialId})
+        body:JSON.stringify({materialId,mode})
       });
       let summary: StudySummary|undefined;
       const contentType = response.headers.get("content-type") || "";
@@ -760,9 +757,15 @@ export default function MaterialsPanel() {
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:summary || null,hasSummary:true,studyLoaded:true}:item));
-      setNotice("Your detailed study guide is ready. SBA questions continue building if they have not finished yet; visual illustrations load separately.");
+      const elapsedSeconds = ((Date.now()-startedAt)/1000).toFixed(1);
+      setNotice(mode === "rapid"
+        ? "Rapid study guide ready in " + elapsedSeconds + " seconds. Visual illustrations load separately."
+        : "Comprehensive study guide ready in " + elapsedSeconds + " seconds. Visual illustrations load separately.");
       setTab("summary");
       void generateIllustrations(materialId);
+      // Start the SBA task only after the rapid guide has completed. This avoids
+      // competing Gemini requests during the first, speed-sensitive generation.
+      if (shouldStartSba) void generateQuestionsForMaterial(materialId,sbaQuestionCount,questionDifficulty,true);
     } catch(e) {
       setError(safeStudyError(e instanceof Error?e.message:"Could not prepare this study guide."));
       setNotice("Your uploaded material is saved. study guide can be generated again when the study service is available.");
@@ -1044,7 +1047,8 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{summaryWorking?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh study guide":"Create study guide"}</button>
+            <button className="secondary-button" onClick={()=>summarise(selectedMaterial.id,"rapid")} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{summaryWorking?"Building your study guide…":selectedMaterial.hasExtractableText===false?"AI notes need readable text":selectedMaterial.summary?"Refresh rapid guide":"Create rapid study guide"}</button>
+            {selectedMaterial.summary?.generationMode==="rapid"&&<button className="secondary-button" onClick={()=>summarise(selectedMaterial.id,"comprehensive")} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>Expand into comprehensive guide</button>}
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
