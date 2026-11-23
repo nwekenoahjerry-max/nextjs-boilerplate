@@ -956,7 +956,7 @@ export default function Home() {
                 <div className="account-settings-group-heading"><span className="account-settings-icon">♧</span><div><h3>Learning notifications</h3><p>Stay informed without interrupting your study session.</p></div></div>
                 <div className="you-setting-action">
                   <span className="account-settings-row-icon" aria-hidden="true">♧</span>
-                  <span><strong>Study and account updates</strong><small>Study-guide completion and important learning updates appear in the notification bell above.</small></span>
+                  <span><strong>Study and account updates</strong><small>Study-guide completion, new SBA batches and important learning updates appear in the notification bell above.</small></span>
                   <span className="you-action-label">In-app</span>
                 </div>
               </article>
