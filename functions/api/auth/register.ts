@@ -24,8 +24,10 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
   }
 
   stage = "registration rate-limit check";
-  if (!(await checkAuthRateLimit(env.DB, request, "register-ip", 5, 3600)) ||
-      !(await checkAuthRateLimit(env.DB, request, "register-email", 3, 3600, email))) {
+  // Versioned buckets give legitimate users a clean registration window after
+  // earlier failed attempts, while retaining per-IP and per-email abuse limits.
+  if (!(await checkAuthRateLimit(env.DB, request, "register-ip-v2", 10, 3600)) ||
+      !(await checkAuthRateLimit(env.DB, request, "register-email-v2", 6, 3600, email))) {
     return json({ error: "Too many registration attempts. Please try again later." }, 429);
   }
 
