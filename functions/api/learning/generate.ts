@@ -27,7 +27,7 @@ async function requestGeminiSba(
   let lastError: unknown = null;
 
   for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 1; attempt++) {
       let response: Response;
       let data: GeminiSbaResponse = {};
       try {
@@ -50,7 +50,7 @@ async function requestGeminiSba(
                 thinkingConfig: { thinkingLevel: "MEDIUM" }
               }
             }),
-            signal: AbortSignal.timeout(120000)
+            signal: AbortSignal.timeout(35000)
           }
         );
         data = await response.json().catch(() => ({})) as GeminiSbaResponse;
@@ -260,7 +260,7 @@ export const onRequestPost = async (context: AppContext) => {
   }
 
   const rawCount = Number(body.count);
-  const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(50, Math.floor(rawCount))) : 15;
+  const count = Number.isFinite(rawCount) ? Math.max(1, Math.min(3, Math.floor(rawCount))) : 3;
   const requestedLevel = clean(body.level, 40) || "Mixed";
   const allowedLevels = ["Mixed", "Easy", "Moderate", "Hard"];
   const level = allowedLevels.includes(requestedLevel) ? requestedLevel : "Mixed";
@@ -303,7 +303,7 @@ export const onRequestPost = async (context: AppContext) => {
     // automatically if the model is still timing out.
     const generateBatchWithRetry = async (requested: number, exclude: string[] = []) => {
       let lastError: unknown;
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 1; attempt++) {
         try {
           return await generateBatch(requested, exclude);
         } catch (error) {
@@ -324,7 +324,7 @@ export const onRequestPost = async (context: AppContext) => {
 
     let questions: GeneratedQuestion[] = [];
     let completionWarning = "";
-    let batchSize = Math.min(5, count);
+    let batchSize = Math.min(3, count);
     let successfulReducedBatches = 0;
     let emptyBatchAttempts = 0;
 
@@ -392,7 +392,7 @@ export const onRequestPost = async (context: AppContext) => {
       if (batchSize < 5) {
         successfulReducedBatches++;
         if (successfulReducedBatches >= 2) {
-          batchSize = Math.min(5, batchSize + 1);
+          batchSize = Math.min(3, batchSize + 1);
           successfulReducedBatches = 0;
         }
       }

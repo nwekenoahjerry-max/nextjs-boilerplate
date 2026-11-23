@@ -920,16 +920,29 @@ export default function MaterialsPanel() {
       setNotice("Creating new, non-repeating SBA questions from your uploaded lecture…");
     }
     try {
-      const response = await fetch("/api/learning/generate",{
-        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({materialId,count,level})
-      });
-      const data = await readResponse(response);
+      // Keep each HTTP request short enough to avoid Cloudflare's 524 timeout.
+      // The API generates at most three questions per request and persists each batch.
+      let remaining = Math.max(1, count);
+      let added = 0;
+      let batchWarning = "";
+      while (remaining > 0) {
+        const batchCount = Math.min(3, remaining);
+        setNotice(`Creating your SBA questions… ${added} of ${count} completed`);
+        const response = await fetch("/api/learning/generate",{
+          method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
+          body:JSON.stringify({materialId,count:batchCount,level})
+        });
+        const data = await readResponse(response);
+        const batchAdded = Number(data.generated || 0);
+        added += batchAdded;
+        remaining -= batchAdded;
+        if (data.warning) batchWarning = String(data.warning);
+        if (batchAdded < batchCount || data.complete === false) break;
+      }
       await loadMaterials();
       const refreshedStudy = await loadMaterialStudy(materialId);
       const refreshedMaterial = materials.find(item=>item.id===materialId);
-      const added = Number(data.generated || 0);
-      const total = Number(refreshedStudy?.questionCount || (Array.isArray(refreshedStudy?.questions) ? refreshedStudy.questions.length : 0) || data.totalAvailable || data.questions?.length || 0);
+      const total = Number(refreshedStudy?.questionCount || (Array.isArray(refreshedStudy?.questions) ? refreshedStudy.questions.length : 0) || added || 0);
       setQuestionGenerationStatus(current=>({...current,[materialId]:total>0?"ready":"failed"}));
       if (!background && selectedId===materialId) {
         setQuestionIndex(0);
@@ -941,8 +954,8 @@ export default function MaterialsPanel() {
         setLiveElapsedSeconds(0);
         setLiveTimedOut(false);
         if (total > 0) setTab("questions");
-        setNotice(data.complete === false
-          ? `Added ${added} new distinct questions. Your set now contains ${total} questions. ${data.warning || "You can practise the questions generated so far."}`
+        setNotice(remaining > 0 || batchWarning
+          ? `Added ${added} new distinct questions. Your set now contains ${total} questions. ${batchWarning || "Some questions could not be completed in this attempt; your saved questions are safe. You can retry for the remainder."}`
           : `Added ${added} new SBA questions from ${refreshedMaterial?.title || "this material"}. Your library now contains ${total} distinct questions for this lecture.`);
       }
       return true;
