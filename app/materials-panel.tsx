@@ -45,6 +45,7 @@ type StudySummary = {
   overview: string;
   quickPreview?: boolean;
   generationMode?: "rapid" | "comprehensive";
+  generationProvider?: "Gemini" | "Cloudflare Workers AI";
   visualAids?: StudyVisualAid[];
   visualAidsSearched?: boolean;
   highYieldPoints?: string[];
@@ -183,7 +184,7 @@ export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
-  const [libraryUnit,setLibraryUnit] = useState("all");
+  const [libraryUnit,setLibraryUnit] = useState("select");
   const [libraryMode,setLibraryMode] = useState<LibraryMode>("clinical");
   const [customSubject,setCustomSubject] = useState("");
   const [libraryModeReady,setLibraryModeReady] = useState(false);
@@ -308,7 +309,7 @@ export default function MaterialsPanel() {
   },[selectedMaterial,selectedVisuals]);
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
-    setLibraryUnit("all");
+    setLibraryUnit("select");
     setLibrarySearch("");
     setExpandedUnits({});
     setSelectedId("");
@@ -1043,6 +1044,7 @@ export default function MaterialsPanel() {
             <label className="materials-unit-select-label">
               <span>{libraryMode==="clinical"?"Clinical unit":"Subject / course"}</span>
               <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress} aria-label={libraryMode==="clinical"?"Choose a clinical unit":"Choose a subject"}>
+                <option value="select" disabled>Choose a {libraryMode==="clinical"?"clinical unit":"subject"}</option>
                 <option value="all">All {libraryMode==="clinical"?"units":"subjects"} ({modeMaterials.length})</option>
                 {libraryBrowseUnits.map(item=>{
                   const count=modeMaterials.filter(material=>material.unit===item.id).length;
@@ -1082,7 +1084,7 @@ export default function MaterialsPanel() {
                 </section>;
               })}
             </div>}
-          {materials.length>0&&<div className="materials-library-footer"><span>Choose a material above to open its study features.</span><button type="button" className="materials-add-link" onClick={openUploadForm}>＋ Add another material</button></div>}
+          {materials.length>0&&libraryUnit!=="select"&&<div className="materials-library-footer"><span>Choose a material above to open its study features.</span><button type="button" className="materials-add-link" onClick={openUploadForm}>＋ Add another material</button></div>}
         </section>
       {showUploadForm&&<section id="materials-upload-card" className="materials-upload-card">
         <div className="materials-upload-heading-row"><div><div className="eyebrow">ADD TO YOUR LIBRARY</div><h2>Upload a new material</h2><p>{libraryMode==="clinical"?"Choose the clinical unit for this resource.":"Choose the subject this resource belongs to. You can create a new subject by typing its name."}</p></div><button type="button" className="materials-upload-close" onClick={closeUploadForm} aria-label="Close upload form">×</button></div>
@@ -1216,7 +1218,7 @@ export default function MaterialsPanel() {
         {tab==="summary" && <>
           {selectedMaterial.summary ? <div className="study-summary" id="study-guide-readable-content">
             <div className="study-guide-toolbar">
-              <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR STUDY GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, review the key exam points, then test yourself with the practice questions."}</p></div>
+              <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR STUDY GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, review the key exam points, then test yourself with the practice questions."}</p>{selectedMaterial.summary.generationProvider==="Cloudflare Workers AI"&&<small className="study-guide-provider-note">ClerkME used its backup AI engine because Gemini was temporarily unavailable.</small>}</div>
               <div className="study-guide-toolbar-actions">
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>{selectedMaterialIsGeneral?"Start practice":"Start MCQ practice"} <span>→</span></button>}
                 <button type="button" className="secondary-button" onClick={()=>setTab("source")}>Open original file</button>

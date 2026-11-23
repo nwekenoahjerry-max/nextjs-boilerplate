@@ -8526,3 +8526,5 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 @media(prefers-reduced-motion:reduce){
   .study-guide-toolbar-actions .study-inline-visual-refresh{transition:none}
 }
+
+.study-guide-provider-note { display:block; margin-top:5px; color:var(--muted,#64748b); font-size:12px; line-height:1.45; }

@@ -3,7 +3,8 @@ import { json, requireUser, isResponse, validSameOrigin, type AppContext, type A
 
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
-const GEMINI_FALLBACK_MODELS = ["gemini-3.1-flash-lite"] as const;
+const GEMINI_FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.1-flash-lite"] as const;
+const CLOUDFLARE_STUDY_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const SAFE_STUDY_FAILURE = "ClerkMe could not complete this study guide just now. Your uploaded material is safe. Please try again shortly.";
 
@@ -61,8 +62,12 @@ async function requestGeminiStudyGuide(
       if (!response.ok) {
         const providerMessage = typeof data.error?.message === "string" ? data.error.message.slice(0, 450) : "";
         const unavailable = response.status === 503 || data.error?.status === "UNAVAILABLE";
+        if (unavailable && attempt < Math.min(1, attempts - 1)) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
         if (unavailable && model !== models[models.length - 1]) {
-          console.warn("[ClerkMe] Gemini model unavailable; trying the next configured model.", {
+          console.warn("[ClerkMe] Gemini model unavailable after a retry; trying the next configured model.", {
             model, fallbackModel: models[models.indexOf(model) + 1], status: response.status
           });
           break;
@@ -125,6 +130,77 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   if (start >= 0 && end > start) text = text.slice(start, end + 1);
   return JSON.parse(text) as Record<string, unknown>;
 }
+
+async function requestCloudflareStudyGuide(
+  context: AppContext,
+  messages: ReadonlyArray<{ role: string; content: string }>,
+  mode: "rapid" | "comprehensive"
+): Promise<Record<string, unknown>> {
+  if (!context.env.AI) throw new Error("Cloudflare Workers AI is not connected.");
+
+  const system = messages.find(message => message.role === "system")?.content || "";
+  const user = messages.filter(message => message.role !== "system").map(message => message.content).join("\n\n");
+
+  // Llama 4 Scout has a large context window; retain a safety margin for output.
+  const maximumInputCharacters = 380000;
+  let boundedUser = user;
+  let sourceWasSampled = false;
+  if (user.length > maximumInputCharacters) {
+    const sourceMarker = user.lastIndexOf("UPLOADED SOURCE:");
+    if (sourceMarker >= 0) {
+      const prompt = user.slice(0, sourceMarker);
+      const source = user.slice(sourceMarker);
+      const opening = source.indexOf("\n---\n");
+      const sourcePrefix = opening >= 0 ? source.slice(0, opening + 5) : "UPLOADED SOURCE:\n";
+      const sourceBody = opening >= 0 ? source.slice(opening + 5) : source;
+      const budget = Math.max(60000, maximumInputCharacters - prompt.length - sourcePrefix.length);
+      const half = Math.floor(budget / 2);
+      boundedUser = prompt + sourcePrefix + sourceBody.slice(0, half)
+        + "\n\n[Some middle source text is omitted because the document exceeds the backup model context window.]\n\n"
+        + sourceBody.slice(-half);
+      sourceWasSampled = true;
+    } else {
+      boundedUser = user.slice(0, maximumInputCharacters);
+      sourceWasSampled = true;
+    }
+  }
+
+  let lastError = "No response was returned.";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const result = await context.env.AI.run(CLOUDFLARE_STUDY_MODEL, {
+        messages: [
+          { role: "system", content: system + "\n\nYou are the backup study-guide engine. Follow the requested JSON structure exactly. Do not add facts, doses, diagnostic thresholds or recommendations that are not in the uploaded source. Return complete, valid JSON only." },
+          { role: "user", content: boundedUser }
+        ],
+        response_format: { type: "json_object" },
+        max_tokens: mode === "rapid" ? 2800 : 7800,
+        temperature: 0.2
+      });
+      const parsed = parseAIResult(result);
+      if (typeof parsed.overview !== "string" || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+        throw new Error("The backup model returned an incomplete study guide.");
+      }
+      if (sourceWasSampled) {
+        const gaps = Array.isArray(parsed.unclearOrMissing) ? parsed.unclearOrMissing : [];
+        parsed.unclearOrMissing = [...gaps, "This backup guide was generated from representative source extracts because the original text exceeded the backup model's context limit. Check the original lecture for any omitted middle sections."];
+        const disclaimer = typeof parsed.disclaimer === "string" ? parsed.disclaimer : "";
+        parsed.disclaimer = (disclaimer ? disclaimer + " " : "") + "Some middle source text was omitted to fit the backup model context window; consult the original lecture for complete coverage.";
+      }
+      console.info("[ClerkMe] Cloudflare backup study guide generated.", {
+        model: CLOUDFLARE_STUDY_MODEL,
+        generationMode: mode,
+        sourceWasSampled
+      });
+      return parsed;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown backup-model error.";
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 1200));
+    }
+  }
+  throw new Error("CLOUDFLARE_AI_FALLBACK_FAILED: " + lastError.slice(0, 350));
+}
+
 const asStrings = (value: unknown, maxItems: number, maxLength: number) =>
   Array.isArray(value) ? value.map(item => clean(item, maxLength)).filter(Boolean).slice(0, maxItems) : [];
 
@@ -239,7 +315,7 @@ ${material.content}
   return sanitiseStudyBlueprint(parseAIResult({ response: output }));
 }
 
-function normaliseStudySummary(parsed: Record<string, unknown>, generationMode: "rapid" | "comprehensive" = "comprehensive") {
+function normaliseStudySummary(parsed: Record<string, unknown>, generationMode: "rapid" | "comprehensive" = "comprehensive", generationProvider: "Gemini" | "Cloudflare Workers AI" = "Gemini") {
     const exam = parsed.examFocus && typeof parsed.examFocus === "object"
       ? parsed.examFocus as Record<string, unknown>
       : {};
@@ -255,6 +331,7 @@ function normaliseStudySummary(parsed: Record<string, unknown>, generationMode: 
     const videoChannels = ["Osmosis", "Zero to Finals", "Geeky Medics"];
     const summary = {
       generationMode,
+      generationProvider,
       overview: clean(parsed.overview, 1600),
       highYieldPoints: asStrings(parsed.highYieldPoints, 24, 750),
       visualAids: Array.isArray(parsed.visualAids) ? parsed.visualAids.slice(0, 2).map(value => {
@@ -453,14 +530,14 @@ async function runStudyGuideJob(
 ): Promise<Response> {
   const generationStartedAt = Date.now();
   const geminiApiKey = context.env.GEMINI_API_KEY;
-  if (!geminiApiKey) return json({ error: "The study-guide service is temporarily unavailable. Your uploaded material is safe.", code: "STUDY_SERVICE_UNAVAILABLE" }, 503);
+  if (!geminiApiKey && !context.env.AI) return json({ error: "The study-guide service is temporarily unavailable. Your uploaded material is safe.", code: "STUDY_SERVICE_UNAVAILABLE" }, 503);
   await context.env.DB.prepare(
     "UPDATE study_generation_jobs SET status = 'in_progress', updated_at = unixepoch() WHERE id = ? AND user_id = ?"
   ).bind(jobId, user.id).run();
   try {
   sendProgress("Reviewing your uploaded lecture and mapping its main topics…");
   let sourceBlueprint: Record<string, unknown> | null = null;
-  if (mode === "comprehensive" && material.content_text.length >= 14000 && !material.unit.startsWith("custom:")) {
+  if (geminiApiKey && mode === "comprehensive" && material.content_text.length >= 14000 && !material.unit.startsWith("custom:")) {
     try {
       sourceBlueprint = await createStudyBlueprint(geminiApiKey, {
         title: material.title,
@@ -703,11 +780,44 @@ ${material.content_text}
     sendProgress(mode === "rapid"
       ? "Creating your rapid, high-yield study guide…"
       : "Writing the expanded explanations, clinical links and exam-focused revision points…");
-    const outputText = mode === "rapid"
-      ? await requestGeminiStudyGuide(geminiApiKey, messages, 1, 2200, "MINIMAL", 15000)
-      : await requestGeminiStudyGuide(geminiApiKey, messages, 3, 26000, "MEDIUM");
-    const parsed = parseAIResult({ response: outputText });
-    const summary = normaliseStudySummary(parsed, mode);
+
+    let parsed: Record<string, unknown> | null = null;
+    let generationProvider: "Gemini" | "Cloudflare Workers AI" = "Gemini";
+    let geminiFailure: unknown = null;
+    if (geminiApiKey) {
+      try {
+        const outputText = mode === "rapid"
+          ? await requestGeminiStudyGuide(geminiApiKey, messages, 1, 2200, "MINIMAL", 15000)
+          : await requestGeminiStudyGuide(geminiApiKey, messages, 3, 26000, "MEDIUM");
+        parsed = parseAIResult({ response: outputText });
+      } catch (error) {
+        geminiFailure = error;
+      }
+    } else {
+      geminiFailure = new Error("GEMINI_KEY_NOT_CONFIGURED: Gemini is not configured for this deployment.");
+    }
+
+    if (!parsed && context.env.AI) {
+      const reason = geminiFailure instanceof Error ? geminiFailure.message : "Gemini did not return a study guide.";
+      console.warn("[ClerkMe] Gemini unavailable; switching to Cloudflare Workers AI.", {
+        materialId: material.id,
+        jobId,
+        reason: reason.slice(0, 240)
+      });
+      sendProgress("Gemini is temporarily unavailable. ClerkMe is switching to its backup study engine…");
+      try {
+        parsed = await requestCloudflareStudyGuide(context, messages, mode);
+        generationProvider = "Cloudflare Workers AI";
+      } catch (backupError) {
+        const backupMessage = backupError instanceof Error ? backupError.message : "Unknown backup-model error.";
+        throw new Error("STUDY_BACKUP_FAILED: " + reason.slice(0, 220) + " | " + backupMessage.slice(0, 260));
+      }
+    } else if (!parsed && geminiFailure) {
+      throw geminiFailure;
+    }
+    if (!parsed) throw new Error("STUDY_GUIDE_EMPTY: No study-guide provider returned a result.");
+
+    const summary = normaliseStudySummary(parsed, mode, generationProvider);
 
     await context.env.DB.prepare(
       "UPDATE learning_materials SET summary_json = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
@@ -716,10 +826,11 @@ ${material.content_text}
       "UPDATE study_generation_jobs SET status = 'completed', error_message = NULL, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(jobId, user.id).run();
 
-    console.info("[ClerkMe] Gemini study guide completed.", {
+    console.info("[ClerkMe] Study guide completed.", {
       materialId: material.id,
       jobId,
       generationMode: mode,
+      generationProvider,
       elapsedMs: Date.now() - generationStartedAt,
       sectionCount: summary.sections.length
     });
@@ -739,13 +850,16 @@ ${material.content_text}
     const authFailure = /GEMINI_HTTP_401|GEMINI_HTTP_403|API_KEY_INVALID|invalid api.?key|unauthori[sz]ed/i.test(detail);
     const timedOut = /GEMINI_TIMEOUT|abort|timeout/i.test(detail);
     const modelsUnavailable = /GEMINI_MODELS_UNAVAILABLE|GEMINI_HTTP_503|UNAVAILABLE/i.test(detail);
+    const backupUnavailable = /STUDY_BACKUP_FAILED|CLOUDFLARE_AI_FALLBACK_FAILED/i.test(detail);
     const outputTruncated = /GEMINI_OUTPUT_TRUNCATED|MAX_TOKENS/i.test(detail);
     const malformedOutput = /SyntaxError|JSON\.parse|unexpected token|unexpected end|did not return a complete High-Yield Points/i.test(detail);
     const emptyOutput = /GEMINI_EMPTY_RESPONSE|no candidate text/i.test(detail);
     const requestRejected = /GEMINI_HTTP_400/.test(detail);
     const failureClass = authFailure ? "authentication" : rateLimited ? "rate_limit_or_quota" : timedOut ? "timeout" : modelsUnavailable ? "capacity" : outputTruncated ? "output_limit" : malformedOutput ? "malformed_output" : emptyOutput ? "empty_output" : requestRejected ? "request_rejected" : "unclassified";
     console.error("[ClerkMe] Study-guide failure classification.", { materialId: material.id, jobId, failureClass, errorName: error instanceof Error ? error.name : "UnknownError", stack: error instanceof Error ? error.stack?.split("\n").slice(0, 4).join("\n") : undefined });
-    const message = authFailure
+    const message = backupUnavailable
+      ? "Both study-guide engines are temporarily unavailable. Your uploaded material is safe; please retry shortly."
+      : authFailure
       ? "The study service is not configured correctly. Your uploaded material is safe; please contact support."
       : rateLimited
         ? "Study-guide generation is temporarily busy. Your uploaded material is safe; please wait briefly and try again."
@@ -765,7 +879,7 @@ ${material.content_text}
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(message, jobId, user.id).run().catch(() => undefined);
-    const status = authFailure ? 503 : rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
+    const status = backupUnavailable || authFailure ? 503 : rateLimited ? 429 : timedOut ? 504 : modelsUnavailable ? 503 : 502;
     return json({ error: message, code: "STUDY_GUIDE_" + failureClass.toUpperCase(), retryable: !authFailure }, status);
   }
 }
@@ -774,7 +888,7 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  if (!context.env.GEMINI_API_KEY) {
+  if (!context.env.GEMINI_API_KEY && !context.env.AI) {
     return json({
       error: "The study-guide service is temporarily unavailable. Your uploaded material is safe. Please try again shortly.",
       code: "STUDY_SERVICE_UNAVAILABLE"
