@@ -1059,13 +1059,19 @@ export default function MaterialsPanel() {
       {selectedMaterial && mobileDetailOpen && <section id="materials-detail-card" className="materials-detail-card">
         <button type="button" className="materials-mobile-back" onClick={returnToLibrary} aria-label="Back to study library">← <span>All materials</span></button>
         <div className="materials-detail-heading">
-          <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
-          <div className="materials-detail-actions">
-            <section className="materials-summary-mode-picker" aria-labelledby="materials-summary-mode-title">
-              <div className="materials-summary-mode-heading">
-                <span className="materials-summary-mode-eyebrow">STUDY GUIDE</span>
-                <h3 id="materials-summary-mode-title">Choose a format</h3>
-              </div>
+          <div>
+            <div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div>
+            <h2>{selectedMaterial.title}</h2>
+            <p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p>
+          </div>
+        </div>
+        <div className="materials-study-tools">
+          <section className="materials-study-tool-card materials-study-guide-tool" aria-labelledby="materials-summary-mode-title">
+            <div className="materials-study-tool-heading">
+              <span className="materials-study-tool-kicker">STUDY GUIDE</span>
+              <h3 id="materials-summary-mode-title">Choose a format</h3>
+            </div>
+            <div className="materials-summary-mode-picker">
               <div className="materials-summary-mode-options" role="group" aria-label="Choose study guide format">
                 <button type="button" className={studyGuideMode==="comprehensive"?"selected":""} aria-pressed={studyGuideMode==="comprehensive"} onClick={()=>setStudyGuideMode("comprehensive")} disabled={working||liveInProgress}>
                   <span className="materials-summary-mode-radio" aria-hidden="true"><span/></span>
@@ -1090,7 +1096,14 @@ export default function MaterialsPanel() {
                         : "Generate guide"}
                 </button>
               </div>
-            </section>
+            </div>
+          </section>
+          <section className="materials-study-tool-card materials-practice-tool" aria-labelledby="materials-practice-title">
+            <div className="materials-study-tool-heading">
+              <span className="materials-study-tool-kicker">ACTIVE RECALL</span>
+              <h3 id="materials-practice-title">Practice questions</h3>
+              <p>Create an exam-focused question set from this material.</p>
+            </div>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
@@ -1103,10 +1116,11 @@ export default function MaterialsPanel() {
                 </select>
               </label>
             </div>
-            <button className="primary-button" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>{questionsWorking?(selectedMaterialIsGeneral?"Generating practice questions…":"Generating SBA questions…"):summaryWorking?"Building study resources…":selectedMaterial.questions?.length?(selectedMaterialIsGeneral?"Generate more practice questions":"Generate more SBA questions"):"Generate "+questionCount+(selectedMaterialIsGeneral?" practice questions":" SBA questions")} <span>→</span></button>
-          </div>
+            <button className="primary-button materials-practice-generate" onClick={generateQuestions} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>
+              {questionsWorking?(selectedMaterialIsGeneral?"Generating practice questions…":"Generating SBA questions…"):summaryWorking?"Building study resources…":selectedMaterial.questions?.length?(selectedMaterialIsGeneral?"Generate more practice questions":"Generate more SBA questions"):"Generate "+questionCount+(selectedMaterialIsGeneral?" practice questions":" SBA questions")} <span>→</span>
+            </button>
+          </section>
         </div>
-        <div className="materials-action-caption"><strong>What would you like to do with this material?</strong><span>Choose a study option below.</span></div>
         <div className="materials-tabs" role="tablist" aria-label="Study options for this material">
           <button type="button" role="tab" aria-selected={tab==="summary"} className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study Guide</button>
           <button type="button" role="tab" aria-selected={tab==="source"} className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Original file</button>
