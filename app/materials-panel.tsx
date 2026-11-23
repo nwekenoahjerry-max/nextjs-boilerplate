@@ -139,7 +139,7 @@ export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
-  const [libraryUnit,setLibraryUnit] = useState("all");
+  const [libraryUnit,setLibraryUnit] = useState("select");
   const [libraryMode,setLibraryMode] = useState<LibraryMode>("clinical");
   const [customSubject,setCustomSubject] = useState("");
   const [libraryModeReady,setLibraryModeReady] = useState(false);
@@ -222,7 +222,11 @@ export default function MaterialsPanel() {
     [materials,libraryMode]
   );
   const unitFilteredMaterials = useMemo(
-    ()=>libraryUnit==="all"?modeMaterials:modeMaterials.filter(item=>item.unit===libraryUnit),
+    ()=>libraryUnit==="all"
+      ? modeMaterials
+      : libraryUnit==="select"
+        ? []
+        : modeMaterials.filter(item=>item.unit===libraryUnit),
     [modeMaterials,libraryUnit]
   );
   const visibleMaterials = useMemo(()=>{
@@ -247,7 +251,7 @@ export default function MaterialsPanel() {
   const selectedMaterialIsGeneral = !!selectedMaterial && isCustomSubjectUnit(selectedMaterial.unit);
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
-    setLibraryUnit("all");
+    setLibraryUnit("select");
     setLibrarySearch("");
     setExpandedUnits({});
     setSelectedId("");
@@ -263,8 +267,8 @@ export default function MaterialsPanel() {
   };
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
-    setUnit(nextUnit==="all"?"general-medicine":nextUnit);
-    if(libraryMode==="general" && nextUnit!=="all") setCustomSubject(unitName(nextUnit));
+    setUnit(nextUnit==="all"||nextUnit==="select"?"general-medicine":nextUnit);
+    if(libraryMode==="general" && nextUnit!=="all" && nextUnit!=="select") setCustomSubject(unitName(nextUnit));
     setLibrarySearch("");
     setExpandedUnits({});
     setMobileDetailOpen(false);
@@ -954,22 +958,30 @@ export default function MaterialsPanel() {
             <div><div className="eyebrow">YOUR UPLOADED FILES</div><h2>My library <span>{modeMaterials.length}</span></h2></div>
             <button type="button" className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
-          <label className="materials-library-search">
-            <span aria-hidden="true">⌕</span>
-            <input type="search" value={librarySearch} onChange={event=>setLibrarySearch(event.target.value)} placeholder="Search your lectures, topics or files" aria-label="Search uploaded materials"/>
-            {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
-          </label>
           <div className="materials-unit-filter">
-            <div className="materials-unit-filter-heading"><strong>{libraryMode==="clinical"?"Browse by clinical unit":"Browse by subject"}</strong><small>{libraryMode==="clinical"?"Select a unit to see its lectures and notes.":"Choose one of your own subjects to filter its resources."}</small></div>
-            <div className="materials-unit-tabs" role="group" aria-label={libraryMode==="clinical"?"Filter study materials by clinical unit":"Filter study materials by subject"}>
-              <button type="button" className={libraryUnit==="all"?"active":""} aria-pressed={libraryUnit==="all"} onClick={()=>selectLibraryUnit("all")} disabled={liveInProgress}>All {libraryMode==="clinical"?"units":"subjects"} <span>{modeMaterials.length}</span></button>
-              {libraryBrowseUnits.map(item=>{
-                const count=modeMaterials.filter(material=>material.unit===item.id).length;
-                return <button type="button" key={item.id} className={libraryUnit===item.id?"active":""} aria-pressed={libraryUnit===item.id} onClick={()=>selectLibraryUnit(item.id)} disabled={liveInProgress}>{item.name} <span>{count}</span></button>;
-              })}
+            <div className="materials-unit-filter-heading">
+              <strong>{libraryMode==="clinical"?"Browse by clinical unit":"Browse by subject"}</strong>
+              <small>{libraryMode==="clinical"?"Choose a unit to keep its lectures and notes together.":"Choose a subject to see only its own learning resources."}</small>
             </div>
+            <label className="materials-unit-select-label">
+              <span>{libraryMode==="clinical"?"Clinical unit":"Subject / course"}</span>
+              <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress} aria-label={libraryMode==="clinical"?"Choose a clinical unit":"Choose a subject"}>
+                <option value="select">Choose {libraryMode==="clinical"?"a clinical unit":"a subject"}</option>
+                <option value="all">All {libraryMode==="clinical"?"units":"subjects"} ({modeMaterials.length})</option>
+                {libraryBrowseUnits.map(item=>{
+                  const count=modeMaterials.filter(material=>material.unit===item.id).length;
+                  return <option key={item.id} value={item.id}>{item.name} ({count})</option>;
+                })}
+              </select>
+            </label>
           </div>
-          {modeMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. You will find it here whenever you return.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
+          {libraryUnit!=="select"&&<label className="materials-library-search">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" value={librarySearch} onChange={event=>setLibrarySearch(event.target.value)} placeholder="Search lectures, topics or files in this view" aria-label="Search uploaded materials"/>
+            {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
+          </label>}
+          {modeMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. It will be organised under the unit or subject you choose.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
+            libraryUnit==="select" ? <div className="materials-empty materials-library-empty"><span>⌄</span><strong>Choose a {libraryMode==="clinical"?"clinical unit":"subject"} to view its materials</strong><p>Your uploads stay organised in the unit or subject where you added them. Select one above, or choose “All {libraryMode==="clinical"?"units":"subjects"}” when you need to browse everything.</p><button type="button" className="secondary-button" onClick={()=>selectLibraryUnit("all")}>See all uploaded materials</button></div> :
             visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?(libraryMode==="clinical"?"Upload a lecture or choose a clinical unit to start building your library.":"Add your first subject and upload a resource. Your subjects will become the folders for your library."):"Upload a resource for this "+(libraryMode==="clinical"?"unit":"subject")+" and it will appear here. Your other "+(libraryMode==="clinical"?"units":"subjects")+" will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
             <div className="materials-unit-groups">
               {groupedVisibleMaterials.map(group=>{

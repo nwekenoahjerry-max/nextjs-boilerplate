@@ -3180,6 +3180,15 @@ button{font-size:15px}
 @media(prefers-reduced-motion:reduce){.study-illustration-spinner{animation:none}.study-illustration-action{transition:none}}
 
 
+
+.materials-unit-filter-heading{display:grid;gap:4px;margin-bottom:2px}
+.materials-unit-filter-heading strong{color:#102D5A;font:800 12px/1.4 Manrope,Arial,sans-serif}
+.materials-unit-filter-heading small{color:#52647C;font:500 11px/1.55 "DM Sans",Arial,sans-serif;letter-spacing:0}
+.materials-unit-select-label{display:grid;gap:7px;color:#102D5A;font:750 11px/1.4 Manrope,Arial,sans-serif}
+.materials-unit-select-label select{width:100%;min-height:46px;padding:10px 13px;border:1px solid #DCE5F0;border-radius:10px;background:#fff;color:#102D5A;font:650 13px Manrope,Arial,sans-serif;outline:none}
+.materials-unit-select-label select:focus{border-color:#102D5A;box-shadow:0 0 0 3px rgba(16,45,90,.09)}
+.materials-unit-select-label select:disabled{opacity:.65;cursor:not-allowed}
+
 /* Unit-first study library and readable uploaded-source viewer */
 .materials-unit-filter{display:grid;gap:7px;margin:14px 0 12px;color:#102D5A;font-size:11px;font-weight:800;letter-spacing:.02em}
 .materials-unit-filter select{width:100%;min-height:42px;padding:9px 12px;border:1px solid #EAF0F8;border-radius:9px;background:#fff;color:#102D5A;font:650 12px Manrope,Arial,sans-serif}
