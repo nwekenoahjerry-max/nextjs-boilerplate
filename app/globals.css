@@ -8416,46 +8416,45 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 }
 
 
-/* Responsive, accessible study-guide format selector */
-.materials-summary-mode-picker{display:grid;gap:15px;flex:1 1 100%;width:100%;min-width:0;padding:18px;border:1px solid #E3EAF3;border-radius:15px;background:linear-gradient(145deg,#FFFFFF 0%,#F8FAFD 100%);box-shadow:0 8px 24px rgba(16,45,90,.045)}
-.materials-summary-mode-heading{display:grid;gap:5px}
-.materials-summary-mode-eyebrow{display:block;margin-bottom:4px;color:#647894;font:800 9px/1.3 Manrope,Arial,sans-serif;letter-spacing:.12em}
-.materials-summary-mode-heading h3{margin:0;color:#102D5A;font:800 17px/1.3 Manrope,Arial,sans-serif;letter-spacing:-.02em}
-.materials-summary-mode-heading p{margin:4px 0 0;color:#63748B;font:500 12px/1.55 "DM Sans",Arial,sans-serif}
-.materials-summary-mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:stretch}
-.materials-summary-mode-options button{position:relative;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:9px;width:100%;min-width:0;min-height:190px;padding:15px;border:1px solid #DCE5F0;border-radius:12px;background:#FFFFFF;color:#102D5A;text-align:left;white-space:normal;cursor:pointer;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease}
-.materials-summary-mode-options button:hover:not(:disabled){border-color:#9DAFC5;transform:translateY(-1px);box-shadow:0 8px 20px rgba(16,45,90,.07)}
-.materials-summary-mode-options button:focus-visible{outline:3px solid rgba(16,45,90,.18);outline-offset:2px}
-.materials-summary-mode-options button.selected{border:1.5px solid #173E70;background:#F2F6FB;box-shadow:inset 0 0 0 1px rgba(23,62,112,.08),0 5px 15px rgba(16,45,90,.055)}
-.materials-summary-mode-options button:disabled{opacity:.62;cursor:not-allowed;transform:none}
-.materials-summary-mode-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.materials-summary-mode-number{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#EFF3F8;color:#46617F;font:800 10px/1 Manrope,Arial,sans-serif}
-.materials-summary-mode-options button.selected .materials-summary-mode-number{background:#173E70;color:#fff}
-.materials-summary-mode-status{color:#526A86;font:750 9px/1.3 Manrope,Arial,sans-serif}
-.materials-summary-mode-options button.selected .materials-summary-mode-status{color:#173E70}
-.materials-summary-mode-options button>strong{display:block;margin-top:1px;color:#102D5A;font:800 15px/1.35 Manrope,Arial,sans-serif;overflow-wrap:anywhere}
-.materials-summary-mode-tag{align-self:flex-start;padding:4px 7px;border-radius:5px;background:#E8EFF8;color:#173E70;font:800 8px/1.3 Manrope,Arial,sans-serif;letter-spacing:.07em}
-.materials-summary-mode-tag-muted{background:#EEF2F6;color:#526A86}
-.materials-summary-mode-options button>small{display:block;color:#52647C;font:500 11px/1.65 "DM Sans",Arial,sans-serif;overflow-wrap:anywhere}
-.materials-summary-mode-meta{display:block;margin-top:auto;padding-top:7px;border-top:1px solid #E5EBF3;color:#6A7D95;font:700 9px/1.45 Manrope,Arial,sans-serif}
-.materials-summary-mode-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-top:2px}
-.materials-summary-mode-footer p{flex:1;min-width:0;margin:0;color:#687A91;font:500 10px/1.6 "DM Sans",Arial,sans-serif}
-.materials-summary-mode-footer .materials-summary-generate{flex:0 0 auto;min-height:42px;padding:10px 15px;white-space:normal;font-size:11px}
-@media(max-width:760px){
-  .materials-summary-mode-picker{padding:14px;gap:12px}
-  .materials-summary-mode-options{grid-template-columns:1fr}
-  .materials-summary-mode-options button{min-height:0;padding:13px;gap:7px}
-  .materials-summary-mode-options button>strong{font-size:14px}
-  .materials-summary-mode-options button>small{font-size:11px;line-height:1.6}
-  .materials-summary-mode-meta{margin-top:2px}
-  .materials-summary-mode-footer{align-items:stretch;flex-direction:column;gap:10px}
-  .materials-summary-mode-footer .materials-summary-generate{width:100%;min-height:45px}
+
+/* Compact study-guide format switcher */
+.materials-summary-mode-picker{display:grid;gap:9px;flex:1 1 100%;width:100%;min-width:0;padding:12px 14px;border:1px solid #E3EAF3;border-radius:12px;background:#FBFCFE}
+.materials-summary-mode-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.materials-summary-mode-eyebrow{display:block;margin-bottom:2px;color:#647894;font:800 8px/1.25 Manrope,Arial,sans-serif;letter-spacing:.12em}
+.materials-summary-mode-heading h3{margin:0;color:#102D5A;font:800 14px/1.3 Manrope,Arial,sans-serif;letter-spacing:-.01em}
+.materials-summary-mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch}
+.materials-summary-mode-options button{display:flex;align-items:center;gap:9px;width:100%;min-width:0;min-height:58px;padding:9px 11px;border:1px solid #DCE5F0;border-radius:9px;background:#fff;color:#102D5A;text-align:left;white-space:normal;cursor:pointer;transition:border-color .16s ease,background .16s ease,box-shadow .16s ease}
+.materials-summary-mode-options button:hover:not(:disabled){border-color:#A8B8CC;background:#F9FBFE}
+.materials-summary-mode-options button:focus-visible{outline:3px solid rgba(16,45,90,.16);outline-offset:2px}
+.materials-summary-mode-options button.selected{border-color:#173E70;background:#F0F4FA;box-shadow:inset 0 0 0 1px rgba(23,62,112,.08)}
+.materials-summary-mode-options button:disabled{opacity:.6;cursor:not-allowed}
+.materials-summary-mode-radio{display:grid;place-items:center;flex:0 0 17px;width:17px;height:17px;border:1.5px solid #AAB8C9;border-radius:50%;background:#fff}
+.materials-summary-mode-radio>span{width:7px;height:7px;border-radius:50%;background:transparent}
+.materials-summary-mode-options button.selected .materials-summary-mode-radio{border-color:#173E70}
+.materials-summary-mode-options button.selected .materials-summary-mode-radio>span{background:#173E70}
+.materials-summary-mode-copy{display:grid;gap:3px;min-width:0}
+.materials-summary-mode-options button strong{display:block;color:#102D5A;font:800 11px/1.35 Manrope,Arial,sans-serif;overflow-wrap:anywhere}
+.materials-summary-mode-options button small{display:block;color:#64758B;font:600 9px/1.35 "DM Sans",Arial,sans-serif}
+.materials-summary-mode-options button.selected small{color:#173E70}
+.materials-summary-mode-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.materials-summary-mode-footer p{flex:1;min-width:0;margin:0;color:#65778E;font:500 10px/1.5 "DM Sans",Arial,sans-serif}
+.materials-summary-mode-footer .materials-summary-generate{flex:0 0 auto;min-height:36px;padding:8px 13px;white-space:nowrap;font-size:10px}
+@media(max-width:600px){
+  .materials-summary-mode-picker{gap:8px;padding:10px;border-radius:10px}
+  .materials-summary-mode-heading h3{font-size:13px}
+  .materials-summary-mode-options{gap:6px}
+  .materials-summary-mode-options button{min-height:52px;gap:7px;padding:8px}
+  .materials-summary-mode-radio{flex-basis:15px;width:15px;height:15px}
+  .materials-summary-mode-radio>span{width:6px;height:6px}
+  .materials-summary-mode-options button strong{font-size:10px;line-height:1.25}
+  .materials-summary-mode-options button small{font-size:8px}
+  .materials-summary-mode-footer{align-items:stretch;flex-direction:column;gap:8px}
+  .materials-summary-mode-footer p{font-size:9px;line-height:1.45}
+  .materials-summary-mode-footer .materials-summary-generate{width:100%;min-height:38px;padding:8px 12px;font-size:10px}
 }
-@media(min-width:761px) and (max-width:1020px){
-  .materials-summary-mode-picker{padding:14px}
-  .materials-summary-mode-options button{padding:12px;min-height:205px}
+@media(max-width:360px){
+  .materials-summary-mode-options button{gap:6px;padding:7px 6px}
+  .materials-summary-mode-options button strong{font-size:9px}
+  .materials-summary-mode-options button small{font-size:7.5px}
 }
-@media(prefers-reduced-motion:reduce){
-  .materials-summary-mode-options button{transition:none}
-  .materials-summary-mode-options button:hover:not(:disabled){transform:none}
-}
+@media(prefers-reduced-motion:reduce){.materials-summary-mode-options button{transition:none}}
