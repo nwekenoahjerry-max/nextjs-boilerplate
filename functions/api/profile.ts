@@ -1,13 +1,14 @@
 import { nigeriaLgasByState } from "../../lib/nigeria-locations";
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../_lib/auth";
 
-const profileSelect = "SELECT id, email, full_name AS name, school AS university, level, future_specialty AS futureSpecialty, state, lga FROM student_profiles WHERE id = ?";
+const profileSelect = "SELECT id, email, full_name AS name, school AS university, country, level, future_specialty AS futureSpecialty, state, lga FROM student_profiles WHERE id = ?";
 
 type StudentProfile = {
   id: string;
   email: string;
   name: string;
   university: string;
+  country: string;
   level: string;
   futureSpecialty: string;
   state: string;
@@ -53,6 +54,7 @@ export const onRequestPatch = async (context: AppContext) => {
   const universityOther = readText(body.universityOther);
   const university = readText(body.university) ||
     (universitySelection === "__other__" ? universityOther : universitySelection);
+  const country = readText(body.country);
   const level = readText(body.level);
   const futureSpecialty = readText(body.futureSpecialty);
   const state = readText(body.state);
@@ -60,21 +62,20 @@ export const onRequestPatch = async (context: AppContext) => {
 
   if (name.length < 2 || name.length > 100) return json({ error: "Full name must be between 2 and 100 characters." }, 400);
   if (university === "__other__" || university.length < 2 || university.length > 150) return json({ error: "Please select your university or enter its full name." }, 400);
+  if (country.length < 2 || country.length > 80) return json({ error: "Please select your country." }, 400);
   if (level.length < 1 || level.length > 80) return json({ error: "Select or enter your current level." }, 400);
   if (futureSpecialty.length > 120) return json({ error: "Future area of specialisation must be 120 characters or fewer." }, 400);
   if (!state || state.length > 120) return json({ error: "Select or enter your state / province." }, 400);
-  if (state === "Outside Nigeria" || state === "Outside Nigeria:") {
-    return json({ error: "Enter your state or province outside Nigeria." }, 400);
-  }
-  if (!lga || lga.length > 120) return json({ error: "Select or enter your LGA / local area." }, 400);
-  if (nigeriaLgasByState[state] && !nigeriaLgasByState[state].includes(lga)) {
+  if (!lga || lga.length > 120) return json({ error: "Select or enter your local area." }, 400);
+  if (country === "Nigeria" && !nigeriaLgasByState[state]) return json({ error: "Choose a valid Nigerian state." }, 400);
+  if (country === "Nigeria" && !nigeriaLgasByState[state].includes(lga)) {
     return json({ error: "The selected LGA does not belong to the selected state. Please choose it again." }, 400);
   }
 
   try {
     await context.env.DB.prepare(
-      "UPDATE student_profiles SET full_name = ?, school = ?, level = ?, future_specialty = ?, state = ?, lga = ?, updated_at = unixepoch() WHERE id = ?"
-    ).bind(name, university, level, futureSpecialty, state, lga, user.id).run();
+      "UPDATE student_profiles SET full_name = ?, school = ?, country = ?, level = ?, future_specialty = ?, state = ?, lga = ?, updated_at = unixepoch() WHERE id = ?"
+    ).bind(name, university, country, level, futureSpecialty, state, lga, user.id).run();
 
     // Read the saved row back. The UI only displays success after the database confirms it.
     const profile = await context.env.DB.prepare(profileSelect).bind(user.id).first<StudentProfile>();

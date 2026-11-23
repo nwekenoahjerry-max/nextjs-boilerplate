@@ -66,6 +66,11 @@ Apply migrations in numerical order:
 3. `0002_student_activity.sql` creates activity-day tracking.
 4. `0003_learning_materials.sql` creates the private learning-material store.
 5. `0004_expand_case_specialties.sql` extends case records to every supported clinical unit while preserving existing case rows.
+6. `0005_student_profile_details.sql` adds career interests and Nigerian state / LGA details.
+7. `0006_saved_learning_videos.sql`, `0007_study_generation_jobs.sql` and `0008_original_source_files.sql` extend saved learning and study-material handling.
+8. `0009_student_country.sql` adds the country field used by the global university selector. Apply it to the production D1 database before the updated profile form is used.
+
+The country selector uses a 249-country directory. University suggestions use a bundled snapshot of the community-maintained Hipo university directory, combined with ClerkME’s curated Nigerian institution list. The directory is searchable; a student can still enter an institution manually when it is not listed. Data sources: https://github.com/umpirsky/country-list and https://github.com/Hipo/university-domains-list.
 
 The preview database has been provisioned with the equivalent schema for isolated testing. The production migrations have not been applied as part of this preview work.
 

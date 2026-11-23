@@ -8301,3 +8301,34 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
  .admin-refresh-icon.is-spinning,.admin-loading-mark{animation:none}
  .admin-chart-track span{transition:none}
 }
+
+
+/* Searchable country and university selectors on the student profile */
+.profile-search-picker{position:relative;display:grid;gap:8px;min-width:0}
+.profile-search-picker-label{display:block;color:#102D5A;font-size:15px;font-weight:700;line-height:1.45}
+.profile-search-picker-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:13px 15px;border:1px solid #D6E0EE;border-radius:10px;background:#fff;color:#0B2348;text-align:left;font-size:16px;font-weight:500;line-height:1.4;cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease}
+.profile-search-picker-trigger:hover,.profile-search-picker-trigger.is-open{border-color:#102D5A}
+.profile-search-picker-trigger:focus-visible{outline:3px solid rgba(16,45,90,.13);outline-offset:1px}
+.profile-search-picker-trigger>span:first-child{min-width:0;overflow-wrap:anywhere}
+.profile-search-picker-trigger .picker-placeholder{color:#708097}
+.profile-search-picker-trigger svg{width:18px;height:18px;flex:0 0 18px;color:#52647C;transition:transform .16s ease}
+.profile-search-picker-trigger.is-open svg{transform:rotate(180deg)}
+.profile-search-picker-panel{position:absolute;z-index:60;top:calc(100% + 7px);left:0;right:0;display:grid;gap:9px;padding:11px;border:1px solid #D6E0EE;border-radius:13px;background:#fff;box-shadow:0 18px 42px rgba(11,35,72,.16)}
+.profile-search-picker-search{width:100%;min-height:44px!important;padding:10px 12px!important;border:1px solid #D6E0EE!important;border-radius:9px!important;background:#F8FAFD!important;color:#0B2348!important;font-size:15px!important;outline:none}
+.profile-search-picker-search:focus{border-color:#102D5A!important;box-shadow:0 0 0 3px rgba(16,45,90,.1)}
+.profile-search-picker-results{display:grid;gap:4px;max-height:235px;overflow-y:auto;overscroll-behavior:contain}
+.profile-search-picker-option{width:100%;min-height:42px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:#203B60;text-align:left;font-size:14px;line-height:1.45;cursor:pointer}
+.profile-search-picker-option:hover,.profile-search-picker-option[aria-selected="true"]{background:#EEF3FA;color:#102D5A}
+.profile-search-picker-option[aria-selected="true"]{font-weight:750}
+.profile-search-picker-empty{margin:0;padding:12px 9px;color:#61738C;font-size:13px!important;line-height:1.55!important}
+.profile-search-picker-footnote{margin:0;padding:4px 8px 2px;color:#74849A;font-size:11px;line-height:1.45}
+.profile-directory-note{margin:0;color:#64758B;font-size:12px!important;line-height:1.55!important}
+.profile-manual-university{display:grid;gap:9px;padding:13px;border:1px solid #DCE5F0;border-radius:11px;background:#fff}
+.profile-manual-university-toggle{width:max-content;max-width:100%;padding:4px 0;border:0;background:transparent;color:#173E70;text-align:left;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:750;line-height:1.5;cursor:pointer}
+.profile-manual-university-toggle:hover{color:#0B2348}
+@media(max-width:600px){
+  .profile-search-picker-trigger{min-height:50px;padding:12px 13px;font-size:15px}
+  .profile-search-picker-panel{padding:9px}
+  .profile-search-picker-results{max-height:205px}
+  .profile-search-picker-option{min-height:44px;font-size:14px}
+}

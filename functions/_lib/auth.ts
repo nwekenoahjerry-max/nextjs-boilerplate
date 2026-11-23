@@ -25,7 +25,7 @@ export interface Env {
 }
 export interface AppUser {
   id: string; email: string; name: string; picture: string | null; role: string;
-  university: string; level: string; futureSpecialty: string; state: string; lga: string;
+  university: string; country: string; level: string; futureSpecialty: string; state: string; lga: string;
   profileComplete: number;
 }
 export interface D1Database { prepare(sql: string): D1PreparedStatement; }
@@ -53,9 +53,10 @@ export async function requireUser(context: AppContext): Promise<AppUser | Respon
   const tokenHash = await sha256(decoded);
   const row = await context.env.DB.prepare(`
     SELECT p.id, p.email, p.full_name AS name, NULL AS picture, 'student' AS role,
-      p.school AS university, p.level, p.future_specialty AS futureSpecialty, p.state, p.lga,
+      p.school AS university, p.country, p.level, p.future_specialty AS futureSpecialty, p.state, p.lga,
       CASE WHEN LENGTH(TRIM(COALESCE(p.full_name,''))) >= 2
         AND LENGTH(TRIM(COALESCE(p.school,''))) >= 2
+        AND LENGTH(TRIM(COALESCE(p.country,''))) >= 2
         AND LENGTH(TRIM(COALESCE(p.level,''))) >= 1
         AND LENGTH(TRIM(COALESCE(p.state,''))) >= 1
         AND LENGTH(TRIM(COALESCE(p.lga,''))) >= 1
