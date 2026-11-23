@@ -319,7 +319,7 @@ export const onRequestPost = async (context: AppContext) => {
           max_tokens: maxOutputTokens,
           temperature: 0.15,
           chat_template_kwargs: { enable_thinking: false }
-        }, { rejectIfBusy: true });
+        });
         parsed = parseAIResult(result);
       }
       return normaliseQuestions(parsed.questions, level).slice(0, requested);
