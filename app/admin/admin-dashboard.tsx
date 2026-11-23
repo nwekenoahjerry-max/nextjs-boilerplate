@@ -34,7 +34,7 @@ const dateLabel=(value:string|null)=>{
   return Number.isNaN(date.getTime())?value:date.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
 };
 const timeLabel=(value:string|number)=>{
-  const date=typeof value==="number"?new Date(value*1000):new Date(value.replace(" ","T")+"Z");
+  const date=typeof value==="number"?new Date(value>100000000000?value:value*1000):new Date(value.replace(" ","T")+"Z");
   return Number.isNaN(date.getTime())?"—":date.toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
 };
 const firstName=(name:string)=>name.trim().split(/\s+/)[0]||"Administrator";

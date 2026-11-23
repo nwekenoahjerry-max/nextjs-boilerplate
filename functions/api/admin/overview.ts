@@ -16,7 +16,7 @@ export const onRequestGet = async (context:AppContext) => {
       context.env.DB.prepare(`
         SELECT
           (SELECT COUNT(*) FROM student_profiles) AS totalUsers,
-          (SELECT COUNT(*) FROM student_profiles WHERE created_at >= unixepoch()-604800) AS newUsers7d,
+          (SELECT COUNT(*) FROM student_profiles WHERE (CASE WHEN created_at > 100000000000 THEN created_at/1000 ELSE created_at END) >= unixepoch()-604800) AS newUsers7d,
           (SELECT COUNT(*) FROM student_activity_days WHERE activity_date=date('now','+1 hour')) AS activeToday,
           (SELECT COUNT(*) FROM cases WHERE deleted_at IS NULL) AS totalCases,
           (SELECT COUNT(*) FROM learning_materials) AS totalMaterials,

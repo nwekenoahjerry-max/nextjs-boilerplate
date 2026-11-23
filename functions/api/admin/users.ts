@@ -27,7 +27,7 @@ export const onRequestGet = async (context:AppContext) => {
           (SELECT COUNT(*) FROM learning_materials m WHERE m.user_id=p.id) AS materialCount,
           (SELECT COUNT(*) FROM saved_learning_videos v WHERE v.user_id=p.id) AS videoCount
         FROM student_profiles p ${where}
-        ORDER BY p.created_at DESC LIMIT ? OFFSET ?
+        ORDER BY (CASE WHEN p.created_at > 100000000000 THEN p.created_at/1000 ELSE p.created_at END) DESC LIMIT ? OFFSET ?
       `).bind(...filters,perPage,offset).all<UserRow>()
     ]);
     const total=count?.total||0;
