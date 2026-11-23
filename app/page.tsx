@@ -476,7 +476,7 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
           </button>
           {!showInstructions && <button className="install-invite-later" type="button" onClick={dismissInvitation}>Maybe later</button>}
         </div>
-        <span className="install-invite-footnote">You can also install ClerkMe later from Account settings.</span>
+        <span className="install-invite-footnote">You can also install ClerkMe later from your browser menu.</span>
       </section>
     </div>
   );
