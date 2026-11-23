@@ -450,7 +450,7 @@ export default function MaterialsPanel() {
     const response = await fetch("/api/learning/materials?id="+encodeURIComponent(materialId)+"&include=study",
       {credentials:"same-origin",cache:"no-store"});
     const data = await readResponse(response);
-    const study = data.material || {};
+    const study = (data.material || {}) as Partial<StudyMaterial>;
     setMaterials(current=>current.map(item=>item.id===materialId ? {
       ...item,
       summary: study.summary || null,
@@ -471,7 +471,7 @@ export default function MaterialsPanel() {
       .then(readResponse)
       .then(data=>{
         if (cancelled) return;
-        const study = data.material || {};
+        const study = (data.material || {}) as Partial<StudyMaterial>;
         setMaterials(current=>current.map(item=>item.id===selectedId ? {
           ...item,
           summary: study.summary || null,
