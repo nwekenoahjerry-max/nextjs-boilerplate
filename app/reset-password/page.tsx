@@ -3,6 +3,19 @@
 import { useEffect, useState, type FormEvent } from "react";
 import ClerkMeBrand from "../../components/clerkme-brand";
 
+type ApiResponse = { error?: string };
+
+async function readApiResponse(response: Response): Promise<ApiResponse> {
+  const body = await response.text();
+  try {
+    return body ? JSON.parse(body) as ApiResponse : {};
+  } catch {
+    const title = body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
+      ?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    throw new Error(`ClerkMe received an unexpected server response (HTTP ${response.status}${title ? `: ${title}` : ""}). Please reload and try again.`);
+  }
+}
+
 export default function ResetPasswordPage() {
   const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +44,7 @@ export default function ResetPasswordPage() {
         credentials: "same-origin",
         body: JSON.stringify({ token, password })
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) throw new Error(data.error || "Your password could not be changed.");
       setComplete(true);
     } catch (e) {

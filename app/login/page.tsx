@@ -15,6 +15,29 @@ declare global {
 
 type AuthMode = "signin" | "signup" | "forgot" | "pending";
 
+type ApiResponse = {
+  error?: string;
+  message?: string;
+  code?: string;
+  verificationPending?: boolean;
+  clientId?: string;
+  ok?: boolean;
+  verificationRequired?: boolean;
+  user?: unknown;
+};
+
+async function readApiResponse(response: Response): Promise<ApiResponse> {
+  const body = await response.text();
+  try {
+    return body ? JSON.parse(body) as ApiResponse : {};
+  } catch {
+    const title = body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
+      ?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const detail = title ? `: ${title}` : "";
+    throw new Error(`ClerkMe received an unexpected server response (HTTP ${response.status}${detail}). Please reload and try again. If this continues, contact support.`);
+  }
+}
+
 export default function LoginPage() {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -32,7 +55,7 @@ export default function LoginPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/config").then(r => r.ok ? r.json() : null)
+    fetch("/api/auth/config", { cache: "no-store" }).then(r => r.ok ? readApiResponse(r) : null)
       .then(d => { if (d?.clientId) setClientId(d.clientId); })
       .catch(() => {});
     fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" })
@@ -59,7 +82,7 @@ export default function LoginPage() {
             credentials: "same-origin",
             body: JSON.stringify({ credential })
           });
-          const data = await response.json();
+          const data = await readApiResponse(response);
           if (!response.ok) throw new Error(data.error || "Google sign-in failed.");
           window.location.replace("/?welcome=1");
         } catch (e) {
@@ -104,7 +127,7 @@ export default function LoginPage() {
         credentials: "same-origin",
         body: JSON.stringify(payload)
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) {
         if (data.code === "EMAIL_NOT_VERIFIED" || data.verificationPending) {
           setMode("pending");
@@ -140,7 +163,7 @@ export default function LoginPage() {
         credentials: "same-origin",
         body: JSON.stringify({ email })
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) throw new Error(data.error || "We could not send a new verification email.");
       setNotice(data.message || "Check your inbox for a new verification link.");
     } catch (e) {

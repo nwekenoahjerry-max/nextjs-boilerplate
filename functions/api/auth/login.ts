@@ -6,6 +6,8 @@ import {
 } from "../../_lib/email-auth";
 
 export const onRequestPost = async ({ request, env }: AppContext) => {
+  let stage = "request validation";
+  try {
   if (!validSameOrigin(request)) return json({ error: "Invalid request origin." }, 403);
 
   let body: { email?: unknown; password?: unknown };
@@ -16,11 +18,13 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     return json({ error: "Enter your email address and password." }, 400);
   }
 
+  stage = "login rate-limit check";
   if (!(await checkAuthRateLimit(env.DB, request, "login-ip", 12, 900)) ||
       !(await checkAuthRateLimit(env.DB, request, "login-email", 8, 900, email))) {
     return json({ error: "Too many sign-in attempts. Please wait 15 minutes and try again." }, 429);
   }
 
+  stage = "account lookup and password verification";
   const profile = await env.DB.prepare(
     "SELECT id, email, password_salt, password_hash, email_verified_at FROM student_profiles WHERE email = ? COLLATE NOCASE"
   ).bind(email).first<{
@@ -38,6 +42,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     }, 403);
   }
 
+  stage = "session creation";
   const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
   const sessionHash = await sha256(sessionToken);
   await env.DB.prepare(
@@ -49,4 +54,15 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     "SELECT id, email, full_name AS name, NULL AS picture, ? AS role FROM student_profiles WHERE id = ?"
   ).bind(role, profile.id).first();
   return json({ user }, 200, { "Set-Cookie": cookieHeader(sessionToken, 60 * 60 * 24 * 7) });
+  } catch (error) {
+    console.error("[clerkme-auth] Login failed.", {
+      stage,
+      message: error instanceof Error ? error.message : "Unknown server error"
+    });
+    return json({
+      error: "ClerkMe could not complete sign-in because a server-side operation failed. Please try again.",
+      code: "LOGIN_SERVER_ERROR",
+      stage
+    }, 500);
+  }
 };
