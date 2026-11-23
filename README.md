@@ -20,7 +20,7 @@ ClerkMe is a clinical clerking and learning platform for medical students and cl
 
 The browser extracts readable text from supported documents before sending it to the authenticated ClerkMe API. The current materials feature retains the extracted text, structured summary and generated questions; it does not retain the original binary file. Text-based PDFs are supported. Scanned image-only documents may need OCR or a text-based copy.
 
-Workers AI is used for summaries, source-grounded Q&A, question generation and clinical simulation. AI outputs are educational material, may contain errors and must be checked against the original source, current local guidelines and clinical supervision. The simulation uses fictional scenarios and is not a diagnostic or prescribing service.
+Gemini is used for detailed study-guide generation, source-grounded Ask ClerkME tutoring and SBA question generation. Cloudflare Workers AI remains in use for selected learning workflows, including clinical simulation and clerking-note organisation. AI outputs are educational material, may contain errors and must be checked against the original source, current local guidelines and clinical supervision. The simulation uses fictional scenarios and is not a diagnostic or prescribing service.
 
 ## API routes
 

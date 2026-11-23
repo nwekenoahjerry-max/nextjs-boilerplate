@@ -57,6 +57,25 @@ export const onRequestGet = async (context: AppContext) => {
   if (isResponse(user)) return user;
   const requestedId = clean(new URL(context.request.url).searchParams.get("id"), 80);
   if (requestedId) {
+    const url = new URL(context.request.url);
+    if (url.searchParams.get("include") === "study") {
+      const study = await context.env.DB.prepare(`
+        SELECT id, summary_json, questions_json
+        FROM learning_materials
+        WHERE id = ? AND user_id = ?
+      `).bind(requestedId, user.id).first<{id:string;summary_json:string|null;questions_json:string|null}>();
+      if (!study) return json({ error: "This material could not be found in your private library." }, 404);
+      const summary = parseStored(study.summary_json);
+      const questions = parseStored(study.questions_json);
+      return json({ material: {
+        id: study.id,
+        summary,
+        questions: Array.isArray(questions) ? questions : [],
+        hasSummary: Boolean(summary),
+        questionCount: Array.isArray(questions) ? questions.length : 0,
+        studyLoaded: true
+      } });
+    }
     const source = await context.env.DB.prepare(
       "SELECT id, content_text, original_object_key, original_size_bytes, mime_type FROM learning_materials WHERE id = ? AND user_id = ?"
     ).bind(requestedId, user.id).first<{
@@ -77,7 +96,9 @@ export const onRequestGet = async (context: AppContext) => {
     SELECT id, title, source_name, unit, category, mime_type,
            original_object_key, original_size_bytes,
            LENGTH(TRIM(COALESCE(content_text, ''))) AS content_text_length,
-           summary_json, questions_json, created_at, updated_at
+           CASE WHEN summary_json IS NOT NULL AND LENGTH(summary_json) > 2 THEN 1 ELSE 0 END AS has_summary,
+           CASE WHEN questions_json IS NOT NULL AND json_valid(questions_json) THEN json_array_length(questions_json) ELSE 0 END AS question_count,
+           created_at, updated_at
     FROM learning_materials
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -85,7 +106,7 @@ export const onRequestGet = async (context: AppContext) => {
   `).bind(user.id).all<{
     id:string; title:string; source_name:string; unit:string; category:string;
     mime_type:string|null; original_object_key:string|null; original_size_bytes:number|null;
-    content_text_length:number; summary_json:string|null; questions_json:string|null;
+    content_text_length:number; has_summary:number; question_count:number;
     created_at:number; updated_at:number;
   }>();
   const materials = rows.results.map(row => ({
@@ -98,8 +119,11 @@ export const onRequestGet = async (context: AppContext) => {
     originalFileAvailable: Boolean(row.original_object_key),
     originalSizeBytes: row.original_size_bytes,
     hasExtractableText: row.content_text_length >= 100,
-    summary: parseStored(row.summary_json),
-    questions: parseStored(row.questions_json) || [],
+    hasSummary: row.has_summary === 1,
+    questionCount: Number(row.question_count) || 0,
+    summary: null,
+    questions: [],
+    studyLoaded: false,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   }));

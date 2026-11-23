@@ -73,6 +73,9 @@ type StudyMaterial = {
   hasExtractableText?:boolean;
   summary:StudySummary|null;
   questions:MaterialQuestion[];
+  hasSummary?:boolean;
+  questionCount?:number;
+  studyLoaded?:boolean;
   createdAt:number;
   updatedAt:number;
 };
@@ -95,8 +98,16 @@ type YouTubeVideo = {
 };
 
 async function readResponse(response: Response) {
-  const data = await response.json().catch(()=>({error:"The server returned an unreadable response."}));
-  if (!response.ok) throw new Error(data.error || "The request could not be completed.");
+  const raw = await response.text();
+  let data: Record<string,unknown> = {};
+  try { data = raw ? JSON.parse(raw) as Record<string,unknown> : {}; }
+  catch {
+    const status = response.status ? " (" + response.status + ")" : "";
+    throw new Error(response.ok
+      ? "ClerkME received an unexpected response from its server. Please retry."
+      : "ClerkME’s server could not complete the request" + status + ". Please retry.");
+  }
+  if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "The request could not be completed (" + response.status + ").");
   return data;
 }
 function safeStudyError(message:string) {
@@ -416,13 +427,52 @@ export default function MaterialsPanel() {
           window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
         } catch {}
       }
-      setSelectedId(savedMaterialExists ? savedMaterialId : "");
-      setMobileDetailOpen(Boolean(savedMaterialExists));
+      // Select the newest upload on sign-in so its saved study set can be restored.
+      const initialId = savedMaterialExists ? savedMaterialId : (next[0]?.id || "");
+      setSelectedId(initialId);
+      setMobileDetailOpen(Boolean(savedMaterialExists || initialId));
     }
     return next;
   };
 
+  const loadMaterialStudy = async (materialId:string) => {
+    const response = await fetch("/api/learning/materials?id="+encodeURIComponent(materialId)+"&include=study",
+      {credentials:"same-origin",cache:"no-store"});
+    const data = await readResponse(response);
+    const study = data.material || {};
+    setMaterials(current=>current.map(item=>item.id===materialId ? {
+      ...item,
+      summary: study.summary || null,
+      questions: Array.isArray(study.questions) ? study.questions as MaterialQuestion[] : [],
+      hasSummary: Boolean(study.hasSummary),
+      questionCount: Number(study.questionCount) || 0,
+      studyLoaded: true
+    } : item));
+    return study;
+  };
+
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
+  useEffect(()=>{
+    if (!selectedId || materials.find(item=>item.id===selectedId)?.studyLoaded) return;
+    let cancelled = false;
+    fetch("/api/learning/materials?id="+encodeURIComponent(selectedId)+"&include=study",
+      {credentials:"same-origin",cache:"no-store"})
+      .then(readResponse)
+      .then(data=>{
+        if (cancelled) return;
+        const study = data.material || {};
+        setMaterials(current=>current.map(item=>item.id===selectedId ? {
+          ...item,
+          summary: study.summary || null,
+          questions: Array.isArray(study.questions) ? study.questions as MaterialQuestion[] : [],
+          hasSummary: Boolean(study.hasSummary),
+          questionCount: Number(study.questionCount) || 0,
+          studyLoaded: true
+        } : item));
+      })
+      .catch(e=>{ if(!cancelled) setError(e instanceof Error?e.message:"Could not load the saved study guide and questions."); });
+    return ()=>{cancelled=true;};
+  },[selectedId]);
   useEffect(()=>{
     if (!selectedId) return;
     try {
@@ -717,7 +767,7 @@ export default function MaterialsPanel() {
       });
       const data = await readResponse(response);
       const material = data.material as StudyMaterial;
-      setMaterials(current=>[material,...current.filter(item=>item.id!==material.id)]);
+      setMaterials(current=>[{...material,summary:null,questions:[],hasSummary:false,questionCount:0,studyLoaded:true},...current.filter(item=>item.id!==material.id)]);
       setSelectedId(material.id);
       setShowUploadForm(false);
       setMobileDetailOpen(true);
@@ -754,10 +804,11 @@ export default function MaterialsPanel() {
         body:JSON.stringify({materialId,count,level})
       });
       const data = await readResponse(response);
-      const refreshedMaterials = await loadMaterials(true);
-      const refreshedMaterial = refreshedMaterials.find(item=>item.id===materialId);
+      await loadMaterials(true);
+      const refreshedStudy = await loadMaterialStudy(materialId);
+      const refreshedMaterial = materials.find(item=>item.id===materialId);
       const added = Number(data.generated || 0);
-      const total = Number(refreshedMaterial?.questions?.length || data.totalAvailable || data.questions?.length || 0);
+      const total = Number(refreshedStudy?.questionCount || (Array.isArray(refreshedStudy?.questions) ? refreshedStudy.questions.length : 0) || data.totalAvailable || data.questions?.length || 0);
       setQuestionGenerationStatus(current=>({...current,[materialId]:total>0?"ready":"failed"}));
       if (!background && selectedId===materialId) {
         setQuestionIndex(0);
@@ -894,7 +945,7 @@ export default function MaterialsPanel() {
                     {shownMaterials.map(item=><div className={item.id===selectedId?"materials-list-item selected":"materials-list-item"} key={item.id}>
                       <button type="button" className="materials-select" aria-pressed={item.id===selectedId} disabled={liveInProgress} onClick={()=>openMaterial(item)}>
                         <span className="materials-file-badge">▤</span>
-                        <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Study guide processing":item.summary?"Study guide ready":"Study guide not created yet"} · {item.questions?.length||0} questions</span></span>
+                        <span className="materials-item-copy"><strong>{item.title}</strong><small>{item.category} · {formatDate(item.createdAt)}</small><span>{item.summary?.quickPreview?"Study guide processing":item.studyLoaded?(item.summary?"Study guide ready":"Study guide not created yet"):(item.hasSummary?"Study guide ready":"Study guide not created yet")} · {item.studyLoaded?(item.questions?.length||0):(item.questionCount||0)} questions</span></span>
                         <span className="materials-open-label">Open <b aria-hidden="true">›</b></span>
                       </button>
                       <button type="button" className="materials-delete" title={"Remove "+item.title} aria-label={"Remove "+item.title} disabled={liveInProgress} onClick={()=>remove(item.id)}>×</button>
@@ -977,7 +1028,7 @@ export default function MaterialsPanel() {
         <div className="materials-tabs" role="tablist" aria-label="Study options for this material">
           <button type="button" role="tab" aria-selected={tab==="summary"} className={tab==="summary"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("summary");setError("");}}>Study Guide</button>
           <button type="button" role="tab" aria-selected={tab==="source"} className={tab==="source"?"active":""} disabled={liveInProgress} onClick={()=>{setTab("source");setError("");}}>Original file</button>
-          <button type="button" role="tab" aria-selected={tab==="questions"} className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice questions <span className="materials-tab-count">{selectedMaterial.questions?.length|| (questionGenerationStatus[selectedMaterial.id]==="generating"?"…":0)}</span></button>
+          <button type="button" role="tab" aria-selected={tab==="questions"} className={tab==="questions"?"active":""} onClick={()=>{setTab("questions");setError("");}}>Practice questions <span className="materials-tab-count">{selectedMaterial.studyLoaded?(selectedMaterial.questions?.length||0):(selectedMaterial.questionCount||"…")}</span></button>
           <button type="button" role="tab" aria-selected={tab==="ask"} className={tab==="ask"?"active":""} disabled={liveInProgress||(selectedMaterial.hasExtractableText===false&&!selectedMaterial.summary)} onClick={()=>{setTab("ask");setAnswer(null);setError("");}}>Ask ClerkME</button>
         </div>
 
