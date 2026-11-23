@@ -16,6 +16,7 @@ export interface R2BucketLike {
 export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID: string;
+  RESEND_API_KEY?: string;
   CLERKME_ADMIN_EMAILS?: string;
   YOUTUBE_API_KEY?: string;
   GEMINI_API_KEY?: string;

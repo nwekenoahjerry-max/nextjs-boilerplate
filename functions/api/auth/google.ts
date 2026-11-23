@@ -62,6 +62,10 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     await env.DB.prepare("INSERT INTO google_identities (google_sub, user_id, created_at) VALUES (?, ?, unixepoch())").bind(claims.sub!, userId).run();
   }
 
+  // Google has already confirmed that this email address is verified.
+  await env.DB.prepare("UPDATE student_profiles SET email_verified_at = COALESCE(email_verified_at, unixepoch()), updated_at = unixepoch() WHERE id = ?")
+    .bind(userId).run();
+
   const sessionToken = randomHex(32);
   const sessionHash = await sha256(sessionToken);
   await env.DB.prepare("INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, unixepoch() + 604800, unixepoch())")
