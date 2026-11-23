@@ -517,6 +517,24 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  const [timeGreeting, setTimeGreeting] = useState("Hello");
+  useEffect(() => {
+    const updateGreeting = () => {
+      // Use the visitor's device timezone, not the server's timezone.
+      const hour = new Date().getHours();
+      setTimeGreeting(hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+    };
+    updateGreeting();
+    const interval = window.setInterval(updateGreeting, 60 * 1000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") updateGreeting();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, []);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
@@ -804,7 +822,7 @@ export default function Home() {
 <section className="home-compact-header" aria-label="Welcome and study streak">
   <div className="home-welcome-copy">
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
-    <h1>Welcome back, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
+    <h1>{timeGreeting}, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
     <p className="home-hero-subtitle">Study, revise and practise clinical skills in one place.</p>
   </div>
   <div className="home-hero-streak">
