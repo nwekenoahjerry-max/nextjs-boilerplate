@@ -67,7 +67,7 @@ export default function LoginPage() {
     window.google.accounts.id.renderButton(buttonRef.current, {
       theme: "outline", size: "large", shape: "rectangular", text: "continue_with", width: 310
     });
-  }, [clientId, scriptReady]);
+  }, [clientId, scriptReady, mode]);
 
   const clearMessages = () => { setError(""); setNotice(""); };
 
