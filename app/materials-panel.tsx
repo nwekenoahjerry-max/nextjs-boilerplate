@@ -983,7 +983,7 @@ export default function MaterialsPanel() {
             {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
           </label>}
           {modeMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. It will be organised under the unit or subject you choose.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
-            libraryUnit==="select" ? <div className="materials-empty materials-library-empty"><span>⌄</span><strong>Choose a {libraryMode==="clinical"?"clinical unit":"subject"} to view its materials</strong><p>Your uploads stay organised in the unit or subject where you added them. Choose a unit above, or select “All {libraryMode==="clinical"?"units":"subjects"}” from the same menu to browse your entire library.</p></div> :
+            libraryUnit==="select" ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Select a {libraryMode==="clinical"?"clinical unit":"subject"}</strong><p>Choose a unit from the menu above to see only the materials uploaded there. Select “All {libraryMode==="clinical"?"units":"subjects"}” in that same menu to see your full library.</p></div> :
             visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?(libraryMode==="clinical"?"Upload a lecture or choose a clinical unit to start building your library.":"Add your first subject and upload a resource. Your subjects will become the folders for your library."):"Upload a resource for this "+(libraryMode==="clinical"?"unit":"subject")+" and it will appear here. Your other "+(libraryMode==="clinical"?"units":"subjects")+" will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
             <div className="materials-unit-groups">
               {groupedVisibleMaterials.map(group=>{
@@ -1061,37 +1061,53 @@ export default function MaterialsPanel() {
         <div className="materials-detail-heading">
           <div><div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div><h2>{selectedMaterial.title}</h2><p>{selectedMaterial.sourceName} · Added {formatDate(selectedMaterial.createdAt)}</p></div>
           <div className="materials-detail-actions">
-            <div className="materials-summary-mode-picker">
+            <section className="materials-summary-mode-picker" aria-labelledby="materials-summary-mode-title">
               <div className="materials-summary-mode-heading">
-                <strong>Choose your study guide</strong>
-                <small>Pick the level of detail that suits your study session.</small>
+                <div>
+                  <span className="materials-summary-mode-eyebrow">STUDY GUIDE FORMAT</span>
+                  <h3 id="materials-summary-mode-title">Choose your study format</h3>
+                  <p>Select how much detail you need for this lecture.</p>
+                </div>
               </div>
-              <div className="materials-summary-mode-options" role="group" aria-label="Study guide format">
+              <div className="materials-summary-mode-options" role="group" aria-label="Choose study guide format">
                 <button type="button" className={studyGuideMode==="comprehensive"?"selected":""} aria-pressed={studyGuideMode==="comprehensive"} onClick={()=>setStudyGuideMode("comprehensive")} disabled={working||liveInProgress}>
-                  <span><strong>Detailed study guide</strong><small>Fuller explanations, mechanisms, clinical links and exam-focused coverage.</small></span>
-                  <em>Recommended</em>
+                  <span className="materials-summary-mode-card-top">
+                    <span className="materials-summary-mode-number">01</span>
+                    <span className="materials-summary-mode-status">{studyGuideMode==="comprehensive"?"✓ Selected":"Choose format"}</span>
+                  </span>
+                  <strong>Detailed study guide</strong>
+                  <span className="materials-summary-mode-tag">RECOMMENDED</span>
+                  <small>Build a deeper understanding with expanded explanations, mechanisms, clinical reasoning and exam-focused coverage.</small>
+                  <span className="materials-summary-mode-meta">More complete · Takes longer</span>
                 </button>
                 <button type="button" className={studyGuideMode==="rapid"?"selected":""} aria-pressed={studyGuideMode==="rapid"} onClick={()=>setStudyGuideMode("rapid")} disabled={working||liveInProgress}>
-                  <span><strong>Rapid revision</strong><small>Short, high-yield notes when you need a quicker overview.</small></span>
+                  <span className="materials-summary-mode-card-top">
+                    <span className="materials-summary-mode-number">02</span>
+                    <span className="materials-summary-mode-status">{studyGuideMode==="rapid"?"✓ Selected":"Choose format"}</span>
+                  </span>
+                  <strong>Rapid revision</strong>
+                  <span className="materials-summary-mode-tag materials-summary-mode-tag-muted">QUICK REVIEW</span>
+                  <small>Revise efficiently with concise notes focused on essential concepts, key facts and high-yield points.</small>
+                  <span className="materials-summary-mode-meta">More concise · Quicker</span>
                 </button>
               </div>
-              <p className="materials-summary-mode-note">
-                {selectedMaterial.summary?.generationMode===studyGuideMode
-                  ? "This format is already saved for this material. You can refresh it whenever the source changes."
+              <div className="materials-summary-mode-footer">
+                <p>{selectedMaterial.summary?.generationMode===studyGuideMode
+                  ? "Your " + (studyGuideMode==="rapid"?"rapid revision":"detailed study") + " guide is already saved. You can refresh it at any time."
                   : studyGuideMode==="comprehensive"
-                    ? "Detailed mode takes longer because it covers more of the uploaded source. A quick source outline appears while it is being prepared."
-                    : "Rapid mode is shorter and prioritises the most examinable points. Some supporting details may be left out."}
-              </p>
-              <button className="secondary-button materials-summary-generate" onClick={()=>summarise(selectedMaterial.id,studyGuideMode)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>
-                {summaryWorking
-                  ? "Building your " + (studyGuideMode==="rapid"?"rapid revision":"detailed") + " guide…"
-                  : selectedMaterial.hasExtractableText===false
-                    ? "AI notes need readable text"
-                    : selectedMaterial.summary?.generationMode===studyGuideMode
-                      ? "Refresh " + (studyGuideMode==="rapid"?"rapid revision":"detailed study") + " guide"
-                      : "Create " + (studyGuideMode==="rapid"?"rapid revision":"detailed study") + " guide"}
-              </button>
-            </div>
+                    ? "The detailed guide covers more of your uploaded source. A quick outline appears while the full guide is being prepared."
+                    : "Rapid revision is intentionally shorter. Some supporting details from the original lecture may be condensed or omitted."}</p>
+                <button className="primary-button materials-summary-generate" onClick={()=>summarise(selectedMaterial.id,studyGuideMode)} disabled={working||liveInProgress||selectedMaterial.hasExtractableText===false}>
+                  {summaryWorking
+                    ? "Preparing " + (studyGuideMode==="rapid"?"rapid revision…":"detailed study guide…")
+                    : selectedMaterial.hasExtractableText===false
+                      ? "AI notes need readable text"
+                      : selectedMaterial.summary?.generationMode===studyGuideMode
+                        ? "Refresh " + (studyGuideMode==="rapid"?"rapid revision":"detailed study guide")
+                        : "Generate " + (studyGuideMode==="rapid"?"rapid revision":"detailed study guide")}
+                </button>
+              </div>
+            </section>
             <div className="materials-generation-controls">
               <label>Number of questions
                 <select value={questionCount} onChange={event=>setQuestionCount(Number(event.target.value))} disabled={working||liveInProgress}>
