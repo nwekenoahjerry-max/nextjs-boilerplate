@@ -139,7 +139,7 @@ async function searchCommons(aid:VisualAid):Promise<{image:VisualAid|null;ok:boo
       const info=page.imageinfo?.[0],meta=info?.extmetadata||{},license=plainText(meta.LicenseShortName?.value,90);
       const description=plainText(meta.ImageDescription?.value,700),creator=plainText(meta.Artist?.value,180)||plainText(meta.Credit?.value,180);
       const mime=clean(info?.mime,40).toLowerCase();
-      const valid=Boolean(info&&/^image\\/(jpeg|png|webp)$/.test(mime)&&Number(info.width||0)>=320&&Number(info.height||0)>=220&&
+      const valid=Boolean(info&&/^image\/(jpeg|png|webp)$/.test(mime)&&Number(info.width||0)>=320&&Number(info.height||0)>=220&&
         acceptableLicense(license,license)&&( /public domain|cc0/i.test(license)||Boolean(creator))&&safeUrl(info.thumburl||info.url)&&safeUrl(info.descriptionurl));
       return {info,license,creator,valid,points:valid?score(aid.searchQuery+" "+aid.title,[page.title,description,creator].join(" ")):0};
     }).filter(item=>item.valid&&item.points>=Math.min(2,Math.max(1,tokens(aid.searchQuery).length))).sort((a,b)=>b.points-a.points);
