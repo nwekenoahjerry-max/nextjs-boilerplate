@@ -4,7 +4,7 @@ import { json, requireUser, isResponse, validSameOrigin, type AppContext, type A
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const GEMINI_FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.1-flash-lite"] as const;
-const CLOUDFLARE_STUDY_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";
+const CLOUDFLARE_STUDY_MODEL = "@cf/google/gemma-4-26b-a4b-it";
 const GEMINI_RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 const SAFE_STUDY_FAILURE = "ClerkMe could not complete this study guide just now. Your uploaded material is safe. Please try again shortly.";
 
@@ -121,8 +121,19 @@ async function requestGeminiStudyGuide(
 
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
 function parseAIResult(value: unknown): Record<string, unknown> {
-  const outer = value as { response?: unknown; result?: { response?: unknown } };
-  let raw = outer?.response ?? outer?.result?.response ?? value;
+  const outer = value as {
+    response?: unknown;
+    result?: {
+      response?: unknown;
+      choices?: Array<{ message?: { content?: unknown } }>;
+    };
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  const raw = outer?.response
+    ?? outer?.result?.response
+    ?? outer?.choices?.[0]?.message?.content
+    ?? outer?.result?.choices?.[0]?.message?.content
+    ?? value;
   if (typeof raw === "object" && raw !== null) return raw as Record<string, unknown>;
   if (typeof raw !== "string") throw new Error("The AI service returned an unexpected response.");
   let text = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
@@ -130,7 +141,6 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   if (start >= 0 && end > start) text = text.slice(start, end + 1);
   return JSON.parse(text) as Record<string, unknown>;
 }
-
 async function requestCloudflareStudyGuide(
   context: AppContext,
   messages: ReadonlyArray<{ role: string; content: string }>,
@@ -168,30 +178,44 @@ async function requestCloudflareStudyGuide(
   let lastError = "No response was returned.";
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      const inferenceStartedAt = Date.now();
       const result = await context.env.AI.run(CLOUDFLARE_STUDY_MODEL, {
         messages: [
-          { role: "system", content: system + "\n\nYou are the backup study-guide engine. Follow the requested JSON structure exactly. Do not add facts, doses, diagnostic thresholds or recommendations that are not in the uploaded source. Return complete, valid JSON only." },
+          { role: "system", content: system + "\n\nYou are ClerkMe's backup study-guide educator. Follow the requested JSON structure exactly. Do not add facts, doses, diagnostic thresholds or recommendations that are not in the uploaded source. Return complete, valid JSON only." },
           { role: "user", content: boundedUser }
         ],
         response_format: { type: "json_object" },
-        max_tokens: mode === "rapid" ? 2800 : 7800,
-        temperature: 0.2
-      });
+        max_tokens: mode === "rapid" ? 2200 : 5200,
+        temperature: 0.15,
+        chat_template_kwargs: { enable_thinking: false }
+      }, { rejectIfBusy: true });
+      const resultEnvelope = result as {
+        choices?: Array<{ finish_reason?: string }>;
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+      };
+      const finishReason = resultEnvelope.choices?.[0]?.finish_reason || "";
+      if (finishReason === "length" || finishReason === "max_tokens") {
+        throw new Error("The backup model reached its output limit before completing the study guide.");
+      }
       const parsed = parseAIResult(result);
       if (typeof parsed.overview !== "string" || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
         throw new Error("The backup model returned an incomplete study guide.");
       }
+      console.info("[ClerkMe] Backup study guide inference completed.", {
+        model: CLOUDFLARE_STUDY_MODEL,
+        responseMs: Date.now() - inferenceStartedAt,
+        generationMode: mode,
+        promptTokens: resultEnvelope.usage?.prompt_tokens ?? null,
+        completionTokens: resultEnvelope.usage?.completion_tokens ?? null,
+        finishReason: finishReason || "unknown",
+        sourceWasSampled
+      });
       if (sourceWasSampled) {
         const gaps = Array.isArray(parsed.unclearOrMissing) ? parsed.unclearOrMissing : [];
         parsed.unclearOrMissing = [...gaps, "This backup guide was generated from representative source extracts because the original text exceeded the backup model's context limit. Check the original lecture for any omitted middle sections."];
         const disclaimer = typeof parsed.disclaimer === "string" ? parsed.disclaimer : "";
         parsed.disclaimer = (disclaimer ? disclaimer + " " : "") + "Some middle source text was omitted to fit the backup model context window; consult the original lecture for complete coverage.";
       }
-      console.info("[ClerkMe] Cloudflare backup study guide generated.", {
-        model: CLOUDFLARE_STUDY_MODEL,
-        generationMode: mode,
-        sourceWasSampled
-      });
       return parsed;
     } catch (error) {
       lastError = error instanceof Error ? error.message : "Unknown backup-model error.";
@@ -214,11 +238,11 @@ export const onRequestGet = async (context: AppContext) => {
   if (!jobId) return json({ error: "A study generation job is required." }, 400);
 
   const job = await context.env.DB.prepare(`
-    SELECT id, material_id, interaction_id, status, error_message, updated_at
+    SELECT id, material_id, interaction_id, status, error_message, created_at, updated_at
     FROM study_generation_jobs
     WHERE id = ? AND user_id = ?
   `).bind(jobId, user.id).first<{
-    id: string; material_id: string; interaction_id: string; status: string; error_message: string | null; updated_at: number;
+    id: string; material_id: string; interaction_id: string; status: string; error_message: string | null; created_at: number; updated_at: number;
   }>();
   if (!job) return json({ error: "This study generation job could not be found." }, 404);
 
@@ -232,7 +256,11 @@ export const onRequestGet = async (context: AppContext) => {
     }
     return json({ error: "The completed study guide could not be loaded. Please refresh your study library.", code: "STUDY_RESULT_NOT_FOUND" }, 500);
   }
-  if (job.status === "in_progress" && job.updated_at < Math.floor(Date.now() / 1000) - 900) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (job.status === "in_progress" && (
+    job.created_at < nowSeconds - 360 ||
+    job.updated_at < nowSeconds - 120
+  )) {
     await context.env.DB.prepare(
       "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE id = ? AND user_id = ?"
     ).bind(SAFE_STUDY_FAILURE, job.id, user.id).run();
@@ -835,12 +863,17 @@ export const onRequestPost = async (context: AppContext) => {
     return json({ error: "Your original file is saved and can be read in Source Material, but ClerkMe could not extract enough selectable text to create reliable AI notes. Use OCR or a text-based copy, then upload it again for study-guide generation." }, 400);
   }
 
+  await context.env.DB.prepare(
+    "UPDATE study_generation_jobs SET status = 'failed', error_message = ?, updated_at = unixepoch() WHERE user_id = ? AND status IN ('queued', 'in_progress') AND (created_at < unixepoch() - 360 OR updated_at < unixepoch() - 120)"
+  ).bind("This study guide took longer than expected and was safely stopped. Your uploaded material is still saved; please try again.", user.id).run();
+
   const activeJob = await context.env.DB.prepare(`
     SELECT id, interaction_id
     FROM study_generation_jobs
     WHERE user_id = ? AND material_id = ?
       AND status IN ('queued', 'in_progress')
-      AND created_at > unixepoch() - 900
+      AND created_at > unixepoch() - 360
+      AND updated_at > unixepoch() - 120
     ORDER BY created_at DESC
     LIMIT 1
   `).bind(user.id, material.id).first<{ id: string; interaction_id: string }>();
@@ -873,8 +906,15 @@ export const onRequestPost = async (context: AppContext) => {
       const emit = (event: Record<string, unknown>) => {
         try { controller.enqueue(encoder.encode(JSON.stringify(event) + "\n")); } catch {}
       };
+      const heartbeatTimer = setInterval(() => {
+        emit({ type: "heartbeat", at: Date.now() });
+        void context.env.DB.prepare(
+          "UPDATE study_generation_jobs SET updated_at = unixepoch() WHERE id = ? AND user_id = ? AND status = 'in_progress'"
+        ).bind(jobId, user.id).run().catch(() => undefined);
+      }, 10000);
       emit({ type: "preview", preview });
       const sendProgress = (message: string) => emit({ type: "progress", message });
+      console.info("[ClerkMe] Study guide stream opened.", { jobId, materialId: material.id, mode, sourceCharacters: material.content_text.length });
       void (async () => {
         const response = await runStudyGuideJob(context, user, material, jobId, sendProgress, mode);
         const result = await response.json().catch(() => ({})) as Record<string, unknown>;
@@ -890,6 +930,7 @@ export const onRequestPost = async (context: AppContext) => {
         ).bind(SAFE_STUDY_FAILURE, jobId, user.id).run().catch(() => undefined);
         emit({ type: "failed", error: message.includes("GEMINI") ? SAFE_STUDY_FAILURE : message });
       }).finally(() => {
+        clearInterval(heartbeatTimer);
         try { controller.close(); } catch {}
       });
     }

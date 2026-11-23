@@ -1,4 +1,6 @@
-export interface WorkersAI { run(model: string, input: Record<string, unknown>): Promise<unknown>; }
+export interface WorkersAI {
+  run(model: string, input: Record<string, unknown>, options?: { rejectIfBusy?: boolean }): Promise<unknown>;
+}
 export interface R2StoredObject {
   body: ReadableStream;
   size: number;

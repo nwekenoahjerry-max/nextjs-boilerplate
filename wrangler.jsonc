@@ -13,6 +13,13 @@
   "ai": {
     "binding": "AI"
   },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
+  },
   "vars": {
     "GOOGLE_CLIENT_ID": "1001652725948-s7bjafldo8md4hgosnf0dpi4cros7tan.apps.googleusercontent.com"
   },
