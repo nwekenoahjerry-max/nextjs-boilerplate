@@ -74,7 +74,7 @@ function fallbackVisualAids(summary:Record<string,unknown>):VisualAid[]{
     const heading=clean(section.heading,180);
     const detail=[clean(section.summary,500),...(Array.isArray(section.subsections)?section.subsections.map((p:unknown)=>clean((p as Record<string,unknown>)?.heading,160)):[])].join(" ");
     return heading&&visualConcept.test(heading+" "+detail);
-  }).slice(0,4).map(section=>{
+  }).slice(0,3).map(section=>{
     const heading=clean(section.heading,160),detail=clean(section.summary,500);
     const subtopics=Array.isArray(section.subsections)?section.subsections.map((p:unknown)=>clean((p as Record<string,unknown>)?.heading,140)).filter(Boolean).slice(0,2):[];
     const concept=[heading,...subtopics,detail].filter(Boolean).join(". ").slice(0,850);
@@ -109,7 +109,7 @@ async function searchOpenverse(aid:VisualAid):Promise<{image:VisualAid|null;ok:b
   url.searchParams.set("q",aid.searchQuery);url.searchParams.set("page_size","8");
   url.searchParams.set("license","cc0,by,by-sa,pdm");url.searchParams.set("mature","false");
   try{
-    const response=await fetch(url.toString(),{headers:{Accept:"application/json"},signal:AbortSignal.timeout(8000)});
+    const response=await fetch(url.toString(),{headers:{Accept:"application/json"},signal:AbortSignal.timeout(4500)});
     if(!response.ok)return {image:null,ok:false};
     const data=await response.json() as {results?:OpenverseImage[]};
     const candidates=(Array.isArray(data.results)?data.results:[]).filter(item=>{
@@ -131,7 +131,7 @@ async function searchCommons(aid:VisualAid):Promise<{image:VisualAid|null;ok:boo
   const url=new URL("https://commons.wikimedia.org/w/api.php");
   for(const [key,value] of Object.entries({action:"query",format:"json",formatversion:"2",generator:"search",gsrsearch:aid.searchQuery,gsrnamespace:"6",gsrlimit:"10",prop:"imageinfo",iiprop:"url|mime|size|extmetadata",iiurlwidth:"1200",iiextmetadatalanguage:"en",iiextmetadatafilter:"Artist|LicenseShortName|LicenseUrl|ImageDescription|Credit"}))url.searchParams.set(key,value);
   try{
-    const response=await fetch(url.toString(),{headers:{Accept:"application/json","Api-User-Agent":"ClerkME/1.0 (educational image search)"},signal:AbortSignal.timeout(8000)});
+    const response=await fetch(url.toString(),{headers:{Accept:"application/json","Api-User-Agent":"ClerkME/1.0 (educational image search)"},signal:AbortSignal.timeout(4500)});
     if(!response.ok)return {image:null,ok:false};
     const data=await response.json() as CommonsResponse;
     const pages=Array.isArray(data.query?.pages)?data.query?.pages:Object.values(data.query?.pages||{});
@@ -161,7 +161,10 @@ export const onRequestPost=async(context:AppContext)=>{
     let summary:Record<string,unknown>;try{summary=JSON.parse(material.summary_json) as Record<string,unknown>;}catch{return json({error:"The saved study guide could not be read. Refresh the guide and try again."},422);}
     let planned=sanitiseVisualAids(summary.visualAids),saved=planned.filter(aid=>aid.imageUrl);
     if(!force&&summary.visualAidsSearched===true&&saved.length)return json({illustrations:saved,visualAids:planned,message:"Relevant educational images are ready."});
-    if(force||!planned.length||summary.visualAidsReviewed!==true)planned=await planVisualAids(context,material,summary);
+    if(force||!planned.length||summary.visualAidsReviewed!==true){
+      // Reuse the guide's visual concepts. Avoid a second AI inference just to plan image searches.
+      planned=(planned.length?planned:fallbackVisualAids(summary)).slice(0,3);
+    }
     if(!planned.length){
       summary.visualAids=[];summary.visualAidsReviewed=true;summary.visualAidsSearched=true;
       await context.env.DB.prepare("UPDATE learning_materials SET summary_json=?,updated_at=unixepoch() WHERE id=? AND user_id=?").bind(JSON.stringify(summary),material.id,user.id).run();
@@ -169,9 +172,9 @@ export const onRequestPost=async(context:AppContext)=>{
     }
     let providerHealthy=false;
     const visualAids=await Promise.all(planned.map(async aid=>{
-      const openverse=await searchOpenverse(aid);if(openverse.ok)providerHealthy=true;if(openverse.image)return openverse.image;
-      const commons=await searchCommons(aid);if(commons.ok)providerHealthy=true;
-      return commons.image||{...aid};
+      const [openverse,commons]=await Promise.all([searchOpenverse(aid),searchCommons(aid)]);
+      if(openverse.ok||commons.ok)providerHealthy=true;
+      return openverse.image||commons.image||{...aid};
     }));
     const illustrations=visualAids.filter((aid):aid is VisualAid&{imageUrl:string}=>Boolean(aid.imageUrl));
     summary.visualAids=visualAids;summary.visualAidsReviewed=true;summary.visualAidsSearched=true;

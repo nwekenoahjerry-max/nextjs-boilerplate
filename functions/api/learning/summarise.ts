@@ -176,7 +176,7 @@ async function requestCloudflareStudyGuide(
   }
 
   let lastError = "No response was returned.";
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 1; attempt++) {
     try {
       const inferenceStartedAt = Date.now();
       const result = await context.env.AI.run(CLOUDFLARE_STUDY_MODEL, {
@@ -185,7 +185,7 @@ async function requestCloudflareStudyGuide(
           { role: "user", content: boundedUser }
         ],
         response_format: { type: "json_object" },
-        max_tokens: mode === "rapid" ? 2200 : 5200,
+        max_tokens: mode === "rapid" ? 2200 : 6500,
         temperature: 0.15,
         chat_template_kwargs: { enable_thinking: false }
       }, { rejectIfBusy: true });
@@ -731,38 +731,41 @@ ${material.content_text}
       : "Writing the expanded explanations, clinical links and exam-focused revision points…");
 
     let parsed: Record<string, unknown> | null = null;
-    let generationProvider: "Gemini" | "Cloudflare Workers AI" = "Gemini";
-    let geminiFailure: unknown = null;
-    if (geminiApiKey) {
-      try {
-        const outputText = mode === "rapid"
-          ? await requestGeminiStudyGuide(geminiApiKey, messages, 1, 2200, "MINIMAL", 15000)
-          : await requestGeminiStudyGuide(geminiApiKey, messages, 1, 26000, "MEDIUM", 90000);
-        parsed = parseAIResult({ response: outputText });
-      } catch (error) {
-        geminiFailure = error;
-      }
-    } else {
-      geminiFailure = new Error("GEMINI_KEY_NOT_CONFIGURED: Gemini is not configured for this deployment.");
-    }
+    let generationProvider: "Gemini" | "Cloudflare Workers AI" = "Cloudflare Workers AI";
+    let workersAiFailure: unknown = null;
 
-    if (!parsed && context.env.AI) {
-      const reason = geminiFailure instanceof Error ? geminiFailure.message : "Gemini did not return a study guide.";
-      console.warn("[ClerkMe] Gemini unavailable; switching to Cloudflare Workers AI.", {
-        materialId: material.id,
-        jobId,
-        reason: reason.slice(0, 240)
-      });
-      sendProgress("No worries — your study guide is still on its way. ClerkMe is working behind the scenes to keep your learning on track…");
+    // Gemma 4 was benchmarked against a representative lecture and returned a
+    // structured guide faster than the previous Gemini-first production path.
+    if (context.env.AI) {
       try {
         parsed = await requestCloudflareStudyGuide(context, messages, mode);
-        generationProvider = "Cloudflare Workers AI";
+      } catch (error) {
+        workersAiFailure = error;
+      }
+    } else {
+      workersAiFailure = new Error("Cloudflare Workers AI is not connected.");
+    }
+
+    if (!parsed && geminiApiKey) {
+      const reason = workersAiFailure instanceof Error ? workersAiFailure.message : "The primary study engine did not return a guide.";
+      console.warn("[ClerkMe] Primary study engine unavailable; using Gemini as backup.", {
+        materialId: material.id, jobId, reason: reason.slice(0, 240)
+      });
+      sendProgress("Your study guide is still being prepared. ClerkMe is using another route to complete it…");
+      try {
+        const outputText = await requestGeminiStudyGuide(
+          geminiApiKey, messages, 1,
+          mode === "rapid" ? 2200 : 10000,
+          "LOW", 30000
+        );
+        parsed = parseAIResult({ response: outputText });
+        generationProvider = "Gemini";
       } catch (backupError) {
-        const backupMessage = backupError instanceof Error ? backupError.message : "Unknown backup-model error.";
+        const backupMessage = backupError instanceof Error ? backupError.message : "Unknown Gemini backup error.";
         throw new Error("STUDY_BACKUP_FAILED: " + reason.slice(0, 220) + " | " + backupMessage.slice(0, 260));
       }
-    } else if (!parsed && geminiFailure) {
-      throw geminiFailure;
+    } else if (!parsed && workersAiFailure) {
+      throw workersAiFailure;
     }
     if (!parsed) throw new Error("STUDY_GUIDE_EMPTY: No study-guide provider returned a result.");
 
