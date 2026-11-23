@@ -552,7 +552,13 @@ export default function MaterialsPanel() {
       const raw = window.sessionStorage.getItem(illustrationSessionKey(selectedId));
       if (!raw) return;
       const cached = JSON.parse(raw) as unknown;
-      if (Array.isArray(cached)) setIllustrationsByMaterial(current=>({...current,[selectedId]:cached as GeneratedStudyIllustration[]}));
+      if (Array.isArray(cached)) {
+        const valid = cached.filter((item):item is GeneratedStudyIllustration =>
+          !!item && typeof item === "object" && typeof (item as GeneratedStudyIllustration).imageUrl === "string" &&
+          (item as GeneratedStudyIllustration).imageUrl.startsWith("https://")
+        );
+        if (valid.length) setIllustrationsByMaterial(current=>({...current,[selectedId]:valid}));
+      }
     } catch {}
   },[selectedId]);
   useEffect(()=>{ setExpandedStudySections([0,1,2]); },[selectedId]);
@@ -826,8 +832,8 @@ export default function MaterialsPanel() {
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:summary || null,hasSummary:true,studyLoaded:true}:item));
       const elapsedSeconds = ((Date.now()-startedAt)/1000).toFixed(1);
       setNotice(mode === "rapid"
-        ? "Rapid study guide ready in " + elapsedSeconds + " seconds. Visual illustrations load separately."
-        : "Comprehensive study guide ready in " + elapsedSeconds + " seconds. Visual illustrations load separately.");
+        ? "Rapid study guide ready in " + elapsedSeconds + " seconds. Relevant images appear alongside matching topics when available."
+        : "Comprehensive study guide ready in " + elapsedSeconds + " seconds. Relevant images appear alongside matching topics when available.");
       setTab("summary");
       void generateIllustrations(materialId);
       // Start SBA generation only after the selected study guide has completed.
