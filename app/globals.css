@@ -8379,3 +8379,6 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 .auth-password-match{color:#167348!important}
 .auth-password-mismatch{color:#b54737!important}
 .auth-field input[aria-invalid="true"]{border-color:#d66a5c}
+
+.auth-method-title{margin:16px 0 4px;color:#102d5a;font:800 13px Manrope,Arial,sans-serif}
+.public-header-signin,.public-header-start,.public-primary-cta{cursor:pointer}

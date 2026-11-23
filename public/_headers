@@ -1,0 +1,23 @@
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/login
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/login/
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/verify-email
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/verify-email/
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/reset-password
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/reset-password/
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable

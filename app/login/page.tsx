@@ -38,7 +38,9 @@ export default function LoginPage() {
     fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" })
       .then(r => { if (r.ok) window.location.replace("/"); })
       .catch(() => {});
-    if (new URLSearchParams(window.location.search).get("verified") === "1") {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "signup") setMode("signup");
+    if (params.get("verified") === "1") {
       setNotice("Your email address is verified. You can now sign in.");
     }
   }, []);
@@ -157,7 +159,7 @@ export default function LoginPage() {
       {clientId && <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setScriptReady(true)} />}
       <section className="auth-card">
         <ClerkMeBrand caption="CLINICAL COMPANION" className="auth-brand"/>
-        <div className="eyebrow">WELCOME TO CLERKME</div>
+        <div className="eyebrow">WELCOME TO CLERKME · EMAIL AND GOOGLE SIGN-IN</div>
         <h1>{isPending ? "Check your inbox." : isForgot ? "Reset your password." : isSignup ? "Create your account." : <>Sign in to your<br/>clinical workspace.</>}</h1>
         <p className="auth-copy">
           {isPending ? "We need to verify your email address before you can access your clinical learning workspace."
@@ -191,6 +193,7 @@ export default function LoginPage() {
           </form>
         ) : (
           <>
+            <div className="auth-method-title">Use your email and password</div>
             <div className="auth-tabs" role="tablist" aria-label="Account access">
               <button type="button" role="tab" aria-selected={!isSignup} className={!isSignup ? "active" : ""} onClick={() => switchMode("signin")}>Sign in</button>
               <button type="button" role="tab" aria-selected={isSignup} className={isSignup ? "active" : ""} onClick={() => switchMode("signup")}>Create account</button>
@@ -231,7 +234,7 @@ export default function LoginPage() {
               {!isSignup && <div className="auth-forgot-row"><button type="button" className="auth-text-button" onClick={() => switchMode("forgot")}>Forgot password?</button></div>}
               <button className="auth-submit" type="submit" disabled={busy || (isSignup && password !== confirmPassword)}>{busy ? "Please wait…" : isSignup ? "Create account" : "Sign in with email"}</button>
             </form>
-            <div className="auth-divider"><span>or continue with</span></div>
+            <div className="auth-divider"><span>or continue with Google</span></div>
             {clientId ? <div className="google-button" ref={buttonRef}/> : <p className="auth-google-unavailable">Google sign-in is temporarily unavailable. You can still use email and password.</p>}
           </>
         )}

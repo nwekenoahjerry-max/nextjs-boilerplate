@@ -95,8 +95,8 @@ function PublicLanding() {
           <a href="#how-it-works">How it works</a>
         </nav>
         <div className="public-header-actions">
-          <a className="public-header-signin" href="/login">Sign in <span>→</span></a>
-          <a className="public-header-start" href="/login">Get started</a>
+          <a className="public-header-signin" href="/login/?mode=signin&v=email-auth-2">Sign in <span>→</span></a>
+          <a className="public-header-start" href="/login/?mode=signup&v=email-auth-2">Get started</a>
         </div>
       </header>
 
@@ -109,7 +109,7 @@ function PublicLanding() {
             Discover related YouTube lectures, watch supported videos inside the app, and keep your clinical learning in one connected workspace.
           </p>
           <div className="public-hero-actions">
-            <a className="public-primary-cta" href="/login">Get started with ClerkME <span>→</span></a>
+            <a className="public-primary-cta" href="/login/?mode=signup&v=email-auth-2">Get started with ClerkME <span>→</span></a>
             <a className="public-secondary-cta" href="#study-tools">Explore the study tools</a>
           </div>
           <div className="public-hero-proof" aria-label="ClerkME highlights">
