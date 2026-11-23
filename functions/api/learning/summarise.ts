@@ -168,8 +168,37 @@ function adaptStudyGuidePayload(value: Record<string, unknown>): Record<string, 
       recallQuestion: pick(subsection, "recallQuestion", "recall_question") || "",
       recallAnswer: pick(subsection, "recallAnswer", "recall_answer") || ""
     })),
-    diagnosisPattern: pick(section, "diagnosisPattern", "diagnosis_pattern") || null,
-    managementPlan: pick(section, "managementPlan", "management_plan") || [],
+    diagnosisPattern: (() => {
+      const raw = pick(section, "diagnosisPattern", "diagnosis_pattern");
+      if (!raw || typeof raw !== "object") return null;
+      const diagnosis = raw as Record<string, unknown>;
+      const investigations = mapArray(pick(diagnosis, "investigations"), item => ({
+        ...item,
+        expectedFinding: pick(item, "expectedFinding", "expected_finding") || "",
+      }));
+      const differentials = mapArray(pick(diagnosis, "differentialDiagnoses", "differential_diagnoses"), item => ({
+        ...item,
+        distinguishingFeatures: pick(item, "distinguishingFeatures", "distinguishing_features") || ""
+      }));
+      return {
+        ...diagnosis,
+        patternSummary: pick(diagnosis, "patternSummary", "pattern_summary") || "",
+        typicalPresentation: pick(diagnosis, "typicalPresentation", "typical_presentation") || "",
+        historyClues: pick(diagnosis, "historyClues", "history_clues") || [],
+        examinationClues: pick(diagnosis, "examinationClues", "examination_clues") || [],
+        redFlags: pick(diagnosis, "redFlags", "red_flags") || [],
+        diagnosticCriteria: pick(diagnosis, "diagnosticCriteria", "diagnostic_criteria") || [],
+        investigations,
+        differentialDiagnoses: differentials
+      };
+    })(),
+    managementPlan: mapArray(pick(section, "managementPlan", "management_plan"), item => ({
+      ...item,
+      phase: pick(item, "phase", "step") || "",
+      intervention: pick(item, "intervention", "action") || "",
+      monitoring: pick(item, "monitoring", "monitor") || "",
+      cautions: pick(item, "cautions", "caution") || ""
+    })),
     clinicalRelevance: pick(section, "clinicalRelevance", "clinical_relevance") || "",
     highYieldPoints: pick(section, "highYieldPoints", "high_yield_points") || [],
     sourceLocator: pick(section, "sourceLocator", "source_locator") || ""
@@ -271,9 +300,15 @@ async function requestCloudflareStudyGuide(
         throw new Error("The backup model reached its output limit before completing the study guide.");
       }
       const parsed = adaptStudyGuidePayload(parseAIResult(result));
-      if (typeof parsed.overview !== "string" || !Array.isArray(parsed.sections) || parsed.sections.length === 0) {
+      const validSections = Array.isArray(parsed.sections) ? parsed.sections.filter(section =>
+        !!section && typeof section === "object" &&
+        typeof (section as Record<string, unknown>).heading === "string" &&
+        String((section as Record<string, unknown>).heading).trim().length > 0
+      ) : [];
+      if (typeof parsed.overview !== "string" || !parsed.overview.trim() || validSections.length === 0) {
         throw new Error("The backup model returned an incomplete study guide.");
       }
+      parsed.sections = validSections;
       console.info("[ClerkMe] Backup study guide inference completed.", {
         model: CLOUDFLARE_STUDY_MODEL,
         responseMs: Date.now() - inferenceStartedAt,
