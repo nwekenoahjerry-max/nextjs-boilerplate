@@ -6,8 +6,22 @@ import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/fi
 import SourceFileViewer from "./source-file-viewer";
 import StudyGuideReadAloud from "./study-guide-read-aloud";
 
-type StudyVisualAid = { title:string; caption:string; altText:string; sourceSection:string; visualPrompt:string; };
-type GeneratedStudyIllustration = StudyVisualAid & { imageDataUri:string; };
+type StudyVisualAid = {
+  title:string;
+  caption:string;
+  altText:string;
+  sourceSection:string;
+  searchQuery?:string;
+  visualPrompt?:string;
+  imageUrl?:string;
+  sourceUrl?:string;
+  sourceName?:string;
+  creator?:string;
+  creatorUrl?:string;
+  license?:string;
+  licenseUrl?:string;
+};
+type GeneratedStudyIllustration = StudyVisualAid & { imageUrl:string; };
 type SummarySection = {
   heading: string;
   summary: string;
@@ -32,6 +46,7 @@ type StudySummary = {
   quickPreview?: boolean;
   generationMode?: "rapid" | "comprehensive";
   visualAids?: StudyVisualAid[];
+  visualAidsSearched?: boolean;
   highYieldPoints?: string[];
   learningObjectives?: string[];
   sections: SummarySection[];
@@ -135,6 +150,35 @@ const isCustomSubjectUnit = (value:string) => value.startsWith(CUSTOM_SUBJECT_PR
 const customSubjectLabel = (value:string) => isCustomSubjectUnit(value) ? value.slice(CUSTOM_SUBJECT_PREFIX.length) : value;
 const makeCustomSubjectUnit = (value:string) => CUSTOM_SUBJECT_PREFIX + value.trim();
 
+
+function visualMatchesHeading(sourceSection:string, heading:string):boolean {
+  const normalise=(value:string)=>value.toLowerCase().normalize("NFKD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+  const source=normalise(sourceSection),target=normalise(heading);
+  if(!source||!target)return false;
+  if(source===target||source.includes(target)||target.includes(source))return true;
+  const left=new Set(source.split(" ").filter(word=>word.length>2));
+  const right=target.split(" ").filter(word=>word.length>2);
+  const shared=right.filter(word=>left.has(word)).length;
+  return shared>=2&&shared/Math.min(left.size,right.length)>=0.75;
+}
+
+function InlineStudyVisual({visual}:{visual:GeneratedStudyIllustration}) {
+  return <figure className="study-inline-visual-card">
+    <img src={visual.imageUrl} alt={visual.altText||visual.title} loading="lazy" decoding="async"/>
+    <figcaption>
+      <strong>{visual.title}</strong>
+      <p>{visual.caption}</p>
+      <div className="study-inline-visual-credit">
+        {visual.creator&&<span>By {visual.creator}</span>}
+        {visual.sourceName&&<span>Image source: {visual.sourceName}</span>}
+        {visual.license&&visual.licenseUrl&&<a href={visual.licenseUrl} target="_blank" rel="noopener noreferrer">{visual.license}</a>}
+        {visual.license&&!visual.licenseUrl&&<span>{visual.license}</span>}
+        {visual.sourceUrl&&<a href={visual.sourceUrl} target="_blank" rel="noopener noreferrer">View original image</a>}
+      </div>
+    </figcaption>
+  </figure>;
+}
+
 export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
@@ -182,6 +226,7 @@ export default function MaterialsPanel() {
   const [illustrationsByMaterial,setIllustrationsByMaterial] = useState<Record<string,GeneratedStudyIllustration[]>>({});
   const [illustratingMaterialId,setIllustratingMaterialId] = useState("");
   const [illustrationErrors,setIllustrationErrors] = useState<Record<string,string>>({});
+  const illustrationAttemptsRef = useRef<Set<string>>(new Set());
   const [expandedStudySections,setExpandedStudySections] = useState<number[]>([]);
   const [youtubeQuery,setYoutubeQuery] = useState("");
   const [youtubeVideos,setYoutubeVideos] = useState<YouTubeVideo[]>([]);
@@ -250,6 +295,17 @@ export default function MaterialsPanel() {
   },[visibleMaterials,libraryMode]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
   const selectedMaterialIsGeneral = !!selectedMaterial && isCustomSubjectUnit(selectedMaterial.unit);
+  const selectedVisuals = useMemo<GeneratedStudyIllustration[]>(()=>{
+    if (!selectedMaterial) return [];
+    const current = illustrationsByMaterial[selectedMaterial.id] || [];
+    if (current.length) return current;
+    return (selectedMaterial.summary?.visualAids || []).filter((item):item is GeneratedStudyIllustration => typeof item.imageUrl === "string" && item.imageUrl.startsWith("https://"));
+  },[selectedMaterial,illustrationsByMaterial]);
+  const unplacedVisuals = useMemo(()=>{
+    if (!selectedMaterial?.summary) return [];
+    const headings = (selectedMaterial.summary.sections || []).flatMap(section=>[section.heading,...(section.subsections||[]).map(item=>item.heading)]);
+    return selectedVisuals.filter(visual=>!headings.some(heading=>visualMatchesHeading(visual.sourceSection,heading)));
+  },[selectedMaterial,selectedVisuals]);
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
     setLibraryUnit("select");
@@ -638,41 +694,46 @@ export default function MaterialsPanel() {
   const generateIllustrations = async (materialId:string, force=false) => {
     if (!force && illustrationsByMaterial[materialId]?.length) return illustrationsByMaterial[materialId];
     if (illustratingMaterialId) return [];
+    if (!force && illustrationAttemptsRef.current.has(materialId)) return [];
+    illustrationAttemptsRef.current.add(materialId);
     setIllustratingMaterialId(materialId);
-    const imageFailureMessage = "Clerkme can't generate image at the moment, try again later.";
     setIllustrationErrors(current=>({...current,[materialId]:""}));
-    setNotice("Preparing source-specific visual illustrations…");
     try {
       const response = await fetch("/api/learning/illustrations",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({materialId,force})
       });
       const data = await readResponse(response);
-      const generated = Array.isArray(data.illustrations) ? data.illustrations as GeneratedStudyIllustration[] : [];
+      const found = Array.isArray(data.illustrations) ? data.illustrations as GeneratedStudyIllustration[] : [];
       const visualAids = Array.isArray(data.visualAids) ? data.visualAids as StudyVisualAid[] : [];
-      if (visualAids.length) {
-        setMaterials(current=>current.map(item=>item.id===materialId&&item.summary
-          ? {...item,summary:{...item.summary,visualAids}}
-          : item));
-      }
-      if (generated.length) {
-        setIllustrationsByMaterial(current=>({...current,[materialId]:generated}));
-        try { window.sessionStorage.setItem(illustrationSessionKey(materialId),JSON.stringify(generated)); } catch {}
-        setIllustrationErrors(current=>({...current,[materialId]:typeof data.warning==="string"&&data.warning?imageFailureMessage:""}));
-        setNotice(data.message || "Your topic illustrations are ready.");
+      setMaterials(current=>current.map(item=>item.id===materialId&&item.summary
+        ? {...item,summary:{...item.summary,visualAids,visualAidsSearched:true}}
+        : item));
+      if (found.length) {
+        setIllustrationsByMaterial(current=>({...current,[materialId]:found}));
+        try { window.sessionStorage.setItem(illustrationSessionKey(materialId),JSON.stringify(found)); } catch {}
+        setIllustrationErrors(current=>({...current,[materialId]:typeof data.warning==="string"&&data.warning?data.warning:""}));
       } else {
-        setIllustrationErrors(current=>({...current,[materialId]:imageFailureMessage}));
-        setNotice("Your Study Guide remains available.");
+        setIllustrationsByMaterial(current=>({...current,[materialId]:[]}));
+        try { window.sessionStorage.removeItem(illustrationSessionKey(materialId)); } catch {}
+        setIllustrationErrors(current=>({...current,[materialId]:typeof data.message==="string"?data.message:"No relevant openly licensed images were found."}));
       }
-      return generated;
+      return found;
     } catch {
-      setIllustrationErrors(current=>({...current,[materialId]:imageFailureMessage}));
-      setNotice("Your Study Guide remains available.");
+      setIllustrationErrors(current=>({...current,[materialId]:"Image search is temporarily unavailable. Your study guide remains available; please try again."}));
       return [];
     } finally {
       setIllustratingMaterialId("");
     }
   };
+
+  useEffect(()=>{
+    if (!selectedMaterial?.studyLoaded || !selectedMaterial.summary || selectedMaterial.summary.quickPreview ||
+        selectedMaterial.summary.visualAidsSearched === true || selectedMaterial.hasExtractableText === false ||
+        illustratingMaterialId || illustrationAttemptsRef.current.has(selectedMaterial.id)) return;
+    if (selectedMaterial.summary.visualAids?.some(item=>item.imageUrl)) return;
+    void generateIllustrations(selectedMaterial.id);
+  },[selectedMaterial,illustratingMaterialId]);
 
   const summarise = async (materialId:string, mode:"rapid"|"comprehensive"="comprehensive") => {
     const startedAt = Date.now();
@@ -1153,8 +1214,10 @@ export default function MaterialsPanel() {
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>{selectedMaterialIsGeneral?"Start practice":"Start MCQ practice"} <span>→</span></button>}
                 <button type="button" className="secondary-button" onClick={()=>setTab("source")}>Open original file</button>
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
+                <button type="button" className="secondary-button study-inline-visual-refresh" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>{illustratingMaterialId===selectedMaterial.id?"Finding images…":selectedVisuals.length?"Refresh images":"Find images"}</button>
               </div>
             </div>
+            {!!illustrationErrors[selectedMaterial.id]&&<p className="study-inline-visual-status" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
             <StudyGuideReadAloud targetId="study-guide-readable-content" />
             {selectedMaterial.summary.quickPreview&&<div className="study-quick-preview-banner" role="status">
               <span className="study-preview-dot" aria-hidden="true"/>
@@ -1163,6 +1226,10 @@ export default function MaterialsPanel() {
             {!!selectedMaterial.summary.sections?.length&&<nav className="study-contents" aria-label="Study guide contents"><strong>In this guide</strong><div>{selectedMaterial.summary.sections.map((section,index)=><a key={index} href={`#study-section-${index+1}`}>{String(index+1).padStart(2,"0")} · {section.heading}</a>)}</div></nav>}
             
             <section className="study-summary-overview"><div className="eyebrow">TOPIC OVERVIEW</div><p>{selectedMaterial.summary.overview}</p></section>
+            {!!unplacedVisuals.length&&<div className="study-inline-visuals study-unplaced-visuals">
+              {unplacedVisuals.map((visual,index)=><InlineStudyVisual visual={visual} key={visual.sourceUrl||index}/>)}
+            </div>}
+            {!!illustratingMaterialId&&illustratingMaterialId===selectedMaterial.id&&<p className="study-inline-visual-status" role="status">Searching openly licensed educational image libraries…</p>}
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
               <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":selectedMaterialIsGeneral?"KEY KNOWLEDGE":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":selectedMaterialIsGeneral?"Important concepts, methods and distinctions to master":"Core facts, mechanisms and distinctions to master"}</h3>
@@ -1187,12 +1254,18 @@ export default function MaterialsPanel() {
                     </button>
                   </div>
                   <p className="study-section-lead">{section.summary}</p>
+                  {selectedVisuals.filter(visual=>visualMatchesHeading(visual.sourceSection,section.heading)).length>0&&<div className="study-inline-visuals">
+                    {selectedVisuals.filter(visual=>visualMatchesHeading(visual.sourceSection,section.heading)).map((visual,visualIndex)=><InlineStudyVisual visual={visual} key={visual.sourceUrl||visualIndex}/>)}
+                  </div>}
                   <div id={`study-section-details-${index+1}`} className="study-section-expanded-content" hidden={!expanded}>
                     {section.sourceLocator&&<small className="study-source-locator">Source: {section.sourceLocator}</small>}
                     {!!section.subsections?.length&&<div className="study-topic-subsections">{section.subsections.map((subsection,subIndex)=><section className="study-topic-subsection" key={subIndex}>
                       <div className="study-subsection-kicker">TEACH IT · {String(subIndex+1).padStart(2,"0")}</div>
                       <h4>{subsection.heading}</h4>
                       <p>{subsection.explanation}</p>
+                      {selectedVisuals.filter(visual=>visualMatchesHeading(visual.sourceSection,subsection.heading)).length>0&&<div className="study-inline-visuals">
+                        {selectedVisuals.filter(visual=>visualMatchesHeading(visual.sourceSection,subsection.heading)).map((visual,visualIndex)=><InlineStudyVisual visual={visual} key={visual.sourceUrl||visualIndex}/>)}
+                      </div>}
                       {!!subsection.keyPoints?.length&&<ul>{subsection.keyPoints.map((point,pointIndex)=><li key={pointIndex}>{point}</li>)}</ul>}
                       {subsection.mentalModel&&<div className="study-mental-model"><span>MAKE IT CLICK</span><p>{subsection.mentalModel}</p></div>}
                       {subsection.memoryHook&&<div className="study-memory-hook"><span className="study-learning-label">MEMORY ANCHOR</span><p>{subsection.memoryHook}</p></div>}
@@ -1222,26 +1295,6 @@ export default function MaterialsPanel() {
               })}
               </div>
             </details>
-            <section className="study-summary-block study-visual-illustrations">
-              <div className="study-visual-illustrations-toolbar">
-                <div><div className="eyebrow">VISUAL LEARNING</div><h3>{selectedMaterialIsGeneral?"Visual explanations":"Illustrated concepts"}</h3><p>Topic-specific medical schematics selected from the uploaded material to make difficult anatomy and mechanisms easier to understand.</p></div>
-                <button type="button" className="study-illustration-action" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>
-                  {illustratingMaterialId===selectedMaterial.id?"Generating…":(illustrationsByMaterial[selectedMaterial.id]?.length?"Regenerate illustrations":"Generate illustrations")} <span aria-hidden="true">↗</span>
-                </button>
-              </div>
-              {illustratingMaterialId===selectedMaterial.id&&<div className="study-illustration-loading" role="status"><span className="study-illustration-spinner"/><span>Creating source-specific textbook illustrations…</span></div>}
-              {!!illustrationsByMaterial[selectedMaterial.id]?.length&&<div className="study-illustration-grid">
-                {illustrationsByMaterial[selectedMaterial.id].map((illustration,index)=><figure className="study-illustration-card" key={index}>
-                  <img src={illustration.imageDataUri} alt={illustration.altText} loading="lazy" decoding="async"/>
-                  <figcaption><strong>{illustration.title}</strong><p>{illustration.caption}</p>{illustration.sourceSection&&<small>Related topic: {illustration.sourceSection}</small>}</figcaption>
-                </figure>)}
-              </div>}
-              {!illustrationsByMaterial[selectedMaterial.id]?.length&&!illustratingMaterialId&&<p className="study-illustration-empty">{selectedMaterial.summary.visualAids?.length
-                ? "Illustration plans are ready. Select Generate illustrations to create the visual aids."
-                : "Generate up to two useful visual aids for this lecture. ClerkMe will not force an image where a table or written explanation is clearer."}</p>}
-              {!!illustrationErrors[selectedMaterial.id]&&<p className="study-illustration-error" role="status">{illustrationErrors[selectedMaterial.id]}</p>}
-              <p className="study-illustration-disclaimer">Educational schematics are illustrative and may simplify anatomical detail. They are not diagnostic images or a substitute for verified clinical references.</p>
-            </section>
             {!!selectedMaterial.summary.examFocus&&<section className="study-summary-block study-exam-focus">
               <div className="eyebrow">EXAM REVISION</div><h3>High-yield knowledge to master</h3>
               {!!selectedMaterial.summary.examFocus.mustKnow?.length&&<div className="study-exam-subsection"><h4>Must-know knowledge</h4><ul>{selectedMaterial.summary.examFocus.mustKnow.map((item,index)=><li key={index}>{item}</li>)}</ul></div>}
