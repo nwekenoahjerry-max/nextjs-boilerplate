@@ -244,3 +244,43 @@ html[data-theme="dark"] .account-signout-button:hover { background: #402b35; }
   .notification-popover { position: fixed; top: 67px; right: 12px; width: min(390px, calc(100vw - 24px)); max-height: calc(100dvh - 90px); }
 }
 @media (prefers-reduced-motion: reduce) { .appearance-option, .notification-trigger { transition: none; } }
+
+html[data-theme="dark"] {
+  --ink: #edf3fb;
+  --muted: #aebdd1;
+  --paper: #0d1726;
+  --line: #30425b;
+  --green: #8db8f6;
+  --green-dark: #0b2348;
+  --mint: #22344a;
+  --purple: #8db8f6;
+  --purple-dark: #0b2348;
+  --lavender: #22344a;
+  --lavender-soft: #17253a;
+  --brand-navy: #a8c8fb;
+  --brand-emerald: #83b5ee;
+  --brand-gold: #e4c982;
+  --brand-cloud: #17253a;
+  --shadow-soft: 0 20px 60px rgba(0, 0, 0, .28);
+}
+html[data-theme="dark"] .install-invite-dialog {
+  background: #17253a !important;
+  border-color: #30425b !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(.install-invite-dialog h1,.install-invite-dialog h2,.install-invite-dialog h3,.install-invite-dialog p,.install-invite-dialog span,.install-invite-dialog small) {
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] .install-invite-later,
+html[data-theme="dark"] .install-invite-close {
+  color: #dce8f7 !important;
+  background: #21324a !important;
+}
+html[data-theme="dark"] :is(.source-original-toolbar,.source-powerpoint-frame,.source-original-panel,.source-pdf-frame,.study-quick-preview-banner,.study-guide-provider-note,.guide-section,.selected-template-context,.clerking-note-panel) {
+  background: #17253a !important;
+  border-color: #30425b !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(.source-original-toolbar strong,.source-original-toolbar small,.source-original-panel strong,.source-original-panel small,.guide-section h3,.guide-section p,.selected-template-context strong,.selected-template-context p,.clerking-note-panel h3,.clerking-note-panel p) {
+  color: #edf3fb !important;
+}
