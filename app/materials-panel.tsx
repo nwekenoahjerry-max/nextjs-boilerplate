@@ -183,7 +183,7 @@ export default function MaterialsPanel() {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
-  const [libraryUnit,setLibraryUnit] = useState("select");
+  const [libraryUnit,setLibraryUnit] = useState("all");
   const [libraryMode,setLibraryMode] = useState<LibraryMode>("clinical");
   const [customSubject,setCustomSubject] = useState("");
   const [libraryModeReady,setLibraryModeReady] = useState(false);
@@ -308,7 +308,7 @@ export default function MaterialsPanel() {
   },[selectedMaterial,selectedVisuals]);
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
-    setLibraryUnit("select");
+    setLibraryUnit("all");
     setLibrarySearch("");
     setExpandedUnits({});
     setSelectedId("");
@@ -350,6 +350,8 @@ export default function MaterialsPanel() {
     window.requestAnimationFrame(()=>document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
   };
   const openUploadForm = () => {
+    setSelectedId("");
+    setMobileDetailOpen(false);
     setShowUploadForm(true);
     setMobileDetailOpen(false);
     setError("");
@@ -363,7 +365,18 @@ export default function MaterialsPanel() {
     window.scrollTo({top:0,behavior:"smooth"});
   };
   const returnToLibrary = () => {
+    if (liveInProgress) return;
     setMobileDetailOpen(false);
+    setSelectedId("");
+    setAnswer(null);
+    setQuestionIndex(0);
+    setQuestionAnswers({});
+    setQuizFinished(false);
+    setQuizMode("practice");
+    setLiveDeadline(null);
+    setLiveStartedAt(null);
+    setLiveElapsedSeconds(0);
+    setLiveTimedOut(false);
     window.scrollTo({top:0,behavior:"smooth"});
   };
   const activeQuestions = selectedMaterial?.questions || [];
@@ -474,7 +487,7 @@ export default function MaterialsPanel() {
     setYoutubeError("");
   };
 
-  const loadMaterials = async (preserveId = true) => {
+  const loadMaterials = async () => {
     const response = await fetch("/api/learning/materials",{credentials:"same-origin",cache:"no-store"});
     const data = await readResponse(response);
     const cached = new Map(materials.map(item=>[item.id,item]));
@@ -490,20 +503,12 @@ export default function MaterialsPanel() {
       } : item;
     });
     setMaterials(next);
-    if (!preserveId || !next.some(item=>item.id===selectedId)) {
-      let savedMaterialId = "";
-      try { savedMaterialId = window.sessionStorage.getItem(ACTIVE_LIVE_MATERIAL_KEY) || ""; } catch {}
-      const savedMaterialExists = savedMaterialId && next.some(item=>item.id===savedMaterialId);
-      if (savedMaterialId && !savedMaterialExists) {
-        try {
-          window.sessionStorage.removeItem(liveSessionKey(savedMaterialId));
-          window.sessionStorage.removeItem(ACTIVE_LIVE_MATERIAL_KEY);
-        } catch {}
-      }
-      // Select the newest upload on sign-in so its saved study set can be restored.
-      const initialId = savedMaterialExists ? savedMaterialId : (next[0]?.id || "");
-      setSelectedId(initialId);
-      setMobileDetailOpen(Boolean(savedMaterialExists || initialId));
+
+    // Refreshes preserve an explicitly opened material, but the library never
+    // selects the newest or previously active material automatically.
+    if (selectedId && !next.some(item=>item.id===selectedId)) {
+      setSelectedId("");
+      setMobileDetailOpen(false);
     }
     return next;
   };
@@ -883,16 +888,16 @@ export default function MaterialsPanel() {
       const data = await readResponse(response);
       const material = data.material as StudyMaterial;
       setMaterials(current=>[{...material,summary:null,questions:[],hasSummary:false,questionCount:0,studyLoaded:true},...current.filter(item=>item.id!==material.id)]);
-      setSelectedId(material.id);
+      setSelectedId("");
       setShowUploadForm(false);
-      setMobileDetailOpen(true);
-      window.requestAnimationFrame(()=>document.getElementById("materials-detail-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
+      setMobileDetailOpen(false);
       setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
       setLibraryUnit(uploadUnit);
       setUnit(uploadUnit);
       setTitle(""); setFile(null);
-      setNotice("Material uploaded. Your Study Guide is being prepared. Open the original file from the Study Guide whenever you need it.");
+      setNotice("Material uploaded successfully. Its study guide is being prepared in the background. Select it from your library whenever you are ready to open it.");
       setTab("summary");
+      window.requestAnimationFrame(()=>document.getElementById("materials-library-card")?.scrollIntoView({behavior:"smooth",block:"start"}));
       await summarise(material.id,"comprehensive");
     } catch(e) {
       setNotice("");
@@ -919,7 +924,7 @@ export default function MaterialsPanel() {
         body:JSON.stringify({materialId,count,level})
       });
       const data = await readResponse(response);
-      await loadMaterials(true);
+      await loadMaterials();
       const refreshedStudy = await loadMaterialStudy(materialId);
       const refreshedMaterial = materials.find(item=>item.id===materialId);
       const added = Number(data.generated || 0);
@@ -1025,10 +1030,10 @@ export default function MaterialsPanel() {
         </div>
         {libraryMode==="general" && <p className="materials-library-mode-note"><strong>Your subjects, your structure.</strong> Name the subject when you upload a file — for example Economics, Law, Computer Science, Psychology, Research Methods or Project Management. ClerkMe will organise resources and build revision questions from the uploaded source.</p>}
       </section>
-              <section className="materials-library-card materials-library-first-card">
+              <section id="materials-library-card" className="materials-library-card materials-library-first-card">
           <div className="materials-library-heading">
             <div><div className="eyebrow">YOUR UPLOADED FILES</div><h2>My library <span>{modeMaterials.length}</span></h2></div>
-            <button type="button" className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials(false).catch(e=>setError(e.message))}>↻ Refresh</button>
+            <button type="button" className="text-link" disabled={liveInProgress} onClick={()=>loadMaterials().catch(e=>setError(e.message))}>↻ Refresh</button>
           </div>
           <div className="materials-unit-filter">
             <div className="materials-unit-filter-heading">
@@ -1038,7 +1043,6 @@ export default function MaterialsPanel() {
             <label className="materials-unit-select-label">
               <span>{libraryMode==="clinical"?"Clinical unit":"Subject / course"}</span>
               <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress} aria-label={libraryMode==="clinical"?"Choose a clinical unit":"Choose a subject"}>
-                <option value="select">Choose {libraryMode==="clinical"?"a clinical unit":"a subject"}</option>
                 <option value="all">All {libraryMode==="clinical"?"units":"subjects"} ({modeMaterials.length})</option>
                 {libraryBrowseUnits.map(item=>{
                   const count=modeMaterials.filter(material=>material.unit===item.id).length;
@@ -1115,19 +1119,13 @@ export default function MaterialsPanel() {
       </section>}
       
 
-      {materials.length>0&&!mobileDetailOpen&&!showUploadForm&&<section className="materials-selection-empty">
-        <span className="materials-selection-empty-icon" aria-hidden="true">▤</span>
-        <div><div className="eyebrow">YOUR STUDY LIBRARY</div><h2>{selectedMaterial?"Your library is ready":"Choose a material to begin"}</h2><p>{selectedMaterial?"Your selected material is saved. Open it to continue with the Study Guide, original file, practice questions or Ask ClerkME.":"Select any uploaded resource above to open its Study Guide, original file, practice questions or Ask ClerkME. Your files stay organised by "+(libraryMode==="clinical"?"clinical unit":"subject")+"."}</p></div>
-        {selectedMaterial
-          ? <button type="button" className="primary-button" onClick={()=>openMaterial(selectedMaterial)}>Open selected material <span>→</span></button>
-          : <button type="button" className="primary-button" onClick={openUploadForm}>＋ Upload a material</button>}
-      </section>}
+
 
       {error&&<p className="auth-error materials-feedback">{error}</p>}
       {notice&&<p className="success-note materials-feedback">{notice}</p>}
 
       {selectedMaterial && mobileDetailOpen && <section id="materials-detail-card" className="materials-detail-card">
-        <button type="button" className="materials-mobile-back" onClick={returnToLibrary} aria-label="Back to study library">← <span>All materials</span></button>
+        <button type="button" className="materials-mobile-back" onClick={returnToLibrary} disabled={liveInProgress} aria-label="Back to study library">← <span>All materials</span></button>
         <div className="materials-detail-heading">
           <div>
             <div className="eyebrow">{unitName(selectedMaterial.unit).toUpperCase()} · {selectedMaterial.category.toUpperCase()}</div>
