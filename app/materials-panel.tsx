@@ -99,8 +99,8 @@ type YouTubeVideo = {
 
 async function readResponse(response: Response) {
   const raw = await response.text();
-  let data: Record<string,unknown> = {};
-  try { data = raw ? JSON.parse(raw) as Record<string,unknown> : {}; }
+  let data: Record<string, any> = {};
+  try { data = raw ? JSON.parse(raw) as Record<string, any> : {}; }
   catch {
     const status = response.status ? " (" + response.status + ")" : "";
     throw new Error(response.ok
