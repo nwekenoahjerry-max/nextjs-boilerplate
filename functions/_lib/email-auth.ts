@@ -112,14 +112,14 @@ export async function sendAuthEmail(
   const isVerification = purpose === "verify_email";
   const heading = isVerification ? "Verify your email address" : "Reset your ClerkMe password";
   const explanation = isVerification
-    ? "Confirm this email address to activate your ClerkMe account. This link expires in 24 hours."
-    : "Use the secure link below to choose a new password. This link expires in 1 hour.";
+    ? "Confirm this email address to activate your ClerkMe account and get started with your clinical learning workspace. This secure link expires in 24 hours."
+    : "We received a request to reset the password for your ClerkMe account. Use the secure link below to choose a new password. This secure link expires in 1 hour.";
   const button = isVerification ? "Verify email address" : "Reset my password";
   const safeUrl = escapeHtml(actionUrl.toString());
   // Use the production PNG mark: raster logos are more consistently rendered
   // by email clients than SVG images.
   const logoUrl = "https://clerkme.com.ng/clerkme-192.png";
-  const safeLogoUrl = escapeHtml(logoUrl);
+  // Resend embeds this image in the message using the matching Content-ID below.
   const html =
     '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
     '<body style="margin:0;padding:0;background:#f2f5fa;font-family:Arial,Helvetica,sans-serif;color:#18304f">' +
@@ -130,7 +130,7 @@ export async function sendAuthEmail(
     '<tr><td style="padding:26px 30px;background:#102d5a">' +
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse"><tr>' +
     '<td valign="middle" style="padding-right:15px">' +
-    '<img src="' + safeLogoUrl + '" width="68" height="68" alt="ClerkMe logo" style="display:block;width:68px;height:68px;border:0;border-radius:15px;outline:none;text-decoration:none">' +
+    '<img src="cid:clerkme-logo" width="68" height="68" alt="ClerkMe logo" style="display:block;width:68px;height:68px;border:0;border-radius:15px;outline:none;text-decoration:none">' +
     '</td><td valign="middle">' +
     '<div style="font-size:25px;line-height:1.2;font-weight:800;letter-spacing:-.5px;color:#ffffff">ClerkMe</div>' +
     '<div style="padding-top:5px;font-size:10px;line-height:1.5;font-weight:700;letter-spacing:1.5px;color:#dbe7f7">CLINICAL LEARNING WORKSPACE</div>' +
@@ -155,8 +155,9 @@ export async function sendAuthEmail(
     '<p style="margin:18px 0 0;font-size:10px;line-height:1.5;color:#9aa5b3">This is an automated account-security message.</p>' +
     '</td></tr></table></body></html>';
 
-  const text = "ClerkMe\\n" + heading + "\\n\\n" + explanation + "\\n\\n" + button + ": " + actionUrl.toString() +
-    "\\n\\nIf you did not request this email, ignore it. Never share this link with anyone.\\n\\nClerkMe · Your clinical learning workspace\\nhttps://clerkme.com.ng";
+  const text = "ClerkMe\n" + heading + "\n\n" + explanation + "\n\n" + button + ": " + actionUrl.toString() +
+    "\n\nFor your security, this link is personal and should not be shared. If you did not request this email, you can safely ignore it." +
+    "\n\nClerkMe · Your clinical learning workspace\nhttps://clerkme.com.ng";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -170,7 +171,13 @@ export async function sendAuthEmail(
       to: [recipient],
       subject: isVerification ? "Welcome to ClerkMe — verify your email" : "Reset your ClerkMe password",
       html,
-      text
+      text,
+      attachments: [{
+        path: logoUrl,
+        filename: "clerkme-logo.png",
+        content_type: "image/png",
+        content_id: "clerkme-logo"
+      }]
     })
   });
   if (!response.ok) {
