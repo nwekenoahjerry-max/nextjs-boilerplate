@@ -332,92 +332,164 @@ type ClerkMeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: { promptEvent: ClerkMeInstallPromptEvent | null; onPromptConsumed: () => void }) {
+function InstallAppAction({ promptEvent, onPromptConsumed }: { promptEvent: ClerkMeInstallPromptEvent | null; onPromptConsumed: () => void }) {
+  const [installed, setInstalled] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
+  const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
+
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)");
+    const checkInstalled = () => setInstalled(
+      standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
+    );
+    const onInstalled = () => {
+      setInstalled(true);
+      setShowInstructions(false);
+    };
+    checkInstalled();
+    standalone.addEventListener("change", checkInstalled);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      standalone.removeEventListener("change", checkInstalled);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const showManualInstructions = () => {
+    const userAgent = navigator.userAgent;
+    const isAppleMobile = /iphone|ipad|ipod/i.test(userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isAppleMobile) setPlatform("ios");
+    else if (/android/i.test(userAgent)) setPlatform("android");
+    else setPlatform("desktop");
+    setShowInstructions(true);
+  };
+
+  const install = async () => {
+    if (!promptEvent) {
+      showManualInstructions();
+      return;
+    }
+    onPromptConsumed();
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice.outcome === "accepted") setInstalled(true);
+      else showManualInstructions();
+    } catch {
+      showManualInstructions();
+    }
+  };
+
+  if (installed) return null;
+
+  return (
+    <section className="account-install-action" aria-label="Install ClerkMe">
+      <span className="account-install-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 16V3M7 8l5-5 5 5" />
+          <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+        </svg>
+      </span>
+      <span className="account-install-copy">
+        <strong>Install ClerkMe</strong>
+        <small>Add ClerkMe to your device for quicker, one-tap access.</small>
+      </span>
+      <button
+        type="button"
+        className="account-install-button"
+        onClick={() => showInstructions ? setShowInstructions(false) : promptEvent ? void install() : showManualInstructions()}
+      >
+        {showInstructions ? "Close guide" : promptEvent ? "Install" : "How to install"}
+      </button>
+      {showInstructions && (
+        <div className="account-install-guide" role="status">
+          <strong>Install from your browser</strong>
+          {platform === "ios" && <p>Open ClerkMe in Safari, tap the Share icon, then choose <b>Add to Home Screen</b>.</p>}
+          {platform === "android" && <p>Open your browser menu <b>⋮</b>, then choose <b>Install app</b> or <b>Add to Home screen</b>.</p>}
+          {platform === "desktop" && <p>In Chrome or Edge, select the install icon in the address bar, or open the browser menu and choose <b>Install ClerkMe</b>.</p>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+
+function InstallAppPrompt({ promptEvent, onPromptConsumed }: { promptEvent: ClerkMeInstallPromptEvent | null; onPromptConsumed: () => void }) {
   const [visible, setVisible] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
-  const deferredPrompt = useRef<ClerkMeInstallPromptEvent | null>(null);
   const installActionRef = useRef<HTMLButtonElement>(null);
 
   const dismissInvitation = useCallback(() => {
     try {
-      // Do not ask again for 30 days after the student chooses "Maybe later".
-      window.localStorage.setItem("clerkme-install-invite-dismissed-until-v2", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
+      // Respect a learner's choice for 30 days, without hiding the permanent Account option.
+      window.localStorage.setItem("clerkme-install-invite-dismissed-until-v3", String(Date.now() + 30 * 24 * 60 * 60 * 1000));
     } catch {
-      // Dismiss for this page view even when browser storage is unavailable.
+      // Continue to dismiss for this page view when storage is unavailable.
     }
     setVisible(false);
   }, []);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.get("welcome") === "1") {
-      url.searchParams.delete("welcome");
-      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-    }
+    const standalone = window.matchMedia("(display-mode: standalone)");
+    const isInstalled = () =>
+      standalone.matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
 
-    const isStandalone = () =>
-      window.matchMedia("(display-mode: standalone)").matches ||
-      Boolean((navigator as Navigator & { standalone?: boolean }).standalone);
-    if (isStandalone()) {
+    if (isInstalled()) {
       setInstalled(true);
       return;
     }
 
-    const onBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      deferredPrompt.current = event as ClerkMeInstallPromptEvent;
-    };
     const onInstalled = () => {
       setInstalled(true);
       setVisible(false);
-      deferredPrompt.current = null;
-      try {
-        window.localStorage.setItem("clerkme-install-invite-dismissed-until-v2", String(Date.now() + 365 * 24 * 60 * 60 * 1000));
-      } catch {
-        // Standalone display mode will identify the installed app on later visits.
+      setShowInstructions(false);
+    };
+    const onDisplayModeChange = () => {
+      if (isInstalled()) {
+        setInstalled(true);
+        setVisible(false);
       }
     };
-
-    // Register the app shell as soon as the signed-in workspace opens. Do not
-    // depend on visiting Account settings before the browser can offer install.
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-        // The in-app instructions remain available if registration is unavailable.
-      });
-    }
-    window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
+    standalone.addEventListener("change", onDisplayModeChange);
 
-    let timer: number | undefined;
     let dismissedUntil = 0;
     try {
-      dismissedUntil = Number(window.localStorage.getItem("clerkme-install-invite-dismissed-until-v2") || 0);
+      dismissedUntil = Number(window.localStorage.getItem("clerkme-install-invite-dismissed-until-v3") || 0);
     } catch {
-      // Continue with the invitation when storage is unavailable.
+      // Show the invitation if browser storage is unavailable.
     }
+
+    let timer: number | undefined;
     if (dismissedUntil <= Date.now()) {
       timer = window.setTimeout(() => {
-        if (!isStandalone()) setVisible(true);
-      }, 1250);
+        if (!isInstalled()) setVisible(true);
+      }, 1400);
     }
 
     return () => {
       if (timer !== undefined) window.clearTimeout(timer);
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
+      standalone.removeEventListener("change", onDisplayModeChange);
     };
   }, []);
 
   useEffect(() => {
     if (!visible) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     installActionRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") dismissInvitation();
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [visible, dismissInvitation]);
 
   const showManualInstructions = () => {
@@ -431,12 +503,10 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
   };
 
   const install = async () => {
-    const promptEvent = deferredPrompt.current || sharedPromptEvent;
     if (!promptEvent) {
       showManualInstructions();
       return;
     }
-    deferredPrompt.current = null;
     onPromptConsumed();
     try {
       await promptEvent.prompt();
@@ -455,13 +525,15 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
   if (!visible || installed) return null;
 
   return (
-    <div className="install-invite-backdrop" role="presentation">
+    <div className="install-invite-backdrop" role="presentation" onMouseDown={event => {
+      if (event.target === event.currentTarget) dismissInvitation();
+    }}>
       <section className="install-invite-dialog" role="dialog" aria-modal="true" aria-labelledby="install-invite-title" aria-describedby="install-invite-description">
         <button className="install-invite-close" type="button" onClick={dismissInvitation} aria-label="Close installation invitation">×</button>
         <div className="install-invite-mark" aria-hidden="true"><span>↥</span><i/></div>
         <span className="install-invite-eyebrow">YOUR CLERKME WORKSPACE</span>
         <h2 id="install-invite-title">Keep ClerkMe one tap away.</h2>
-        <p id="install-invite-description">Add ClerkMe to your device for quicker access to your clinical learning workspace.</p>
+        <p id="install-invite-description">Install ClerkMe on your device for quicker access to your clinical learning workspace, even from your home screen.</p>
         {showInstructions && (
           <div className="install-invite-steps" role="status">
             <strong>Install from your browser</strong>
@@ -471,12 +543,12 @@ function InstallAppPrompt({ promptEvent: sharedPromptEvent, onPromptConsumed }: 
           </div>
         )}
         <div className="install-invite-actions">
-          <button ref={installActionRef} className="install-invite-primary" type="button" onClick={showInstructions ? dismissInvitation : install}>
+          <button ref={installActionRef} className="install-invite-primary" type="button" onClick={showInstructions ? dismissInvitation : () => void install()}>
             {showInstructions ? "Got it" : "Install ClerkMe"} <span aria-hidden="true">→</span>
           </button>
           {!showInstructions && <button className="install-invite-later" type="button" onClick={dismissInvitation}>Maybe later</button>}
         </div>
-        <span className="install-invite-footnote">You can also install ClerkMe later from your browser menu.</span>
+        <span className="install-invite-footnote">You can also install ClerkMe at any time from Account & settings.</span>
       </section>
     </div>
   );
@@ -902,7 +974,7 @@ export default function Home() {
             <div className="page-intro">
               <div className="eyebrow">ACCOUNT & PREFERENCES</div>
               <h1>Account & settings</h1>
-              <p>Manage your academic profile, personalise ClerkME and review important learning updates.</p>
+              <p>Manage your academic profile and personalise your ClerkME workspace.</p>
             </div>
 
             <section className="panel you-account-panel" aria-label="Account overview">
@@ -952,14 +1024,7 @@ export default function Home() {
                 </div>
                 <p className="appearance-help">Your choice is saved to your account and follows you across devices. System uses your device setting.</p>
               </article>
-              <article className="panel account-settings-group">
-                <div className="account-settings-group-heading"><span className="account-settings-icon">♧</span><div><h3>Learning notifications</h3><p>Stay informed without interrupting your study session.</p></div></div>
-                <div className="you-setting-action">
-                  <span className="account-settings-row-icon" aria-hidden="true">♧</span>
-                  <span><strong>Study and account updates</strong><small>Study-guide completion, new SBA batches and important learning updates appear in the notification bell above.</small></span>
-                  <span className="you-action-label">In-app</span>
-                </div>
-              </article>
+              <InstallAppAction promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
             </section>
             <div className="account-session-footer">
               <span className="account-session-copy"><strong>Signed in securely</strong><small>Sign out when you are using a shared or public device.</small></span>

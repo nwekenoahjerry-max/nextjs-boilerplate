@@ -284,3 +284,504 @@ html[data-theme="dark"] :is(.source-original-toolbar,.source-powerpoint-frame,.s
 html[data-theme="dark"] :is(.source-original-toolbar strong,.source-original-toolbar small,.source-original-panel strong,.source-original-panel small,.guide-section h3,.guide-section p,.selected-template-context strong,.selected-template-context p,.clerking-note-panel h3,.clerking-note-panel p) {
   color: #edf3fb !important;
 }
+
+
+/* Account layout after removing the informational notification card. */
+@media (min-width: 761px) {
+  .account-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+.account-install-action {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255,255,255,.72);
+}
+.account-install-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #edf2f8;
+  color: #102d5a;
+}
+.account-install-icon svg { width: 19px; height: 19px; }
+.account-install-copy { display: grid; gap: 3px; min-width: 0; }
+.account-install-copy strong { color: #102d5a; font-size: 12px; font-weight: 800; }
+.account-install-copy small { color: #63738a; font-size: 10.5px; line-height: 1.45; }
+.account-install-button {
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: #102d5a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform .16s ease, background .16s ease;
+}
+.account-install-button:hover { background: #1b4779; transform: translateY(-1px); }
+.account-install-button:focus-visible { outline: 3px solid rgba(74,116,169,.35); outline-offset: 2px; }
+.account-install-guide {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #dce6f2;
+  border-radius: 10px;
+  background: #f5f8fc;
+}
+.account-install-guide strong { color: #102d5a; font-size: 10px; }
+.account-install-guide p { margin: 0; color: #52647c; font-size: 10.5px; line-height: 1.55; }
+@media (max-width: 600px) {
+  .account-install-action { grid-template-columns: 34px minmax(0,1fr) auto; gap: 9px; padding: 11px; }
+  .account-install-icon { width: 34px; height: 34px; border-radius: 10px; }
+  .account-install-copy strong { font-size: 11px; }
+  .account-install-copy small { font-size: 9.5px; }
+  .account-install-button { min-height: 38px; padding: 8px 10px; font-size: 9px; }
+  .account-install-guide { grid-column: 1 / -1; }
+}
+
+/* Dark-mode surface coverage: study, question bank, simulation, library and admin. */
+html[data-theme="dark"] :is(
+  .tool-card, .panel, .template-row, .template-card, .resource-card, .form-panel,
+  .auth-card, .flight-game, .flight-quiz, .learning-toolbar, .guide-card, .guide-section,
+  .qbank-card, .osce-card, .slide-generator, .organised-prose,
+  .unit-guide-intro-card, .unit-guide-final-card, .unit-guide-section,
+  .materials-upload-card, .materials-library-card, .materials-detail-card,
+  .study-summary-block, .study-summary-section, .study-tutor-answer,
+  .simulation-setup, .simulation-case-card, .simulation-interaction-card,
+  .simulation-feedback-card, .simulation-empty, .simulation-selector-card,
+  .simulation-case-banner, .simulation-conversation-card, .simulation-review-card,
+  .simulation-chat-intro, .simulation-chat-bubble, .simulation-question-form,
+  .simulation-review-grid > div, .simulation-print-report, .simulation-print-picker-card,
+  .activity-streak-card, .empty-state, .presentation-pathway-card, .presentation-empty,
+  .presentation-checklist-panel, .presentation-core-reference, .presentation-redflags,
+  .presentation-exam-focus, .presentation-core-steps details,
+  .presentation-reference-grid > div, .presentation-example,
+  .mobile-more-panel, .mobile-more-link, .mobile-account-tool, .mobile-account-settings-row,
+  .you-account-panel, .you-setting-action, .you-profile-link, .account-settings-group,
+  .profile-required-screen > section, .signout-confirm-dialog, .signout-cancel-button,
+  .profile-search-picker-panel, .profile-search-picker-trigger, .profile-manual-university,
+  .study-flowchart, .study-video-link, .study-contents, .study-mcq-stats > div,
+  .study-mcq-question-card, .study-mcq-question-map, .study-mcq-review-item,
+  .study-live-result-time > span, .study-video-result, .video-library-card,
+  .video-library-custom-folder, .dashboard-hero-path, .dashboard-path-step > span,
+  .learning-rhythm, .study-mnemonic-word, .study-clinical-pattern-card,
+  .study-mental-model, .study-active-recall, .workspace-shortcut-card,
+  .materials-format-card, .study-hub-card, .study-hub-format-card,
+  .materials-unit-group, .materials-study-tool-card, .source-image-extracted-text,
+  .study-dive-deeper-dropdown, .study-dive-deeper-meta > span, .study-dive-deeper-chevron,
+  .home-stats-strip, .home-stat-card, .home-action-card, .focus-music-panel,
+  .focus-music-controls, .focus-music-recommendation, .focus-music-dock,
+  .admin-page, .admin-gate, .admin-topbar, .admin-metric-card, .admin-panel,
+  .admin-date-pill, .admin-directory-total, .admin-gate-card,
+  .admin-refresh-button, .admin-pagination button,
+  .install-app-help, .account-install-action, .account-install-guide,
+  .materials-library-personaliser, .materials-library-mode-options > button,
+  .materials-study-tools, .materials-practice-tool
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+  box-shadow: none;
+}
+
+/* Preserve deliberate brand/feedback surfaces and keep all learning copy readable. */
+html[data-theme="dark"] :is(
+  .tool-card, .panel, .template-row, .template-card, .resource-card, .form-panel,
+  .auth-card, .flight-game, .flight-quiz, .learning-toolbar, .guide-card, .guide-section,
+  .qbank-card, .osce-card, .slide-generator, .organised-prose,
+  .unit-guide-intro-card, .unit-guide-final-card, .unit-guide-section,
+  .materials-upload-card, .materials-library-card, .materials-detail-card,
+  .study-summary-block, .study-summary-section, .study-tutor-answer,
+  .simulation-setup, .simulation-case-card, .simulation-interaction-card,
+  .simulation-feedback-card, .simulation-empty, .simulation-selector-card,
+  .simulation-case-banner, .simulation-conversation-card, .simulation-review-card,
+  .simulation-chat-intro, .simulation-chat-bubble, .simulation-question-form,
+  .simulation-print-report, .simulation-print-picker-card, .activity-streak-card,
+  .empty-state, .presentation-pathway-card, .presentation-empty,
+  .presentation-checklist-panel, .presentation-core-reference, .presentation-redflags,
+  .presentation-exam-focus, .presentation-core-steps details,
+  .presentation-reference-grid > div, .presentation-example,
+  .mobile-more-panel, .mobile-more-link, .mobile-account-tool, .mobile-account-settings-row,
+  .you-account-panel, .you-setting-action, .you-profile-link, .account-settings-group,
+  .profile-required-screen > section, .signout-confirm-dialog, .profile-search-picker-panel,
+  .profile-search-picker-trigger, .profile-manual-university,
+  .study-flowchart, .study-video-link, .study-contents, .study-mcq-stats > div,
+  .study-mcq-question-card, .study-mcq-question-map, .study-mcq-review-item,
+  .study-video-result, .video-library-card, .dashboard-hero-path, .dashboard-path-step > span,
+  .learning-rhythm, .study-mnemonic-word, .study-clinical-pattern-card,
+  .study-mental-model, .study-active-recall, .workspace-shortcut-card,
+  .materials-format-card, .study-hub-card, .study-hub-format-card,
+  .materials-unit-group, .materials-study-tool-card, .source-image-extracted-text,
+  .study-dive-deeper-dropdown, .home-stat-card, .home-action-card,
+  .focus-music-panel, .focus-music-controls, .focus-music-recommendation,
+  .admin-metric-card, .admin-panel, .admin-gate-card,
+  .materials-library-personaliser, .materials-study-tools, .materials-practice-tool
+) :is(h1, h2, h3, h4, strong, b, summary, span, li, label, code, em) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .tool-card, .panel, .template-row, .template-card, .resource-card, .form-panel,
+  .auth-card, .flight-game, .flight-quiz, .learning-toolbar, .guide-card, .guide-section,
+  .qbank-card, .osce-card, .slide-generator, .organised-prose,
+  .unit-guide-intro-card, .unit-guide-final-card, .unit-guide-section,
+  .materials-upload-card, .materials-library-card, .materials-detail-card,
+  .study-summary-block, .study-summary-section, .study-tutor-answer,
+  .simulation-setup, .simulation-case-card, .simulation-interaction-card,
+  .simulation-feedback-card, .simulation-empty, .simulation-selector-card,
+  .simulation-case-banner, .simulation-conversation-card, .simulation-review-card,
+  .simulation-chat-intro, .simulation-chat-bubble, .simulation-question-form,
+  .simulation-print-report, .simulation-print-picker-card, .activity-streak-card,
+  .empty-state, .presentation-pathway-card, .presentation-empty,
+  .presentation-checklist-panel, .presentation-core-reference, .presentation-redflags,
+  .presentation-exam-focus, .presentation-core-steps details,
+  .presentation-reference-grid > div, .presentation-example,
+  .mobile-more-panel, .mobile-more-link, .mobile-account-tool, .mobile-account-settings-row,
+  .you-account-panel, .you-setting-action, .account-settings-group,
+  .profile-required-screen > section, .signout-confirm-dialog, .profile-search-picker-panel,
+  .profile-search-picker-trigger, .profile-manual-university,
+  .study-flowchart, .study-video-link, .study-contents, .study-mcq-stats > div,
+  .study-mcq-question-card, .study-mcq-question-map, .study-mcq-review-item,
+  .study-video-result, .video-library-result, .video-library-card,
+  .learning-rhythm, .study-mnemonic-word, .study-clinical-pattern-card,
+  .study-mental-model, .study-active-recall, .workspace-shortcut-card,
+  .materials-format-card, .study-hub-card, .study-hub-format-card,
+  .materials-unit-group, .materials-study-tool-card, .source-image-extracted-text,
+  .study-dive-deeper-dropdown, .focus-music-panel, .focus-music-controls,
+  .focus-music-recommendation, .admin-page, .admin-gate, .admin-topbar,
+  .admin-metric-card, .admin-panel, .admin-gate-card,
+  .materials-library-personaliser, .account-install-action, .account-install-guide
+) :is(p, small, dt, dd, blockquote, .muted, .tool-desc, .resource-card p, .template-card p) {
+  color: var(--clerkme-muted) !important;
+}
+
+/* Light controls nested inside cards were also hard-coded to white in the original palette. */
+html[data-theme="dark"] :is(
+  .flight-option, .qbank-option, .unit-guide-tabs button, .materials-tabs button,
+  .simulation-intent-switch button, .simulation-case-option,
+  .presentation-count, .presentation-search, .presentation-category-select select,
+  .presentation-quick-categories button, .presentation-question-list label,
+  .secondary-button, .study-mcq-option, .study-mcq-question-map button,
+  .study-mcq-mode-switch button, .study-expand-all-button, .study-section-toggle,
+  .study-video-player-heading > button, .video-library-query-row input,
+  .video-library-filters select, .video-library-saved-toolbar input,
+  .video-library-saved-toolbar select, .video-library-move-label select,
+  .simulation-live-call-mute, .simulation-live-call-end, .simulation-live-call-notice,
+  .source-pptx-tool-button, .source-pptx-tool-select select,
+  .source-pptx-slide-grid button, .materials-unit-tabs button,
+  .materials-unit-tabs > button, .materials-unit-select-label select,
+  .materials-unit-filter select, .materials-generation-controls select,
+  .materials-library-mode-options > button, .materials-summary-mode-options button,
+  .materials-summary-mode-radio, .flight-source-controls select,
+  .source-read-aloud-actions button, .source-read-aloud-actions label,
+  .source-read-aloud-actions select, .study-guide-read-aloud button,
+  .study-guide-read-aloud label, .study-guide-read-aloud select,
+  .focus-music-style-row button, .focus-music-recommendation-heading > button,
+  .focus-music-stop, .admin-refresh-button, .admin-pagination button,
+  .admin-date-pill, .admin-directory-total, .profile-search-picker-trigger,
+  .profile-search-picker-option, .profile-back-link, .you-profile-link,
+  .signout-cancel-button, .account-install-button
+) {
+  background: var(--clerkme-elevated) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+
+/* Status and primary actions keep their distinct, intentional contrast. */
+html[data-theme="dark"] :is(.primary-button, .install-invite-primary, .account-install-button) {
+  color: #10233e !important;
+}
+html[data-theme="dark"] .account-install-icon {
+  background: #263d5a !important;
+  color: #d7e8ff !important;
+}
+html[data-theme="dark"] .account-install-guide {
+  background: var(--clerkme-elevated) !important;
+  border-color: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] .account-install-guide strong { color: var(--clerkme-text) !important; }
+html[data-theme="dark"] .account-install-guide p { color: var(--clerkme-muted) !important; }
+html[data-theme="dark"] .account-install-copy strong { color: var(--clerkme-text) !important; }
+html[data-theme="dark"] .account-install-copy small { color: var(--clerkme-muted) !important; }
+html[data-theme="dark"] .account-install-button {
+  background: #d6e6fb !important;
+  color: #10233e !important;
+}
+html[data-theme="dark"] .account-install-button:hover { background: #e8f1ff !important; }
+
+/* Shared headings and page chrome remain legible in dark mode on every route. */
+html[data-theme="dark"] :is(.admin-page, .admin-gate, .profile-required-screen, .home-dashboard-active) {
+  background: var(--clerkme-canvas) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(.admin-page, .admin-gate, .profile-required-screen) :is(h1, h2, h3, h4, p, label, small, span, strong, a) {
+  color: var(--clerkme-text);
+}
+html[data-theme="dark"] :is(.admin-page, .admin-gate, .profile-required-screen) :is(p, small, .muted) {
+  color: var(--clerkme-muted);
+}
+html[data-theme="dark"] .account-session-footer {
+  background: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+}
+
+
+/* Additional reader, assessment and landing-page surfaces found in the full style audit. */
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report.print-active,
+  .flight-answer-review-card, .flight-answer-review-heading > strong,
+  .study-live-setup-fields, .study-live-result-time > span,
+  .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar,
+  .video-library-close, .dashboard-hero-secondary, .dashboard-hero-path,
+  .dashboard-path-step, .learning-week-day > i,
+  .study-expand-all-button, .study-section-toggle,
+  .materials-unit-select-label, .materials-unit-filter,
+  .materials-library-personaliser, .materials-library-mode-options,
+  .profile-form-actions, .profile-search-picker-option,
+  .pdf-source-reader, .pdf-source-toolbar, .pdf-source-footer,
+  .pdf-source-rendering, .xlsx-source-reader, .xlsx-source-tabs,
+  .source-pptx-rendering, .source-original-toolbar, .source-original-panel,
+  .public-header, .public-preview-card, .public-floating-note,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-demo-option, .public-spotlight-card,
+  .public-visual-document, .public-clinical-card,
+  .public-secondary-cta, .public-header-signin,
+  .presentation-count, .presentation-search,
+  .presentation-empty, .presentation-checklist-panel,
+  .presentation-core-reference, .presentation-redflags,
+  .presentation-exam-focus, .presentation-question-list label,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown,
+  .study-dive-deeper-meta > span, .study-dive-deeper-chevron,
+  .admin-date-pill, .admin-directory-total, .admin-refresh-button,
+  .mobile-dock, .mobile-more-panel, .mobile-more-link
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report, .flight-answer-review-card,
+  .study-live-setup-fields, .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar, .dashboard-hero-path,
+  .dashboard-path-step, .learning-week-day > i, .materials-unit-select-label,
+  .materials-unit-filter, .profile-form-actions, .pdf-source-reader,
+  .pdf-source-toolbar, .pdf-source-footer, .xlsx-source-reader,
+  .xlsx-source-tabs, .public-preview-card, .public-floating-note,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-demo-option, .public-spotlight-card,
+  .public-visual-document, .public-clinical-card, .presentation-empty,
+  .presentation-checklist-panel, .presentation-core-reference,
+  .presentation-redflags, .presentation-exam-focus,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown, .admin-gate,
+  .admin-page, .mobile-more-panel, .mobile-dock
+) :is(h1, h2, h3, h4, strong, b, span, li, label, summary, code) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report, .flight-answer-review-card,
+  .study-live-setup-fields, .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar, .dashboard-hero-path,
+  .dashboard-path-step, .materials-unit-select-label, .materials-unit-filter,
+  .profile-form-actions, .pdf-source-reader, .pdf-source-toolbar,
+  .pdf-source-footer, .xlsx-source-reader, .public-preview-card,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-spotlight-card, .public-visual-document,
+  .public-clinical-card, .presentation-empty, .presentation-checklist-panel,
+  .presentation-core-reference, .presentation-redflags, .presentation-exam-focus,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown
+) :is(p, small, em, blockquote, .muted) {
+  color: var(--clerkme-muted) !important;
+}
+
+/* Keep document pages themselves faithful to their source while darkening their app chrome. */
+html[data-theme="dark"] :is(.pdf-source-toolbar, .pdf-source-footer, .xlsx-source-reader, .xlsx-source-tabs, .source-pptx-tool-button, .source-pptx-tool-select select) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .pdf-source-canvas-inner canvas,
+html[data-theme="dark"] .xlsx-source-table-wrap,
+html[data-theme="dark"] .source-pptx-canvas {
+  background: #fff !important;
+}
+html[data-theme="dark"] :is(.public-header, .admin-topbar, .mobile-dock) {
+  box-shadow: none !important;
+}
+
+
+/* Final small-component coverage from the white-surface audit. */
+html[data-theme="dark"] :is(
+  .date-chip, .slide-file-picker, .materials-source-viewer,
+  .materials-workspace.is-mobile-detail .materials-mobile-back,
+  .flight-question-panel, .flight-question-panel .question-progress,
+  .flight-question-panel .option-letter, .flight-question-panel .flight-timer,
+  .flight-question-panel .flight-mission-placeholder,
+  .flight-question-panel .flight-tf-option, .flight-tf-option,
+  .flight-tf-option .flight-tf-symbol, .auth-tabs, .clerkme-public-home
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .date-chip, .slide-file-picker, .materials-source-viewer,
+  .materials-workspace.is-mobile-detail .materials-mobile-back,
+  .flight-question-panel, .flight-question-panel .question-progress,
+  .flight-question-panel .option-letter, .flight-question-panel .flight-timer,
+  .flight-question-panel .flight-mission-placeholder,
+  .flight-question-panel .flight-tf-option, .flight-tf-option,
+  .flight-tf-option .flight-tf-symbol, .auth-tabs
+) :is(h1, h2, h3, h4, strong, b, span, label, small, p) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(.slide-file-picker, .materials-source-viewer, .auth-tabs) :is(p, small, em) {
+  color: var(--clerkme-muted) !important;
+}
+
+
+/* Darken the remaining light-gradient cards, not just their base background colour. */
+html[data-theme="dark"] :is(
+  .auth-page, .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .materials-library-mode-options > button.active,
+  .study-dive-deeper-dropdown > summary, .study-dive-deeper-button,
+  .admin-sidebar-note, .public-hero, .public-bottom-cta,
+  .public-clinical-note
+) {
+  background: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .materials-library-mode-options > button.active,
+  .study-dive-deeper-dropdown > summary, .study-dive-deeper-button,
+  .admin-sidebar-note, .public-hero, .public-bottom-cta,
+  .public-clinical-note
+) :is(h1, h2, h3, h4, strong, b, span, label, small, p, li, summary) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .study-dive-deeper-dropdown > summary,
+  .study-dive-deeper-button, .admin-sidebar-note, .public-hero,
+  .public-bottom-cta, .public-clinical-note
+) :is(p, small, em, .muted, .eyebrow) {
+  color: var(--clerkme-muted) !important;
+}
+
+
+/* Keep the permanent install shortcut aligned with the Account settings grid. */
+.account-settings-grid > .account-install-action {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 70px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--clerkme-border);
+  border-radius: 15px;
+  background: var(--clerkme-elevated);
+  box-shadow: none;
+}
+.account-settings-grid > .account-install-action .account-install-icon {
+  width: 40px;
+  height: 40px;
+}
+.account-settings-grid > .account-install-action .account-install-copy {
+  gap: 3px;
+}
+.account-settings-grid > .account-install-action .account-install-copy strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.account-settings-grid > .account-install-action .account-install-copy small {
+  max-width: 520px;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.account-settings-grid > .account-install-action .account-install-button {
+  min-width: 104px;
+}
+@media (max-width: 600px) {
+  .account-settings-grid > .account-install-action {
+    grid-template-columns: 36px minmax(0,1fr) auto;
+    gap: 9px;
+    min-height: 66px;
+    padding: 10px 11px;
+    border-radius: 13px;
+  }
+  .account-settings-grid > .account-install-action .account-install-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .account-settings-grid > .account-install-action .account-install-copy small {
+    font-size: 9.5px;
+  }
+  .account-settings-grid > .account-install-action .account-install-button {
+    min-width: 88px;
+    min-height: 38px;
+    padding: 8px 9px;
+    font-size: 9px;
+  }
+}
+
+/* The automatic invitation is deliberately prominent but remains readable in either theme. */
+.install-invite-dialog {
+  width: min(100%, 460px);
+}
+.install-invite-dialog > p {
+  max-width: 390px;
+}
+html[data-theme="dark"] .install-invite-steps {
+  background: #21324a !important;
+  border-color: #3b506d !important;
+}
+html[data-theme="dark"] .install-invite-steps strong,
+html[data-theme="dark"] .install-invite-steps b {
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] .install-invite-steps p {
+  color: #aebdd1 !important;
+}
+html[data-theme="dark"] .install-invite-footnote {
+  color: #aebdd1 !important;
+}
+html[data-theme="dark"] .install-invite-primary {
+  background: linear-gradient(115deg,#d6e6fb,#aac9ef) !important;
+  border-color: #aac9ef !important;
+  color: #10233e !important;
+}
+html[data-theme="dark"] .install-invite-later:hover,
+html[data-theme="dark"] .install-invite-close:hover {
+  background: #2b4260 !important;
+}
