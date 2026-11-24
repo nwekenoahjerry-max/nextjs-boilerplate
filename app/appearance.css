@@ -1265,3 +1265,309 @@ html[data-theme="dark"] .auth-text-button,
 html[data-theme="dark"] .auth-back {
   color: var(--clerkme-text) !important;
 }
+
+
+/* --------------------------------------------------------------------------
+   Final contrast repair: account status badges and neutral/selected controls.
+   These rules deliberately override legacy light-theme white/pale button fills.
+   -------------------------------------------------------------------------- */
+html[data-theme="dark"] .app-shell .you-account-status.is-complete {
+  background: #183d33 !important;
+  border: 1px solid #326b52 !important;
+  color: #b7f2d0 !important;
+}
+html[data-theme="dark"] .app-shell .you-account-status.is-incomplete {
+  background: #43351f !important;
+  border: 1px solid #78603a !important;
+  color: #f5d99b !important;
+}
+
+/* Neutral controls: dark elevated surface with readable foreground. */
+html[data-theme="dark"] .app-shell :is(
+  .help-button, .close-button, .secondary-button,
+  .unit-guide-tabs button, .materials-tabs button,
+  .simulation-intent-switch button, .simulation-model-answer > button,
+  .presentation-quick-categories button, .mobile-more-heading button,
+  .simulation-voice-button, .simulation-patient-voice-toggle,
+  .simulation-print-menu button,
+  .simulation-print-picker-card > button:not(.simulation-print-picker-cancel),
+  .signout-cancel-button,
+  .study-mcq-question-map button, .study-mcq-mode-switch button,
+  .study-expand-all-button, .study-section-toggle,
+  .source-pptx-tool-button, .source-pptx-slide-grid button,
+  .materials-unit-tabs button, .flight-next-button,
+  .mobile-account-sheet-topline > button, .materials-library-search > button,
+  .pdf-source-page-controls button, .xlsx-source-tabs button,
+  .source-read-aloud-actions button, .source-read-aloud-actions label,
+  .study-guide-read-aloud button, .study-guide-read-aloud label,
+  .focus-music-style-row button, .focus-music-recommendation-heading > button,
+  .admin-refresh-button, .admin-pagination button,
+  .materials-summary-mode-options button,
+  .study-video-player-heading > button, .study-video-topic-button,
+  .study-video-save-button, .study-video-secondary-button
+) {
+  background: #263a53 !important;
+  border-color: #415975 !important;
+  color: #eaf2fc !important;
+  box-shadow: none;
+}
+html[data-theme="dark"] .app-shell :is(
+  .help-button, .close-button, .secondary-button,
+  .unit-guide-tabs button, .materials-tabs button,
+  .simulation-intent-switch button, .simulation-model-answer > button,
+  .presentation-quick-categories button, .mobile-more-heading button,
+  .simulation-voice-button, .simulation-patient-voice-toggle,
+  .simulation-print-menu button,
+  .simulation-print-picker-card > button:not(.simulation-print-picker-cancel),
+  .signout-cancel-button,
+  .study-mcq-question-map button, .study-mcq-mode-switch button,
+  .study-expand-all-button, .study-section-toggle,
+  .source-pptx-tool-button, .source-pptx-slide-grid button,
+  .materials-unit-tabs button, .flight-next-button,
+  .mobile-account-sheet-topline > button, .materials-library-search > button,
+  .pdf-source-page-controls button, .xlsx-source-tabs button,
+  .source-read-aloud-actions button, .study-guide-read-aloud button,
+  .focus-music-style-row button, .admin-refresh-button, .admin-pagination button,
+  .materials-summary-mode-options button,
+  .study-video-player-heading > button, .study-video-topic-button,
+  .study-video-save-button, .study-video-secondary-button
+):hover:not(:disabled) {
+  background: #304966 !important;
+  border-color: #607b9d !important;
+  color: #ffffff !important;
+}
+
+/* Selected controls retain a clear selected state without a white fill. */
+html[data-theme="dark"] .app-shell :is(
+  .unit-guide-tabs button.active, .materials-tabs button.active,
+  .simulation-intent-switch button.active,
+  .presentation-quick-categories button.active,
+  .study-mcq-question-map button.is-current,
+  .study-mcq-question-map button.is-answered,
+  .study-mcq-mode-switch button.active,
+  .source-pptx-tool-button.is-active,
+  .source-pptx-slide-grid button.is-current,
+  .materials-unit-tabs button.active,
+  .materials-unit-tabs > button.active,
+  .xlsx-source-tabs button.active
+) {
+  background: #344d6c !important;
+  border-color: #7896ba !important;
+  color: #f4f8ff !important;
+  box-shadow: inset 0 0 0 1px rgba(180, 207, 239, .08) !important;
+}
+
+/* Keep intentionally coloured primary and semantic buttons untouched. */
+html[data-theme="dark"] .app-shell :is(
+  .signout-accept-button, .flight-launch-button,
+  .video-library-play-button, .primary-button
+) {
+  text-shadow: none;
+}
+html[data-theme="dark"] .app-shell :is(
+  .secondary-button, .study-video-save-button,
+  .video-library-save-button, .video-library-remove-button,
+  .video-library-close, .signout-cancel-button
+):disabled {
+  opacity: .82 !important;
+  color: #c7d4e5 !important;
+}
+html[data-theme="dark"] .app-shell button:focus-visible,
+html[data-theme="dark"] .app-shell a:focus-visible {
+  outline: 2px solid #9fc5f0 !important;
+  outline-offset: 2px;
+}
+
+/* Video Library: explicit states for every tab, filter, action and feedback item. */
+html[data-theme="dark"] .app-shell .video-library-tabs {
+  border-bottom-color: #40536b !important;
+}
+html[data-theme="dark"] .app-shell .video-library-tabs button {
+  background: transparent !important;
+  color: #b5c5da !important;
+}
+html[data-theme="dark"] .app-shell .video-library-tabs button.active {
+  background: #2d4562 !important;
+  border: 1px solid #4a6484 !important;
+  color: #f2f7ff !important;
+}
+html[data-theme="dark"] .app-shell .video-library-tabs button.active::after {
+  background: #b7d5f7 !important;
+}
+html[data-theme="dark"] .app-shell .video-library-tabs button span {
+  background: #1b2b40 !important;
+  border: 1px solid #405774 !important;
+  color: #d7e7fa !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-mark, .video-library-saved-count,
+  .video-library-empty-icon, .video-library-folder-heading > span
+) {
+  background: #263a53 !important;
+  border-color: #415975 !important;
+  color: #e7f0fc !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-query-row input, .video-library-custom-folder,
+  .video-library-filters select, .video-library-saved-toolbar input,
+  .video-library-saved-toolbar select, .video-library-move-label select
+) {
+  background: #17263a !important;
+  border-color: #415975 !important;
+  color: #edf3fb !important;
+  color-scheme: dark;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-query-row input, .video-library-custom-folder,
+  .video-library-saved-toolbar input
+)::placeholder {
+  color: #91a5be !important;
+  opacity: 1;
+}
+html[data-theme="dark"] .app-shell .video-library-card {
+  background: #1b2b40 !important;
+  border-color: #3b506b !important;
+  box-shadow: none !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-card-body h3, .video-library-channel,
+  .video-library-folder-heading, .video-library-folder-heading h3
+) {
+  color: #eaf2fc !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-meta, .video-library-description,
+  .video-library-folder-heading small, .video-library-quality-note,
+  .video-library-player-note, .video-library-results-heading > span,
+  .video-library-section-heading p
+) {
+  color: #aebed2 !important;
+}
+html[data-theme="dark"] .app-shell .video-library-play-button {
+  background: #315b85 !important;
+  border-color: #5b82ad !important;
+  color: #ffffff !important;
+}
+html[data-theme="dark"] .app-shell .video-library-save-button {
+  background: #263f5b !important;
+  border-color: #4a6481 !important;
+  color: #e6f0fc !important;
+}
+html[data-theme="dark"] .app-shell .video-library-save-button:disabled {
+  background: #203a31 !important;
+  border-color: #3d6a55 !important;
+  color: #b9e8cd !important;
+  opacity: 1 !important;
+}
+html[data-theme="dark"] .app-shell .video-library-remove-button {
+  background: #442b32 !important;
+  border-color: #79505a !important;
+  color: #ffdfe2 !important;
+}
+html[data-theme="dark"] .app-shell .video-library-close {
+  background: #263a53 !important;
+  border-color: #415975 !important;
+  color: #eaf2fc !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-notice, .study-video-save-notice
+) {
+  background: #1b3a50 !important;
+  border-color: #3e647e !important;
+  color: #d8efff !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-error, .study-video-save-error
+) {
+  background: #412b32 !important;
+  border-color: #744852 !important;
+  color: #ffdcdf !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-empty, .video-library-empty-start
+) {
+  background: #1b2b40 !important;
+  border-color: #435872 !important;
+  color: #c3d0e1 !important;
+}
+html[data-theme="dark"] .app-shell :is(
+  .video-library-empty h3, .video-library-empty-start h2
+) {
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] .app-shell .video-library-spinner {
+  border-color: #40536b !important;
+  border-top-color: #c3dcfa !important;
+}
+html[data-theme="dark"] .app-shell .video-library-youtube-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #5b444a !important;
+  border-radius: 8px;
+  background: #382b31 !important;
+  color: #ffe2e4 !important;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+html[data-theme="dark"] .app-shell .video-library-youtube-link:hover {
+  background: #4a333b !important;
+  border-color: #8a5c65 !important;
+}
+
+
+/* Shared style for the external YouTube action; theme-specific colours below. */
+.app-shell .video-library-youtube-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #d8e2da;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #102d5a;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.app-shell .video-library-youtube-link:hover {
+  background: #f5f8fc;
+  border-color: #a9b9cb;
+}
+
+/* Additional neutral controls found in the cross-screen button audit. */
+html[data-theme="dark"] .app-shell :is(
+  .flight-controls button,
+  .flight-quiz .flight-material-prompt button,
+  .study-video-search-controls input,
+  .study-video-search-controls select,
+  .study-video-search-controls textarea
+) {
+  background: #263a53 !important;
+  border-color: #415975 !important;
+  color: #eaf2fc !important;
+  color-scheme: dark;
+}
+html[data-theme="dark"] .app-shell .study-video-link {
+  background: #1b2b40 !important;
+  border-color: #415975 !important;
+}
+html[data-theme="dark"] .app-shell .study-video-link :is(strong,span,small,p) {
+  color: #eaf2fc !important;
+}
+html[data-theme="dark"] .app-shell .study-video-link :is(small,p) {
+  color: #aebed2 !important;
+}
+html[data-theme="dark"] .app-shell .study-video-search-controls input::placeholder {
+  color: #91a5be !important;
+  opacity: 1;
+}
+html[data-theme="dark"] .app-shell .video-library-search form > label,
+html[data-theme="dark"] .app-shell .video-library-filters label,
+html[data-theme="dark"] .app-shell .video-library-move-label {
+  color: #dce8f6 !important;
+}

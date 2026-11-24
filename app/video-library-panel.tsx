@@ -227,7 +227,7 @@ export default function VideoLibraryPanel() {
       <div className="video-library-player-heading">
         <div><span className="eyebrow">NOW PLAYING IN CLERKME</span><strong>{activeVideo.title}</strong><small>{activeVideo.channelTitle}</small></div>
         <div className="video-library-player-actions" style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <a className="video-library-youtube-link" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minHeight:36,padding:"7px 12px",border:"1px solid #d8e2da",borderRadius:8,background:"#fff",color:"#102D5A",fontSize:12,fontWeight:700,textDecoration:"none"}} href={"https://www.youtube.com/watch?v=" + activeVideo.id} target="_blank" rel="noopener noreferrer">Open on YouTube ↗</a>
+          <a className="video-library-youtube-link" href={"https://www.youtube.com/watch?v=" + activeVideo.id} target="_blank" rel="noopener noreferrer">Open on YouTube ↗</a>
           <button type="button" className="video-library-close" onClick={() => setActiveVideo(null)}>Close player ×</button>
         </div>
       </div>
