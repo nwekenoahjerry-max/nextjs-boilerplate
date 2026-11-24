@@ -9,7 +9,7 @@ database_id = "ccfafcf6-4ce7-43de-b406-fc2b1130f683"
 
 [vars]
 APP_ORIGIN = "https://clerkme.com.ng"
-VAPID_PUBLIC_KEY = "BAymw1lmbf1rfNB1G72rmucNNVJbKjIxBmwtjniVbyZTfR5uIJoh81IQ0NmqFAUnokb1D_qENbtp_C-edvoj7Cc"
+VAPID_PUBLIC_KEY = "BOmGKXo7G7bdhAbeMMHds5rpr8PDmrsh_QMVZ3LI8lvIwaWrXYYqF7XrYfzuM47_depI8abDrFN98UrWtqec_ek"
 VAPID_SUBJECT = "mailto:accounts@mail.clerkme.com.ng"
 
 [triggers]
