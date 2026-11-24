@@ -43,6 +43,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
   }
 
   stage = "session creation";
+  await env.DB.prepare("UPDATE student_profiles SET last_seen_at = unixepoch() WHERE id = ?").bind(profile.id).run();
   const sessionToken = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join("");
   const sessionHash = await sha256(sessionToken);
   await env.DB.prepare(

@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v19-library-refresh";
+const CACHE_NAME = "clerkme-shell-v20-gentle-push";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
@@ -52,4 +52,31 @@ self.addEventListener("fetch", event => {
         .catch(() => caches.match(request))
     );
   }
+});
+
+
+// Background Web Push: notifications can arrive while ClerkMe is closed.
+self.addEventListener("push", event => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; }
+  catch { payload = { body: event.data ? event.data.text() : "" }; }
+  event.waitUntil(self.registration.showNotification(payload.title || "ClerkMe has missed you 💙", {
+    body: payload.body || "Your clinical learning space is waiting whenever you are ready.",
+    icon: "/clerkme-192.png", badge: "/clerkme-192.png",
+    tag: payload.tag || "clerkme-gentle-reengagement", renotify: false,
+    data: { url: payload.url || "/" }, timestamp: Date.now()
+  }));
+});
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const destination = new URL(event.notification.data && event.notification.data.url || "/", self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clientList => {
+    for (const client of clientList) {
+      if (client.url.startsWith(self.location.origin) && "focus" in client) {
+        if ("navigate" in client) client.navigate(destination);
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(destination);
+  }));
 });
