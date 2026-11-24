@@ -418,6 +418,7 @@ function normaliseStudySummary(parsed: Record<string, unknown>, generationMode: 
           caption: clean(item.caption, 650),
           altText: clean(item.altText, 500),
           sourceSection: clean(item.sourceSection, 180),
+          searchQuery: clean(item.searchQuery, 180),
           visualPrompt: clean(item.visualPrompt, 1100)
         };
       }).filter(item => item.title && item.caption && item.altText && item.visualPrompt) : [],
@@ -624,7 +625,7 @@ async function runStudyGuideJob(
     "Return valid JSON with this structure: " + JSON.stringify({
       overview:"A concise orientation to the subject and document.",
       highYieldPoints:["Ranked facts, concepts, principles, methods or distinctions and why each matters."],
-      visualAids:[{title:"Visual title",caption:"What the visual teaches",altText:"Accurate screen-reader description",sourceSection:"Matching section",visualPrompt:"A precise educational diagram, chart, process or conceptual-map prompt."}],
+      visualAids:[{title:"Visual title",caption:"What the visual teaches",altText:"Accurate screen-reader description",sourceSection:"Matching section",searchQuery:"A precise 2–6 word Wikimedia Commons search phrase",visualPrompt:"A precise source-grounded visual concept."}],
       learningObjectives:["What the learner should be able to explain, compare, calculate, recognise or apply."],
       sections:[{heading:"Major topic",summary:"Brief orientation",subsections:[{heading:"Specific concept",explanation:"Clear explanatory teaching.",keyPoints:["Source-grounded key points"],mentalModel:"Useful analogy or empty string",memoryHook:"Accurate retrieval cue or empty string",recallQuestion:"Self-test question or empty string",recallAnswer:"Answer or empty string"}],diagnosisPattern:null,managementPlan:[],clinicalRelevance:"",highYieldPoints:["Important source-grounded points"],sourceLocator:"Page, slide or heading if available."}],
       keyTerms:[{term:"Term",meaning:"Clear definition."}],
@@ -675,7 +676,7 @@ Return a JSON object with this exact shape:
 {
   "overview": "A concise 1-3 sentence orientation to the topic and why it matters.",
   "highYieldPoints": ["12-20 ranked exam-relevant points when the source contains sufficient material. Each point should state the key fact and why it matters, without becoming a mini-essay."],
-  "visualAids": [{"title":"A concise illustration title","caption":"What the visual teaches and how it relates to the source","altText":"A precise description of the intended image for screen-reader users","sourceSection":"The matching section heading","visualPrompt":"A detailed image-generation prompt for a medically responsible textbook-style schematic. No text, labels, lettering, numbers or watermarks."}],
+  "visualAids": [{"title":"A concise illustration title","caption":"What the visual teaches and how it relates to the source","altText":"A precise description of the intended image for screen-reader users","sourceSection":"The matching section heading","searchQuery":"A concise, specific 2–6 word Wikimedia Commons search phrase using the named structure, disease, organism, mechanism or process","visualPrompt":"A short source-grounded description of the visual concept. No text, labels, lettering, numbers or watermarks."}],
   "learningObjectives": ["Specific things the student should be able to explain, recognise or apply after studying."],
   "sections": [
     {
@@ -735,6 +736,7 @@ Quality and completeness:
 - EXAM VALUE HIERARCHY: Rank content as CORE, SUPPORTING or CONTEXTUAL. The high-yield list should contain approximately 12–20 of the most important, precise and source-grounded points, ordered by importance. Prioritise definitions, mechanisms, classic patterns, differentiating features, criteria, values, investigation interpretation, management priorities, complications and examination traps where supported.
 - EXPLANATION QUALITY: Define unfamiliar terms, unpack abbreviations at first use, explain every causal link, and explain why each classification or investigation matters. A list of findings without interpretation is incomplete. A treatment list without rationale, sequence and monitoring is incomplete. A mechanism that skips intermediate steps is incomplete.
 - DISCIPLINE-SPECIFIC STRUCTURE: Use the relevant teaching framework for the actual subject. Never force anatomy, physiology, pharmacology, microbiology, pathology, public health or statistics into an inappropriate generic medical-condition template. Preserve discipline-specific detail and practical applications.
+- IMAGE SEARCH TERMS: For every selected visual aid, write searchQuery as a precise 2–6 word Wikimedia Commons search phrase using the actual named anatomical structure, disease, organism, histological pattern, mechanism or process. Avoid generic terms such as "medical diagram". sourceSection must exactly match a heading or subsection heading in the guide. Do not invent an image where none materially improves understanding.
 - SELECTIVE TABLE RULE: Tables are optional teaching tools, not a quota. Generate a table only when it makes information genuinely easier to understand, compare, scan or revise. Strong use cases include side-by-side differences between related conditions/concepts, multi-feature classifications, investigation interpretation, drug/class comparisons, or a multi-stage sequence with consistent fields. For a table to earn its place, there should usually be at least two comparable items and several meaningful features/rows. If prose, a short list or a flowchart explains the idea more clearly, use that instead. Never split ordinary explanatory prose into a table, create a table merely to decorate a section, or force a comparison where the source does not support one. Keep comparisonTables empty when no useful comparison exists.
 - TABLE QUALITY: When a table is genuinely useful, use it to increase information density without removing the explanation that makes it meaningful. Compare like with like, use meaningful row headings and explanatory cells, and preserve all important source-stated categories, criteria, values and distinctions. Avoid tiny, vague or redundant tables.
 - NUMERICAL ACCURACY: Preserve each meaningful number with its unit, context, timing and denominator where applicable. Do not alter a number to a familiar guideline value. If the lecture is ambiguous, flag it. For formulas, define each variable and explain the interpretation; include a worked example only if the source provides one or it can be derived without introducing external clinical facts.
