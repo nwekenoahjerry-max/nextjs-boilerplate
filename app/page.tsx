@@ -447,13 +447,14 @@ function InstallAppPrompt({ promptEvent, onPromptConsumed }: { promptEvent: Cler
       setVisible(false);
       setShowInstructions(false);
     };
-    window.addEventListener("appinstalled", onInstalled);
-    standalone.addEventListener("change", () => {
+    const onDisplayModeChange = () => {
       if (isInstalled()) {
         setInstalled(true);
         setVisible(false);
       }
-    });
+    };
+    window.addEventListener("appinstalled", onInstalled);
+    standalone.addEventListener("change", onDisplayModeChange);
 
     let dismissedUntil = 0;
     try {
@@ -472,17 +473,23 @@ function InstallAppPrompt({ promptEvent, onPromptConsumed }: { promptEvent: Cler
     return () => {
       if (timer !== undefined) window.clearTimeout(timer);
       window.removeEventListener("appinstalled", onInstalled);
+      standalone.removeEventListener("change", onDisplayModeChange);
     };
   }, []);
 
   useEffect(() => {
     if (!visible) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     installActionRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") dismissInvitation();
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [visible, dismissInvitation]);
 
   const showManualInstructions = () => {
