@@ -1265,7 +1265,7 @@ export default function MaterialsPanel() {
             {!!unplacedVisuals.length&&<div className="study-inline-visuals study-unplaced-visuals">
               {unplacedVisuals.map((visual,index)=><InlineStudyVisual visual={visual} key={visual.sourceUrl||index}/>)}
             </div>}
-            {!!illustratingMaterialId&&illustratingMaterialId===selectedMaterial.id&&<p className="study-inline-visual-status" role="status">Searching openly licensed educational image libraries…</p>}
+            {!!illustratingMaterialId&&illustratingMaterialId===selectedMaterial.id&&<p className="study-inline-visual-status" role="status">Searching Wikimedia Commons for relevant educational images…</p>}
             {!!selectedMaterial.summary.learningObjectives?.length && <section className="study-summary-block"><h3>Learning objectives</h3><ul>{selectedMaterial.summary.learningObjectives.map((item,index)=><li key={index}>{item}</li>)}</ul></section>}
             {!!topHighYieldPoints.length&&<section className="study-summary-block study-exam-focus study-high-yield-overview">
               <div className="eyebrow">{selectedMaterial.summary.quickPreview?"SOURCE HIGHLIGHTS":selectedMaterialIsGeneral?"KEY KNOWLEDGE":"KEY EXAM POINTS"}</div><h3>{selectedMaterial.summary.quickPreview?"Key statements extracted from your upload":selectedMaterialIsGeneral?"Important concepts, methods and distinctions to master":"Core facts, mechanisms and distinctions to master"}</h3>
