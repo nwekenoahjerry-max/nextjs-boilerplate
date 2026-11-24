@@ -532,3 +532,88 @@ html[data-theme="dark"] .account-session-footer {
   background: var(--clerkme-surface) !important;
   border-color: var(--clerkme-border) !important;
 }
+
+
+/* Additional reader, assessment and landing-page surfaces found in the full style audit. */
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report.print-active,
+  .flight-answer-review-card, .flight-answer-review-heading > strong,
+  .study-live-setup-fields, .study-live-result-time > span,
+  .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar,
+  .video-library-close, .dashboard-hero-secondary, .dashboard-hero-path,
+  .dashboard-path-step, .learning-week-day > i,
+  .study-expand-all-button, .study-section-toggle,
+  .materials-unit-select-label, .materials-unit-filter,
+  .materials-library-personaliser, .materials-library-mode-options,
+  .profile-form-actions, .profile-search-picker-option,
+  .pdf-source-reader, .pdf-source-toolbar, .pdf-source-footer,
+  .pdf-source-rendering, .xlsx-source-reader, .xlsx-source-tabs,
+  .source-pptx-rendering, .source-original-toolbar, .source-original-panel,
+  .public-header, .public-preview-card, .public-floating-note,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-demo-option, .public-spotlight-card,
+  .public-visual-document, .public-clinical-card,
+  .public-secondary-cta, .public-header-signin,
+  .presentation-count, .presentation-search,
+  .presentation-empty, .presentation-checklist-panel,
+  .presentation-core-reference, .presentation-redflags,
+  .presentation-exam-focus, .presentation-question-list label,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown,
+  .study-dive-deeper-meta > span, .study-dive-deeper-chevron,
+  .admin-date-pill, .admin-directory-total, .admin-refresh-button,
+  .mobile-dock, .mobile-more-panel, .mobile-more-link
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report, .flight-answer-review-card,
+  .study-live-setup-fields, .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar, .dashboard-hero-path,
+  .dashboard-path-step, .learning-week-day > i, .materials-unit-select-label,
+  .materials-unit-filter, .profile-form-actions, .pdf-source-reader,
+  .pdf-source-toolbar, .pdf-source-footer, .xlsx-source-reader,
+  .xlsx-source-tabs, .public-preview-card, .public-floating-note,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-demo-option, .public-spotlight-card,
+  .public-visual-document, .public-clinical-card, .presentation-empty,
+  .presentation-checklist-panel, .presentation-core-reference,
+  .presentation-redflags, .presentation-exam-focus,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown, .admin-gate,
+  .admin-page, .mobile-more-panel, .mobile-dock
+) :is(h1, h2, h3, h4, strong, b, span, li, label, summary, code) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .simulation-print-menu, .simulation-print-report, .flight-answer-review-card,
+  .study-live-setup-fields, .study-video-search-controls, .video-library-query-row,
+  .video-library-filters, .video-library-saved-toolbar, .dashboard-hero-path,
+  .dashboard-path-step, .materials-unit-select-label, .materials-unit-filter,
+  .profile-form-actions, .pdf-source-reader, .pdf-source-toolbar,
+  .pdf-source-footer, .xlsx-source-reader, .public-preview-card,
+  .public-feature-section, .public-feature-card, .public-how-steps > div,
+  .public-demo-card, .public-spotlight-card, .public-visual-document,
+  .public-clinical-card, .presentation-empty, .presentation-checklist-panel,
+  .presentation-core-reference, .presentation-redflags, .presentation-exam-focus,
+  .presentation-core-steps details, .presentation-reference-grid > div,
+  .presentation-example, .study-dive-deeper-dropdown
+) :is(p, small, em, blockquote, .muted) {
+  color: var(--clerkme-muted) !important;
+}
+
+/* Keep document pages themselves faithful to their source while darkening their app chrome. */
+html[data-theme="dark"] :is(.pdf-source-toolbar, .pdf-source-footer, .xlsx-source-reader, .xlsx-source-tabs, .source-pptx-tool-button, .source-pptx-tool-select select) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .pdf-source-canvas-inner canvas,
+html[data-theme="dark"] .xlsx-source-table-wrap,
+html[data-theme="dark"] .source-pptx-canvas {
+  background: #fff !important;
+}
+html[data-theme="dark"] :is(.public-header, .admin-topbar, .mobile-dock) {
+  box-shadow: none !important;
+}
