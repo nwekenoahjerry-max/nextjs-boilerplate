@@ -12,7 +12,7 @@ function applyTheme(theme: ThemePreference) {
   document.documentElement.style.colorScheme = resolved;
 }
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [theme, setThemeState] = useState<ThemePreference>("light");
   useEffect(() => {
     try { const saved = window.localStorage.getItem(STORAGE_KEY); if (isTheme(saved)) setThemeState(saved); } catch {}
     let active = true;
