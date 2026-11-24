@@ -1,0 +1,286 @@
+/* ClerkMe appearance system — light mode retains the original brand palette. */
+html {
+  color-scheme: light;
+  --clerkme-surface: #ffffff;
+  --clerkme-canvas: #f5f8fc;
+  --clerkme-text: #102d5a;
+  --clerkme-muted: #52647c;
+  --clerkme-border: #e2e8f0;
+  --clerkme-elevated: #f5f8fc;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --clerkme-surface: #17253a;
+  --clerkme-canvas: #0d1726;
+  --clerkme-text: #edf3fb;
+  --clerkme-muted: #aebdd1;
+  --clerkme-border: #30425b;
+  --clerkme-elevated: #21324a;
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .main-area,
+html[data-theme="dark"] .content,
+html[data-theme="dark"] .auth-page,
+html[data-theme="dark"] .profile-page {
+  background: var(--clerkme-canvas) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .sidebar, .topbar, .panel, .tool-card, .template-card, .resource-card,
+  .form-panel, .auth-card, .profile-card, .account-settings-group,
+  .profile-progress-card, .profile-form-section, .profile-account-summary,
+  .you-account-panel, .mobile-more-panel, .mobile-account-sheet,
+  .mobile-account-profile, .mobile-account-tool, .mobile-account-settings-row,
+  .profile-search-picker-panel, .profile-search-picker-trigger,
+  .notification-popover, .notification-item, .study-summary,
+  .materials-panel, .materials-workspace, .simulation-panel,
+  .clinical-simulation-panel, .question-card, .qbank-card,
+  .guide-card, .guide-section, .case-library, .empty-state
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .topbar {
+  background: rgba(19, 31, 49, .94) !important;
+  border-bottom-color: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] :is(
+  .nav-item, .breadcrumb, .saved-label, .profile strong, .profile small,
+  .you-account-details strong, .you-account-details small, .you-setting-action,
+  .you-setting-action strong, .you-setting-action small, .account-settings-group h3,
+  .account-settings-group p, .page-intro p, .subheading, .section-heading p,
+  .panel-heading p, .template-info strong, .template-info small,
+  .tool-title, .tool-desc, .resource-card p, .template-card p,
+  .profile-page h1, .profile-page h2, .profile-page h3, .profile-page p,
+  .profile-page label, .profile-page small, .profile-page .eyebrow,
+  .profile-account-summary strong, .profile-account-summary span,
+  .profile-progress-heading strong, .profile-progress-heading p,
+  .profile-progress-note, .profile-form-section-heading h2,
+  .profile-form-section-heading p, .student-profile-form label,
+  .account-settings-section-heading h2, .account-settings-section-heading p,
+  .notification-popover-heading strong, .notification-popover-heading small,
+  .notification-item-copy strong, .notification-item-copy small,
+  .notification-item-copy em, .notification-empty-state strong,
+  .notification-empty-state small, .notification-popover-footer,
+  .notification-heading-actions button, .notification-empty
+) { color: var(--clerkme-text) !important; }
+html[data-theme="dark"] :is(
+  .workspace-label, .eyebrow, .profile-page .profile-intro,
+  .student-profile-form label small, .profile-email-field small,
+  .account-settings-group-heading p, .you-account-details .eyebrow,
+  .you-account-status, .mobile-account-section-heading span,
+  .notification-item-copy em, .notification-popover-heading small,
+  .notification-empty-state small
+) { color: var(--clerkme-muted) !important; }
+html[data-theme="dark"] :is(
+  .nav-item:hover, .nav-item.active, .template-row, .you-setting-action,
+  .mobile-account-tool, .profile-search-picker-option,
+  .profile-search-picker-search, .notification-item:hover,
+  .notification-item.is-unread, .notification-empty-state,
+  .appearance-option
+) {
+  background: var(--clerkme-elevated) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  input, select, textarea, .student-profile-form input,
+  .student-profile-form select, .profile-email-field input,
+  .profile-search-picker-search, .profile-search-picker-trigger
+) {
+  background: #111e30 !important;
+  border-color: #3b506d !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(input, select, textarea)::placeholder { color: #91a3bb !important; }
+html[data-theme="dark"] :is(
+  .profile-back-link, .you-profile-link, .sign-in-link,
+  .profile-top-link, .help-button, .close-button,
+  .notification-trigger, .notification-close
+) {
+  background: #21324a !important;
+  border-color: #3b506d !important;
+  color: #eaf1fb !important;
+}
+html[data-theme="dark"] .notification-item.is-unread { background: #1d3048 !important; }
+html[data-theme="dark"] .profile-progress-track { background: #314763 !important; }
+html[data-theme="dark"] .hero-card,
+html[data-theme="dark"] .home-dashboard-card,
+html[data-theme="dark"] .home-compact-header,
+html[data-theme="dark"] .home-hero-streak { color: #f6f8fc; }
+html[data-theme="dark"] .home-dashboard-card,
+html[data-theme="dark"] .home-stats-strip,
+html[data-theme="dark"] .home-stat-card,
+html[data-theme="dark"] .home-action-card,
+html[data-theme="dark"] .study-hub-card,
+html[data-theme="dark"] .study-hub-format-card {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .mobile-dock {
+  background: rgba(19, 31, 49, .96) !important;
+  border-top-color: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] .auth-error,
+html[data-theme="dark"] .profile-save-success { background: #3a2529 !important; color: #ffd9dc !important; }
+html[data-theme="dark"] .success-note,
+html[data-theme="dark"] .auth-message { background: #203c38 !important; color: #d5f6e9 !important; }
+
+/* Appearance selector */
+.appearance-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
+.appearance-option {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 9px 12px; border: 1px solid var(--line);
+  border-radius: 10px; background: #fff; color: #52647c;
+  font-size: 12px; font-weight: 750; transition: border-color .16s ease, background .16s ease, color .16s ease;
+}
+.appearance-option[aria-pressed="true"] {
+  border-color: #102d5a; background: #edf2f8; color: #102d5a;
+  box-shadow: inset 0 0 0 1px #102d5a;
+}
+.appearance-option svg { width: 16px; height: 16px; flex: 0 0 auto; }
+html[data-theme="dark"] .appearance-option[aria-pressed="true"] {
+  border-color: #86b3f8 !important; background: #253d5d !important;
+  color: #f4f8ff !important; box-shadow: inset 0 0 0 1px #86b3f8;
+}
+.appearance-help { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+/* Keep sign-out available, but make it a secondary account action. */
+.account-session-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  margin-top: 17px; padding: 14px 17px; border: 1px solid var(--line);
+  border-radius: 12px; background: rgba(255,255,255,.72);
+}
+.account-session-copy { display: grid; gap: 3px; min-width: 0; }
+.account-session-copy strong { color: #102d5a; font-size: 12px; }
+.account-session-copy small { color: #63738a; font-size: 11px; line-height: 1.45; }
+.account-signout-button {
+  flex: 0 0 auto; border: 0; padding: 9px 11px; border-radius: 8px;
+  background: transparent; color: #9b4750; font-size: 11px; font-weight: 800;
+}
+.account-signout-button:hover { background: #fff0f1; }
+html[data-theme="dark"] .account-session-footer { background: var(--clerkme-surface); border-color: var(--clerkme-border); }
+html[data-theme="dark"] .account-session-copy strong { color: var(--clerkme-text); }
+html[data-theme="dark"] .account-session-copy small { color: var(--clerkme-muted); }
+html[data-theme="dark"] .account-signout-button { color: #ffb5bd; }
+html[data-theme="dark"] .account-signout-button:hover { background: #402b35; }
+
+/* Notification centre */
+.notification-center { position: relative; display: inline-flex; align-items: center; }
+.notification-trigger {
+  position: relative; display: grid; place-items: center; width: 38px; height: 38px;
+  padding: 0; border: 1px solid #e2e8f0; border-radius: 11px;
+  background: #fff; color: #102d5a; cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.notification-trigger:hover { background: #f5f8fc; border-color: #cbd7e7; transform: translateY(-1px); }
+.notification-trigger svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.notification-count {
+  position: absolute; top: -5px; right: -5px; display: grid; place-items: center;
+  min-width: 17px; height: 17px; padding: 0 4px; border: 2px solid #fff;
+  border-radius: 999px; background: #c65360; color: #fff; font-size: 9px; font-weight: 850; line-height: 1;
+}
+.notification-dismiss-layer { position: fixed; inset: 0; z-index: 70; border: 0; background: transparent; cursor: default; }
+.notification-popover {
+  position: absolute; z-index: 71; top: calc(100% + 12px); right: 0;
+  display: flex; flex-direction: column; width: min(390px, calc(100vw - 24px));
+  max-height: min(570px, calc(100dvh - 90px)); overflow: hidden;
+  border: 1px solid #e2e8f0; border-radius: 16px; background: #fff;
+  box-shadow: 0 22px 65px rgba(11,35,72,.2);
+}
+.notification-popover-heading {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 17px 17px 14px; border-bottom: 1px solid #eaf0f8;
+}
+.notification-popover-heading > div:first-child { display: grid; gap: 4px; }
+.notification-popover-heading strong { color: #102d5a; font: 800 15px Manrope, sans-serif; }
+.notification-popover-heading small { color: #63738a; font-size: 11px; }
+.notification-heading-actions { display: flex; align-items: center; gap: 9px; }
+.notification-heading-actions button { border: 0; background: transparent; color: #173e70; font-size: 10px; font-weight: 800; }
+.notification-close { width: 27px; height: 27px; border-radius: 8px; font-size: 19px !important; line-height: 1; }
+.notification-list { min-height: 100px; overflow-y: auto; overscroll-behavior: contain; }
+.notification-item {
+  display: flex; align-items: flex-start; gap: 11px; width: 100%;
+  padding: 14px 16px; border: 0; border-bottom: 1px solid #f0f3f8;
+  background: #fff; color: inherit; text-align: left; cursor: pointer;
+}
+.notification-item:hover { background: #f8fafd; }
+.notification-item.is-unread { background: #f2f6fc; }
+.notification-item-icon {
+  display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px;
+  border-radius: 11px; background: #eaf0f8; color: #173e70;
+}
+.notification-item-icon.is-warning, .notification-item-icon.is-warning svg { color: #b65b46; }
+.notification-item-icon svg, .notification-empty-state svg {
+  width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.65;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.notification-item-copy { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.notification-item-copy strong { color: #102d5a; font-size: 12px; font-weight: 800; line-height: 1.35; }
+.notification-item-copy small { color: #52647c; font-size: 11px; line-height: 1.5; }
+.notification-item-copy em { color: #7b8ba0; font-size: 10px; font-style: normal; font-weight: 700; }
+.notification-unread-dot { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 6px; border-radius: 50%; background: #2d67a8; }
+.notification-empty, .notification-empty-state {
+  display: grid; justify-items: center; gap: 7px; padding: 30px 20px;
+  color: #63738a; text-align: center; font-size: 11px;
+}
+.notification-empty-state > span {
+  display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 3px;
+  border-radius: 13px; background: #edf2f8; color: #173e70;
+}
+.notification-empty-state strong { color: #102d5a; font-size: 12px; }
+.notification-empty-state small { max-width: 245px; color: #63738a; line-height: 1.5; }
+.notification-popover-footer {
+  padding: 10px 16px; border-top: 1px solid #eaf0f8; color: #7b8ba0;
+  font-size: 9px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase;
+}
+@media (max-width: 600px) {
+  .appearance-options { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .appearance-option { min-height: 42px; gap: 5px; padding: 8px 5px; font-size: 10px; }
+  .account-session-footer { align-items: flex-start; padding: 12px; }
+  .notification-popover { position: fixed; top: 67px; right: 12px; width: min(390px, calc(100vw - 24px)); max-height: calc(100dvh - 90px); }
+}
+@media (prefers-reduced-motion: reduce) { .appearance-option, .notification-trigger { transition: none; } }
+
+html[data-theme="dark"] {
+  --ink: #edf3fb;
+  --muted: #aebdd1;
+  --paper: #0d1726;
+  --line: #30425b;
+  --green: #8db8f6;
+  --green-dark: #0b2348;
+  --mint: #22344a;
+  --purple: #8db8f6;
+  --purple-dark: #0b2348;
+  --lavender: #22344a;
+  --lavender-soft: #17253a;
+  --brand-navy: #a8c8fb;
+  --brand-emerald: #83b5ee;
+  --brand-gold: #e4c982;
+  --brand-cloud: #17253a;
+  --shadow-soft: 0 20px 60px rgba(0, 0, 0, .28);
+}
+html[data-theme="dark"] .install-invite-dialog {
+  background: #17253a !important;
+  border-color: #30425b !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(.install-invite-dialog h1,.install-invite-dialog h2,.install-invite-dialog h3,.install-invite-dialog p,.install-invite-dialog span,.install-invite-dialog small) {
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] .install-invite-later,
+html[data-theme="dark"] .install-invite-close {
+  color: #dce8f7 !important;
+  background: #21324a !important;
+}
+html[data-theme="dark"] :is(.source-original-toolbar,.source-powerpoint-frame,.source-original-panel,.source-pdf-frame,.study-quick-preview-banner,.study-guide-provider-note,.guide-section,.selected-template-context,.clerking-note-panel) {
+  background: #17253a !important;
+  border-color: #30425b !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(.source-original-toolbar strong,.source-original-toolbar small,.source-original-panel strong,.source-original-panel small,.guide-section h3,.guide-section p,.selected-template-context strong,.selected-template-context p,.clerking-note-panel h3,.clerking-note-panel p) {
+  color: #edf3fb !important;
+}
