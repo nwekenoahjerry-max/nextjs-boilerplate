@@ -1571,3 +1571,182 @@ html[data-theme="dark"] .app-shell .video-library-filters label,
 html[data-theme="dark"] .app-shell .video-library-move-label {
   color: #dce8f6 !important;
 }
+
+
+/* Home dashboard polish: one clear streak, a useful time metric and a calm
+   motivational moment. The same component remains legible in both themes. */
+.home-dashboard-card {
+  padding: 17px;
+  border-radius: 26px;
+  box-shadow: 0 18px 44px rgba(9, 29, 58, .13), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.home-dashboard-card .home-compact-header {
+  min-height: 126px;
+  margin-bottom: 12px;
+  padding: 19px 21px;
+  border-radius: 20px;
+}
+.home-dashboard-card .home-welcome-copy { max-width: 680px; }
+.home-dashboard-card .home-hero-streak {
+  gap: 11px;
+  padding: 8px 12px 8px 8px;
+}
+.home-dashboard-card .home-stats-strip {
+  gap: 10px;
+  margin-bottom: 11px;
+}
+.home-dashboard-card .home-stat-card {
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px solid rgba(218,235,255,.18);
+  border-radius: 15px;
+  background: rgba(255,255,255,.075);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.045);
+}
+.home-dashboard-card .home-stat-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(218,235,255,.3);
+  box-shadow: 0 8px 22px rgba(3,17,36,.14);
+}
+.home-dashboard-card .home-stat-icon {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-radius: 11px;
+  background: rgba(208,229,251,.13);
+  color: #d9ebff;
+  font-size: 17px;
+}
+.home-dashboard-card .home-stat-card > div strong { color: #fff; font-size: 20px; }
+.home-dashboard-card .home-stat-card > div span { color: #c5d8ed; font-size: 9px; }
+.home-dashboard-card .home-today-card .home-stat-icon {
+  background: rgba(119,220,177,.15);
+  color: #9de8c6;
+}
+.home-dashboard-card .home-motivation {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border: 1px solid rgba(218,235,255,.15);
+  border-left: 3px solid #9ec8f2;
+  border-radius: 14px;
+  background: rgba(255,255,255,.065);
+  box-shadow: none;
+}
+.home-dashboard-card .home-motivation-icon {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+  background: rgba(208,229,251,.13);
+  color: #d9ebff;
+}
+.home-dashboard-card .home-motivation-copy { display: grid; gap: 3px; min-width: 0; }
+.home-dashboard-card .home-motivation .eyebrow {
+  color: #a9c7e8;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+}
+.home-dashboard-card .home-motivation p {
+  margin: 0;
+  color: #edf5ff;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.home-dashboard-card .home-motivation-mark {
+  margin-left: auto;
+  flex: 0 0 auto;
+  color: #9fb9d5;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: .9px;
+}
+.home-dashboard-card .home-quick-start { padding: 0 2px; }
+.home-dashboard-card .home-section-heading { margin-bottom: 10px; }
+.home-dashboard-card .home-section-heading h2 { font-size: 19px; }
+.home-dashboard-card .home-action-grid { gap: 10px; }
+.home-dashboard-card .home-action-card { min-height: 124px; padding: 13px; gap: 10px; border-radius: 15px; }
+.home-dashboard-card .home-action-icon { width: 38px; height: 38px; flex-basis: 38px; }
+.home-dashboard-card .home-action-card-copy strong { font-size: 12px; }
+.home-dashboard-card .home-action-card-copy small { font-size: 10px; line-height: 1.4; }
+.home-dashboard-card .home-compact-footer { margin-top: 12px; }
+
+html[data-theme="dark"] .home-dashboard-card {
+  background: linear-gradient(145deg, #0e2037 0%, #112b49 54%, #153557 100%) !important;
+  border-color: #2b4564 !important;
+}
+html[data-theme="dark"] .home-dashboard-card .home-stat-card,
+html[data-theme="dark"] .home-dashboard-card .home-motivation {
+  background: rgba(255,255,255,.065) !important;
+  border-color: rgba(218,235,255,.17) !important;
+}
+html[data-theme="dark"] .home-dashboard-card .home-motivation {
+  border-left-color: #9ec8f2 !important;
+}
+html[data-theme="dark"] .home-dashboard-card .home-stat-card > div strong,
+html[data-theme="dark"] .home-dashboard-card .home-motivation p { color: #f2f7ff !important; }
+html[data-theme="dark"] .home-dashboard-card .home-stat-card > div span,
+html[data-theme="dark"] .home-dashboard-card .home-motivation-mark { color: #c5d8ed !important; }
+
+@media (max-width: 760px) {
+  .home-dashboard-card { padding: 11px; border-radius: 22px; }
+  .home-dashboard-card .home-compact-header {
+    min-height: 0;
+    margin-bottom: 9px;
+    padding: 15px 14px;
+    gap: 11px;
+    border-radius: 17px;
+  }
+  .home-dashboard-card .home-compact-header h1 { font-size: clamp(22px, 6vw, 27px); }
+  .home-dashboard-card .home-hero-subtitle { font-size: 10px; line-height: 1.45; }
+  .home-dashboard-card .home-hero-streak { gap: 8px; padding: 6px 8px; }
+  .home-dashboard-card .home-streak-ring { width: 66px; height: 66px; flex-basis: 66px; }
+  .home-dashboard-card .home-streak-ring:before { inset: 4px; }
+  .home-dashboard-card .home-streak-ring-inner { width: 54px; height: 54px; }
+  .home-dashboard-card .home-streak-ring-inner strong { font-size: 20px; }
+  .home-dashboard-card .home-streak-caption { max-width: 105px; }
+  .home-dashboard-card .home-streak-caption strong { font-size: 9px; }
+  .home-dashboard-card .home-streak-caption span { font-size: 8px; }
+  .home-dashboard-card .home-stats-strip { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 7px; margin-bottom: 9px; }
+  .home-dashboard-card .home-stat-card {
+    min-width: 0;
+    min-height: 65px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 7px;
+    border-radius: 12px;
+  }
+  .home-dashboard-card .home-stat-icon { width: 25px; height: 25px; flex-basis: 25px; border-radius: 8px; font-size: 13px; }
+  .home-dashboard-card .home-stat-card > div strong { font-size: 15px; }
+  .home-dashboard-card .home-stat-card > div span { font-size: 8px; line-height: 1.25; }
+  .home-dashboard-card .home-today-card > div strong { font-size: 10px; }
+  .home-dashboard-card .home-motivation {
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 9px 10px;
+  }
+  .home-dashboard-card .home-motivation-icon { width: 27px; height: 27px; flex-basis: 27px; font-size: 14px; }
+  .home-dashboard-card .home-motivation p { font-size: 9px; line-height: 1.45; }
+  .home-dashboard-card .home-motivation-mark { display: none; }
+  .home-dashboard-card .home-section-heading h2 { font-size: 16px; }
+  .home-dashboard-card .home-action-grid { gap: 8px; }
+  .home-dashboard-card .home-action-card { min-height: 108px; padding: 10px; gap: 8px; border-radius: 13px; }
+  .home-dashboard-card .home-action-icon { width: 32px; height: 32px; flex-basis: 32px; }
+  .home-dashboard-card .home-action-card-copy strong { font-size: 11px; }
+  .home-dashboard-card .home-action-card-copy small { font-size: 9px; }
+}
+@media (max-width: 380px) {
+  .home-dashboard-card .home-hero-streak { gap: 6px; }
+  .home-dashboard-card .home-streak-ring { width: 58px; height: 58px; flex-basis: 58px; }
+  .home-dashboard-card .home-streak-ring-inner { width: 47px; height: 47px; }
+  .home-dashboard-card .home-streak-ring-inner strong { font-size: 18px; }
+  .home-dashboard-card .home-streak-caption { max-width: 90px; }
+  .home-dashboard-card .home-stats-strip { gap: 5px; }
+  .home-dashboard-card .home-stat-card { padding: 7px 5px; }
+  .home-dashboard-card .home-stat-card > div span { font-size: 7px; }
+}
