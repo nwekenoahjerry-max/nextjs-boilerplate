@@ -31,7 +31,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
     try {
       const current = await env.DB.prepare("SELECT last_seen_at, email_reminders_enabled FROM student_profiles WHERE id = ?").bind(student.id).first<{ last_seen_at: number; email_reminders_enabled: number }>();
       if (!current || current.last_seen_at !== student.last_seen_at || current.email_reminders_enabled !== 1) continue;
-      const firstName = (student.full_name || "there").trim().split(/\\s+/)[0].slice(0, 50) || "there";
+      const firstName = (student.full_name || "there").trim().split(/\s+/)[0].slice(0, 50) || "there";
       const safeName = escapeHtml(firstName);
       const actionUrl = "https://clerkme.com.ng/";
       const html =
