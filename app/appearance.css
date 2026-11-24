@@ -1517,3 +1517,57 @@ html[data-theme="dark"] .app-shell .video-library-youtube-link:hover {
   background: #4a333b !important;
   border-color: #8a5c65 !important;
 }
+
+
+/* Shared style for the external YouTube action; theme-specific colours below. */
+.app-shell .video-library-youtube-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #d8e2da;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #102d5a;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.app-shell .video-library-youtube-link:hover {
+  background: #f5f8fc;
+  border-color: #a9b9cb;
+}
+
+/* Additional neutral controls found in the cross-screen button audit. */
+html[data-theme="dark"] .app-shell :is(
+  .flight-controls button,
+  .flight-quiz .flight-material-prompt button,
+  .study-video-search-controls input,
+  .study-video-search-controls select,
+  .study-video-search-controls textarea
+) {
+  background: #263a53 !important;
+  border-color: #415975 !important;
+  color: #eaf2fc !important;
+  color-scheme: dark;
+}
+html[data-theme="dark"] .app-shell .study-video-link {
+  background: #1b2b40 !important;
+  border-color: #415975 !important;
+}
+html[data-theme="dark"] .app-shell .study-video-link :is(strong,span,small,p) {
+  color: #eaf2fc !important;
+}
+html[data-theme="dark"] .app-shell .study-video-link :is(small,p) {
+  color: #aebed2 !important;
+}
+html[data-theme="dark"] .app-shell .study-video-search-controls input::placeholder {
+  color: #91a5be !important;
+  opacity: 1;
+}
+html[data-theme="dark"] .app-shell .video-library-search form > label,
+html[data-theme="dark"] .app-shell .video-library-filters label,
+html[data-theme="dark"] .app-shell .video-library-move-label {
+  color: #dce8f6 !important;
+}
