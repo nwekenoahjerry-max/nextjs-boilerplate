@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import ClerkMeBrand from "../../components/clerkme-brand";
 
+
 declare global {
   interface Window {
     google?: { accounts: { id: {
@@ -43,6 +44,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("signin");
   const [clientId, setClientId] = useState("");
   const [scriptReady, setScriptReady] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [googleError, setGoogleError] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -53,6 +55,15 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const update = () => setIsDarkMode(root.dataset.theme === "dark");
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/config", { cache: "no-store" }).then(r => r.ok ? readApiResponse(r) : null)
@@ -93,9 +104,9 @@ export default function LoginPage() {
     });
     buttonRef.current.innerHTML = "";
     window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline", size: "large", shape: "rectangular", text: "continue_with", width: 310
+      theme: isDarkMode ? "filled_black" : "outline", size: "large", shape: "rectangular", text: "continue_with", width: 310
     });
-  }, [clientId, scriptReady, mode]);
+  }, [clientId, scriptReady, mode, isDarkMode]);
 
   const clearMessages = () => { setError(""); setNotice(""); };
 
