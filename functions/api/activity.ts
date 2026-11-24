@@ -31,7 +31,18 @@ async function readProgress(context: AppContext, userId: string, recordToday: bo
     previous = dateValue;
     bestStreak = Math.max(bestStreak, run);
   }
-  return { today, streak, bestStreak, activeDays: dates.length, todayActive: dateSet.has(today), recentDates: dates.slice(0,30) };
+  const timeRow = await context.env.DB.prepare(
+    "SELECT active_seconds FROM student_learning_time WHERE user_id = ? AND activity_date = ?"
+  ).bind(userId, today).first<{ active_seconds: number }>();
+  return {
+    today,
+    streak,
+    bestStreak,
+    activeDays: dates.length,
+    todayActive: dateSet.has(today),
+    recentDates: dates.slice(0,30),
+    timeSpentTodaySeconds: Number(timeRow?.active_seconds) || 0
+  };
 }
 export const onRequestGet = async (context: AppContext) => {
   const user = await requireUser(context); if (isResponse(user)) return user;
@@ -40,5 +51,27 @@ export const onRequestGet = async (context: AppContext) => {
 export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context); if (isResponse(user)) return user;
+
+  let seconds = 0;
+  try {
+    const body = await context.request.clone().json() as { seconds?: unknown };
+    if (typeof body.seconds === "number" && Number.isInteger(body.seconds) && body.seconds >= 1 && body.seconds <= 120) {
+      seconds = body.seconds;
+    }
+  } catch {
+    // The original daily check-in POST intentionally has no request body.
+  }
+
+  if (seconds > 0) {
+    const today = localDate();
+    await context.env.DB.prepare(`
+      INSERT INTO student_learning_time (user_id, activity_date, active_seconds, updated_at)
+      VALUES (?, ?, ?, unixepoch())
+      ON CONFLICT(user_id, activity_date) DO UPDATE SET
+        active_seconds = MIN(86400, student_learning_time.active_seconds + excluded.active_seconds),
+        updated_at = unixepoch()
+    `).bind(user.id, today, seconds).run();
+  }
+
   return json(await readProgress(context, user.id, true));
 };

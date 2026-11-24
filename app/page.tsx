@@ -554,6 +554,16 @@ function InstallAppPrompt({ promptEvent, onPromptConsumed }: { promptEvent: Cler
   );
 }
 
+function formatStudyTime(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  if (minutes === 0) return safeSeconds > 0 ? "<1m" : "0m";
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
 export default function Home() {
   const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
@@ -587,6 +597,7 @@ export default function Home() {
   const [organiseMissing,setOrganiseMissing]=useState<string[]>([]);
   const [organiseUnclear,setOrganiseUnclear]=useState<string[]>([]);
   const [streakData,setStreakData]=useState<{today:string;streak:number;bestStreak:number;activeDays:number;todayActive:boolean;recentDates:string[]}>({today:"",streak:0,bestStreak:0,activeDays:0,todayActive:false,recentDates:[]});
+  const [timeSpentTodaySeconds,setTimeSpentTodaySeconds]=useState(0);
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
@@ -683,7 +694,105 @@ export default function Home() {
       .finally(() => { if(mounted) setAuthLoading(false); });
     return () => { mounted = false; };
   }, []);
-  useEffect(() => { if(!authUser)return; fetch("/api/activity",{method:"POST",credentials:"same-origin"}).then(r=>r.ok?r.json():null).then(d=>{if(d)setStreakData(d);}).catch(()=>{}); },[authUser]);
+  useEffect(() => {
+    if (!authUser) return;
+    fetch("/api/activity", { method: "POST", credentials: "same-origin" })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (!data) return;
+        setStreakData(data);
+        setTimeSpentTodaySeconds(current => Math.max(current, Number(data.timeSpentTodaySeconds) || 0));
+      })
+      .catch(() => {});
+  }, [authUser]);
+
+  // Measure foreground, recently-active workspace time across every section.
+  // Only whole active seconds are sent to D1; idle/background time is excluded.
+  useEffect(() => {
+    if (!authUser) return;
+    let pendingSeconds = 0;
+    let lastInteractionAt = Date.now();
+    let lastTickAt = Date.now();
+    let flushing = false;
+    let disposed = false;
+    const idleThresholdMs = 120_000;
+
+    const markActive = () => { lastInteractionAt = Date.now(); };
+    const flushPending = (keepalive = false) => {
+      if (flushing || pendingSeconds < 1) return;
+      const seconds = Math.min(pendingSeconds, 120);
+      pendingSeconds -= seconds;
+      flushing = true;
+      fetch("/api/activity", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seconds }),
+        keepalive,
+      })
+        .then(response => {
+          if (!response.ok) throw new Error("Activity time could not be saved.");
+          return response.json();
+        })
+        .then(data => {
+          if (!disposed && Number.isFinite(Number(data?.timeSpentTodaySeconds))) {
+            setTimeSpentTodaySeconds(current => Math.max(current, Number(data.timeSpentTodaySeconds)));
+          }
+        })
+        .catch(() => { pendingSeconds += seconds; })
+        .finally(() => {
+          flushing = false;
+          if (pendingSeconds >= 60) flushPending();
+        });
+    };
+
+    const tick = () => {
+      const now = Date.now();
+      const elapsedSeconds = Math.round((now - lastTickAt) / 1000);
+      lastTickAt = now;
+      if (
+        document.visibilityState === "visible" &&
+        now - lastInteractionAt <= idleThresholdMs &&
+        elapsedSeconds >= 1 &&
+        elapsedSeconds <= 30
+      ) {
+        pendingSeconds += elapsedSeconds;
+        setTimeSpentTodaySeconds(current => current + elapsedSeconds);
+        if (pendingSeconds >= 60) flushPending();
+      }
+    };
+
+    const onVisibilityChange = () => {
+      lastTickAt = Date.now();
+      if (document.visibilityState === "hidden") {
+        flushPending(true);
+      } else {
+        markActive();
+      }
+    };
+    const onPageHide = () => flushPending(true);
+    const interval = window.setInterval(tick, 15_000);
+    document.addEventListener("pointerdown", markActive, { passive: true });
+    document.addEventListener("pointermove", markActive, { passive: true });
+    document.addEventListener("keydown", markActive);
+    document.addEventListener("touchstart", markActive, { passive: true });
+    document.addEventListener("scroll", markActive, { passive: true, capture: true });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("pointerdown", markActive);
+      document.removeEventListener("pointermove", markActive);
+      document.removeEventListener("keydown", markActive);
+      document.removeEventListener("touchstart", markActive);
+      document.removeEventListener("scroll", markActive, true);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      flushPending(true);
+      disposed = true;
+    };
+  }, [authUser]);
   useEffect(() => {
     if (!showSignOutConfirm) return;
     const handleEscape = (event: KeyboardEvent) => {
@@ -913,10 +1022,18 @@ export default function Home() {
     <div className="home-streak-caption"><strong>Your study streak</strong><span>Keep it going</span></div>
   </div>
 </section>
-<section className="home-stats-strip" aria-label="Your learning statistics">
-  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">✦</span><div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div></div>
+<section className="home-stats-strip" aria-label="Your learning summary">
+  <div className="home-stat-card home-time-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Time in ClerkME today</span></div></div>
   <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">▦</span><div><strong>{streakData.activeDays}</strong><span>Study days</span></div></div>
   <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Today's check-in</span></div></div>
+</section>
+<section className="home-motivation" aria-label="A little motivation">
+  <span className="home-motivation-icon" aria-hidden="true">✦</span>
+  <div className="home-motivation-copy">
+    <span className="eyebrow">A THOUGHT FOR TODAY</span>
+    <p>{streakData.todayActive ? "You showed up for your learning today. Small, focused sessions are how confidence grows." : "You do not have to master everything today. Start with one topic, one question or one patient history."}</p>
+  </div>
+  <span className="home-motivation-mark">SMALL STEPS. STRONG CLINICIANS.</span>
 </section>
 <section className="home-quick-start" aria-label="Quick study actions">
   <div className="home-section-heading"><div><span className="eyebrow">QUICK ACCESS</span><h2>Where would you like to start?</h2></div></div>
