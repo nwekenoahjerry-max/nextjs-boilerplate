@@ -617,3 +617,33 @@ html[data-theme="dark"] .source-pptx-canvas {
 html[data-theme="dark"] :is(.public-header, .admin-topbar, .mobile-dock) {
   box-shadow: none !important;
 }
+
+
+/* Final small-component coverage from the white-surface audit. */
+html[data-theme="dark"] :is(
+  .date-chip, .slide-file-picker, .materials-source-viewer,
+  .materials-workspace.is-mobile-detail .materials-mobile-back,
+  .flight-question-panel, .flight-question-panel .question-progress,
+  .flight-question-panel .option-letter, .flight-question-panel .flight-timer,
+  .flight-question-panel .flight-mission-placeholder,
+  .flight-question-panel .flight-tf-option, .flight-tf-option,
+  .flight-tf-option .flight-tf-symbol, .auth-tabs, .clerkme-public-home
+) {
+  background-color: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .date-chip, .slide-file-picker, .materials-source-viewer,
+  .materials-workspace.is-mobile-detail .materials-mobile-back,
+  .flight-question-panel, .flight-question-panel .question-progress,
+  .flight-question-panel .option-letter, .flight-question-panel .flight-timer,
+  .flight-question-panel .flight-mission-placeholder,
+  .flight-question-panel .flight-tf-option, .flight-tf-option,
+  .flight-tf-option .flight-tf-symbol, .auth-tabs
+) :is(h1, h2, h3, h4, strong, b, span, label, small, p) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(.slide-file-picker, .materials-source-viewer, .auth-tabs) :is(p, small, em) {
+  color: var(--clerkme-muted) !important;
+}
