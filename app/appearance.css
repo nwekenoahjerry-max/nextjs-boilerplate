@@ -1750,3 +1750,40 @@ html[data-theme="dark"] .home-dashboard-card .home-motivation-mark { color: #c5d
   .home-dashboard-card .home-stat-card { padding: 7px 5px; }
   .home-dashboard-card .home-stat-card > div span { font-size: 7px; }
 }
+
+
+/* Keep notifications reachable on every screen, including the phone workspace.
+   The avatar remains in the persistent You menu to avoid duplicate account controls. */
+@media (max-width: 760px) {
+  .main-area .topbar .top-actions {
+    display: flex !important;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .main-area .topbar .account-avatar-button { display: none !important; }
+  .main-area .topbar .notification-center {
+    display: inline-flex;
+    flex: 0 0 auto;
+    position: relative;
+  }
+  .main-area .topbar .notification-trigger {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d3dfed;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #102d5a;
+    box-shadow: 0 3px 10px rgba(16,45,90,.07);
+  }
+  .main-area .topbar .notification-trigger svg { width: 21px; height: 21px; }
+  .main-area .topbar .notification-count { top: -4px; right: -4px; }
+}
+html[data-theme="dark"] .main-area .topbar .notification-trigger {
+  background: #21324a !important;
+  border-color: #415975 !important;
+  color: #edf3fb !important;
+}
