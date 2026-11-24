@@ -1204,3 +1204,64 @@ html[data-theme="dark"] :is(
 ) {
   color: #10233e !important;
 }
+
+
+/* Authentication controls: selected tab and messaging must follow the workspace theme. */
+html[data-theme="dark"] .auth-tabs {
+  background: var(--clerkme-elevated) !important;
+  border-color: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] .auth-tabs button {
+  background: transparent !important;
+  color: var(--clerkme-muted) !important;
+}
+html[data-theme="dark"] .auth-tabs button.active {
+  background: #314766 !important;
+  border: 1px solid #49617f !important;
+  color: #f2f6fc !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.22) !important;
+}
+html[data-theme="dark"] .auth-method-title,
+html[data-theme="dark"] .auth-field,
+html[data-theme="dark"] .auth-pending-panel strong {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .auth-card .auth-copy,
+html[data-theme="dark"] .auth-pending-panel > span,
+html[data-theme="dark"] .auth-google-unavailable,
+html[data-theme="dark"] .auth-privacy {
+  color: var(--clerkme-muted) !important;
+}
+html[data-theme="dark"] .auth-field input,
+html[data-theme="dark"] .auth-password-wrap input {
+  background: var(--clerkme-elevated) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+  caret-color: var(--clerkme-text);
+}
+html[data-theme="dark"] .auth-password-toggle {
+  background: #2b405c !important;
+  color: #eaf2fc !important;
+}
+html[data-theme="dark"] .auth-divider {
+  color: var(--clerkme-muted) !important;
+}
+html[data-theme="dark"] .auth-divider::before,
+html[data-theme="dark"] .auth-divider::after {
+  background: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] .auth-card .auth-message {
+  background: #1b3652 !important;
+  border: 1px solid #365574 !important;
+  color: #d9eaff !important;
+}
+html[data-theme="dark"] .auth-card .auth-error {
+  background: #402a32 !important;
+  border: 1px solid #70434b !important;
+  color: #ffe3e4 !important;
+}
+html[data-theme="dark"] .auth-submit,
+html[data-theme="dark"] .auth-text-button,
+html[data-theme="dark"] .auth-back {
+  color: var(--clerkme-text) !important;
+}
