@@ -11,6 +11,7 @@ import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import ClinicalSimulation from "./clinical-simulation";
 import NotificationCenter from "../components/notification-center";
+import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
 import { unitClerkingFrameworks } from "../lib/unit-clerking";
@@ -1142,6 +1143,7 @@ export default function Home() {
                 <p className="appearance-help">Your choice is saved to your account and follows you across devices. System uses your device setting.</p>
               </article>
               <InstallAppAction promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
+              <ReminderSettings/>
             </section>
             <div className="account-session-footer">
               <span className="account-session-copy"><strong>Signed in securely</strong><small>Sign out when you are using a shared or public device.</small></span>
