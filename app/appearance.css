@@ -647,3 +647,55 @@ html[data-theme="dark"] :is(
 html[data-theme="dark"] :is(.slide-file-picker, .materials-source-viewer, .auth-tabs) :is(p, small, em) {
   color: var(--clerkme-muted) !important;
 }
+
+
+/* Darken the remaining light-gradient cards, not just their base background colour. */
+html[data-theme="dark"] :is(
+  .auth-page, .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .materials-library-mode-options > button.active,
+  .study-dive-deeper-dropdown > summary, .study-dive-deeper-button,
+  .admin-sidebar-note, .public-hero, .public-bottom-cta,
+  .public-clinical-note
+) {
+  background: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .materials-library-mode-options > button.active,
+  .study-dive-deeper-dropdown > summary, .study-dive-deeper-button,
+  .admin-sidebar-note, .public-hero, .public-bottom-cta,
+  .public-clinical-note
+) :is(h1, h2, h3, h4, strong, b, span, label, small, p, li, summary) {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] :is(
+  .tip-panel, .upgrade-card, .activity-streak-card,
+  .profile-progress-card, .you-account-panel, .presentation-opening-question,
+  .study-guide-toolbar, .study-live-setup, .study-mnemonic-card,
+  .simulation-live-call-card, .study-topic-subsection,
+  .study-hub-start, .materials-selection-empty, .source-read-aloud,
+  .study-guide-read-aloud, .flight-answer-locked, .flight-answer-review,
+  .flight-question-panel .flight-statement-card, .home-motivation,
+  .home-action-card, .home-stats-strip, .focus-music-panel,
+  .materials-library-personaliser, .study-dive-deeper-dropdown > summary,
+  .study-dive-deeper-button, .admin-sidebar-note, .public-hero,
+  .public-bottom-cta, .public-clinical-note
+) :is(p, small, em, .muted, .eyebrow) {
+  color: var(--clerkme-muted) !important;
+}
