@@ -33,7 +33,7 @@ export const onRequestPost = async ({ request, env }: AppContext) => {
       ).bind(student.id).first<{ last_seen_at: number; email_reminders_enabled: number }>();
       if (!current || current.last_seen_at !== student.last_seen_at || current.email_reminders_enabled !== 1) continue;
 
-      const firstName = (student.full_name || "there").trim().split(/\\s+/)[0].slice(0, 50) || "there";
+      const firstName = (student.full_name || "there").trim().split(/\s+/)[0].slice(0, 50) || "there";
       const name = escapeHtml(firstName);
       const actionUrl = "https://clerkme.com.ng/";
       const html =
