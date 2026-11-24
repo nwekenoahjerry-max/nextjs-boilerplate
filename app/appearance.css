@@ -1193,3 +1193,14 @@ html[data-theme="dark"] :is(
 ) :is(strong,b,span,p,small,li) {
   color: #dce7f5 !important;
 }
+
+
+/* High-contrast labels on intentionally pale gold/blue branded actions. */
+html[data-theme="dark"] :is(
+  .dashboard-hero .primary-button,
+  .hero-card .primary-button,
+  .flight-quiz:not(.flight-playing) .flight-start-overlay .flight-launch-button,
+  .install-invite-primary
+) {
+  color: #10233e !important;
+}
