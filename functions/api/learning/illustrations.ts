@@ -100,10 +100,19 @@ async function planVisualAids(context:AppContext,material:{title:string;unit:str
 }
 async function searchCommons(aid:VisualAid):Promise<{image:VisualAid|null;ok:boolean}>{
   const url=new URL("https://commons.wikimedia.org/w/api.php");
-  for(const [key,value] of Object.entries({action:"query",format:"json",formatversion:"2",generator:"search",gsrsearch:aid.searchQuery,gsrnamespace:"6",gsrlimit:"10",prop:"imageinfo",iiprop:"url|mime|size|extmetadata",iiurlwidth:"1200",iiextmetadatalanguage:"en",iiextmetadatafilter:"Artist|LicenseShortName|LicenseUrl|ImageDescription|Credit"}))url.searchParams.set(key,value);
+  for(const [key,value] of Object.entries({action:"query",format:"json",formatversion:"2",generator:"search",gsrsearch:aid.searchQuery,gsrnamespace:"6",gsrlimit:"5",prop:"imageinfo",iiprop:"url|mime|size|extmetadata",iiurlwidth:"1200",iiextmetadatalanguage:"en",iiextmetadatafilter:"Artist|LicenseShortName|LicenseUrl|ImageDescription|Credit"}))url.searchParams.set(key,value);
   try{
-    const response=await fetch(url.toString(),{headers:{Accept:"application/json","Api-User-Agent":"ClerkME/1.0 (educational image search)"},signal:AbortSignal.timeout(4500)});
-    if(!response.ok)return {image:null,ok:false};
+    const response=await fetch(url.toString(),{headers:{Accept:"application/json","Api-User-Agent":"ClerkME/1.0 (https://clerkme.com.ng/; educational image search)"},signal:AbortSignal.timeout(10000)});
+    if(!response.ok){
+      const responseDetail=await response.text().catch(()=>"");
+      console.warn("[ClerkMe images] Wikimedia Commons returned a non-success status.",{
+        status:response.status,
+        statusText:response.statusText,
+        retryAfter:response.headers.get("Retry-After")||undefined,
+        detail:plainText(responseDetail,180)||undefined
+      });
+      return {image:null,ok:false};
+    }
     const data=await response.json() as CommonsResponse;
     const pages=Array.isArray(data.query?.pages)?data.query?.pages:Object.values(data.query?.pages||{});
     const candidates=pages.map(page=>{
@@ -116,7 +125,13 @@ async function searchCommons(aid:VisualAid):Promise<{image:VisualAid|null;ok:boo
     }).filter(item=>item.valid&&item.points>=Math.min(2,Math.max(1,tokens(aid.searchQuery).length))).sort((a,b)=>b.points-a.points);
     const best=candidates[0];if(!best?.info)return {image:null,ok:true};
     return {ok:true,image:{...aid,imageUrl:safeUrl(best.info.thumburl||best.info.url),sourceUrl:safeUrl(best.info.descriptionurl),sourceName:"Wikimedia Commons",creator:best.creator||undefined,license:best.license,licenseUrl:safeUrl(best.info.extmetadata?.LicenseUrl?.value)||"https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia"}};
-  }catch{return {image:null,ok:false};}
+  }catch(error){
+    console.warn("[ClerkMe images] Wikimedia Commons request failed.",{
+      name:error instanceof Error?error.name:"UnknownError",
+      detail:error instanceof Error?error.message.slice(0,180):"Unknown network error."
+    });
+    return {image:null,ok:false};
+  }
 }
 export const onRequestPost=async(context:AppContext)=>{
   if(!validSameOrigin(context.request))return json({error:"Invalid request origin."},403);
