@@ -1134,3 +1134,62 @@ html[data-theme="dark"] :is(
 ) :is(a,button):focus-visible {
   outline-color: #93bff0 !important;
 }
+
+
+/* Accessible dark feedback panels: preserve answer state with semantic border colour. */
+html[data-theme="dark"] :is(
+  .flight-feedback,
+  .flight-option.option-correct,
+  .flight-option.option-wrong,
+  .flight-option.option-correct .option-letter,
+  .flight-option.option-wrong .option-letter,
+  .qbank-option.option-correct,
+  .qbank-option.option-wrong,
+  .qbank-explanation.is-correct,
+  .qbank-explanation.is-wrong,
+  .study-mcq-option.is-correct,
+  .study-mcq-option.is-correct > span,
+  .study-mcq-option.is-wrong,
+  .study-mcq-feedback.is-correct,
+  .study-mcq-feedback.is-wrong,
+  .simulation-feedback-group.positive,
+  .simulation-feedback-group.corrections,
+  .flight-review-statement,
+  .flight-answer-correction
+) {
+  background: #1b2b40 !important;
+  border-color: #3b506a !important;
+  color: #edf3fb !important;
+}
+html[data-theme="dark"] :is(
+  .flight-feedback.correct,
+  .flight-option.option-correct,
+  .qbank-option.option-correct,
+  .qbank-explanation.is-correct,
+  .study-mcq-option.is-correct,
+  .study-mcq-feedback.is-correct,
+  .simulation-feedback-group.positive,
+  .flight-answer-correction
+) {
+  border-left: 3px solid #55bd8a !important;
+}
+html[data-theme="dark"] :is(
+  .flight-feedback.wrong,
+  .flight-option.option-wrong,
+  .qbank-option.option-wrong,
+  .qbank-explanation.is-wrong,
+  .study-mcq-option.is-wrong,
+  .study-mcq-feedback.is-wrong,
+  .simulation-feedback-group.corrections
+) {
+  border-left: 3px solid #df887e !important;
+}
+html[data-theme="dark"] :is(
+  .flight-feedback,
+  .qbank-explanation,
+  .study-mcq-feedback,
+  .simulation-feedback-group,
+  .flight-answer-correction
+) :is(strong,b,span,p,small,li) {
+  color: #dce7f5 !important;
+}
