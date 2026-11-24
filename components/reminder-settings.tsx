@@ -23,7 +23,7 @@ export default function ReminderSettings() {
       setEmailEnabled(data.emailRemindersEnabled !== false); setVapidPublicKey(data.vapidPublicKey || "");
       if (pushSupported) {
         const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-        setPushEnabled(Boolean(await registration.pushManager.getSubscription()));
+        setPushEnabled(Boolean(data.vapidPublicKey && await registration.pushManager.getSubscription()));
       }
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Reminder settings are temporarily unavailable."); }
     finally { setLoading(false); }
@@ -79,7 +79,7 @@ export default function ReminderSettings() {
     <div className="reminder-intro-note"><span aria-hidden="true">💙</span><p>We know life and medical school can get busy. When we have not seen you for 48 hours, ClerkMe can send a gentle hello and remind you that your study space is right where you left it. No guilt, just encouragement.</p></div>
     <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Email reminders</strong><small>Receive one warm email after 48 hours away. You can turn this off whenever you like.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={emailEnabled} aria-label="Email reminders" disabled={loading || busy} onClick={() => void updateEmail(!emailEnabled)}><span/></button></div>
     <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Phone notifications</strong><small>Let ClerkMe send a notification to your device, even when the website is closed.</small></div><span aria-hidden="true" style={{fontSize:11,fontWeight:750,color:pushEnabled?"#16804b":"var(--clerkme-muted)"}}>{pushEnabled ? "ON" : "OFF"}</span></div>
-    {pushSupported ? <button type="button" className="reminder-push-button" disabled={loading || busy} onClick={() => void (pushEnabled ? disablePush() : enablePush())}>{busy ? "Saving your choice…" : pushEnabled ? "Turn off phone notifications" : "Enable phone notifications"}</button> : <p className="reminder-settings-footnote">This browser does not support background phone notifications. Email reminders can still reach you.</p>}
+    {pushSupported && vapidPublicKey ? <button type="button" className="reminder-push-button" disabled={loading || busy} onClick={() => void (pushEnabled ? disablePush() : enablePush())}>{busy ? "Saving your choice…" : pushEnabled ? "Turn off phone notifications" : "Enable phone notifications"}</button> : <p className="reminder-settings-footnote">{pushSupported ? "Phone notifications are being prepared. Email reminders are available now." : "This browser does not support background phone notifications. Email reminders can still reach you."}</p>}
     {isIos && !isStandalone && <p className="reminder-settings-footnote">On iPhone or iPad, first add ClerkMe to your Home Screen, open it from that icon, then enable notifications here.</p>}
     {error && <p className="reminder-feedback is-error" role="alert">{error}</p>}{notice && <p className="reminder-feedback is-success" role="status">{notice}</p>}
     <p className="reminder-settings-footnote">Your choices are private. Phone notifications require your permission. We send at most one reminder per channel until you visit ClerkMe again.</p>

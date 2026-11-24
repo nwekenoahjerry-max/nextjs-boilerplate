@@ -19,6 +19,8 @@ export interface Env {
   DB: D1Database;
   GOOGLE_CLIENT_ID: string;
   RESEND_API_KEY?: string;
+  CRON_TOKEN?: string;
+  VAPID_PUBLIC_KEY?: string;
   CLERKME_ADMIN_EMAILS?: string;
   YOUTUBE_API_KEY?: string;
   GEMINI_API_KEY?: string;

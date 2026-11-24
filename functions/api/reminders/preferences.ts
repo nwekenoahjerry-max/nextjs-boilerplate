@@ -8,7 +8,7 @@ export const onRequestGet = async (context: AppContext) => {
     context.env.DB.prepare("SELECT email_reminders_enabled FROM student_profiles WHERE id = ?").bind(user.id).first<{ email_reminders_enabled: number }>(),
     context.env.DB.prepare("SELECT COUNT(*) AS count FROM push_subscriptions WHERE user_id = ?").bind(user.id).first<{ count: number }>()
   ]);
-  return json({ emailRemindersEnabled: profile?.email_reminders_enabled !== 0, pushSubscriptions: Number(subscriptions?.count) || 0, vapidPublicKey: PUSH_VAPID_PUBLIC_KEY });
+  return json({ emailRemindersEnabled: profile?.email_reminders_enabled !== 0, pushSubscriptions: Number(subscriptions?.count) || 0, vapidPublicKey: context.env.VAPID_PUBLIC_KEY || PUSH_VAPID_PUBLIC_KEY });
 };
 
 export const onRequestPatch = async (context: AppContext) => {

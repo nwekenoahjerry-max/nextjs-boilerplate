@@ -96,7 +96,7 @@ Cloudflare Pages Functions require a Pages-compatible local runtime to test D1 a
 ## Gentle re-engagement reminders
 
 - A scheduled Cloudflare Worker checks verified accounts that have been inactive for at least 48 hours.
-- Email reminders are delivered directly through Resend from the scheduled Worker. Students can switch them off in Account & settings.
+- Email reminders use the existing Resend key in the ClerkMe Pages environment through a protected email endpoint. Students can switch them off in Account & settings.
 - Web Push is optional and requires explicit browser permission. The service worker can display notifications while the website is closed.
 - Each channel is sent at most once per inactivity period. A fresh visit resets eligibility.
-- The reminder Worker is deployed separately from Pages and uses the production D1 database, with Resend and Web Push private credentials stored as Worker secrets.
+- The reminder Worker is deployed separately from Pages and uses the production D1 database. Its shared CRON_TOKEN must be added as a secret to the Worker and a secret environment variable to Pages. Web Push private credentials belong only in the Worker secrets.

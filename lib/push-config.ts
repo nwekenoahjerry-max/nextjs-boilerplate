@@ -1,2 +1,3 @@
-// Public VAPID application-server key. This value is intentionally public.
-export const PUSH_VAPID_PUBLIC_KEY = "BAymw1lmbf1rfNB1G72rmucNNVJbKjIxBmwtjniVbyZTfR5uIJoh81IQ0NmqFAUnokb1D_qENbtp_C-edvoj7Cc";
+// Phone notifications become available once a VAPID public key is set in
+// the Pages environment. The private key belongs only in the Worker secret.
+export const PUSH_VAPID_PUBLIC_KEY = "";
