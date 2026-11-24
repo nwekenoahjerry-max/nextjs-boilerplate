@@ -701,7 +701,7 @@ export default function Home() {
       .then(data => {
         if (!data) return;
         setStreakData(data);
-        setTimeSpentTodaySeconds(Number(data.timeSpentTodaySeconds) || 0);
+        setTimeSpentTodaySeconds(current => Math.max(current, Number(data.timeSpentTodaySeconds) || 0));
       })
       .catch(() => {});
   }, [authUser]);
