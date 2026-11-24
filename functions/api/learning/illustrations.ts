@@ -15,12 +15,6 @@ type VisualAid = {
   imageUrl?: string; sourceUrl?: string; sourceName?: string; creator?: string;
   creatorUrl?: string; license?: string; licenseUrl?: string;
 };
-type OpenverseImage = {
-  title?: string; url?: string; thumbnail?: string; foreign_landing_url?: string; detail_url?: string;
-  creator?: string; creator_url?: string; license?: string; license_version?: string; license_url?: string;
-  provider?: string; source?: string; width?: number; height?: number; mature?: boolean;
-  description?: string; filetype?: string; tags?: Array<{name?: string}>;
-};
 type CommonsInfo = {url?:string;thumburl?:string;descriptionurl?:string;mime?:string;width?:number;height?:number;extmetadata?:Record<string,{value?:string}>};
 type CommonsPage = {title?:string;imageinfo?:CommonsInfo[]};
 type CommonsResponse = {query?:{pages?:Record<string,CommonsPage>|CommonsPage[]}};
@@ -35,7 +29,7 @@ function parseAIResult(value: unknown): Record<string, unknown> {
   if(start>=0&&end>start)text=text.slice(start,end+1);
   return JSON.parse(text) as Record<string,unknown>;
 }
-const STOP = new Set(["the","and","for","with","from","that","this","these","those","into","onto","about","which","what","when","where","who","why","how","most","likely","next","best","following","choose","select","among","option","options","based","source","lecture","topic","overview","study","guide","medical","diagram","image","illustration","showing","explain","explanation"]);
+const STOP = new Set(["the","and","for","with","from","that","this","these","those","into","onto","about","which","what","when","where","who","why","how","most","likely","next","best","following","choose","select","among","option","options","based","source","lecture","topic","overview","study","guide","medical","diagram","image","illustration","showing","explain","explanation","textbook","style","schematic","labelled","labeled","labels","lettering","numbers","watermarks","detailed","responsible","accurate","prompt","concept","visual"]);
 function tokens(value:string):string[]{return Array.from(new Set((value.toLowerCase().match(/[a-z0-9]{3,}/g)||[]).filter(t=>!STOP.has(t))));}
 function score(query:string,content:string):number{
   const queryTokens=tokens(query),available=new Set(tokens(content));
@@ -58,7 +52,7 @@ function sanitiseVisualAids(value:unknown):VisualAid[]{
     return {
       title,caption,altText:clean(item.altText,500)||"Educational image illustrating "+title,
       sourceSection:clean(item.sourceSection,180),
-      searchQuery:clean(item.searchQuery,180)||(title+" "+clean(item.coreConcept,250)).slice(0,150),
+      searchQuery:clean(item.searchQuery,180)||tokens([title,clean(item.coreConcept,250),clean(item.visualPrompt,420),caption].join(" ")).slice(0,7).join(" ").slice(0,150)||title.slice(0,150),
       visualPrompt:clean(item.visualPrompt,1200),coreConcept:clean(item.coreConcept,500),
       imageUrl:safeUrl(item.imageUrl)||undefined,sourceUrl:safeUrl(item.sourceUrl)||undefined,
       sourceName:clean(item.sourceName,120)||undefined,creator:clean(item.creator,180)||undefined,
@@ -103,29 +97,6 @@ async function planVisualAids(context:AppContext,material:{title:string;unit:str
     }
   }
   return fallbackVisualAids(summary);
-}
-async function searchOpenverse(aid:VisualAid):Promise<{image:VisualAid|null;ok:boolean}>{
-  const url=new URL("https://api.openverse.org/v1/images/");
-  url.searchParams.set("q",aid.searchQuery);url.searchParams.set("page_size","8");
-  url.searchParams.set("license","cc0,by,by-sa,pdm");url.searchParams.set("mature","false");
-  try{
-    const response=await fetch(url.toString(),{headers:{Accept:"application/json"},signal:AbortSignal.timeout(4500)});
-    if(!response.ok)return {image:null,ok:false};
-    const data=await response.json() as {results?:OpenverseImage[]};
-    const candidates=(Array.isArray(data.results)?data.results:[]).filter(item=>{
-      const code=clean(item.license,30).toLowerCase(),type=clean(item.filetype,20).toLowerCase();
-      return acceptableLicense(code)&&item.mature!==true&&(!type||["jpg","jpeg","png","webp"].includes(type))&&
-        Number(item.width||0)>=320&&Number(item.height||0)>=220&&
-        Boolean(safeUrl(item.thumbnail)||safeUrl(item.url))&&
-        Boolean(safeUrl(item.foreign_landing_url)||safeUrl(item.detail_url))&&
-        (["cc0","pdm"].includes(code)||Boolean(clean(item.creator,180)));
-    }).map(item=>({item,points:score(aid.searchQuery+" "+aid.title,[item.title,item.description,...(item.tags||[]).map(tag=>tag.name||"")].join(" "))}))
-      .filter(item=>item.points>=Math.min(2,Math.max(1,tokens(aid.searchQuery).length))).sort((a,b)=>b.points-a.points);
-    const best=candidates[0]?.item;if(!best)return {image:null,ok:true};
-    const code=clean(best.license,30).toLowerCase(),version=clean(best.license_version,20);
-    const licenseUrl=safeUrl(best.license_url)||(code==="cc0"?"https://creativecommons.org/publicdomain/zero/1.0/":code==="pdm"?"https://creativecommons.org/publicdomain/mark/1.0/":code==="by-sa"?"https://creativecommons.org/licenses/by-sa/"+(version||"4.0")+"/":"https://creativecommons.org/licenses/by/"+(version||"4.0")+"/");
-    return {ok:true,image:{...aid,imageUrl:safeUrl(best.thumbnail)||safeUrl(best.url),sourceUrl:safeUrl(best.foreign_landing_url)||safeUrl(best.detail_url),sourceName:clean(best.provider||best.source,100)||"Openverse",creator:clean(best.creator,180)||undefined,creatorUrl:safeUrl(best.creator_url)||undefined,license:licenseLabel(code,version),licenseUrl}};
-  }catch{return {image:null,ok:false};}
 }
 async function searchCommons(aid:VisualAid):Promise<{image:VisualAid|null;ok:boolean}>{
   const url=new URL("https://commons.wikimedia.org/w/api.php");
@@ -172,9 +143,9 @@ export const onRequestPost=async(context:AppContext)=>{
     }
     let providerHealthy=false;
     const visualAids=await Promise.all(planned.map(async aid=>{
-      const [openverse,commons]=await Promise.all([searchOpenverse(aid),searchCommons(aid)]);
-      if(openverse.ok||commons.ok)providerHealthy=true;
-      return openverse.image||commons.image||{...aid};
+      const commons=await searchCommons(aid);
+      if(commons.ok)providerHealthy=true;
+      return commons.image||{...aid};
     }));
     const illustrations=visualAids.filter((aid):aid is VisualAid&{imageUrl:string}=>Boolean(aid.imageUrl));
     summary.visualAids=visualAids;summary.visualAidsReviewed=true;summary.visualAidsSearched=true;
