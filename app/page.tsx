@@ -1090,33 +1090,33 @@ export default function Home() {
       <circle cx="35" cy="113" r="3" fill="#8EB1D5"/>
       <ellipse cx="91" cy="158" rx="48" ry="6" fill="#173A63" opacity=".12"/>
       <g filter="url(#mascot-shadow)">
-        <!-- shoulders and scrubs -->
+        
         <path d="M43 166c2-30 16-47 48-47s46 17 48 47z" fill="#244A78"/>
         <path d="M57 117c7-7 20-11 34-11s27 4 34 11l12 49H45z" fill="url(#mascot-coat)" stroke="#91A9C4" strokeWidth="1.7"/>
         <path d="M77 108l14 17 14-17 8 58H69z" fill="#315D8A"/>
         <path d="M77 109l14 16-11 13-13-24zM105 109l-14 16 11 13 13-24z" fill="#FFFFFF" stroke="#9CB3CC" strokeWidth="1.4"/>
         <path d="M91 126v34" stroke="#A7BACF" strokeWidth="1.5"/>
         <circle cx="91" cy="145" r="2.1" fill="#D8A642"/>
-        <!-- left arm holding a study card -->
+        
         <path d="M54 124c-9 8-13 19-13 31" fill="none" stroke="#E5B18E" strokeWidth="12" strokeLinecap="round"/>
         <path d="M39 151l-1 8" stroke="#E5B18E" strokeWidth="8" strokeLinecap="round"/>
         <rect x="16" y="119" width="34" height="40" rx="6" fill="#FFFFFF" stroke="#8FA9C5" strokeWidth="1.8"/>
         <rect x="23" y="125" width="20" height="4" rx="2" fill="#DCE8F5"/>
         <path d="M25 138h15M25 144h11" stroke="#8BA4C0" strokeWidth="2" strokeLinecap="round"/>
         <path d="M30 151l3 3 6-7" fill="none" stroke="#2D8D83" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-        <!-- right arm raised in a friendly wave -->
+        
         <path d="M128 125c12-8 16-18 14-30" fill="none" stroke="#E5B18E" strokeWidth="12" strokeLinecap="round"/>
         <g className="home-mascot-wave">
           <path d="M141 99c-1-8 1-15 3-20" fill="none" stroke="#E5B18E" strokeWidth="11" strokeLinecap="round"/>
           <path d="M140 82l-2-10M144 80l1-12M148 81l5-9" fill="none" stroke="#E5B18E" strokeWidth="5" strokeLinecap="round"/>
         </g>
-        <!-- stethoscope and ID -->
+        
         <path d="M72 119v12c0 11 8 18 19 18s19-7 19-18v-12" fill="none" stroke="#2D8D83" strokeWidth="3.2" strokeLinecap="round"/>
         <path d="M91 149v5" stroke="#2D8D83" strokeWidth="3" strokeLinecap="round"/>
         <circle cx="91" cy="157" r="5.4" fill="#E4B45C" stroke="#A77C32" strokeWidth="1.3"/>
         <rect x="111" y="126" width="13" height="17" rx="2.5" fill="#EAF2FA" stroke="#91A9C4" strokeWidth="1"/>
         <path d="M117.5 130v9M113 134.5h9" stroke="#D8A642" strokeWidth="2" strokeLinecap="round"/>
-        <!-- neck and face -->
+        
         <path d="M82 98h18v18c0 6-18 6-18 0z" fill="url(#mascot-skin)"/>
         <ellipse cx="91" cy="67" rx="29" ry="34" fill="url(#mascot-skin)" stroke="#C58E70" strokeWidth="1"/>
         <path d="M62 66c-3-24 10-43 30-43 21 0 33 16 29 41-4-4-8-10-10-18-11 8-25 12-44 10z" fill="#173A63"/>
