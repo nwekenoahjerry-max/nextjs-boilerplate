@@ -532,6 +532,9 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
               setQuestionIndex(Math.min(Math.max(0, savedMaterial.questionCount - 1), Number(resume.questionIndex)));
             }
             setMobileDetailOpen(true);
+          } else if (typeof resume.materialId === "string") {
+            window.localStorage.removeItem("clerkme:last-study:" + userKey);
+            window.dispatchEvent(new CustomEvent("clerkme:study-progress", {detail:{cleared:true}}));
           }
         }
       } catch {}
@@ -571,7 +574,7 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
       unit: current.unit,
       tab,
       lastOpenedAt: Date.now(),
-      scrollY: window.scrollY,
+      scrollY: pendingResumeScrollRef.current ?? window.scrollY,
       questionIndex
     };
     try { window.localStorage.setItem("clerkme:last-study:" + userKey, JSON.stringify(progress)); } catch {}
