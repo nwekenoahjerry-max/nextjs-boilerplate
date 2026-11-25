@@ -983,3 +983,50 @@ html[data-theme="dark"] .home-dashboard-refresh .home-compact-footer { color: #9
     color: #102B45;
   }
 }
+
+
+/* Final accessibility pass for the compact Home dashboard:
+   keep the layout short while preserving comfortable reading sizes. */
+.home-dashboard-refresh .home-stat-card > div strong { font-size: 18px; }
+.home-dashboard-refresh .home-stat-card > div span { font-size: 9.5px; }
+.home-dashboard-refresh .home-resume-copy h2 { font-size: 13px; }
+.home-dashboard-refresh .home-resume-copy p { font-size: 9.5px; }
+.home-dashboard-refresh .home-resume-button { font-size: 10px; }
+.home-dashboard-refresh .home-action-card-copy strong { font-size: 10.5px; }
+.home-dashboard-refresh .home-action-card-copy small { font-size: 8.5px; }
+
+@media (max-width: 760px) {
+  .home-dashboard-refresh .home-stat-card {
+    min-height: 50px;
+    gap: 6px;
+    padding-inline: 7px;
+  }
+  .home-dashboard-refresh .home-stat-card > div strong { font-size: 12px; }
+  .home-dashboard-refresh .home-stat-card > div span { font-size: 8.5px; }
+  .home-dashboard-refresh .home-resume-copy h2 { font-size: 11.5px; }
+  .home-dashboard-refresh .home-resume-copy p { font-size: 8.5px; line-height: 1.2; }
+  .home-dashboard-refresh .home-resume-button {
+    min-width: 72px;
+    min-height: 33px;
+    padding-inline: 8px;
+    font-size: 9px;
+  }
+  .home-dashboard-refresh .home-action-card {
+    min-height: 58px;
+    padding: 7px;
+  }
+  .home-dashboard-refresh .home-action-card-copy strong { font-size: 9.5px; }
+  .home-dashboard-refresh .home-action-card-copy small { font-size: 8px; }
+}
+@media (max-width: 390px) {
+  .home-dashboard-refresh .home-stat-card > div strong { font-size: 11px; }
+  .home-dashboard-refresh .home-stat-card > div span { font-size: 8px; }
+  .home-dashboard-refresh .home-resume-copy h2 { font-size: 11px; }
+  .home-dashboard-refresh .home-resume-copy p { font-size: 8px; }
+  .home-dashboard-refresh .home-resume-button {
+    min-width: 68px;
+    min-height: 32px;
+    font-size: 8.5px;
+  }
+  .home-dashboard-refresh .home-action-card-copy strong { font-size: 9px; }
+}
