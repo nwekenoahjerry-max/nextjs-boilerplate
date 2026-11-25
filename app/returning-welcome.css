@@ -1347,3 +1347,66 @@ html[data-theme="dark"] .home-dashboard-refresh .home-compact-footer { color: #9
 @media (prefers-reduced-motion: reduce) {
   .home-dashboard-refresh .home-mascot-wave { animation: none !important; }
 }
+
+
+/* Home workspace fit: position the working area near the top and use the
+   available screen width without changing the layout of other workspace tabs. */
+.main-area.home-dashboard-active > .content {
+  justify-content: flex-start !important;
+  align-items: center;
+  padding: clamp(8px, 1.15vh, 14px) clamp(12px, 2vw, 30px) !important;
+}
+
+.home-dashboard-active .home-dashboard-card.home-dashboard-refresh {
+  align-self: center;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 1440px;
+  max-height: 100%;
+  margin: 0 auto;
+  justify-content: flex-start;
+}
+
+@media (max-width: 760px) {
+  .main-area.home-dashboard-active > .content {
+    padding: 6px 9px 7px !important;
+  }
+
+  .home-dashboard-active .home-dashboard-card.home-dashboard-refresh {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  .main-area.home-dashboard-active > .content {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .home-dashboard-card.home-dashboard-refresh {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .home-dashboard-refresh .home-compact-header {
+    min-height: 98px;
+    margin-bottom: 7px;
+    padding-top: 11px;
+    padding-bottom: 11px;
+  }
+
+  .home-dashboard-refresh .home-stats-strip {
+    margin-bottom: 8px;
+  }
+
+  .home-dashboard-refresh .home-resume-card {
+    margin-bottom: 7px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .home-dashboard-refresh .home-section-heading {
+    margin-bottom: 5px;
+  }
+}
