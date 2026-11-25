@@ -166,6 +166,32 @@ html[data-theme="dark"] .home-welcome-bubble::after {
   .home-welcome-mascot { flex-basis: 112px; width: 112px; }
   .home-welcome-mascot svg { width: 108px; }
 }
+@media (min-width: 761px) and (max-width: 980px) {
+  .home-dashboard-card .home-compact-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 118px;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 12px;
+  }
+  .home-dashboard-card .home-welcome-copy { grid-column: 1; grid-row: 1; }
+  .home-welcome-mascot {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    width: 112px;
+    height: 112px;
+    margin: 0;
+  }
+  .home-welcome-mascot svg { width: 108px; }
+  .home-dashboard-card .home-hero-streak {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+    width: fit-content;
+    max-width: 100%;
+  }
+}
 @media (max-width: 760px) {
   .home-dashboard-card .home-compact-header {
     display: grid;
