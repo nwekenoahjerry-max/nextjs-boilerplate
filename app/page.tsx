@@ -602,7 +602,8 @@ export default function Home() {
   const [patientName, setPatientName] = useState("");
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
-  const [authUser, setAuthUser] = useState<{name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  const [resumeStudy, setResumeStudy] = useState<{materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number}|null>(null);
   const [timeGreeting, setTimeGreeting] = useState("Hello");
   useEffect(() => {
     const updateGreeting = () => {
@@ -621,6 +622,50 @@ export default function Home() {
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, []);
+  useEffect(() => {
+    if (!authUser?.id) { setResumeStudy(null); return; }
+    const storageKey = "clerkme:last-study:" + authUser.id;
+    const readSavedStudy = () => {
+      try {
+        const raw = window.localStorage.getItem(storageKey);
+        if (!raw) { setResumeStudy(null); return; }
+        const saved = JSON.parse(raw) as Record<string, unknown>;
+        if (
+          typeof saved.materialId === "string" && saved.materialId.length > 0 &&
+          typeof saved.title === "string" && saved.title.length > 0 &&
+          typeof saved.unit === "string" && saved.unit.length > 0 &&
+          ["summary","source","questions","ask"].includes(String(saved.tab)) &&
+          Number.isFinite(Number(saved.lastOpenedAt))
+        ) {
+          setResumeStudy({
+            materialId: saved.materialId,
+            title: saved.title,
+            unit: saved.unit,
+            tab: String(saved.tab),
+            lastOpenedAt: Number(saved.lastOpenedAt)
+          });
+        } else {
+          setResumeStudy(null);
+        }
+      } catch { setResumeStudy(null); }
+    };
+    const onStudyProgress = (event: Event) => {
+      const detail = (event as CustomEvent<{materialId?:string;title?:string;unit?:string;tab?:string;lastOpenedAt?:number;cleared?:boolean}>).detail;
+      if (detail?.cleared) { setResumeStudy(null); return; }
+      if (!detail || typeof detail.materialId !== "string" || typeof detail.title !== "string" ||
+          typeof detail.unit !== "string" || typeof detail.lastOpenedAt !== "number" ||
+          !["summary","source","questions","ask"].includes(String(detail.tab))) return;
+      setResumeStudy(detail as {materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number});
+    };
+    readSavedStudy();
+    window.addEventListener("storage", readSavedStudy);
+    window.addEventListener("clerkme:study-progress", onStudyProgress);
+    return () => {
+      window.removeEventListener("storage", readSavedStudy);
+      window.removeEventListener("clerkme:study-progress", onStudyProgress);
+    };
+  }, [authUser?.id]);
+
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [apiError, setApiError] = useState("");
@@ -1010,7 +1055,37 @@ export default function Home() {
   <div className="home-welcome-copy">
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
     <h1>{timeGreeting}, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
-    <p className="home-hero-subtitle">Study, revise and practise clinical skills in one place.</p>
+    <p className="home-hero-subtitle">{resumeStudy ? "Lovely to have you back. Your last study session is ready below." : "Your clinical learning space is ready. Choose a topic and make today’s progress count."}</p>
+  </div>
+  <div className="home-welcome-mascot" aria-hidden="true">
+    <span className="home-welcome-bubble">Hey, welcome back!</span>
+    <svg viewBox="0 0 160 150" role="presentation" focusable="false">
+      <circle cx="80" cy="78" r="66" fill="#DCEBFA" opacity=".95"/>
+      <circle cx="129" cy="35" r="7" fill="#F4C76B"/>
+      <path d="M31 137c2-22 20-36 49-36s47 14 49 36" fill="#F8FBFF" stroke="#7898BA" strokeWidth="2.5"/>
+      <path d="M56 108l24 19 24-19 9 29H47z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
+      <path d="M71 103h18l-2 17-7 8-7-8z" fill="#E8B89A"/>
+      <path d="M53 51c0-22 12-35 29-35 21 0 32 15 30 39l-5 17H58z" fill="#173A63"/>
+      <ellipse cx="81" cy="57" rx="28" ry="32" fill="#E9B995"/>
+      <path d="M53 51c2-24 16-35 32-35 14 0 25 8 29 24-9-5-17-10-23-17-9 12-22 18-38 19z" fill="#173A63"/>
+      <path d="M55 43c-5 10-4 23 1 31l6-5-1-22z" fill="#173A63"/>
+      <path d="M106 45c5 9 5 21 0 31l-6-6 1-23z" fill="#173A63"/>
+      <ellipse cx="71" cy="59" rx="2.4" ry="3" fill="#173A63"/>
+      <ellipse cx="91" cy="59" rx="2.4" ry="3" fill="#173A63"/>
+      <path d="M74 73q7 6 14 0" fill="none" stroke="#A85F50" strokeWidth="2.4" strokeLinecap="round"/>
+      <path d="M61 85q20 11 40 0l7 15-27 20-27-20z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
+      <path d="M80 101v27" stroke="#7898BA" strokeWidth="2"/>
+      <path d="M77 104h7v9h-7z" fill="#EAF2FA" stroke="#7898BA" strokeWidth="1.4"/>
+      <path d="M75 112c-7 7-6 17 5 20 11-3 12-13 5-20" fill="none" stroke="#2D8D83" strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="80" cy="132" r="4" fill="#2D8D83"/>
+      <path d="M104 100q16-9 22-28" fill="none" stroke="#E9B995" strokeWidth="8" strokeLinecap="round"/>
+      <g className="home-mascot-wave">
+        <path d="M125 77q4-14 11-19" fill="none" stroke="#E9B995" strokeWidth="9" strokeLinecap="round"/>
+        <path d="M134 58q-3-7 1-11m0 11q3-7 7-7m-8 9q-1-7 4-10" fill="none" stroke="#E9B995" strokeWidth="5" strokeLinecap="round"/>
+      </g>
+      <path d="M54 105l-13 25h18l12-17zM107 105l13 25h-18l-12-17z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
+      <path d="M72 104l8 9 8-9" fill="none" stroke="#D2DFEC" strokeWidth="2"/>
+    </svg>
   </div>
   <div className="home-hero-streak">
     <div className="home-streak-ring" role="img" aria-label={`${streakData.streak} day study streak`}>
@@ -1027,6 +1102,19 @@ export default function Home() {
   <div className="home-stat-card home-time-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Time in ClerkME today</span></div></div>
   <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">▦</span><div><strong>{streakData.activeDays}</strong><span>Study days</span></div></div>
   <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Today's check-in</span></div></div>
+</section>
+<section className={"home-resume-card" + (resumeStudy ? "" : " is-empty")} aria-label="Continue learning">
+  <span className="home-resume-icon" aria-hidden="true"><WorkspaceIcon name={resumeStudy ? (resumeStudy.tab === "questions" ? "list-checks" : "book-open") : "folder-open"}/></span>
+  <div className="home-resume-copy">
+    <span className="home-resume-kicker">{resumeStudy ? "PICK UP WHERE YOU LEFT OFF" : "YOUR NEXT STUDY SESSION"}</span>
+    <h2>{resumeStudy ? resumeStudy.title : "Ready for your next topic?"}</h2>
+    <p>{resumeStudy
+      ? (resumeStudy.unit.startsWith("custom:") ? resumeStudy.unit.slice(7) : clinicalUnits.find(item => item.id === resumeStudy.unit)?.name || resumeStudy.unit)
+        + " · " + (resumeStudy.tab === "questions" ? "Practice questions" : resumeStudy.tab === "source" ? "Original file" : resumeStudy.tab === "ask" ? "Ask ClerkME" : "Study guide")
+        + " · Last opened " + (Date.now() - resumeStudy.lastOpenedAt < 60_000 ? "just now" : Date.now() - resumeStudy.lastOpenedAt < 3_600_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 60_000) + " min ago" : Date.now() - resumeStudy.lastOpenedAt < 86_400_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 3_600_000) + " hr ago" : new Intl.DateTimeFormat("en-GB", { day:"numeric", month:"short" }).format(new Date(resumeStudy.lastOpenedAt)))
+      : "Open your saved lectures, build a detailed study guide or practise exam-style questions."}</p>
+  </div>
+  <button type="button" className="home-resume-button" onClick={() => selectSection("materials")}>{resumeStudy ? "Continue studying" : "Open my materials"} <span aria-hidden="true">→</span></button>
 </section>
 <section className="home-motivation" aria-label="A little motivation">
   <span className="home-motivation-icon" aria-hidden="true">✦</span>
@@ -1176,7 +1264,7 @@ export default function Home() {
 
           {active === "patients" && <><div className="page-intro"><div className="eyebrow">PRIVATE CASE LIBRARY</div><h1>My cases</h1><p>Cases are visible only to the account that created them.</p></div><button className="primary-button" onClick={loadCases}>Refresh cases</button>{!authUser ? <div className="empty-state"><p>Sign in to view your saved cases.</p><a className="sign-in-link" href="/login">Sign in with Google</a></div> : <div className="panel case-library">{caseList.length ? caseList.map(c=><div className="template-row" key={c.id}><span className="template-icon">▤</span><span className="template-info"><strong>{c.title} · {c.case_reference}</strong><small>{c.specialty} · {c.presenting_complaint}</small></span><span className="template-tag">{c.status}</span></div>) : <div className="empty-state"><p>No saved cases yet. Start your first clerking.</p><button className="primary-button" onClick={() => startClerking()}>Start a clerking →</button></div>}</div>}</> }
           {active === "guides" && <ClinicalGuides/>}
-          {active === "materials" && <MaterialsPanel/>}
+          {active === "materials" && <MaterialsPanel userKey={authUser.id}/>}
           {active === "videos" && <VideoLibraryPanel/>}
           {active === "osce" && <><div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div><div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>{(()=>{const qs=questionBank.filter(q=>q.unit===osceUnit);const q=qs[osceIndex%qs.length];return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>})()}</>}
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}

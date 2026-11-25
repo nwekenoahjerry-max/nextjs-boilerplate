@@ -181,8 +181,9 @@ function InlineStudyVisual({visual}:{visual:GeneratedStudyIllustration}) {
   </figure>;
 }
 
-export default function MaterialsPanel() {
+export default function MaterialsPanel({userKey}:{userKey:string}) {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
+  const pendingResumeScrollRef = useRef<number|null>(null);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
   const [libraryUnit,setLibraryUnit] = useState("select");
@@ -507,8 +508,40 @@ export default function MaterialsPanel() {
     });
     setMaterials(next);
 
-    // Refreshes preserve an explicitly opened material, but the library never
-    // selects the newest or previously active material automatically.
+    // Restore this learner's last opened material and study area on this device.
+    // The material is matched against the authenticated library response before opening.
+    if (userKey) {
+      try {
+        const rawResume = window.localStorage.getItem("clerkme:last-study:" + userKey);
+        if (rawResume) {
+          const resume = JSON.parse(rawResume) as Record<string, unknown>;
+          const validTab = ["summary","source","questions","ask"].includes(String(resume.tab))
+            ? String(resume.tab) as "summary"|"source"|"questions"|"ask"
+            : "summary";
+          const savedMaterial = typeof resume.materialId === "string"
+            ? next.find(item => item.id === resume.materialId)
+            : undefined;
+          if (savedMaterial) {
+            const savedScrollY = Number(resume.scrollY);
+            pendingResumeScrollRef.current = Number.isFinite(savedScrollY) && savedScrollY >= 0 ? savedScrollY : 0;
+            setLibraryMode(savedMaterial.unit.startsWith("custom:") ? "general" : "clinical");
+            setLibraryUnit("all");
+            setSelectedId(savedMaterial.id);
+            setTab(validTab);
+            if (Number.isInteger(resume.questionIndex) && Number(resume.questionIndex) >= 0) {
+              const savedQuestionCount = Number(savedMaterial.questionCount) || 0;
+              setQuestionIndex(Math.min(Math.max(0, savedQuestionCount - 1), Number(resume.questionIndex)));
+            }
+            setMobileDetailOpen(true);
+          } else if (typeof resume.materialId === "string") {
+            window.localStorage.removeItem("clerkme:last-study:" + userKey);
+            window.dispatchEvent(new CustomEvent("clerkme:study-progress", {detail:{cleared:true}}));
+          }
+        }
+      } catch {}
+    }
+
+    // Refreshes preserve an explicitly opened material.
     if (selectedId && !next.some(item=>item.id===selectedId)) {
       setSelectedId("");
       setMobileDetailOpen(false);
@@ -531,6 +564,64 @@ export default function MaterialsPanel() {
     } : item));
     return study;
   };
+
+  useEffect(() => {
+    if (!userKey || !selectedId) return;
+    const current = materials.find(item => item.id === selectedId);
+    if (!current) return;
+    const progress = {
+      materialId: current.id,
+      title: current.title,
+      unit: current.unit,
+      tab,
+      lastOpenedAt: Date.now(),
+      scrollY: pendingResumeScrollRef.current ?? window.scrollY,
+      questionIndex
+    };
+    try { window.localStorage.setItem("clerkme:last-study:" + userKey, JSON.stringify(progress)); } catch {}
+    window.dispatchEvent(new CustomEvent("clerkme:study-progress", { detail: progress }));
+  }, [userKey, selectedId, tab, materials, questionIndex]);
+
+  // Keep the last reading position without writing to storage on every scroll event.
+  useEffect(() => {
+    if (!userKey || !selectedId) return;
+    let lastSavedAt = 0;
+    const saveScrollPosition = () => {
+      const now = Date.now();
+      if (now - lastSavedAt < 1200) return;
+      lastSavedAt = now;
+      try {
+        const key = "clerkme:last-study:" + userKey;
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return;
+        const progress = JSON.parse(raw) as Record<string, unknown>;
+        if (progress.materialId !== selectedId) return;
+        progress.scrollY = window.scrollY;
+        progress.lastOpenedAt = now;
+        window.localStorage.setItem(key, JSON.stringify(progress));
+      } catch {}
+    };
+    window.addEventListener("scroll", saveScrollPosition, {passive:true});
+    window.addEventListener("pagehide", saveScrollPosition);
+    return () => {
+      window.removeEventListener("scroll", saveScrollPosition);
+      window.removeEventListener("pagehide", saveScrollPosition);
+    };
+  }, [userKey, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !mobileDetailOpen || pendingResumeScrollRef.current === null) return;
+    const material = materials.find(item => item.id === selectedId);
+    if (!material?.studyLoaded) return;
+    const savedY = pendingResumeScrollRef.current;
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({top:savedY,behavior:"instant"});
+        pendingResumeScrollRef.current = null;
+      });
+    });
+    return () => window.cancelAnimationFrame(firstFrame);
+  }, [selectedId, tab, mobileDetailOpen, materials]);
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
   useEffect(()=>{
@@ -1025,6 +1116,16 @@ export default function MaterialsPanel() {
       }));
       const next = materials.filter(item=>item.id!==materialId);
       setMaterials(next);
+      if (userKey) {
+        try {
+          const resumeKey = "clerkme:last-study:" + userKey;
+          const savedResume = JSON.parse(window.localStorage.getItem(resumeKey) || "null") as Record<string, unknown> | null;
+          if (savedResume?.materialId === materialId) {
+            window.localStorage.removeItem(resumeKey);
+            window.dispatchEvent(new CustomEvent("clerkme:study-progress", {detail:{cleared:true}}));
+          }
+        } catch {}
+      }
       if (selectedId===materialId) { setSelectedId(""); setMobileDetailOpen(false); }
       setAnswer(null); setNotice("Material removed from your library.");
     } catch(e) { setError(e instanceof Error?e.message:"Could not remove this material."); }
