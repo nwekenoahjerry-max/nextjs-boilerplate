@@ -1242,3 +1242,35 @@ html[data-theme="dark"] .home-dashboard-refresh .home-section-heading h2 {
   .home-dashboard-refresh .home-action-card,
   .home-dashboard-refresh .home-resume-button { transition: none !important; }
 }
+
+
+/* The Home top bar and surrounding canvas now belong to the same brand system. */
+.main-area.home-dashboard-active {
+  background: #EAF1F9 !important;
+}
+.main-area.home-dashboard-active .topbar {
+  background: #0B2348 !important;
+  border-bottom-color: #29496D !important;
+}
+.main-area.home-dashboard-active .topbar .breadcrumb {
+  color: #B8CDE3 !important;
+}
+.main-area.home-dashboard-active .topbar .breadcrumb strong,
+.main-area.home-dashboard-active .topbar .clerkme-brand-copy strong {
+  color: #FFFFFF !important;
+}
+.main-area.home-dashboard-active .topbar .clerkme-brand-icon {
+  filter: brightness(0) invert(1);
+}
+.main-area.home-dashboard-active .topbar .account-avatar-button {
+  border: 1px solid #BFD3EA !important;
+  background: #EAF1F9 !important;
+  color: #102D5A !important;
+}
+html[data-theme="dark"] .main-area.home-dashboard-active {
+  background: #0D192A !important;
+}
+html[data-theme="dark"] .main-area.home-dashboard-active .topbar {
+  background: #091D3B !important;
+  border-bottom-color: #263F5E !important;
+}
