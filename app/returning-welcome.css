@@ -1628,3 +1628,27 @@ html[data-theme="dark"] .home-dashboard-refresh .home-compact-footer { color: #9
     min-height: clamp(66px, 9vh, 78px);
   }
 }
+
+
+/* Preserve mascot proportions and readable shortcut columns on compact laptops. */
+@media (min-width: 761px) {
+  .home-dashboard-refresh .home-welcome-mascot {
+    width: clamp(140px, 15vw, 190px);
+    height: clamp(116px, 16vh, 148px);
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot::before {
+    width: clamp(106px, 14vh, 136px);
+    height: clamp(106px, 14vh, 136px);
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot svg {
+    width: clamp(118px, 15vh, 150px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .home-dashboard-refresh .home-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
