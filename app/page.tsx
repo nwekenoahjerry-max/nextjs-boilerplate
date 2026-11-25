@@ -1056,9 +1056,9 @@ export default function Home() {
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
     <h1>{timeGreeting}, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
     <p className="home-hero-subtitle">{resumeStudy ? "Lovely to have you back. Your last study session is ready." : "Your clinical learning space is ready. Choose a topic and make today’s progress count."}</p>
-    <div className="home-welcome-meta">
+    <div className="home-welcome-meta" aria-label="Your study progress">
       <span className="home-streak-chip"><span aria-hidden="true">✦</span> {streakData.streak} day streak</span>
-      <span className="home-checkin-chip">{streakData.todayActive ? "You’ve checked in today" : "One small step today"}</span>
+      <span className="home-time-chip" aria-label={`Study time today: ${formatStudyTime(timeSpentTodaySeconds)}`}><span aria-hidden="true">◷</span><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><small>today</small></span>
     </div>
   </div>
   <div className="home-welcome-mascot" aria-hidden="true">
@@ -1093,12 +1093,6 @@ export default function Home() {
   </div>
 </section>
 
-<section className="home-stats-strip" aria-label="Your learning summary">
-  <div className="home-stat-card home-time-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Time today</span></div></div>
-  <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">▦</span><div><strong>{streakData.activeDays}</strong><span>Study days</span></div></div>
-  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Check-in</span></div></div>
-</section>
-
 <section className={"home-resume-card" + (resumeStudy ? "" : " is-empty")} aria-label="Continue learning">
   <span className="home-resume-icon" aria-hidden="true"><WorkspaceIcon name={resumeStudy ? (resumeStudy.tab === "questions" ? "list-checks" : "book-open") : "folder-open"}/></span>
   <div className="home-resume-copy">
@@ -1115,17 +1109,16 @@ export default function Home() {
 
 <section className="home-quick-start" aria-label="Quick study actions">
   <div className="home-section-heading">
-    <div><span className="eyebrow">QUICK ACCESS</span><h2>Jump into your workspace</h2></div>
-    <span className="home-section-hint">Your essential tools, one tap away</span>
+    <div><span className="eyebrow">YOUR WORKSPACE</span><h2>Quick actions</h2></div>
   </div>
   <div className="home-action-grid">
-    <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span className="home-action-card-copy"><strong>My materials</strong><small>Lectures and study guides</small></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
-    <button type="button" className="home-action-card home-action-qbank" onClick={()=>selectSection("qbank")}><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><span className="home-action-card-copy"><strong>Question bank</strong><small>Practise exam-style questions</small></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
-    <button type="button" className="home-action-card home-action-videos" onClick={()=>selectSection("videos")}><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><span className="home-action-card-copy"><strong>Video library</strong><small>Find and watch lectures</small></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
-    <button type="button" className="home-action-card home-action-clinical" onClick={()=>startClerking()}><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><span className="home-action-card-copy"><strong>Clinical practice</strong><small>Clerk a patient</small></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
+    <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span className="home-action-card-copy"><strong>My materials</strong></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
+    <button type="button" className="home-action-card home-action-qbank" onClick={()=>selectSection("qbank")}><span className="home-action-icon"><WorkspaceIcon name="list-checks"/></span><span className="home-action-card-copy"><strong>Question bank</strong></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
+    <button type="button" className="home-action-card home-action-videos" onClick={()=>selectSection("videos")}><span className="home-action-icon"><WorkspaceIcon name="play-square"/></span><span className="home-action-card-copy"><strong>Video library</strong></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
+    <button type="button" className="home-action-card home-action-clinical" onClick={()=>startClerking()}><span className="home-action-icon"><WorkspaceIcon name="stethoscope"/></span><span className="home-action-card-copy"><strong>Clinical practice</strong></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
   </div>
 </section>
-<footer className="footer-note home-compact-footer">Learning support only. Follow clinical supervision and local protocols. Never upload identifiable patient information.</footer>
+
 </div>
 </>}{active === "study" && <>
             <div className="page-intro study-hub-intro">
