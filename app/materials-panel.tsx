@@ -181,7 +181,7 @@ function InlineStudyVisual({visual}:{visual:GeneratedStudyIllustration}) {
   </figure>;
 }
 
-export default function MaterialsPanel() {
+export default function MaterialsPanel({userKey}:{userKey:string}) {
   const [materials,setMaterials] = useState<StudyMaterial[]>([]);
   const [sourceTextByMaterial,setSourceTextByMaterial] = useState<Record<string,string>>({});
   const [unit,setUnit] = useState("general-medicine");
@@ -507,8 +507,31 @@ export default function MaterialsPanel() {
     });
     setMaterials(next);
 
-    // Refreshes preserve an explicitly opened material, but the library never
-    // selects the newest or previously active material automatically.
+    // Restore this learner's last opened material and study area on this device.
+    // The material is matched against the authenticated library response before opening.
+    if (userKey) {
+      try {
+        const rawResume = window.localStorage.getItem("clerkme:last-study:" + userKey);
+        if (rawResume) {
+          const resume = JSON.parse(rawResume) as Record<string, unknown>;
+          const validTab = ["summary","source","questions","ask"].includes(String(resume.tab))
+            ? String(resume.tab) as "summary"|"source"|"questions"|"ask"
+            : "summary";
+          const savedMaterial = typeof resume.materialId === "string"
+            ? next.find(item => item.id === resume.materialId)
+            : undefined;
+          if (savedMaterial) {
+            setLibraryMode(savedMaterial.unit.startsWith("custom:") ? "general" : "clinical");
+            setLibraryUnit("all");
+            setSelectedId(savedMaterial.id);
+            setTab(validTab);
+            setMobileDetailOpen(true);
+          }
+        }
+      } catch {}
+    }
+
+    // Refreshes preserve an explicitly opened material.
     if (selectedId && !next.some(item=>item.id===selectedId)) {
       setSelectedId("");
       setMobileDetailOpen(false);
@@ -531,6 +554,21 @@ export default function MaterialsPanel() {
     } : item));
     return study;
   };
+
+  useEffect(() => {
+    if (!userKey || !selectedId) return;
+    const current = materials.find(item => item.id === selectedId);
+    if (!current) return;
+    const progress = {
+      materialId: current.id,
+      title: current.title,
+      unit: current.unit,
+      tab,
+      lastOpenedAt: Date.now()
+    };
+    try { window.localStorage.setItem("clerkme:last-study:" + userKey, JSON.stringify(progress)); } catch {}
+    window.dispatchEvent(new CustomEvent("clerkme:study-progress", { detail: progress }));
+  }, [userKey, selectedId, tab, materials]);
 
   useEffect(()=>{ loadMaterials().catch(e=>setError(e instanceof Error?e.message:"Could not load your study materials.")); },[]);
   useEffect(()=>{
