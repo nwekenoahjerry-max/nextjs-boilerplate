@@ -680,6 +680,7 @@ export default function Home() {
   const clerkingFormRef = useRef<HTMLDivElement>(null);
   const selectedTemplate = templates.find(template => template.id === selectedSpecialty) || templates[0];
   const selectedTemplateFramework = unitClerkingFrameworks[selectedSpecialty];
+  const firstName = authUser?.name?.trim().split(/\s+/)[0] || "there";
   const learningWeek = useMemo(() => {
     if (!streakData.today) return [];
     const today = new Date(streakData.today + "T00:00:00Z");
@@ -1054,7 +1055,7 @@ export default function Home() {
 <section className="home-compact-header" aria-label="Welcome to your ClerkME workspace">
   <div className="home-welcome-copy">
     <span className="home-hero-kicker">YOUR CLINICAL WORKSPACE</span>
-    <h1>{timeGreeting}, {authUser?.name?.trim().split(/\s+/)[0] || "there"}.</h1>
+    <h1>{timeGreeting}, {firstName}.</h1>
     <p className="home-hero-subtitle">{resumeStudy ? "Lovely to have you back. Your last study session is ready." : "Your clinical learning space is ready. Choose a topic and make today’s progress count."}</p>
     <div className="home-welcome-meta" aria-label="Your study progress">
       <span className="home-streak-chip"><span aria-hidden="true">✦</span> {streakData.streak} day streak</span>
@@ -1062,33 +1063,75 @@ export default function Home() {
     </div>
   </div>
   <div className="home-welcome-mascot" aria-hidden="true">
-    <span className="home-welcome-bubble">Good to see you!</span>
-    <svg viewBox="0 0 160 150" role="presentation" focusable="false">
-      <circle cx="80" cy="78" r="66" fill="#DCEBFA" opacity=".98"/>
-      <circle cx="129" cy="35" r="7" fill="#F4C76B"/>
-      <path d="M31 137c2-22 20-36 49-36s47 14 49 36" fill="#F8FBFF" stroke="#7898BA" strokeWidth="2.5"/>
-      <path d="M56 108l24 19 24-19 9 29H47z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
-      <path d="M71 103h18l-2 17-7 8-7-8z" fill="#E8B89A"/>
-      <path d="M53 51c0-22 12-35 29-35 21 0 32 15 30 39l-5 17H58z" fill="#173A63"/>
-      <ellipse cx="81" cy="57" rx="28" ry="32" fill="#E9B995"/>
-      <path d="M53 51c2-24 16-35 32-35 14 0 25 8 29 24-9-5-17-10-23-17-9 12-22 18-38 19z" fill="#173A63"/>
-      <path d="M55 43c-5 10-4 23 1 31l6-5-1-22z" fill="#173A63"/>
-      <path d="M106 45c5 9 5 21 0 31l-6-6 1-23z" fill="#173A63"/>
-      <ellipse cx="71" cy="59" rx="2.4" ry="3" fill="#173A63"/>
-      <ellipse cx="91" cy="59" rx="2.4" ry="3" fill="#173A63"/>
-      <path d="M74 73q7 6 14 0" fill="none" stroke="#A85F50" strokeWidth="2.4" strokeLinecap="round"/>
-      <path d="M61 85q20 11 40 0l7 15-27 20-27-20z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
-      <path d="M80 101v27" stroke="#7898BA" strokeWidth="2"/>
-      <path d="M77 104h7v9h-7z" fill="#EAF2FA" stroke="#7898BA" strokeWidth="1.4"/>
-      <path d="M75 112c-7 7-6 17 5 20 11-3 12-13 5-20" fill="none" stroke="#2D8D83" strokeWidth="3" strokeLinecap="round"/>
-      <circle cx="80" cy="132" r="4" fill="#2D8D83"/>
-      <path d="M104 100q16-9 22-28" fill="none" stroke="#E9B995" strokeWidth="8" strokeLinecap="round"/>
-      <g className="home-mascot-wave">
-        <path d="M125 77q4-14 11-19" fill="none" stroke="#E9B995" strokeWidth="9" strokeLinecap="round"/>
-        <path d="M134 58q-3-7 1-11m0 11q3-7 7-7m-8 9q-1-7 4-10" fill="none" stroke="#E9B995" strokeWidth="5" strokeLinecap="round"/>
+    <span className="home-welcome-bubble">Hi, {firstName}!</span>
+    <svg viewBox="0 0 180 170" role="presentation" focusable="false">
+      <defs>
+        <linearGradient id="mascot-aura" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#EEF5FC"/>
+          <stop offset="1" stopColor="#C9DDF1"/>
+        </linearGradient>
+        <linearGradient id="mascot-coat" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFFFFF"/>
+          <stop offset="1" stopColor="#E7EFF8"/>
+        </linearGradient>
+        <linearGradient id="mascot-skin" x1="0" y1="0" x2="0.8" y2="1">
+          <stop offset="0" stopColor="#F4CBAA"/>
+          <stop offset="1" stopColor="#DFA982"/>
+        </linearGradient>
+        <filter id="mascot-shadow" x="-30%" y="-30%" width="160%" height="170%">
+          <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="#173A63" floodOpacity=".16"/>
+        </filter>
+      </defs>
+      <circle cx="91" cy="89" r="72" fill="url(#mascot-aura)"/>
+      <circle cx="91" cy="89" r="62" fill="none" stroke="#FFFFFF" strokeOpacity=".7" strokeWidth="1.5" strokeDasharray="3 6"/>
+      <path d="M25 48l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#D8A642"/>
+      <path d="M151 79l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#88A9CD"/>
+      <circle cx="143" cy="37" r="4" fill="#D8A642"/>
+      <circle cx="35" cy="113" r="3" fill="#8EB1D5"/>
+      <ellipse cx="91" cy="158" rx="48" ry="6" fill="#173A63" opacity=".12"/>
+      <g filter="url(#mascot-shadow)">
+        
+        <path d="M43 166c2-30 16-47 48-47s46 17 48 47z" fill="#244A78"/>
+        <path d="M57 117c7-7 20-11 34-11s27 4 34 11l12 49H45z" fill="url(#mascot-coat)" stroke="#91A9C4" strokeWidth="1.7"/>
+        <path d="M77 108l14 17 14-17 8 58H69z" fill="#315D8A"/>
+        <path d="M77 109l14 16-11 13-13-24zM105 109l-14 16 11 13 13-24z" fill="#FFFFFF" stroke="#9CB3CC" strokeWidth="1.4"/>
+        <path d="M91 126v34" stroke="#A7BACF" strokeWidth="1.5"/>
+        <circle cx="91" cy="145" r="2.1" fill="#D8A642"/>
+        
+        <path d="M54 124c-9 8-13 19-13 31" fill="none" stroke="#E5B18E" strokeWidth="12" strokeLinecap="round"/>
+        <path d="M39 151l-1 8" stroke="#E5B18E" strokeWidth="8" strokeLinecap="round"/>
+        <rect x="16" y="119" width="34" height="40" rx="6" fill="#FFFFFF" stroke="#8FA9C5" strokeWidth="1.8"/>
+        <rect x="23" y="125" width="20" height="4" rx="2" fill="#DCE8F5"/>
+        <path d="M25 138h15M25 144h11" stroke="#8BA4C0" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M30 151l3 3 6-7" fill="none" stroke="#2D8D83" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        
+        <path d="M128 125c12-8 16-18 14-30" fill="none" stroke="#E5B18E" strokeWidth="12" strokeLinecap="round"/>
+        <g className="home-mascot-wave">
+          <path d="M141 99c-1-8 1-15 3-20" fill="none" stroke="#E5B18E" strokeWidth="11" strokeLinecap="round"/>
+          <path d="M140 82l-2-10M144 80l1-12M148 81l5-9" fill="none" stroke="#E5B18E" strokeWidth="5" strokeLinecap="round"/>
+        </g>
+        
+        <path d="M72 119v12c0 11 8 18 19 18s19-7 19-18v-12" fill="none" stroke="#2D8D83" strokeWidth="3.2" strokeLinecap="round"/>
+        <path d="M91 149v5" stroke="#2D8D83" strokeWidth="3" strokeLinecap="round"/>
+        <circle cx="91" cy="157" r="5.4" fill="#E4B45C" stroke="#A77C32" strokeWidth="1.3"/>
+        <rect x="111" y="126" width="13" height="17" rx="2.5" fill="#EAF2FA" stroke="#91A9C4" strokeWidth="1"/>
+        <path d="M117.5 130v9M113 134.5h9" stroke="#D8A642" strokeWidth="2" strokeLinecap="round"/>
+        
+        <path d="M82 98h18v18c0 6-18 6-18 0z" fill="url(#mascot-skin)"/>
+        <ellipse cx="91" cy="67" rx="29" ry="34" fill="url(#mascot-skin)" stroke="#C58E70" strokeWidth="1"/>
+        <path d="M62 66c-3-24 10-43 30-43 21 0 33 16 29 41-4-4-8-10-10-18-11 8-25 12-44 10z" fill="#173A63"/>
+        <path d="M64 48c8-15 19-22 33-21 10 1 18 6 23 16-15-4-28-3-39 4-7 4-12 7-18 8z" fill="#244A78"/>
+        <path d="M65 58c-4 2-5 8-3 13 2 5 6 7 9 6" fill="#E7B38F"/>
+        <path d="M117 58c4 2 5 8 3 13-2 5-6 7-9 6" fill="#E7B38F"/>
+        <path d="M77 65q5-4 10 0M96 65q5-4 10 0" fill="none" stroke="#65483C" strokeWidth="2" strokeLinecap="round"/>
+        <ellipse cx="82" cy="72" rx="2.4" ry="3" fill="#173A63"/>
+        <ellipse cx="101" cy="72" rx="2.4" ry="3" fill="#173A63"/>
+        <circle cx="72" cy="82" r="4" fill="#D98E7F" opacity=".25"/>
+        <circle cx="110" cy="82" r="4" fill="#D98E7F" opacity=".25"/>
+        <path d="M85 88q6 6 13 0" fill="none" stroke="#A85F50" strokeWidth="2.6" strokeLinecap="round"/>
+        <path d="M87 93q4 2 8 0" fill="none" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round"/>
       </g>
-      <path d="M54 105l-13 25h18l12-17zM107 105l13 25h-18l-12-17z" fill="#FFFFFF" stroke="#7898BA" strokeWidth="2"/>
-      <path d="M72 104l8 9 8-9" fill="none" stroke="#D2DFEC" strokeWidth="2"/>
+      <path d="M65 113l-9 7 8 9M117 113l9 7-8 9" fill="none" stroke="#A8BED6" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   </div>
 </section>
