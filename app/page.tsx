@@ -1109,8 +1109,7 @@ export default function Home() {
 
 <section className="home-quick-start" aria-label="Quick study actions">
   <div className="home-section-heading">
-    <div><span className="eyebrow">QUICK ACCESS</span><h2>Jump into your workspace</h2></div>
-    <span className="home-section-hint">Your essential tools, one tap away</span>
+    <div><span className="eyebrow">YOUR WORKSPACE</span><h2>Quick actions</h2></div>
   </div>
   <div className="home-action-grid">
     <button type="button" className="home-action-card home-action-materials" onClick={()=>selectSection("materials")}><span className="home-action-icon"><WorkspaceIcon name="folder-open"/></span><span className="home-action-card-copy"><strong>My materials</strong></span><span className="home-action-arrow" aria-hidden="true">→</span></button>
