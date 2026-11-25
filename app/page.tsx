@@ -1110,7 +1110,7 @@ export default function Home() {
         + " · Last opened " + (Date.now() - resumeStudy.lastOpenedAt < 60_000 ? "just now" : Date.now() - resumeStudy.lastOpenedAt < 3_600_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 60_000) + " min ago" : Date.now() - resumeStudy.lastOpenedAt < 86_400_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 3_600_000) + " hr ago" : new Intl.DateTimeFormat("en-GB", { day:"numeric", month:"short" }).format(new Date(resumeStudy.lastOpenedAt)))
       : "Open a saved lecture, build a detailed study guide or practise exam-style questions."}</p>
   </div>
-  <button type="button" className="home-resume-button" onClick={() => selectSection("materials")}>{resumeStudy ? "Continue studying" : "Open my materials"} <span aria-hidden="true">→</span></button>
+  <button type="button" className="home-resume-button" onClick={() => selectSection("materials")}>{resumeStudy ? "Continue" : "Materials"} <span aria-hidden="true">→</span></button>
 </section>
 
 <section className="home-quick-start" aria-label="Quick study actions">
