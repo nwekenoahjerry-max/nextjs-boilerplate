@@ -46,6 +46,7 @@ const workspaceIconShapes: Record<string, ReactNode> = {
   "user-round": <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   flame: <><path d="M12 22c4.1 0 7-2.8 7-6.7 0-3.1-1.7-5.3-4.7-8.3-.2 2.1-1.2 3.5-2.5 4.3C11.7 7.2 9.7 4.4 7 2c.3 4.2-3 6.8-3 11.7C4 18.4 7.2 22 12 22Z"/><path d="M12 22c-1.8-1.1-2.8-2.7-2.8-4.4 0-1.4.7-2.5 2-3.7.2 1.5 1 2.3 1.8 2.9.6.5 1 1.2 1 2 0 1.3-.7 2.4-2 3.2Z"/></>,
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></>,
+  award: <><circle cx="12" cy="8" r="5"/><path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9"/></>,
   download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></>,
 };
 
@@ -53,21 +54,6 @@ function WorkspaceIcon({ name, className }: { name: string; className?: string }
   return <svg className={className} viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
     {workspaceIconShapes[name] || workspaceIconShapes.home}
   </svg>;
-}
-
-function WorkspaceActivityStats({ streak, studyTime }: { streak: number; studyTime: string }) {
-  return (
-    <div className="workspace-activity-stats" role="group" aria-label="Your learning activity">
-      <div className="workspace-activity-stat workspace-activity-streak" aria-label={`${streak} day learning streak`} title="Consecutive study days">
-        <span className="workspace-activity-stat-icon"><WorkspaceIcon name="flame"/></span>
-        <span className="workspace-activity-stat-copy"><strong>{streak}</strong><small>day streak</small></span>
-      </div>
-      <div className="workspace-activity-stat workspace-activity-time" aria-label={`Study time today: ${studyTime}`} title="Study time today">
-        <span className="workspace-activity-stat-icon"><WorkspaceIcon name="clock"/></span>
-        <span className="workspace-activity-stat-copy"><strong>{studyTime}</strong><small>today</small></span>
-      </div>
-    </div>
-  );
 }
 
 const templates = [
@@ -1060,7 +1046,6 @@ export default function Home() {
         <header className="topbar">
           <ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/>
           <div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div>
-          <WorkspaceActivityStats streak={streakData.streak} studyTime={formatStudyTime(timeSpentTodaySeconds)}/>
           <div className="top-actions">
             {authUser && <NotificationCenter onNavigate={selectSection}/>}
             <button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button>
@@ -1147,6 +1132,20 @@ export default function Home() {
       </g>
       <path d="M65 113l-9 7 8 9M117 113l9 7-8 9" fill="none" stroke="#A8BED6" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
+  </div>
+  <div className="home-stats-strip" role="group" aria-label="Your learning progress">
+    <div className="home-stat-card">
+      <span className="home-stat-icon"><WorkspaceIcon name="flame"/></span>
+      <div><strong>{streakData.streak}</strong><span>Current streak</span></div>
+    </div>
+    <div className="home-stat-card">
+      <span className="home-stat-icon"><WorkspaceIcon name="clock"/></span>
+      <div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Study time today</span></div>
+    </div>
+    <div className="home-stat-card">
+      <span className="home-stat-icon"><WorkspaceIcon name="award"/></span>
+      <div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div>
+    </div>
   </div>
 </section>
 
