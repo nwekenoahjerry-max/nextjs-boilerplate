@@ -5,6 +5,7 @@ import { clinicalUnits } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import SourceFileViewer from "./source-file-viewer";
 import StudyGuideReadAloud from "./study-guide-read-aloud";
+import { normaliseStudyStringsDeep } from "../lib/study-text";
 
 type StudyVisualAid = {
   title:string;
@@ -494,14 +495,15 @@ export default function MaterialsPanel() {
     const cached = new Map(materials.map(item=>[item.id,item]));
     const next = (Array.isArray(data.materials) ? data.materials as StudyMaterial[] : []).map(item=>{
       const existing = cached.get(item.id);
+      const cleanedItem = normaliseStudyStringsDeep(item) as StudyMaterial;
       return existing?.studyLoaded ? {
-        ...item,
-        summary: existing.summary || null,
+        ...cleanedItem,
+        summary: existing.summary ? normaliseStudyStringsDeep(existing.summary) as StudySummary : null,
         questions: existing.questions || [],
         hasSummary: existing.hasSummary,
         questionCount: existing.questionCount,
         studyLoaded: true
-      } : item;
+      } : cleanedItem;
     });
     setMaterials(next);
 
@@ -518,7 +520,7 @@ export default function MaterialsPanel() {
     const response = await fetch("/api/learning/materials?id="+encodeURIComponent(materialId)+"&include=study",
       {credentials:"same-origin",cache:"no-store"});
     const data = await readResponse(response);
-    const study = (data.material || {}) as Partial<StudyMaterial>;
+    const study = normaliseStudyStringsDeep((data.material || {}) as Partial<StudyMaterial>);
     setMaterials(current=>current.map(item=>item.id===materialId ? {
       ...item,
       summary: study.summary || null,
@@ -539,7 +541,7 @@ export default function MaterialsPanel() {
       .then(readResponse)
       .then(data=>{
         if (cancelled) return;
-        const study = (data.material || {}) as Partial<StudyMaterial>;
+        const study = normaliseStudyStringsDeep((data.material || {}) as Partial<StudyMaterial>);
         setMaterials(current=>current.map(item=>item.id===selectedId ? {
           ...item,
           summary: study.summary || null,
@@ -780,7 +782,7 @@ export default function MaterialsPanel() {
         let buffer = "";
         const handleEvent = (line:string) => {
           if (!line.trim()) return;
-          const event = JSON.parse(line) as Record<string,unknown>;
+          const event = normaliseStudyStringsDeep(JSON.parse(line) as Record<string,unknown>);
           if (event.type === "preview" && event.preview && typeof event.preview === "object") {
             const preview = event.preview as StudySummary;
             setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:preview}:item));
@@ -807,7 +809,7 @@ export default function MaterialsPanel() {
         }
         if (buffer.trim()) handleEvent(buffer);
       } else {
-        const started = await readResponse(response);
+        const started = normaliseStudyStringsDeep(await readResponse(response));
         summary = started.summary as StudySummary|undefined;
         if (started.preview && typeof started.preview === "object") {
           const preview = started.preview as StudySummary;
@@ -828,7 +830,7 @@ export default function MaterialsPanel() {
               "/api/learning/summarise?jobId="+encodeURIComponent(jobId),
               {credentials:"same-origin",cache:"no-store"}
             );
-            const job = await readResponse(statusResponse);
+            const job = normaliseStudyStringsDeep(await readResponse(statusResponse));
             if (job.status === "completed" && job.summary) {
               summary = job.summary as StudySummary;
               break;
@@ -844,6 +846,7 @@ export default function MaterialsPanel() {
       }
 
       if (!summary) throw new Error("The study service did not return a completed guide. Your uploaded material is safe; please retry.");
+      summary = normaliseStudyStringsDeep(summary) as StudySummary;
       setMaterials(current=>current.map(item=>item.id===materialId?{...item,summary:summary || null,hasSummary:true,studyLoaded:true}:item));
       const elapsedSeconds = ((Date.now()-startedAt)/1000).toFixed(1);
       setNotice(mode === "rapid"
