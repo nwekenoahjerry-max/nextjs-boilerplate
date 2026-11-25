@@ -11,6 +11,11 @@ const LATEX_SYMBOLS: Record<string, string> = {
   degree:"°", circ:"°", ell:"ℓ"
 };
 
+const STUDY_LIGATURES: Record<string,string> = {
+  "\uFB00":"ff", "\uFB01":"fi", "\uFB02":"fl", "\uFB03":"ffi",
+  "\uFB04":"ffl", "\uFB05":"st", "\uFB06":"st"
+};
+
 const HTML_ENTITIES: Record<string,string> = {
   amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ",
   rarr:"→", larr:"←", harr:"↔", rArr:"⇒", lArr:"⇐",
@@ -38,10 +43,7 @@ export function normaliseStudyText(value:unknown):string {
     .replace(/\r\n?/g,"\n")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"")
     .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF\uFFFD]/g,"")
-    .replace(/[\uFB00-\uFB06]/g,character=>({
-      "\uFB00":"ff","\uFB01":"fi","\uFB02":"fl","\uFB03":"ffi",
-      "\uFB04":"ffl","\uFB05":"st","\uFB06":"st"
-    }[character]||character))
+    .replace(/[\uFB00-\uFB06]/g,character=>STUDY_LIGATURES[character]||character)
     .replace(/&(?:#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi,decodeStudyEntity);
 
   text=text
@@ -80,12 +82,12 @@ export function normaliseStudyText(value:unknown):string {
 
 /** Normalises each textual leaf in a JSON value without mutating the original object. */
 export function normaliseStudyStringsDeep<T>(value:T):T {
-  if(typeof value==="string")return normaliseStudyText(value) as T;
-  if(Array.isArray(value))return value.map(item=>normaliseStudyStringsDeep(item)) as T;
+  if(typeof value==="string")return normaliseStudyText(value) as unknown as T;
+  if(Array.isArray(value))return value.map(item=>normaliseStudyStringsDeep(item)) as unknown as T;
   if(value&&typeof value==="object"){
     const output:Record<string,unknown>={};
     for(const [key,item] of Object.entries(value as Record<string,unknown>))output[key]=normaliseStudyStringsDeep(item);
-    return output as T;
+    return output as unknown as T;
   }
   return value;
 }
