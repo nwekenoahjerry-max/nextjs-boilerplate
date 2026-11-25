@@ -1816,3 +1816,162 @@ html[data-theme="dark"] .reminder-switch[aria-checked="true"] { background:#3979
 html[data-theme="dark"] .reminder-push-button { background:#21324a; border-color:#415975; color:#edf3fb; }
 html[data-theme="dark"] .reminder-feedback.is-success { color:#72d5a2; }
 @media(max-width:600px) { .reminder-setting-row { align-items:flex-start; } .reminder-switch { margin-top:2px; } .reminder-intro-note { font-size:11px; } }
+
+
+/* Unified ClerkME brand system.
+   The whole workspace uses one consistent navy/soft-blue identity, with muted gold
+   reserved for small moments of emphasis. Clinical status colours remain untouched. */
+:root {
+  --clerkme-brand-primary: #102D5A;
+  --clerkme-brand-deep: #0B2348;
+  --clerkme-brand-mid: #315D8A;
+  --clerkme-brand-accent: #D8A642;
+  --clerkme-brand-tint: #EAF1F9;
+  --clerkme-brand-tint-soft: #F5F8FC;
+  --clerkme-brand-border: #DCE6F2;
+  --clerkme-brand-muted: #61758D;
+  --ink: #102D5A;
+  --green: #102D5A;
+  --green-dark: #0B2348;
+  --purple: #102D5A;
+  --purple-dark: #0B2348;
+  --gold: #D8A642;
+  --paper: #F5F8FC;
+  --line: #E2E8F0;
+  --brand-navy: #102D5A;
+  --brand-emerald: #102D5A;
+  --brand-gold: #D8A642;
+  --brand-cloud: #F5F8FC;
+}
+
+html[data-theme="dark"] {
+  --clerkme-brand-primary: #A9C9F2;
+  --clerkme-brand-deep: #DDEBFA;
+  --clerkme-brand-mid: #82B0E2;
+  --clerkme-brand-accent: #E4CA88;
+  --clerkme-brand-tint: #263D59;
+  --clerkme-brand-tint-soft: #1B2D45;
+  --clerkme-brand-border: #3A526F;
+  --clerkme-brand-muted: #AFC2D9;
+}
+
+/* The same page chrome on Home, Study, Materials, Videos, QBank, OSCE and Account. */
+.app-shell,
+.app-shell .main-area {
+  background: var(--clerkme-canvas, #F5F8FC);
+}
+.app-shell .sidebar {
+  border-right-color: var(--clerkme-border, #E2E8F0);
+}
+.app-shell .topbar {
+  border-bottom-color: var(--clerkme-border, #E2E8F0);
+}
+.app-shell .brand-mark {
+  background: linear-gradient(145deg, var(--clerkme-brand-primary), var(--clerkme-brand-mid));
+  box-shadow: 0 7px 17px rgba(16, 45, 90, .16);
+}
+.app-shell .brand strong span,
+.app-shell .breadcrumb strong,
+.app-shell .page-intro h1,
+.app-shell .section-heading h2,
+.app-shell .panel-heading h3,
+.app-shell .study-hub-section-heading h2 {
+  color: var(--clerkme-brand-primary);
+}
+.app-shell .nav-item {
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.app-shell .nav-item:hover,
+.app-shell .nav-item.active {
+  background: var(--clerkme-brand-tint);
+  color: var(--clerkme-brand-primary);
+}
+.app-shell .nav-item.active {
+  box-shadow: inset 3px 0 var(--clerkme-brand-mid);
+}
+.app-shell :is(.page-intro .eyebrow, .study-hub-section-heading p, .section-heading p, .panel-heading p) {
+  color: var(--clerkme-brand-muted);
+}
+
+/* Bring the reusable cards into the same surface and border language. */
+.app-shell :is(
+  .panel, .tool-card, .template-card, .resource-card, .form-panel,
+  .study-hub-card, .study-hub-format-card, .qbank-card, .osce-card,
+  .video-library-card, .materials-panel, .materials-workspace
+) {
+  border-color: var(--clerkme-brand-border);
+}
+.app-shell :is(.tool-icon.mint, .tool-icon.sand, .tool-icon.lilac, .tool-icon.blue,
+  .template-icon, .study-hub-card-icon, .study-hub-format-icon) {
+  background: var(--clerkme-brand-tint);
+  color: var(--clerkme-brand-primary);
+}
+.app-shell :is(.study-hub-card-icon.quiz, .study-hub-card-icon.videos) {
+  background: var(--clerkme-brand-tint);
+  color: var(--clerkme-brand-primary);
+}
+.app-shell :is(.study-hub-card:hover, .tool-card:hover, .template-card:hover, .resource-card:hover) {
+  border-color: #AFC5DE;
+  box-shadow: 0 10px 26px rgba(16, 45, 90, .075);
+}
+.app-shell :is(.primary-button, .video-library-play-button) {
+  border-color: var(--clerkme-brand-primary);
+  background: var(--clerkme-brand-primary);
+  color: #FFFFFF;
+}
+.app-shell :is(.primary-button, .video-library-play-button):hover {
+  background: var(--clerkme-brand-mid);
+  border-color: var(--clerkme-brand-mid);
+  color: #FFFFFF;
+}
+
+/* A soft gold detail, not a competing second brand colour. */
+.app-shell :is(.date-chip span, .tip-symbol, .home-streak-spark, .home-streak-chip > span) {
+  color: var(--clerkme-brand-accent);
+}
+
+/* Dark mode keeps the exact same brand hierarchy without pale text on pale controls. */
+html[data-theme="dark"] .app-shell :is(.sidebar, .topbar) {
+  background: #131F31 !important;
+  border-color: var(--clerkme-border) !important;
+}
+html[data-theme="dark"] .app-shell .brand-mark {
+  background: linear-gradient(145deg, #27496F, #315D8A);
+}
+html[data-theme="dark"] .app-shell .brand strong span,
+html[data-theme="dark"] .app-shell .breadcrumb strong,
+html[data-theme="dark"] .app-shell .page-intro h1,
+html[data-theme="dark"] .app-shell .section-heading h2,
+html[data-theme="dark"] .app-shell .panel-heading h3,
+html[data-theme="dark"] .app-shell .study-hub-section-heading h2 {
+  color: var(--clerkme-text) !important;
+}
+html[data-theme="dark"] .app-shell .nav-item:hover,
+html[data-theme="dark"] .app-shell .nav-item.active {
+  background: #263D59 !important;
+  color: #EAF2FC !important;
+}
+html[data-theme="dark"] .app-shell .nav-item.active {
+  box-shadow: inset 3px 0 #8FB9E8;
+}
+html[data-theme="dark"] .app-shell :is(.tool-icon.mint, .tool-icon.sand, .tool-icon.lilac, .tool-icon.blue,
+  .template-icon, .study-hub-card-icon, .study-hub-format-icon) {
+  background: #263D59 !important;
+  color: #D8E9FC !important;
+}
+html[data-theme="dark"] .app-shell :is(.primary-button, .video-library-play-button) {
+  border-color: #A9C9F2 !important;
+  background: #A9C9F2 !important;
+  color: #102D4A !important;
+}
+html[data-theme="dark"] .app-shell :is(.primary-button, .video-library-play-button):hover {
+  background: #C5DCF7 !important;
+  border-color: #C5DCF7 !important;
+  color: #102D4A !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .nav-item,
+  .app-shell :is(.tool-card, .study-hub-card, .template-card, .resource-card) {
+    transition: none !important;
+  }
+}

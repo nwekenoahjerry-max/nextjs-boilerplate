@@ -1096,7 +1096,7 @@ export default function Home() {
 <section className="home-stats-strip" aria-label="Your learning summary">
   <div className="home-stat-card home-time-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Time today</span></div></div>
   <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">▦</span><div><strong>{streakData.activeDays}</strong><span>Study days</span></div></div>
-  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Today's check-in</span></div></div>
+  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Check-in</span></div></div>
 </section>
 
 <section className={"home-resume-card" + (resumeStudy ? "" : " is-empty")} aria-label="Continue learning">
@@ -1110,7 +1110,7 @@ export default function Home() {
         + " · Last opened " + (Date.now() - resumeStudy.lastOpenedAt < 60_000 ? "just now" : Date.now() - resumeStudy.lastOpenedAt < 3_600_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 60_000) + " min ago" : Date.now() - resumeStudy.lastOpenedAt < 86_400_000 ? Math.floor((Date.now() - resumeStudy.lastOpenedAt) / 3_600_000) + " hr ago" : new Intl.DateTimeFormat("en-GB", { day:"numeric", month:"short" }).format(new Date(resumeStudy.lastOpenedAt)))
       : "Open a saved lecture, build a detailed study guide or practise exam-style questions."}</p>
   </div>
-  <button type="button" className="home-resume-button" onClick={() => selectSection("materials")}>{resumeStudy ? "Continue studying" : "Open my materials"} <span aria-hidden="true">→</span></button>
+  <button type="button" className="home-resume-button" onClick={() => selectSection("materials")}>{resumeStudy ? "Continue" : "Materials"} <span aria-hidden="true">→</span></button>
 </section>
 
 <section className="home-quick-start" aria-label="Quick study actions">
