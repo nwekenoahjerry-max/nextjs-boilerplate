@@ -1127,7 +1127,6 @@ export default function Home() {
 </section>
 <footer className="footer-note home-compact-footer">Learning support only. Follow clinical supervision and local protocols. Never upload identifiable patient information.</footer>
 </div>
-</div>
 </>}{active === "study" && <>
             <div className="page-intro study-hub-intro">
               <div className="eyebrow">YOUR STUDY WORKSPACE</div>
