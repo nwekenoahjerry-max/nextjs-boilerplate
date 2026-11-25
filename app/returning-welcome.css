@@ -1763,3 +1763,119 @@ html[data-theme="dark"] .home-dashboard-refresh .home-compact-footer { color: #9
     width: clamp(155px, 18vw, 220px);
   }
 }
+
+
+/* Persistent learning indicators shared by every authenticated workspace screen. */
+.workspace-activity-stats {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.workspace-activity-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 11px;
+  border: 1px solid #E1E8F1;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #173A63;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(16, 45, 90, .035);
+}
+.workspace-activity-stat-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 25px;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  background: #EDF3FA;
+  color: #315D8A;
+}
+.workspace-activity-stat-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+.workspace-activity-streak .workspace-activity-stat-icon {
+  background: #FFF4DF;
+  color: #BA7A21;
+}
+.workspace-activity-stat-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+}
+.workspace-activity-stat-copy strong {
+  color: #173A63;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-activity-stat-copy small {
+  color: #718096;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.main-area .top-actions { margin-left: 12px; }
+
+html[data-theme="dark"] .workspace-activity-stat {
+  border-color: #344A65;
+  background: #17253A;
+  color: #EAF1FB;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .16);
+}
+html[data-theme="dark"] .workspace-activity-stat-icon {
+  background: #263D59;
+  color: #CFE2F7;
+}
+html[data-theme="dark"] .workspace-activity-streak .workspace-activity-stat-icon {
+  background: #49391F;
+  color: #F2C46D;
+}
+html[data-theme="dark"] .workspace-activity-stat-copy strong { color: #F1F6FC; }
+html[data-theme="dark"] .workspace-activity-stat-copy small { color: #AFC0D5; }
+
+@media (max-width: 700px) {
+  .workspace-activity-stats { gap: 5px; }
+  .workspace-activity-stat {
+    min-height: 32px;
+    gap: 5px;
+    padding: 4px 7px;
+    border-radius: 10px;
+  }
+  .workspace-activity-stat-icon {
+    flex-basis: 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+  }
+  .workspace-activity-stat-icon svg { width: 13px; height: 13px; }
+  .workspace-activity-stat-copy { gap: 3px; }
+  .workspace-activity-stat-copy strong { font-size: 10px; }
+  .workspace-activity-stat-copy small { font-size: 7px; }
+  .main-area .top-actions { gap: 6px; margin-left: 6px; }
+}
+@media (max-width: 390px) {
+  .workspace-activity-stats { gap: 4px; }
+  .workspace-activity-stat { padding: 4px 6px; gap: 4px; }
+  .workspace-activity-stat-copy small { display: none; }
+}
+@media (max-width: 340px) {
+  .workspace-activity-stat { padding: 3px 5px; }
+  .workspace-activity-stat-icon {
+    flex-basis: 17px;
+    width: 17px;
+    height: 17px;
+  }
+  .workspace-activity-stat-icon svg { width: 12px; height: 12px; }
+}
