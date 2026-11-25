@@ -529,7 +529,8 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
             setSelectedId(savedMaterial.id);
             setTab(validTab);
             if (Number.isInteger(resume.questionIndex) && Number(resume.questionIndex) >= 0) {
-              setQuestionIndex(Math.min(Math.max(0, savedMaterial.questionCount - 1), Number(resume.questionIndex)));
+              const savedQuestionCount = Number(savedMaterial.questionCount) || 0;
+              setQuestionIndex(Math.min(Math.max(0, savedQuestionCount - 1), Number(resume.questionIndex)));
             }
             setMobileDetailOpen(true);
           } else if (typeof resume.materialId === "string") {
