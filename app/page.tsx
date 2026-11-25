@@ -650,11 +650,12 @@ export default function Home() {
       } catch { setResumeStudy(null); }
     };
     const onStudyProgress = (event: Event) => {
-      const detail = (event as CustomEvent<{materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number}>).detail;
+      const detail = (event as CustomEvent<{materialId?:string;title?:string;unit?:string;tab?:string;lastOpenedAt?:number;cleared?:boolean}>).detail;
+      if (detail?.cleared) { setResumeStudy(null); return; }
       if (!detail || typeof detail.materialId !== "string" || typeof detail.title !== "string" ||
           typeof detail.unit !== "string" || typeof detail.lastOpenedAt !== "number" ||
-          !["summary","source","questions","ask"].includes(detail.tab)) return;
-      setResumeStudy(detail);
+          !["summary","source","questions","ask"].includes(String(detail.tab))) return;
+      setResumeStudy(detail as {materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number});
     };
     readSavedStudy();
     window.addEventListener("storage", readSavedStudy);
@@ -1057,7 +1058,7 @@ export default function Home() {
     <p className="home-hero-subtitle">{resumeStudy ? "Lovely to have you back. Your last study session is ready below." : "Your clinical learning space is ready. Choose a topic and make today’s progress count."}</p>
   </div>
   <div className="home-welcome-mascot" aria-hidden="true">
-    <span className="home-welcome-bubble">Ready when you are!</span>
+    <span className="home-welcome-bubble">Hey, welcome back!</span>
     <svg viewBox="0 0 160 150" role="presentation" focusable="false">
       <circle cx="80" cy="78" r="66" fill="#DCEBFA" opacity=".95"/>
       <circle cx="129" cy="35" r="7" fill="#F4C76B"/>
