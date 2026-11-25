@@ -1133,21 +1133,22 @@ export default function Home() {
       <path d="M65 113l-9 7 8 9M117 113l9 7-8 9" fill="none" stroke="#A8BED6" strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   </div>
-  <div className="home-stats-strip" role="group" aria-label="Your learning progress">
-    <div className="home-stat-card">
-      <span className="home-stat-icon"><WorkspaceIcon name="flame"/></span>
-      <div><strong>{streakData.streak}</strong><span>Current streak</span></div>
-    </div>
-    <div className="home-stat-card">
-      <span className="home-stat-icon"><WorkspaceIcon name="clock"/></span>
-      <div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Study time today</span></div>
-    </div>
-    <div className="home-stat-card">
-      <span className="home-stat-icon"><WorkspaceIcon name="award"/></span>
-      <div><strong>{streakData.bestStreak}</strong><span>Best streak</span></div>
-    </div>
-  </div>
 </section>
+
+<div className="home-progress-cards" role="group" aria-label="Your learning progress">
+  <article className="home-progress-card home-progress-streak">
+    <span className="home-progress-icon"><WorkspaceIcon name="flame"/></span>
+    <div className="home-progress-copy"><strong>{streakData.streak}</strong><span>Current streak</span></div>
+  </article>
+  <article className="home-progress-card home-progress-time">
+    <span className="home-progress-icon"><WorkspaceIcon name="clock"/></span>
+    <div className="home-progress-copy"><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Study time today</span></div>
+  </article>
+  <article className="home-progress-card home-progress-best">
+    <span className="home-progress-icon"><WorkspaceIcon name="award"/></span>
+    <div className="home-progress-copy"><strong>{streakData.bestStreak}</strong><span>Best streak</span></div>
+  </article>
+</div>
 
 <section className={"home-resume-card" + (resumeStudy ? "" : " is-empty")} aria-label="Continue learning">
   <span className="home-resume-icon" aria-hidden="true"><WorkspaceIcon name={resumeStudy ? (resumeStudy.tab === "questions" ? "list-checks" : "book-open") : "folder-open"}/></span>
