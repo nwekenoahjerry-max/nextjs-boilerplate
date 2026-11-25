@@ -1410,3 +1410,245 @@ html[data-theme="dark"] .home-dashboard-refresh .home-compact-footer { color: #9
     margin-bottom: 5px;
   }
 }
+
+
+/* Desktop and laptop scaling pass.
+   The phone layout is intentionally untouched: larger viewports receive a
+   fuller dashboard, larger controls and more balanced use of vertical space. */
+@media (min-width: 761px) {
+  .main-area.home-dashboard-active > .topbar {
+    flex-basis: 68px;
+    height: 68px;
+  }
+
+  .main-area.home-dashboard-active > .content {
+    padding: clamp(12px, 1.7vh, 20px) clamp(18px, 2.5vw, 42px) !important;
+  }
+
+  .home-dashboard-active .home-dashboard-card.home-dashboard-refresh {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 1600px;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    padding: clamp(15px, 1.55vw, 25px);
+    border-radius: clamp(20px, 1.8vw, 28px);
+    justify-content: space-between;
+  }
+
+  .home-dashboard-card.home-dashboard-refresh .home-compact-header {
+    grid-template-columns: minmax(0, 1fr) clamp(160px, 17vw, 220px);
+    min-height: clamp(126px, 17vh, 172px);
+    gap: clamp(16px, 2vw, 28px);
+    margin-bottom: clamp(10px, 1.4vh, 15px);
+    padding: clamp(17px, 1.8vw, 27px) clamp(20px, 2.2vw, 34px);
+    border-radius: clamp(16px, 1.5vw, 22px);
+  }
+
+  .home-dashboard-refresh .home-hero-kicker {
+    font-size: clamp(8px, .72vw, 10px);
+    letter-spacing: 1.45px;
+  }
+
+  .home-dashboard-refresh .home-compact-header h1 {
+    margin: 8px 0 7px;
+    font-size: clamp(28px, 2.45vw, 39px);
+    line-height: 1.12;
+    letter-spacing: -1px;
+  }
+
+  .home-dashboard-refresh .home-hero-subtitle {
+    max-width: 58ch;
+    font-size: clamp(11px, .92vw, 14px);
+    line-height: 1.5;
+  }
+
+  .home-dashboard-refresh .home-welcome-meta {
+    gap: 9px;
+    margin-top: clamp(9px, 1.3vh, 14px);
+  }
+
+  .home-dashboard-refresh .home-streak-chip,
+  .home-dashboard-refresh .home-time-chip {
+    min-height: 27px;
+    gap: 7px;
+    padding: 6px 11px;
+    font-size: 10px;
+  }
+
+  .home-dashboard-refresh .home-time-chip strong { font-size: 11px; }
+  .home-dashboard-refresh .home-time-chip small { font-size: 9px; }
+
+  .home-dashboard-refresh .home-welcome-mascot {
+    width: clamp(150px, 17vw, 208px);
+    height: clamp(122px, 15vh, 158px);
+    margin: 0 -3px -4px 0;
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot::before {
+    right: 8px;
+    width: clamp(112px, 12vw, 150px);
+    height: clamp(112px, 12vw, 150px);
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot svg {
+    width: clamp(142px, 15vw, 190px);
+  }
+
+  .home-dashboard-refresh .home-welcome-bubble {
+    top: 1px;
+    padding: 7px 11px;
+    font-size: 10px;
+  }
+
+  .home-dashboard-refresh .home-stats-strip {
+    gap: clamp(9px, 1vw, 14px);
+    margin-bottom: clamp(9px, 1.4vh, 15px);
+  }
+
+  .home-dashboard-refresh .home-stat-card {
+    min-height: clamp(68px, 9vh, 92px);
+    gap: 12px;
+    padding: 12px clamp(12px, 1.3vw, 19px);
+    border-radius: 15px;
+  }
+
+  .home-dashboard-refresh .home-stat-icon {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 18px;
+  }
+
+  .home-dashboard-refresh .home-stat-card > div { gap: 4px; }
+  .home-dashboard-refresh .home-stat-card > div strong { font-size: clamp(18px, 1.45vw, 23px); }
+  .home-dashboard-refresh .home-stat-card > div span { font-size: clamp(9px, .78vw, 11px); }
+
+  .home-dashboard-refresh .home-resume-card {
+    min-height: clamp(72px, 9.5vh, 96px);
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 14px;
+    margin-bottom: clamp(10px, 1.4vh, 16px);
+    padding: 12px clamp(14px, 1.5vw, 22px);
+    border-radius: 15px;
+  }
+
+  .home-dashboard-refresh .home-resume-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+  }
+
+  .home-dashboard-refresh .home-resume-icon svg { width: 22px; height: 22px; }
+  .home-dashboard-refresh .home-resume-kicker { font-size: 9px; margin-bottom: 4px; }
+  .home-dashboard-refresh .home-resume-copy h2 { font-size: clamp(13px, 1vw, 16px); }
+  .home-dashboard-refresh .home-resume-copy p { font-size: clamp(10px, .82vw, 12px); }
+
+  .home-dashboard-refresh .home-resume-button {
+    min-width: 132px;
+    min-height: 42px;
+    padding: 10px 15px;
+    border-radius: 11px;
+    font-size: 11px;
+  }
+
+  .home-dashboard-refresh .home-quick-start {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 0;
+  }
+
+  .home-dashboard-refresh .home-section-heading {
+    align-items: flex-end;
+    margin-bottom: clamp(8px, 1.2vh, 13px);
+  }
+
+  .home-dashboard-refresh .home-section-heading .eyebrow {
+    font-size: 9px;
+    letter-spacing: 1.35px;
+  }
+
+  .home-dashboard-refresh .home-section-heading h2 {
+    margin-top: 5px;
+    font-size: clamp(17px, 1.35vw, 21px);
+  }
+
+  .home-dashboard-refresh .home-action-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(9px, 1vw, 14px);
+  }
+
+  .home-dashboard-refresh .home-action-card {
+    grid-template-columns: 42px minmax(0, 1fr) 14px;
+    min-height: clamp(78px, 10.5vh, 108px);
+    gap: 11px;
+    padding: clamp(11px, 1.1vw, 16px);
+    border-radius: 15px;
+  }
+
+  .home-dashboard-refresh .home-action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .home-dashboard-refresh .home-action-icon svg { width: 21px; height: 21px; }
+  .home-dashboard-refresh .home-action-card-copy { gap: 5px; }
+  .home-dashboard-refresh .home-action-card-copy strong { font-size: clamp(11px, .94vw, 14px); }
+  .home-dashboard-refresh .home-action-card-copy small { font-size: clamp(9px, .78vw, 11px); line-height: 1.4; }
+  .home-dashboard-refresh .home-action-arrow { font-size: 17px; }
+}
+
+@media (min-width: 761px) and (max-height: 760px) {
+  .home-dashboard-card.home-dashboard-refresh .home-compact-header {
+    min-height: clamp(104px, 15vh, 124px);
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot {
+    height: clamp(100px, 13vh, 124px);
+  }
+
+  .home-dashboard-refresh .home-stat-card {
+    min-height: clamp(60px, 8.5vh, 72px);
+  }
+
+  .home-dashboard-refresh .home-resume-card {
+    min-height: 66px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .home-dashboard-refresh .home-action-card {
+    min-height: clamp(66px, 9vh, 78px);
+  }
+}
+
+
+/* Preserve mascot proportions and readable shortcut columns on compact laptops. */
+@media (min-width: 761px) {
+  .home-dashboard-refresh .home-welcome-mascot {
+    width: clamp(140px, 15vw, 190px);
+    height: clamp(116px, 16vh, 148px);
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot::before {
+    width: clamp(106px, 14vh, 136px);
+    height: clamp(106px, 14vh, 136px);
+  }
+
+  .home-dashboard-refresh .home-welcome-mascot svg {
+    width: clamp(118px, 15vh, 150px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .home-dashboard-refresh .home-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
