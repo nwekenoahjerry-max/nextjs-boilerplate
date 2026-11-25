@@ -2038,3 +2038,28 @@ html[data-theme="dark"] .home-dashboard-refresh .home-resume-copy p { color: #B9
   .home-dashboard-refresh .home-progress-card { transition: none; }
   .home-dashboard-refresh .home-progress-card:hover { transform: none; }
 }
+
+/* Home on phones is a viewport-fitted dashboard, not a long scrolling page.
+   The standard app-shell bottom padding is for scrollable tabs; applying it
+   here as well as a 100dvh Home panel creates a second, empty scroll region.
+   Reserve the fixed dock once, and keep the Home shell inside the visible area. */
+@media (max-width: 760px) {
+  .app-shell.home-overview-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 0 !important;
+    overflow: hidden;
+  }
+
+  .app-shell.home-overview-shell .main-area.home-dashboard-active {
+    height: calc(100vh - 74px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 74px - env(safe-area-inset-bottom));
+    min-height: 0;
+  }
+
+  .app-shell.home-overview-shell .main-area.home-dashboard-active > .content {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
