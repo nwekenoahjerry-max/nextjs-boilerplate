@@ -1096,7 +1096,7 @@ export default function Home() {
 <section className="home-stats-strip" aria-label="Your learning summary">
   <div className="home-stat-card home-time-card"><span className="home-stat-icon" aria-hidden="true">◷</span><div><strong>{formatStudyTime(timeSpentTodaySeconds)}</strong><span>Time today</span></div></div>
   <div className="home-stat-card"><span className="home-stat-icon" aria-hidden="true">▦</span><div><strong>{streakData.activeDays}</strong><span>Study days</span></div></div>
-  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Today's check-in</span></div></div>
+  <div className="home-stat-card home-today-card"><span className="home-stat-icon" aria-hidden="true">{streakData.todayActive ? "✓" : "○"}</span><div><strong>{streakData.todayActive ? "Done" : "Pending"}</strong><span>Check-in</span></div></div>
 </section>
 
 <section className={"home-resume-card" + (resumeStudy ? "" : " is-empty")} aria-label="Continue learning">
