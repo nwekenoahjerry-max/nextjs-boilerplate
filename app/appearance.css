@@ -2117,14 +2117,20 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   -webkit-tap-highlight-color:transparent;
   transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
 }
-.ask-clerkme-fab:active{cursor:grabbing}
 .ask-clerkme-fab-positioned{right:auto!important;bottom:auto!important;}
 .ask-clerkme-fab:hover{
-  transform:translateY(-3px);
   background:linear-gradient(135deg,#173D6B 0%,#2E6798 100%);
   box-shadow:0 16px 34px rgba(10,37,70,.27),0 3px 7px rgba(10,37,70,.12);
 }
-.ask-clerkme-fab:active{transform:translateY(-1px)}
+.ask-clerkme-fab:active{cursor:grabbing}
+.ask-clerkme-fab-icon{
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.ask-clerkme-fab-icon:active{cursor:grabbing}
 .ask-clerkme-fab:focus-visible{
   outline:3px solid rgba(72,133,195,.55);
   outline-offset:3px;
