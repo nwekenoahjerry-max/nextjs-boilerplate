@@ -890,6 +890,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     { icon: "message" as AskIconName, title: "Practise a Viva", prompt: "Act as a medical examiner and conduct a challenging Viva. Ask one question at a time and give feedback after each answer." }
   ];
 
+  useEffect(() => {
+    if (!hydrated) return;
+    const field = composerRef.current;
+    if (!field) return;
+    field.style.height = "auto";
+    const maximum = window.matchMedia("(max-width: 760px)").matches ? 116 : 150;
+    const nextHeight = Math.min(Math.max(field.scrollHeight, 48), maximum);
+    field.style.height = nextHeight + "px";
+    field.style.overflowY = field.scrollHeight > maximum ? "auto" : "hidden";
+  }, [draft, hydrated]);
+
   const sendAllowed = (draft.trim().length > 0 || hasContext) && !sending && !extracting;
   const currentTitle = activeThread?.title || "New conversation";
 
