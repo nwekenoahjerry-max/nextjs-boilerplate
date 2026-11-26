@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -674,13 +674,13 @@ export default function Home() {
     window.addEventListener("resize", keepInViewport);
     return () => window.removeEventListener("resize", keepInViewport);
   }, []);
-  const handleAskFabPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handleAskFabPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     askFabDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, left: rect.left, top: rect.top, moved: false };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
-  const handleAskFabPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const handleAskFabPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const drag = askFabDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const dx = event.clientX - drag.startX;
@@ -694,7 +694,7 @@ export default function Home() {
       top: Math.max(8, Math.min(window.innerHeight - rect.height - 8, drag.top + dy))
     });
   };
-  const finishAskFabDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const finishAskFabDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const drag = askFabDragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     askFabDragRef.current = null;
