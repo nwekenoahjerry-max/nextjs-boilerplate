@@ -792,8 +792,12 @@ export default function Home() {
     };
     const onInstalled = () => setDeferredInstallPrompt(null);
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-        // Manual installation guidance remains available.
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).then(registration => {
+        // Prompt the browser to check for the current auth-safe worker whenever
+        // an installed ClerkME app is opened after a deployment.
+        void registration.update().catch(() => {});
+      }).catch(() => {
+        // The workspace remains usable even when service-worker updates are unavailable.
       });
     }
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
