@@ -702,16 +702,19 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         })
       });
       const rawTokenResponse = await response.text();
-      let tokenData: { token?: string; error?: string; code?: string; upstreamCode?: string } = {};
-      try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain HTTP status for readable diagnostics */ }
+      let tokenData: { token?: string; systemInstruction?: string; error?: string; code?: string; upstreamCode?: string; upstreamMessage?: string } = {};
+      try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain a safe preview of unexpected gateway responses below */ }
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
         const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
         const reference = [tokenData.code, tokenData.upstreamCode].filter(Boolean).join(" / ");
-        const diagnostic = reference ? " (reference: " + reference + ")" : " (HTTP " + response.status + ")";
-        throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + diagnostic);
+        const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
+        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+        const diagnostic = reference ? " (reference: " + reference + ")" : htmlTitle ? " (" + htmlTitle.slice(0, 100) + "; HTTP " + response.status + ")" : " (HTTP " + response.status + ")";
+        throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + upstreamMessage + diagnostic);
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
+      const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
       // same token for its 30-minute lifetime, even when uses is set to one.
       liveTokenExpiresAtRef.current = Date.now() + 30 * 60 * 1000;
@@ -741,6 +744,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           socket.send(JSON.stringify({
             setup: {
               model: "models/gemini-3.8-live",
+              ...(voiceSystemInstruction ? { systemInstruction: { parts: [{ text: voiceSystemInstruction }] } } : {}),
               generationConfig: {
                 responseModalities: ["AUDIO"],
                 speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
