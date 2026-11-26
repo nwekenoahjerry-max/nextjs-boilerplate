@@ -51,6 +51,7 @@ const workspaceIconShapes: Record<string, ReactNode> = {
   flame: <><path d="M12 22c4.1 0 7-2.8 7-6.7 0-3.1-1.7-5.3-4.7-8.3-.2 2.1-1.2 3.5-2.5 4.3C11.7 7.2 9.7 4.4 7 2c.3 4.2-3 6.8-3 11.7C4 18.4 7.2 22 12 22Z"/><path d="M12 22c-1.8-1.1-2.8-2.7-2.8-4.4 0-1.4.7-2.5 2-3.7.2 1.5 1 2.3 1.8 2.9.6.5 1 1.2 1 2 0 1.3-.7 2.4-2 3.2Z"/></>,
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></>,
   award: <><circle cx="12" cy="8" r="5"/><path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9"/></>,
+  sparkles: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/><path d="m5 2 .7 1.6L7.5 4.5l-1.8.7L5 7l-.7-1.8-1.8-.7 1.8-.9L5 2Z"/></>,
   download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></>,
 };
 
@@ -991,6 +992,9 @@ export default function Home() {
               <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
           ))}
+          <button type="button" className={active === "ask" ? "nav-item active ask-nav-item" : "nav-item ask-nav-item"} onClick={() => selectSection("ask")} aria-current={active === "ask" ? "page" : undefined}>
+            <span className="nav-icon"><WorkspaceIcon name="sparkles"/></span><span className="nav-label">Ask ClerkME</span>
+          </button>
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
           {navItems.slice(12).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
@@ -1019,6 +1023,9 @@ export default function Home() {
         </button>
         <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
           <span><WorkspaceIcon name="stethoscope"/></span><small>Sim</small>
+        </button>
+        <button type="button" className={active==="ask"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("ask")} aria-current={active==="ask"?"page":undefined}>
+          <span><WorkspaceIcon name="sparkles"/></span><small>Ask</small>
         </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
@@ -1327,9 +1334,6 @@ export default function Home() {
           {active === "qbank" && <LearningQuestionBank/>}
         </div>
       </section>
-      {active === "overview" && <button type="button" className="ask-clerkme-launcher" onClick={() => selectSection("ask")} aria-label="Open Ask ClerkME">
-        <span className="ask-clerkme-launcher-mark">✦</span><span>Ask ClerkME</span><span aria-hidden="true">↗</span>
-      </button>}
       {showSignOutConfirm && (
         <div
           className="signout-confirm-backdrop"
