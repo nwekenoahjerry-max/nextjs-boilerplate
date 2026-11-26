@@ -65,8 +65,8 @@ const SUBSCRIPTS: Record<string, string> = {
 /** Render common inline LaTeX notation as readable Unicode without HTML injection. */
 function formatFlashcardText(value: string): string {
   return value
-    .replace(/\\\((.*?)\\\)/gs, "$1")
-    .replace(/\\\[(.*?)\\\]/gs, "$1")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
     .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
     .replace(/\$([^$\n]+)\$/g, "$1")
     .replace(/\\(?:text|mathrm|operatorname)\{([^{}]*)\}/g, "$1")
