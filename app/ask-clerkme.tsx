@@ -708,7 +708,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
         const reference = [tokenData.code, tokenData.upstreamCode].filter(Boolean).join(" / ");
         const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
-        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
         const diagnostic = reference ? " (reference: " + reference + ")" : htmlTitle ? " (" + htmlTitle.slice(0, 100) + "; HTTP " + response.status + ")" : " (HTTP " + response.status + ")";
         throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + upstreamMessage + diagnostic);
       }
