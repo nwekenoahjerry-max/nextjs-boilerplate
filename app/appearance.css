@@ -2192,9 +2192,9 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   display:grid;
   place-items:center;
   padding:24px;
-  background:rgba(244,247,252,.97);
-  -webkit-backdrop-filter:blur(14px);
-  backdrop-filter:blur(14px);
+  background:#f4f7fc;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
 }
 .session-check-card{
   display:flex;
@@ -2219,7 +2219,7 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   border-radius:24px;
   background:linear-gradient(145deg,#f7faff 0%,#eaf1f9 100%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 12px 28px rgba(16,45,90,.09);
-  animation:clerkme-mark-breathe 1.65s ease-in-out infinite;
+  animation:clerkme-mark-breathe .85s ease-in-out infinite;
 }
 .session-check-logo-loader img{
   display:block;
@@ -2332,7 +2332,7 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   0%,100%{transform:translateY(1px) scale(.96);opacity:.88}
   50%{transform:translateY(-3px) scale(1.045);opacity:1}
 }
-[data-theme="dark"] .session-check-overlay{background:rgba(7,18,32,.96)}
+[data-theme="dark"] .session-check-overlay{background:#071220;-webkit-backdrop-filter:none;backdrop-filter:none}
 [data-theme="dark"] .session-check-card{
   border-color:#304760;
   background:#142941;
