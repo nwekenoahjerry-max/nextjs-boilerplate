@@ -290,6 +290,15 @@ export default function LoginPage() {
         <small className="auth-privacy">By continuing, you agree to use ClerkME responsibly. Do not enter identifiable patient information unless your institution and applicable privacy requirements authorise it.</small>
         <a className="auth-back" href="/">← Back to ClerkME</a>
       </section>
+      {busy && (
+        <div className="auth-busy-overlay" role="status" aria-live="polite">
+          <div className="auth-busy-card">
+            <div className="auth-busy-logo"><img src="/clerkme-mark-navy.svg" alt="" width="56" height="56" decoding="async"/></div>
+            <strong>{isForgot ? "Sending your reset link" : mode === "pending" ? "Sending your verification email" : isSignup ? "Creating your ClerkME account" : "Signing you in"}</strong>
+            <span>Securely processing your request…</span>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
