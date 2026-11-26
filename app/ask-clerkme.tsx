@@ -208,6 +208,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const activeThreadIdRef = useRef("");
   const dictationRef = useRef<SpeechRecognitionLike | null>(null);
   const startedAtRef = useRef(0);
+  const sessionHandleRef = useRef("");
+  const liveTokenExpiresAtRef = useRef(0);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const initialGreetingSentRef = useRef(false);
 
   const activeThread = threads.find(thread => thread.id === activeThreadId) || null;
   const activeMessages = activeThread?.messages || [];
@@ -494,6 +499,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const stopVoiceCall = (notify = true) => {
     callAttemptRef.current += 1;
     clearConnectionTimeout();
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     endingRef.current = true;
     setupReadyRef.current = false;
     const socket = socketRef.current;
@@ -503,6 +512,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     mutedRef.current = false;
     setVoiceMuted(false);
     commitVoiceTranscript();
+    sessionHandleRef.current = "";
+    liveTokenExpiresAtRef.current = 0;
+    reconnectAttemptsRef.current = 0;
+    initialGreetingSentRef.current = false;
     setVoiceStatus("idle");
     if (notify) setVoiceNotice("Voice session ended. The conversation transcript has been added to your chat.");
   };
@@ -517,9 +530,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       setNotice(message);
       return;
     }
+
     const attempt = ++callAttemptRef.current;
     endingRef.current = false;
     setupReadyRef.current = false;
+    sessionHandleRef.current = "";
+    liveTokenExpiresAtRef.current = 0;
+    reconnectAttemptsRef.current = 0;
+    initialGreetingSentRef.current = false;
     studentTranscriptRef.current = "";
     assistantTranscriptRef.current = "";
     setVoiceTranscript("");
@@ -539,6 +557,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       const audioContext = new AudioContext({ latencyHint: "interactive" });
       audioContextRef.current = audioContext;
       await audioContext.resume();
+      if (attempt !== callAttemptRef.current || endingRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        if (audioContext.state !== "closed") void audioContext.close();
+        return;
+      }
 
       const microphone = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(2048, 1, 1);
@@ -576,129 +599,191 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         })
       });
       const tokenData = await response.json().catch(() => ({}));
-      if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
+      if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
+        throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
+      }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
+      const token = tokenData.token as string;
+      // Gemini's ephemeral-token guidance allows session resumption with this
+      // same token for its 30-minute lifetime, even when uses is set to one.
+      liveTokenExpiresAtRef.current = Date.now() + 30 * 60 * 1000;
 
-      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
-      const socket = new WebSocket(endpoint);
-      socketRef.current = socket;
-      connectionTimeoutRef.current = window.setTimeout(() => {
-        if (attempt !== callAttemptRef.current || setupReadyRef.current) return;
-        stopVoiceCall(false);
-        const message = "ClerkME did not finish connecting. Check your network and microphone permission, then retry.";
-        setVoiceNotice(message);
-        setNotice(message);
-      }, 22000);
-
-      socket.onopen = () => {
-        socket.send(JSON.stringify({
-          setup: {
-            model: "models/gemini-3.8-live",
-            generationConfig: {
-              responseModalities: ["AUDIO"],
-              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
-            },
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            sessionResumption: {},
-            contextWindowCompression: { slidingWindow: { targetTokens: 12000 } }
-          }
-        }));
-      };
-
-      socket.onmessage = event => {
-        if (typeof event.data !== "string") return;
-        let message: Record<string, any>;
-        try { message = JSON.parse(event.data) as Record<string, any>; } catch { return; }
-        const serverContent = message.serverContent as Record<string, any> | undefined;
-        const inputText = message.inputTranscription?.text ?? serverContent?.inputTranscription?.text;
-        const outputText = message.outputTranscription?.text ?? serverContent?.outputTranscription?.text;
-        if (inputText) {
-          studentTranscriptRef.current = appendTranscript(studentTranscriptRef.current, String(inputText));
-          setVoiceTranscript(current => appendTranscript(current, "You: " + String(inputText)));
-        }
-        if (outputText) {
-          assistantTranscriptRef.current = appendTranscript(assistantTranscriptRef.current, String(outputText));
-          setVoiceTranscript(current => appendTranscript(current, "ClerkME: " + String(outputText)));
-        }
-        if (message.error) {
-          clearConnectionTimeout();
+      const connectSocket = (resumeHandle = "") => {
+        if (attempt !== callAttemptRef.current || endingRef.current) return;
+        setupReadyRef.current = false;
+        clearConnectionTimeout();
+        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
+        const socket = new WebSocket(endpoint);
+        socketRef.current = socket;
+        connectionTimeoutRef.current = window.setTimeout(() => {
+          if (attempt !== callAttemptRef.current || setupReadyRef.current) return;
           stopVoiceCall(false);
-          const messageText = "ClerkME could not continue the voice connection. Please retry or use text chat.";
-          setVoiceNotice(messageText);
-          setNotice(messageText);
-          return;
-        }
-        if (message.setupComplete) {
-          clearConnectionTimeout();
-          setupReadyRef.current = true;
-          startedAtRef.current = Date.now();
-          setVoiceStatus("connected");
-          setVoiceNotice("Connected. Speak naturally; you can interrupt ClerkME at any time.");
+          const message = resumeHandle
+            ? "ClerkME could not restore the live session. Your completed transcript is saved; start another voice session to continue."
+            : "ClerkME did not finish connecting. Check your network and microphone permission, then retry.";
+          setVoiceNotice(message);
+          setNotice(message);
+        }, 22000);
+
+        socket.onopen = () => {
+          if (attempt !== callAttemptRef.current || endingRef.current) {
+            try { socket.close(1000, "Session no longer active"); } catch {}
+            return;
+          }
           socket.send(JSON.stringify({
-            clientContent: {
-              turns: [{ role: "user", parts: [{ text: mode === "viva"
-                ? "Start the spoken medical Viva. Briefly introduce yourself as ClerkME's examiner, then, if a lecture is attached, ask one relevant first question from it; otherwise ask the student which clinical topic they want to be examined on. Ask one question only, then pause."
-                : "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response." }] }],
-              turnComplete: true
+            setup: {
+              model: "models/gemini-3.8-live",
+              generationConfig: {
+                responseModalities: ["AUDIO"],
+                speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+              },
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              sessionResumption: resumeHandle ? { handle: resumeHandle } : {},
+              contextWindowCompression: { slidingWindow: { targetTokens: 12000 } }
             }
           }));
-          return;
-        }
-        if (!serverContent) return;
-        if (serverContent.interrupted) clearPlayback();
-        const parts = Array.isArray(serverContent.modelTurn?.parts) ? serverContent.modelTurn.parts : [];
-        for (const part of parts) {
-          const audioData = part.inlineData?.data;
-          if (typeof audioData !== "string" || audioData.length < 8) continue;
-          const context = audioContextRef.current;
-          if (!context || context.state === "closed") continue;
-          try {
-            const pcm = base64ToPcm(audioData);
-            if (pcm.length < 8) continue;
-            const buffer = context.createBuffer(1, pcm.length, 24000);
-            const channel = buffer.getChannelData(0);
-            for (let i = 0; i < pcm.length; i++) channel[i] = pcm[i] / 32768;
-            const player = context.createBufferSource();
-            player.buffer = buffer;
-            player.connect(context.destination);
-            const startAt = Math.max(context.currentTime + 0.025, nextPlaybackTimeRef.current);
-            nextPlaybackTimeRef.current = startAt + buffer.duration;
-            outputSourcesRef.current.add(player);
-            player.onended = () => outputSourcesRef.current.delete(player);
-            player.start(startAt);
-          } catch {
-            setVoiceNotice("ClerkME's audio could not be played. Check your speaker or headphone output.");
+        };
+
+        socket.onmessage = event => {
+          if (typeof event.data !== "string") return;
+          let message: Record<string, any>;
+          try { message = JSON.parse(event.data) as Record<string, any>; } catch { return; }
+          const serverContent = message.serverContent as Record<string, any> | undefined;
+
+          const resumptionUpdate = message.sessionResumptionUpdate ?? serverContent?.sessionResumptionUpdate;
+          if (resumptionUpdate?.resumable && typeof resumptionUpdate.newHandle === "string" && resumptionUpdate.newHandle) {
+            sessionHandleRef.current = resumptionUpdate.newHandle;
+            reconnectAttemptsRef.current = 0;
           }
-        }
-        if (serverContent.turnComplete) {
-          commitVoiceTranscript();
-          setVoiceNotice("Connected · Listening for your next question");
-        }
-      };
 
-      socket.onerror = () => {
-        if (!setupReadyRef.current) {
+          const inputText = message.inputTranscription?.text ?? serverContent?.inputTranscription?.text;
+          const outputText = message.outputTranscription?.text ?? serverContent?.outputTranscription?.text;
+          if (inputText) {
+            studentTranscriptRef.current = appendTranscript(studentTranscriptRef.current, String(inputText));
+            setVoiceTranscript(current => appendTranscript(current, "You: " + String(inputText)));
+          }
+          if (outputText) {
+            assistantTranscriptRef.current = appendTranscript(assistantTranscriptRef.current, String(outputText));
+            setVoiceTranscript(current => appendTranscript(current, "ClerkME: " + String(outputText)));
+          }
+
+          if (message.error) {
+            clearConnectionTimeout();
+            stopVoiceCall(false);
+            const messageText = resumeHandle
+              ? "ClerkME could not restore the previous voice session. Your completed transcript is saved; please start a new call."
+              : "ClerkME could not continue the voice connection. Please retry or use text chat.";
+            setVoiceNotice(messageText);
+            setNotice(messageText);
+            return;
+          }
+
+          if (message.setupComplete) {
+            clearConnectionTimeout();
+            setupReadyRef.current = true;
+            if (!startedAtRef.current) startedAtRef.current = Date.now();
+            setVoiceStatus("connected");
+            setVoiceNotice(resumeHandle
+              ? "Reconnected securely. Your live conversation is continuing."
+              : "Connected. Speak naturally; you can interrupt ClerkME at any time.");
+
+            if (!initialGreetingSentRef.current) {
+              initialGreetingSentRef.current = true;
+              socket.send(JSON.stringify({
+                clientContent: {
+                  turns: [{ role: "user", parts: [{ text: mode === "viva"
+                    ? "Start the spoken medical Viva. Briefly introduce yourself as ClerkME's examiner, then, if a lecture is attached, ask one relevant first question from it; otherwise ask the student which clinical topic they want to be examined on. Ask one question only, then pause."
+                    : "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response." }] }],
+                  turnComplete: true
+                }
+              }));
+            }
+            return;
+          }
+
+          if (message.goAway) {
+            setVoiceNotice("Refreshing the live connection to keep your session active…");
+          }
+          if (!serverContent) return;
+          if (serverContent.interrupted) clearPlayback();
+          const parts = Array.isArray(serverContent.modelTurn?.parts) ? serverContent.modelTurn.parts : [];
+          for (const part of parts) {
+            const audioData = part.inlineData?.data;
+            if (typeof audioData !== "string" || audioData.length < 8) continue;
+            const context = audioContextRef.current;
+            if (!context || context.state === "closed") continue;
+            try {
+              const pcm = base64ToPcm(audioData);
+              if (pcm.length < 8) continue;
+              const buffer = context.createBuffer(1, pcm.length, 24000);
+              const channel = buffer.getChannelData(0);
+              for (let i = 0; i < pcm.length; i++) channel[i] = pcm[i] / 32768;
+              const player = context.createBufferSource();
+              player.buffer = buffer;
+              player.connect(context.destination);
+              const startAt = Math.max(context.currentTime + 0.025, nextPlaybackTimeRef.current);
+              nextPlaybackTimeRef.current = startAt + buffer.duration;
+              outputSourcesRef.current.add(player);
+              player.onended = () => outputSourcesRef.current.delete(player);
+              player.start(startAt);
+            } catch {
+              setVoiceNotice("ClerkME's audio could not be played. Check your speaker or headphone output.");
+            }
+          }
+          if (serverContent.turnComplete) {
+            commitVoiceTranscript();
+            setVoiceNotice("Connected · Listening for your next question");
+          }
+        };
+
+        socket.onerror = () => {
+          if (!setupReadyRef.current && resumeHandle) {
+            setVoiceNotice("Restoring the live connection…");
+            return;
+          }
+          if (!setupReadyRef.current) {
+            clearConnectionTimeout();
+            stopVoiceCall(false);
+            setVoiceNotice("ClerkME could not establish the live voice call. Please retry or continue by text.");
+            setNotice("The live voice connection could not be established. You can continue using text chat.");
+          } else {
+            setVoiceNotice("The connection encountered a problem. Trying to keep your session active…");
+          }
+        };
+
+        socket.onclose = event => {
+          if (endingRef.current || attempt !== callAttemptRef.current) return;
           clearConnectionTimeout();
+          commitVoiceTranscript();
+          const handle = sessionHandleRef.current;
+          const canResume = Boolean(
+            handle &&
+            Date.now() < liveTokenExpiresAtRef.current &&
+            reconnectAttemptsRef.current < 2
+          );
+          if (canResume) {
+            reconnectAttemptsRef.current += 1;
+            setupReadyRef.current = false;
+            setVoiceStatus("connecting");
+            setVoiceNotice("Reconnecting securely to keep your session active…");
+            reconnectTimerRef.current = window.setTimeout(() => {
+              reconnectTimerRef.current = null;
+              if (attempt === callAttemptRef.current && !endingRef.current) connectSocket(handle);
+            }, 350);
+            return;
+          }
+
+          const messageText = event.code === 1000
+            ? "Voice session ended. The transcript is saved in this conversation."
+            : "The voice session disconnected. Your completed transcript is saved in this conversation; please retry.";
           stopVoiceCall(false);
-          setVoiceNotice("ClerkME could not establish the live voice call. Please retry or continue by text.");
-          setNotice("The live voice connection could not be established. You can continue using text chat.");
-        } else {
-          setVoiceNotice("The connection encountered a problem. Try moving to a stronger internet connection.");
-        }
+          setVoiceNotice(messageText);
+          setNotice(messageText);
+        };
       };
 
-      socket.onclose = event => {
-        if (endingRef.current) return;
-        clearConnectionTimeout();
-        commitVoiceTranscript();
-        const message = event.code === 1000
-          ? "Voice session ended."
-          : "The voice session disconnected. Your completed transcript is saved in this conversation; please retry.";
-        stopVoiceCall(false);
-        setVoiceNotice(message);
-        setNotice(message);
-      };
+      connectSocket();
     } catch (error) {
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       stopVoiceCall(false);
@@ -715,7 +800,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       setVoiceStatus("idle");
     }
   };
-
   const toggleMute = () => {
     const next = !mutedRef.current;
     mutedRef.current = next;
