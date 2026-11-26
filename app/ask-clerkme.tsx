@@ -303,6 +303,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const initialGreetingSentRef = useRef(false);
   const microphoneInputDetectedRef = useRef(false);
   const assistantAudioReceivedRef = useRef(false);
+  const pendingSpeechTurnRef = useRef(false);
+  const speechResponseTimerRef = useRef<number | null>(null);
 
   const activeThread = threads.find(thread => thread.id === activeThreadId) || null;
   const activeMessages = activeThread?.messages || [];
@@ -553,6 +555,13 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     }
   };
 
+  const clearSpeechResponseTimer = () => {
+    if (speechResponseTimerRef.current !== null) {
+      window.clearTimeout(speechResponseTimerRef.current);
+      speechResponseTimerRef.current = null;
+    }
+  };
+
   const clearPlayback = () => {
     outputSourcesRef.current.forEach(source => { try { source.stop(); } catch {} });
     outputSourcesRef.current.clear();
@@ -626,6 +635,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const stopVoiceCall = (notify = true) => {
     callAttemptRef.current += 1;
     clearConnectionTimeout();
+    clearSpeechResponseTimer();
+    pendingSpeechTurnRef.current = false;
     if (reconnectTimerRef.current !== null) {
       window.clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -677,6 +688,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     initialGreetingSentRef.current = false;
     microphoneInputDetectedRef.current = false;
     assistantAudioReceivedRef.current = false;
+    pendingSpeechTurnRef.current = false;
+    clearSpeechResponseTimer();
     liveRequestIdRef.current = "";
     setVoiceDiagnostics("Requesting microphone permission…");
     clearPendingAudio();
@@ -719,14 +732,24 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const socket = socketRef.current;
         if (!setupReadyRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
         const samples = event.inputBuffer.getChannelData(0);
-        if (!microphoneInputDetectedRef.current) {
-          let energy = 0;
-          for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
-          const rms = Math.sqrt(energy / samples.length);
-          if (rms >= 0.008) {
+        let energy = 0;
+        for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
+        const rms = Math.sqrt(energy / samples.length);
+        if (rms >= 0.008) {
+          if (!microphoneInputDetectedRef.current) {
             microphoneInputDetectedRef.current = true;
             setVoiceDiagnostics("Microphone input detected; streaming audio to Google Live…");
           }
+          // Do not leave a student waiting silently if the Live model fails to
+          // complete a spoken turn. Reset this watchdog while speech continues.
+          pendingSpeechTurnRef.current = true;
+          clearSpeechResponseTimer();
+          speechResponseTimerRef.current = window.setTimeout(() => {
+            speechResponseTimerRef.current = null;
+            if (!pendingSpeechTurnRef.current || !setupReadyRef.current || endingRef.current) return;
+            pendingSpeechTurnRef.current = false;
+            setVoiceNotice("I couldn’t process that just now. Please try speaking once more, or type your question in the chat.");
+          }, 12000);
         }
         const pcm = resampleTo16k(samples, audioContext.sampleRate);
         if (!pcm.length) return;
@@ -922,6 +945,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               assistantAudioReceivedRef.current = true;
               setVoiceDiagnostics("Google Live audio received; playing the spoken response…");
             }
+            if (pendingSpeechTurnRef.current) {
+              pendingSpeechTurnRef.current = false;
+              clearSpeechResponseTimer();
+              setVoiceNotice("ClerkME is responding…");
+            }
             const context = audioContextRef.current;
             if (!context || context.state === "closed") continue;
             try {
@@ -943,6 +971,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             }
           }
           if (serverContent.turnComplete) {
+            if (pendingSpeechTurnRef.current) {
+              pendingSpeechTurnRef.current = false;
+              clearSpeechResponseTimer();
+            }
             commitVoiceTranscript();
             setVoiceNotice("Connected · Listening for your next question");
           }
