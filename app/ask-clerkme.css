@@ -1328,3 +1328,30 @@
   .ask-clerkme .ask-tool-button>span svg,
   .ask-clerkme .ask-live-small>span svg{width:15px;height:15px}
 }
+
+
+/* Final specificity pass: app-shell typography rules must not shrink Ask text. */
+.ask-clerkme-content .ask-clerkme .ask-history-brand small{font-size:9px!important;line-height:1.4!important}
+.ask-clerkme-content .ask-clerkme .ask-history-item small{font-size:10px!important;line-height:1.4!important}
+.ask-clerkme-content .ask-clerkme .ask-conversation-heading small{font-size:10.5px!important;line-height:1.4!important}
+.ask-clerkme-content .ask-clerkme .ask-live-feature small{font-size:11px!important;line-height:1.5!important}
+.ask-clerkme-content .ask-clerkme .ask-welcome>p{font-size:14px!important;line-height:1.7!important}
+.ask-clerkme-content .ask-clerkme .ask-message-text{font-size:14px!important;line-height:1.75!important}
+.ask-clerkme-content .ask-clerkme .ask-composer textarea{font-size:15px!important;line-height:1.6!important}
+.ask-clerkme-content .ask-clerkme .ask-composer-foot{font-size:9.5px!important;line-height:1.5!important}
+.ask-clerkme-content .ask-clerkme .ask-source-chip small{font-size:10px!important;line-height:1.4!important}
+.ask-clerkme-content .ask-clerkme .ask-material-picker small{font-size:10px!important;line-height:1.4!important}
+.ask-clerkme-content .ask-clerkme .ask-notice{font-size:12px!important;line-height:1.55!important}
+.ask-clerkme-content .ask-clerkme .ask-voice-subtitle{font-size:13px!important;line-height:1.65!important}
+.ask-clerkme-content .ask-clerkme .ask-voice-disclaimer{font-size:10px!important;line-height:1.5!important}
+@media(max-width:760px){
+  .ask-clerkme-content .ask-clerkme .ask-welcome>p{font-size:13px!important;line-height:1.6!important}
+  .ask-clerkme-content .ask-clerkme .ask-message-text{font-size:13.5px!important;line-height:1.7!important}
+  .ask-clerkme-content .ask-clerkme .ask-composer textarea{font-size:14px!important}
+  .ask-clerkme-content .ask-clerkme .ask-composer-foot{font-size:8.5px!important}
+  .ask-clerkme-content .ask-clerkme .ask-voice-subtitle{font-size:12px!important}
+}
+@media(max-width:390px){
+  .ask-clerkme-content .ask-clerkme .ask-welcome>p{font-size:12.5px!important}
+  .ask-clerkme-content .ask-clerkme .ask-message-text{font-size:13px!important}
+}
