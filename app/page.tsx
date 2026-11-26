@@ -973,7 +973,7 @@ export default function Home() {
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
-    <main className={active === "overview" ? "app-shell home-overview-shell" : "app-shell"}>
+    <main className={active === "ask" ? "app-shell ask-workspace-shell" : active === "overview" ? "app-shell home-overview-shell" : "app-shell"}>
       <InstallAppPrompt promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
       <aside className="sidebar">
         <ClerkMeBrand caption="CLINICAL COMPANION" href="#overview" className="workspace-brand" onClick={() => selectSection("overview")}/>
