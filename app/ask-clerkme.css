@@ -382,3 +382,13 @@
   .ask-live-actions .ask-live-feature strong{font-size:9px}
   .ask-live-actions .ask-live-feature small{font-size:8px}
 }
+
+.ask-viva-small{
+  border-color:#e6dfd0;
+  background:#fbfaf6;
+  color:#795f38;
+}
+.ask-viva-small>span{color:#a17c45}
+.ask-viva-small:hover{border-color:#d8c8a7;background:#f7f3ea}
+[data-theme="dark"] .ask-viva-small{border-color:#66563c;background:#2a3443;color:#f1d9aa}
+[data-theme="dark"] .ask-viva-small:hover{background:#354257}
