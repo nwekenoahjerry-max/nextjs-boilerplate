@@ -301,13 +301,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const initialGreetingSentRef = useRef(false);
-  const microphoneInputDetectedRef = useRef(false);
   const assistantAudioReceivedRef = useRef(false);
-  const pendingSpeechTurnRef = useRef(false);
-  const speechResponseTimerRef = useRef<number | null>(null);
-  const speechActiveRef = useRef(false);
-  const lastSpeechAtRef = useRef(0);
-  const microphoneNoiseFloorRef = useRef(0.002);
 
   const activeThread = threads.find(thread => thread.id === activeThreadId) || null;
   const activeMessages = activeThread?.messages || [];
@@ -558,13 +552,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     }
   };
 
-  const clearSpeechResponseTimer = () => {
-    if (speechResponseTimerRef.current !== null) {
-      window.clearTimeout(speechResponseTimerRef.current);
-      speechResponseTimerRef.current = null;
-    }
-  };
-
   const clearPlayback = () => {
     outputSourcesRef.current.forEach(source => { try { source.stop(); } catch {} });
     outputSourcesRef.current.clear();
@@ -598,15 +585,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     setVoiceTranscript("");
   };
 
-  // Gemini recommends microphone audio in roughly 100 ms PCM packets. The
-  // ScriptProcessor callback is shorter on common 48 kHz devices, so combine
-  // frames before sending and flush the remainder at utterance end.
+  // Send compact 40 ms PCM frames. This keeps the native Live VAD responsive
+  // and gives it a continuous signal for natural turn-taking and barge-in.
   const flushPendingAudio = (socket: WebSocket, flushRemainder = false) => {
     while (
       socket.readyState === WebSocket.OPEN &&
-      (pendingAudioSamplesRef.current >= 1600 || (flushRemainder && pendingAudioSamplesRef.current > 0))
+      (pendingAudioSamplesRef.current >= 640 || (flushRemainder && pendingAudioSamplesRef.current > 0))
     ) {
-      const packetLength = Math.min(1600, pendingAudioSamplesRef.current);
+      const packetLength = Math.min(640, pendingAudioSamplesRef.current);
       const packet = new Int16Array(packetLength);
       let written = 0;
       while (written < packetLength) {
@@ -638,8 +624,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const stopVoiceCall = (notify = true) => {
     callAttemptRef.current += 1;
     clearConnectionTimeout();
-    clearSpeechResponseTimer();
-    pendingSpeechTurnRef.current = false;
     if (reconnectTimerRef.current !== null) {
       window.clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -647,17 +631,13 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     endingRef.current = true;
     setupReadyRef.current = false;
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN) {
+    if (socket?.readyState === WebSocket.OPEN && setupReadyRef.current) {
       try {
-        if (speechActiveRef.current) {
-          flushPendingAudio(socket, true);
-          socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
-        }
+        flushPendingAudio(socket, true);
+        socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
       } catch {}
     }
     clearPendingAudio();
-    speechActiveRef.current = false;
-    lastSpeechAtRef.current = 0;
     socketRef.current = null;
     try { if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Student ended voice session"); } catch {}
     releaseVoiceMedia();
@@ -692,13 +672,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     liveTokenExpiresAtRef.current = 0;
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
-    microphoneInputDetectedRef.current = false;
     assistantAudioReceivedRef.current = false;
-    pendingSpeechTurnRef.current = false;
-    clearSpeechResponseTimer();
-    speechActiveRef.current = false;
-    lastSpeechAtRef.current = 0;
-    microphoneNoiseFloorRef.current = 0.002;
     liveRequestIdRef.current = "";
     setVoiceDiagnostics("Requesting microphone permission…");
     clearPendingAudio();
@@ -712,7 +686,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
+        // Keep browser echo cancellation and noise suppression enabled. AGC is
+        // disabled because pumping gain can raise residual speaker echo/noise
+        // enough to look like a new speaker turn.
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false, channelCount: 1 }
       });
       if (attempt !== callAttemptRef.current || endingRef.current) {
         stream.getTracks().forEach(track => track.stop());
@@ -741,72 +718,23 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       silentGainRef.current = silentGain;
       processor.onaudioprocess = event => {
         const socket = socketRef.current;
-        if (!setupReadyRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
-        const samples = event.inputBuffer.getChannelData(0);
-        let energy = 0;
-        for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
-        const rms = Math.sqrt(energy / samples.length);
-        const now = Date.now();
-        const speechThreshold = Math.max(0.008, Math.min(0.012, microphoneNoiseFloorRef.current * 2.5));
-        const speechDetected = rms >= speechThreshold;
-
-        // Estimate the quiet-room microphone floor only while no speech turn is
-        // active. This avoids sending a constant stream of room noise as speech.
-        if (!speechActiveRef.current && rms < 0.004) {
-          microphoneNoiseFloorRef.current =
-            microphoneNoiseFloorRef.current * 0.96 + rms * 0.04;
+        if (!setupReadyRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) {
+          clearPendingAudio();
+          return;
         }
 
-        if (speechDetected) {
-          if (!microphoneInputDetectedRef.current) {
-            microphoneInputDetectedRef.current = true;
-            setVoiceDiagnostics("Microphone input detected; streaming audio to Google Live…");
-          }
-          lastSpeechAtRef.current = now;
-          if (!speechActiveRef.current) {
-            // The selected fallback model is more reliable with explicit
-            // utterance boundaries than an implicit server-VAD-only stream.
-            try {
-              socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
-            } catch {
-              setVoiceNotice("The microphone connection paused. Please try speaking again.");
-              return;
-            }
-            speechActiveRef.current = true;
-            pendingSpeechTurnRef.current = true;
-            clearSpeechResponseTimer();
-            setVoiceNotice("Listening…");
-          }
-        }
-
-        const pcm = resampleTo16k(samples, audioContext.sampleRate);
+        // Do not run a second, threshold-based client VAD here. Gemini's native
+        // VAD is substantially better at separating speech from room noise and
+        // handles natural pauses and barge-in without local false turn changes.
+        const pcm = resampleTo16k(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
         if (!pcm.length) return;
 
+        pendingAudioFramesRef.current.push(pcm);
+        pendingAudioSamplesRef.current += pcm.length;
         try {
-          // In manual-VAD mode, only send PCM inside a clearly delimited
-          // speech turn. Continue sending trailing silence to preserve the
-          // natural end of the student's utterance.
-          if (speechActiveRef.current) {
-            pendingAudioFramesRef.current.push(pcm);
-            pendingAudioSamplesRef.current += pcm.length;
-            flushPendingAudio(socket);
-
-            if (!speechDetected && now - lastSpeechAtRef.current >= 900) {
-              flushPendingAudio(socket, true);
-              socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
-              speechActiveRef.current = false;
-              pendingSpeechTurnRef.current = true;
-              setVoiceNotice("Processing your question…");
-              clearSpeechResponseTimer();
-              speechResponseTimerRef.current = window.setTimeout(() => {
-                speechResponseTimerRef.current = null;
-                if (!pendingSpeechTurnRef.current || !setupReadyRef.current || endingRef.current) return;
-                pendingSpeechTurnRef.current = false;
-                setVoiceNotice("I couldn’t process that just now. Please try speaking once more, or type your question in the chat.");
-              }, 15000);
-            }
-          }
+          flushPendingAudio(socket);
         } catch {
+          clearPendingAudio();
           setVoiceNotice("The audio connection paused. Check your internet connection.");
         }
       };
@@ -855,12 +783,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (attempt !== callAttemptRef.current || endingRef.current) return;
         setupReadyRef.current = false;
         if (resumeHandle) {
-          // Never carry a half-spoken local VAD turn onto a resumed socket.
-          speechActiveRef.current = false;
-          lastSpeechAtRef.current = 0;
-          pendingSpeechTurnRef.current = false;
+          // Never carry queued microphone frames across a resumed socket.
           clearPendingAudio();
-          clearSpeechResponseTimer();
         }
         clearConnectionTimeout();
         const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
@@ -894,12 +818,16 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               },
               inputAudioTranscription: {},
               outputAudioTranscription: {},
-              // Manual client-side VAD is enabled below. The client sends
-              // activityStart/activityEnd for every speech turn.
+              // Use Gemini's native VAD for speech detection, pause handling
+              // and barge-in. Low start sensitivity avoids triggering on light
+              // room noise; prefix padding preserves the start of spoken words.
               realtimeInputConfig: {
-                // ClerkME detects speech locally and sends explicit activity
-                // boundaries; this removes ambiguity about when a student turn ends.
-                automaticActivityDetection: { disabled: true }
+                automaticActivityDetection: {
+                  startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
+                  prefixPaddingMs: 300,
+                  silenceDurationMs: 800
+                },
+                activityHandling: "START_OF_ACTIVITY_INTERRUPTS"
               },
               sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
             }
@@ -1002,11 +930,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               assistantAudioReceivedRef.current = true;
               setVoiceDiagnostics("Google Live audio received; playing the spoken response…");
             }
-            if (pendingSpeechTurnRef.current) {
-              pendingSpeechTurnRef.current = false;
-              clearSpeechResponseTimer();
-              setVoiceNotice("ClerkME is responding…");
-            }
             const context = audioContextRef.current;
             if (!context || context.state === "closed") continue;
             try {
@@ -1028,10 +951,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             }
           }
           if (serverContent.turnComplete) {
-            if (pendingSpeechTurnRef.current) {
-              pendingSpeechTurnRef.current = false;
-              clearSpeechResponseTimer();
-            }
             commitVoiceTranscript();
             setVoiceNotice("Connected · Listening for your next question");
           }
@@ -1107,16 +1026,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     const socket = socketRef.current;
     if (next) {
       try {
-        if (socket?.readyState === WebSocket.OPEN && speechActiveRef.current) {
+        if (socket?.readyState === WebSocket.OPEN && setupReadyRef.current) {
           flushPendingAudio(socket, true);
-          socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
+          socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
         }
       } catch {
         setVoiceNotice("The microphone could not be paused cleanly. End the session and reconnect.");
       }
       clearPendingAudio();
-      speechActiveRef.current = false;
-      lastSpeechAtRef.current = 0;
     }
     mutedRef.current = next;
     setVoiceMuted(next);
