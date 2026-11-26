@@ -39,6 +39,43 @@ function parsePairs(raw: string) {
   }).filter((item): item is { front: string; back: string } => Boolean(item?.front && item?.back)).slice(0, 60);
 }
 
+const LATEX_SYMBOLS: Record<string, string> = {
+  ge: "≥", geq: "≥", le: "≤", leq: "≤", neq: "≠", ne: "≠",
+  approx: "≈", equiv: "≡", times: "×", cdot: "·", pm: "±", mp: "∓",
+  div: "÷", in: "∈", notin: "∉", subset: "⊂", supset: "⊃",
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ",
+  mu: "μ", pi: "π", lambda: "λ", theta: "θ", sigma: "σ",
+  Omega: "Ω", omega: "ω",rightarrow: "→", leftarrow: "←",
+  Rightarrow: "⇒", Leftarrow: "⇐", to: "→", infinity: "∞",
+  degree: "°", circ: "°", ell: "…", ldots: "…",
+};
+
+const SUPERSCRIPTS: Record<string, string> = {
+  "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+  "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+  "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+};
+
+const SUBSCRIPTS: Record<string, string> = {
+  "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+  "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+  "+": "₊", "-": "₋", "=": "₌",
+};
+
+/** Render common inline LaTeX notation as readable Unicode without HTML injection. */
+function formatFlashcardText(value: string): string {
+  return value
+    .replace(/\\\\\((.*?)\\\\\)/gs, "$1")
+    .replace(/\\\\\[(.*?)\\\\\]/gs, "$1")
+    .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, "$1")
+    .replace(/\\$([^$\\n]+)\\$/g, "$1")
+    .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, "$1")
+    .replace(/\\\\([a-zA-Z]+)\\b/g, (match, command: string) => LATEX_SYMBOLS[command] ?? match)
+    .replace(/\\\\([{}$%_#])/g, "$1")
+    .replace(/\\^\\{([0-9+\\-=()]+)\\}/g, (_match, value: string) => [...value].map(char => SUPERSCRIPTS[char] ?? char).join(""))
+    .replace(/_\\{?([0-9+\\-=]+)\\}?/g, (_match, value: string) => [...value].map(char => SUBSCRIPTS[char] ?? char).join(""));
+}
+
 function unitLabel(unit: string) {
   return clinicalUnits.find(item => item.id === unit)?.name || unit || "General revision";
 }
@@ -320,7 +357,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
                       <span className="flashcards-flip-label"><i>?</i> QUESTION</span>
                       <span className="flashcards-flip-count">THINK IT THROUGH</span>
                     </span>
-                    <span className="flashcards-flip-content">{currentCard.front}</span>
+                    <span className="flashcards-flip-content">{formatFlashcardText(currentCard.front)}</span>
                     <span className="flashcards-flip-bottom"><i>↻</i><span>Think first, then reveal the answer</span></span>
                   </span>
                   <span className="flashcards-flip-face flashcards-flip-back" aria-hidden={!flipped}>
@@ -328,7 +365,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
                       <span className="flashcards-flip-label"><i>✓</i> ANSWER</span>
                       <span className="flashcards-flip-count">CHECK YOUR RECALL</span>
                     </span>
-                    <span className="flashcards-flip-content">{currentCard.back}</span>
+                    <span className="flashcards-flip-content">{formatFlashcardText(currentCard.back)}</span>
                     <span className="flashcards-flip-bottom">
                       {currentCard.source ? <span className="flashcards-flip-source">{currentCard.source}</span> : <span>Review the key point</span>}
                       <span>Tap to return to question</span>
@@ -359,7 +396,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
               {selectedDeck.cards.length ? selectedDeck.cards.map((card, index) => (
                 <article className="flashcards-managed-card" key={card.id}>
                   <div className="flashcards-managed-top"><span>CARD {String(index + 1).padStart(2, "0")}</span><span className={"flashcards-status is-" + card.status}>{card.status === "known" ? "Known" : card.status === "review" ? "Review again" : "New"}</span></div>
-                  <strong>{card.front}</strong><p>{card.back}</p>
+                  <strong>{formatFlashcardText(card.front)}</strong><p>{formatFlashcardText(card.back)}</p>
                   <div className="flashcards-managed-actions"><button type="button" onClick={() => editCard(card)}>Edit</button><button type="button" onClick={() => deleteCard(card.id)}>Delete</button></div>
                 </article>
               )) : <div className="flashcards-empty-state"><h3>Your first card starts here.</h3><p>Keep each card focused on one clinical fact, distinction or decision.</p></div>}
@@ -399,7 +436,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
         </div>
         {sourceCards.length > 0 && <div className="flashcards-source-preview">
           <div className="flashcards-source-preview-heading"><div><strong>{sourceCards.length} cards ready to review</strong><small>{sourceTitle} · Source-linked preview</small></div><button type="button" className="flashcards-text-button" onClick={() => setSourceCards([])}>Discard</button></div>
-          <div className="flashcards-source-preview-list">{sourceCards.slice(0,5).map((item,index) => <article key={index}><span>QUESTION {String(index+1).padStart(2,"0")} · {item.source}</span><strong>{item.front}</strong><p>{item.back}</p></article>)}</div>
+          <div className="flashcards-source-preview-list">{sourceCards.slice(0,5).map((item,index) => <article key={index}><span>QUESTION {String(index+1).padStart(2,"0")} · {item.source}</span><strong>{formatFlashcardText(item.front)}</strong><p>{formatFlashcardText(item.back)}</p></article>)}</div>
           {sourceCards.length > 5 && <small className="flashcards-source-more">Showing the first 5 of {sourceCards.length} cards. All cards will be saved.</small>}
           <button type="button" className="flashcards-primary-button" onClick={saveSourceDeck}>Save deck & start studying <span>→</span></button>
         </div>}
