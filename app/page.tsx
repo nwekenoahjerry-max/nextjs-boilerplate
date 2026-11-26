@@ -1024,9 +1024,6 @@ export default function Home() {
         <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
           <span><WorkspaceIcon name="stethoscope"/></span><small>Sim</small>
         </button>
-        <button type="button" className={active==="ask"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("ask")} aria-current={active==="ask"?"page":undefined}>
-          <span><WorkspaceIcon name="sparkles"/></span><small>Ask</small>
-        </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
         </button>
