@@ -1418,7 +1418,10 @@ export default function Home() {
               </article>
               <InstallAppAction promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
               <ReminderSettings/>
-              <WhatsAppSupportLink />
+              <article className="panel account-settings-group account-support-group">
+                <div className="account-settings-group-heading"><span className="account-settings-icon" aria-hidden="true">?</span><div><h3>Help & support</h3><p>Need a hand? Contact the ClerkMe support team directly.</p></div></div>
+                <WhatsAppSupportLink />
+              </article>
             </section>
             <div className="account-session-footer">
               <span className="account-session-copy"><strong>Signed in securely</strong><small>Sign out when you are using a shared or public device.</small></span>
