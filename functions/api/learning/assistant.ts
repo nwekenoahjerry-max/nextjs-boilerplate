@@ -202,7 +202,7 @@ export const onRequestPost = async (context: AppContext) => {
       return json({ token });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
-      const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\\d+)_([A-Z_]+)$/);
+      const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)$/);
       if (upstream) {
         const status = Number(upstream[1]);
         const upstreamCode = upstream[2];
