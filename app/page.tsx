@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -858,7 +858,7 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     void checkAuthSession();
   }, [checkAuthSession]);
   useEffect(() => {
