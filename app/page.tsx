@@ -11,6 +11,7 @@ import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
 import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
+import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
 import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
@@ -1052,14 +1053,15 @@ export default function Home() {
       <section className={active === "overview" ? "main-area home-dashboard-active" : "main-area"}>
         <header className="topbar">
           <ClerkMeBrand href="#overview" className="mobile-brand" onClick={() => selectSection("overview")}/>
-          <div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "study" ? "Study tools" : "Home")}</strong></div>
+          <div className="breadcrumb">Workspace <span>/</span> <strong>{navItems.find(x => x[1] === active)?.[0] || (active === "ask" ? "Ask ClerkME" : active === "study" ? "Study tools" : "Home")}</strong></div>
           <div className="top-actions">
             {authUser && <NotificationCenter onNavigate={selectSection}/>}
             <button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button>
           </div>
         </header>
-        <div className="content">
-          <FocusMusicPlayer inVideoLibrary={active === "videos"}/>
+        <div className={active === "ask" ? "content ask-clerkme-content" : "content"}>
+          {active !== "ask" && <FocusMusicPlayer inVideoLibrary={active === "videos"}/>}
+{active === "ask" && <AskClerkMePanel userKey={authUser.id}/>}
 {active === "overview" && <>
 <div className="home-dashboard-card home-dashboard-refresh">
 <section className="home-compact-header" aria-label="Welcome to your ClerkME workspace">
@@ -1325,6 +1327,9 @@ export default function Home() {
           {active === "qbank" && <LearningQuestionBank/>}
         </div>
       </section>
+      {active === "overview" && <button type="button" className="ask-clerkme-launcher" onClick={() => selectSection("ask")} aria-label="Open Ask ClerkME">
+        <span className="ask-clerkme-launcher-mark">✦</span><span>Ask ClerkME</span><span aria-hidden="true">↗</span>
+      </button>}
       {showSignOutConfirm && (
         <div
           className="signout-confirm-backdrop"
