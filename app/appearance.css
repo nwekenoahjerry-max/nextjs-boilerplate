@@ -2353,7 +2353,7 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   .session-check-card p{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){
-  .session-check-logo-loader{animation:none}
+  .session-check-logo-loader,.auth-busy-logo{animation:none}
 }
 
 
