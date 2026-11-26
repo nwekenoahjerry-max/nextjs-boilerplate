@@ -685,7 +685,6 @@ export default function Home() {
   // between the button and icon, and works consistently for touch and mouse.
   const handleAskFabPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    event.preventDefault();
     suppressAskFabClickRef.current = false;
     const rect = event.currentTarget.getBoundingClientRect();
     askFabDragRef.current = {
