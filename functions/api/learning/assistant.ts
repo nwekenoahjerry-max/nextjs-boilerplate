@@ -340,11 +340,11 @@ export const onRequestPost = async (context: AppContext) => {
 
   try {
     const answer = await askGemini(apiKey, history, question, sourceName, sourceText);
-    const imageMarker = answer.match(/\\[\\[CLERKME_IMAGE:\\s*([\\s\\S]{8,1600}?)\\]\\]/i);
+    const imageMarker = answer.match(/\[\[CLERKME_IMAGE:\s*([\s\S]{8,1600}?)\]\]/i);
     if (imageMarker) {
-      const withoutMarkers = answer.replace(/\\[\\[CLERKME_IMAGE:[\\s\\S]*?\\]\\]/gi, "").replace(/\\n{3,}/g, "\\n\\n").trim();
+      const withoutMarkers = answer.replace(/\[\[CLERKME_IMAGE:[\s\S]*?\]\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
       if (!context.env.SOURCE_FILES) {
-        return json({ answer: withoutMarkers + "\\n\\n*I could not attach the illustration because image storage is temporarily unavailable.*", sourceName: sourceName || null });
+        return json({ answer: withoutMarkers + "\n\n*I could not attach the illustration because image storage is temporarily unavailable.*", sourceName: sourceName || null });
       }
       try {
         const generated = await generateTeachingImage(apiKey, clean(imageMarker[1], 1400));
@@ -358,8 +358,8 @@ export const onRequestPost = async (context: AppContext) => {
         const markdownImage = "![AI-generated educational illustration](/api/learning/ask-image?id=" + imageId + ")";
         const markerPosition = answer.indexOf(imageMarker[0]);
         const finalAnswer = (answer.slice(0, markerPosition) + markdownImage + answer.slice(markerPosition + imageMarker[0].length))
-          .replace(/\\[\\[CLERKME_IMAGE:[\\s\\S]*?\\]\\]/gi, "")
-          .replace(/\\n{3,}/g, "\\n\\n")
+          .replace(/\[\[CLERKME_IMAGE:[\s\S]*?\]\]/gi, "")
+          .replace(/\n{3,}/g, "\n\n")
           .trim();
         return json({ answer: finalAnswer, sourceName: sourceName || null });
       } catch (imageError) {
@@ -368,7 +368,7 @@ export const onRequestPost = async (context: AppContext) => {
           detail: imageError instanceof Error ? clean(imageError.message, 240) : "Unknown image generation error."
         });
         return json({
-          answer: withoutMarkers + "\\n\\n*I could not create the illustration this time, but the written explanation is still available. Please try requesting the diagram again.*",
+          answer: withoutMarkers + "\n\n*I could not create the illustration this time, but the written explanation is still available. Please try requesting the diagram again.*",
           sourceName: sourceName || null,
           imageUnavailable: true
         });
