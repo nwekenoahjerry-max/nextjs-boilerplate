@@ -939,7 +939,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             return;
           }
 
-          const closeReason = String(event.reason || "").replace(/[^\\x20-\\x7E]/g, " ").slice(0, 160);
+          const closeReason = String(event.reason || "").slice(0, 160);
           const reference = liveRequestIdRef.current ? " · ref " + liveRequestIdRef.current : "";
           const messageText = event.code === 1000 && hadCompletedSetup
             ? "Voice session ended. The transcript is saved in this conversation."
