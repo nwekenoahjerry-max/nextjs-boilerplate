@@ -122,7 +122,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       uses: 1,
-      expireTime: new Date(now + 12 * 60 * 1000).toISOString(),
+      expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
       newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
       liveConnectConstraints: {
         model: LIVE_MODEL,
