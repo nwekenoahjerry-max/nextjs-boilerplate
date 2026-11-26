@@ -862,6 +862,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                 </div>
                 <div className="ask-composer-submit">
                   <button type="button" className="ask-live-small" onClick={() => void startVoiceCall("tutor")} title="Start a live voice conversation"><span>♫</span><b>Talk live</b></button>
+                  <button type="button" className="ask-live-small ask-viva-small" onClick={() => void startVoiceCall("viva")} title="Start a spoken Viva examination"><span>☷</span><b>Viva</b></button>
                   <button type="submit" className="ask-send-button" disabled={!sendAllowed} aria-label="Send message">↑</button>
                 </div>
               </div>
