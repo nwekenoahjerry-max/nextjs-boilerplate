@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ClerkMeBrand from "../../components/clerkme-brand";
-import WhatsAppSupportLink from "../../components/whatsapp-support-link";
 import SearchablePicker from "../searchable-picker";
 import { nigeriaLgasByState, nigeriaStates } from "../../lib/nigeria-locations";
 import { nigerianUniversities } from "../../lib/nigerian-universities";
@@ -205,14 +204,12 @@ export default function ProfilePage() {
   };
 
   if (loading) return <main className="auth-page profile-page">
-    <WhatsAppSupportLink className="profile-support-fab" />
     <div className="auth-card profile-loading"><ClerkMeBrand caption="STUDENT PROFILE"/><p>Loading your profile…</p></div>
   </main>;
 
   return (
     <main className="auth-page profile-page">
-      <WhatsAppSupportLink className="profile-support-fab" />
-      <section className="auth-card profile-card">
+        <section className="auth-card profile-card">
         <div className="profile-brand-row">
           <ClerkMeBrand caption="STUDENT PROFILE"/>
           <a className="auth-back profile-back-link" href="/">Back to workspace</a>
