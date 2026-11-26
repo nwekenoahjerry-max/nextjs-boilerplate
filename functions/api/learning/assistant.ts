@@ -115,7 +115,7 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
   throw new Error(lastError);
 }
 
-async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
+async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode);
   let lastStatus = 0;
@@ -175,6 +175,8 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   }
 
   console.error("[ClerkME] Ask ClerkME live-session token creation failed.", {
+    requestId,
+    model: LIVE_MODEL,
     status: lastStatus,
     upstreamCode: lastCode,
     detail: lastDetail
@@ -188,10 +190,12 @@ export const onRequestPost = async (context: AppContext) => {
   const user = await requireUser(context);
   if (isResponse(user)) return user;
 
+  const requestId = crypto.randomUUID().slice(0, 12);
   const apiKey = context.env.GEMINI_API_KEY;
   if (!apiKey) return json({
     error: "ClerkME's AI service is not configured at the moment. Your conversation remains on this device; please contact support.",
-    code: "GEMINI_NOT_CONFIGURED"
+    code: "GEMINI_NOT_CONFIGURED",
+    requestId
   }, 503);
 
   let body: Record<string, unknown>;
@@ -226,8 +230,9 @@ export const onRequestPost = async (context: AppContext) => {
     try {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
-      const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode);
-      return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction });
+      const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode, requestId);
+      console.info("[ClerkME] Live token provisioned.", { requestId, model: LIVE_MODEL });
+      return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction, requestId, model: LIVE_MODEL });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
       const network = detail.match(/^LIVE_TOKEN_NETWORK_([A-Z_]+)$/);
@@ -236,7 +241,7 @@ export const onRequestPost = async (context: AppContext) => {
         const message = network[1] === "TIMEOUT"
           ? "Google's Live API token service timed out. Please retry in a moment."
           : "ClerkME could not reach Google's Live API token service. Please check the service connection and retry.";
-        return json({ error: message, code }, 502);
+        return json({ error: message, code, requestId }, 502);
       }
       const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)\|([\s\S]{0,240})$/)
         || detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)$/);
@@ -262,13 +267,15 @@ export const onRequestPost = async (context: AppContext) => {
           error: message,
           code,
           upstreamCode,
-          ...(upstreamMessage ? { upstreamMessage } : {})
+          ...(upstreamMessage ? { upstreamMessage } : {}),
+          requestId
         }, status === 429 ? 429 : 502);
       }
-      console.error("[ClerkME] Live token provisioning failed unexpectedly.", { detail: clean(detail, 240) });
+      console.error("[ClerkME] Live token provisioning failed unexpectedly.", { requestId, model: LIVE_MODEL, detail: clean(detail, 240) });
       return json({
         error: "ClerkME could not obtain a secure Live API session. Please retry or continue with text chat.",
-        code: "LIVE_SESSION_UNAVAILABLE"
+        code: "LIVE_SESSION_UNAVAILABLE",
+        requestId
       }, 502);
     }
   }
