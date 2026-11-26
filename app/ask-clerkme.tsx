@@ -168,11 +168,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   useEffect(() => {
     if (!hydrated) return;
     try {
-      const compact = threads.slice(0, 12).map(thread => ({
+      const compact = threads.slice(0, 8).map(thread => ({
         ...thread,
-        messages: thread.messages.slice(-36).map(message => ({
+        messages: thread.messages.slice(-24).map(message => ({
           ...message,
-          content: message.content.slice(0, 9000)
+          content: message.content.slice(0, 6000)
         }))
       }));
       window.localStorage.setItem(storageKey(userKey), JSON.stringify(compact));
@@ -212,7 +212,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
 
   const createConversation = () => {
     const thread = newThread();
-    setThreads(current => [thread, ...current].slice(0, 12));
+    setThreads(current => [thread, ...current].slice(0, 8));
     setActiveThreadId(thread.id);
     setAttachment(null);
     setMaterialId("");
@@ -289,10 +289,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     };
     const prior = thread.messages || [];
     const history = [...prior, userMessage].slice(-18);
-    setThreads(current => current.some(item => item.id === threadId)
-      ? current.map(item => item.id === threadId ? { ...item, title: item.messages.length ? item.title : userMessage.content.slice(0, 48), updatedAt: stamp(), messages: [...item.messages, userMessage].slice(-36) } : item)
-      : [{ ...thread, title: userMessage.content.slice(0, 48), updatedAt: stamp(), messages: [userMessage] }, ...current]
-    );
+    setThreads(current => {
+      const updated = current.some(item => item.id === threadId)
+        ? current.map(item => item.id === threadId
+          ? { ...item, title: item.messages.length ? item.title : userMessage.content.slice(0, 48), updatedAt: stamp(), messages: [...item.messages, userMessage].slice(-36) }
+          : item)
+        : [{ ...thread, title: userMessage.content.slice(0, 48), updatedAt: stamp(), messages: [userMessage] }, ...current];
+      return updated.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 8);
+    });
     setDraft("");
     setNotice("");
     setSending(true);
@@ -665,7 +669,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               </button>
             ))}
           </div>
-          <div className="ask-history-footer"><span className="ask-history-footer-mark">✓</span><span>Private to your ClerkME account on this device</span></div>
+          <div className="ask-history-footer"><span className="ask-history-footer-mark">✓</span><span>Saved in this browser for this account</span></div>
         </aside>
 
         {showHistoryMobile && <button type="button" className="ask-history-scrim" onClick={() => setShowHistoryMobile(false)} aria-label="Close history"/>}
