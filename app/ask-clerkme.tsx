@@ -101,6 +101,7 @@ function formatMath(source: string): string {
   let value = source.trim()
     .replace(/\\(?:left|right|displaystyle|textstyle|scriptstyle)\b/g, "")
     .replace(/\\(?:text|mathrm|textrm|operatorname)\s*\{([^{}]*)\}/g, "$1")
+    .replace(/\\\\\s*/g, " ")
     .replace(/\\(?:,|;|:|!|quad|qquad|enspace|thinspace)/g, " ");
   for (const [command, symbol] of Object.entries(mathSymbols)) value = value.split(command).join(symbol);
   value = value
@@ -120,14 +121,13 @@ function formatMath(source: string): string {
 function renderInline(value: string): ReactNode[] {
   const tokens = value.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\*\*[^*]+\*\*|\`[^\`]+\`|\*[^*]+\*)/g).filter(Boolean);
   return tokens.map((part, index) => {
-    const isMath = (part.startsWith("$") && part.endsWith("$")) ||
-      (part.startsWith("$") && part.endsWith("$")) ||
+    const isMath = (part.charAt(0) === "$" && part.endsWith("$")) ||
       (part.startsWith("\\(") && part.endsWith("\\)")) ||
       (part.startsWith("\\[") && part.endsWith("\\]"));
     if (isMath) {
-      const display = part.startsWith("$") || part.startsWith("\\[");
-      const inner = part.startsWith("$") ? part.slice(2, -2)
-        : part.startsWith("$") ? part.slice(1, -1) : part.slice(2, -2);
+      const display = (part.charAt(0) === "$" && part.charAt(1) === "$") || part.startsWith("\\[");
+      const inner = display && part.charAt(0) === "$" ? part.slice(2, -2)
+        : part.charAt(0) === "$" ? part.slice(1, -1) : part.slice(2, -2);
       return <span key={index} className={display ? "ask-math ask-math-display" : "ask-math"} aria-label={inner}>{formatMath(inner)}</span>;
     }
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{renderInline(part.slice(2, -2))}</strong>;
