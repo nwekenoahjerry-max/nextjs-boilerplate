@@ -38,7 +38,10 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/clerkme-mark-navy.svg", type: "image/svg+xml" }],
+    // Google Search currently lists raster formats for search-result favicons.
+    // Keep one stable, square PNG as the primary site icon.
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "192x192" }],
+    apple: [{ url: "/favicon.png", type: "image/png", sizes: "192x192" }],
   },
   keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
 };

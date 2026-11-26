@@ -1,5 +1,5 @@
-const CACHE_NAME = "clerkme-shell-v30-visual-responses";
-const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
+const CACHE_NAME = "clerkme-shell-v31-google-favicon";
+const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -42,7 +42,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark-navy.svg") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark-navy.svg" || url.pathname === "/favicon.png") {
     event.respondWith(
       fetch(request)
         .then(response => {
