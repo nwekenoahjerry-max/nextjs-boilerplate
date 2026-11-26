@@ -1445,7 +1445,7 @@
   max-width:100%;
   margin:13px 0 16px;
   overflow-x:auto;
-  overscroll-behaviour-x:contain;
+  overscroll-behavior-x:contain;
   -webkit-overflow-scrolling:touch;
   border:1px solid #dfe7ef;
   border-radius:12px;
@@ -1551,4 +1551,15 @@
   .ask-message-avatar-brand img,
   .ask-conversation-mark img,
   .ask-history-brand-mark img{transition:none}
+}
+
+.ask-message-row.is-assistant:has(.ask-table-wrap),
+.ask-message-row.is-assistant:has(.ask-generated-visual){
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+}
+.ask-message-row.is-assistant:has(.ask-table-wrap) .ask-message-bubble,
+.ask-message-row.is-assistant:has(.ask-generated-visual) .ask-message-bubble{
+  width:100%;
+  max-width:none;
 }
