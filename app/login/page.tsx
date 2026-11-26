@@ -27,6 +27,15 @@ type ApiResponse = {
   user?: unknown;
 };
 
+function rememberAuthenticatedSession() {
+  try {
+    window.localStorage.setItem("clerkme:session-seen:v1", "1");
+    window.localStorage.removeItem("clerkme:explicit-sign-out:v1");
+  } catch {
+    // The HttpOnly server cookie remains authoritative.
+  }
+}
+
 async function readApiResponse(response: Response): Promise<ApiResponse> {
   const body = await response.text();
   try {
@@ -70,7 +79,7 @@ export default function LoginPage() {
       .then(d => { if (d?.clientId) setClientId(d.clientId); })
       .catch(() => {});
     fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" })
-      .then(r => { if (r.ok) window.location.replace("/"); })
+      .then(r => { if (r.ok) { rememberAuthenticatedSession(); window.location.replace("/"); } })
       .catch(() => {});
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "signup") setMode("signup");
@@ -95,6 +104,7 @@ export default function LoginPage() {
           });
           const data = await readApiResponse(response);
           if (!response.ok) throw new Error(data.error || "Google sign-in failed.");
+          rememberAuthenticatedSession();
           window.location.replace("/?welcome=1");
         } catch (e) {
           setGoogleError(e instanceof Error ? e.message : "Google sign-in failed.");
@@ -154,6 +164,7 @@ export default function LoginPage() {
       } else if (mode === "forgot") {
         setNotice(data.message || "If a verified account exists for this address, a password-reset link has been sent.");
       } else {
+        rememberAuthenticatedSession();
         window.location.replace("/?welcome=1");
       }
     } catch (e) {
