@@ -68,6 +68,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
   const [sourceUnit, setSourceUnit] = useState("general-medicine");
   const [sourceError, setSourceError] = useState("");
   const [sourceGenerating, setSourceGenerating] = useState(false);
+  const [showSourceBuilder, setShowSourceBuilder] = useState(false);
 
 
   useEffect(() => {
@@ -168,8 +169,9 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
     if (!sourceCards.length) return;
     const now = Date.now();
     const deck:FlashcardDeck = {id:makeId(),title:sourceTitle.slice(0,90),unit:sourceUnit,createdAt:now,updatedAt:now,cards:sourceCards.map(item=>({id:makeId(),front:item.front.trim().slice(0,1800),back:item.back.trim().slice(0,2400),status:"new" as ReviewStatus,reviewCount:0,source:item.source}))};
-    setDecks(current => [deck,...current]); setSelectedDeckId(deck.id); setView("manage"); setSourceCards([]);
-    setSourceMaterialId(""); setNotice(deck.cards.length + " flashcards created from " + deck.title + ".");
+    setDecks(current => [deck,...current]); setSourceCards([]);
+    setSourceMaterialId(""); setShowSourceBuilder(false);
+    startStudy(deck);
   };
 
   const visibleDecks = useMemo(() => {
@@ -194,24 +196,27 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
     const deck: FlashcardDeck = { id: makeId(), title: title.slice(0, 90), unit: deckUnit, createdAt: now, updatedAt: now, cards };
     setDecks(current => [deck, ...current]);
     setSelectedDeckId(deck.id);
-    setView("manage");
     setShowCreate(false);
+    setShowSourceBuilder(false);
     setDeckTitle("");
     setBulkCards("");
-    setNotice(cards.length ? "Your deck and " + cards.length + " cards have been saved." : "Deck created. Add your first card below.");
+    if (cards.length) startStudy(deck);
+    else { setView("manage"); setNotice("Your deck is ready. Add your first question and answer below."); }
   };
 
-  const openDeck = (deck: FlashcardDeck, nextView: "study" | "manage") => {
+  const openDeck = (deck: FlashcardDeck) => {
     setSelectedDeckId(deck.id);
-    setView(nextView);
+    setView("manage");
     setNotice("");
-    if (nextView === "manage") { setEditorId(""); setFrontDraft(""); setBackDraft(""); }
+    setEditorId("");
+    setFrontDraft("");
+    setBackDraft("");
   };
 
   const startStudy = (deck: FlashcardDeck, reviewOnly = false, shuffle = false) => {
     let cards = reviewOnly ? deck.cards.filter(card => card.status === "review") : deck.cards;
     if (reviewOnly && !cards.length) { setNotice("There are no flagged cards in this deck. Mark a card for review during your next session."); return; }
-    if (!cards.length) { setNotice("Add at least one question and answer before starting a study session."); setView("manage"); setSelectedDeckId(deck.id); return; }
+    if (!cards.length) { setSelectedDeckId(deck.id); setView("manage"); setNotice("This deck is empty. Add your first question and answer below."); return; }
     if (shuffle) cards = [...cards].sort(() => Math.random() - 0.5);
     setSelectedDeckId(deck.id);
     setStudyQueue(cards.map(card => card.id));
@@ -273,7 +278,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
         <div className="flashcards-breadcrumb"><button type="button" onClick={() => { setView("overview"); setNotice(""); }}>← All decks</button><span>/</span><span>{selectedDeck.title}</span></div>
         <header className="flashcards-page-heading">
           <div><span className="flashcards-eyebrow">ACTIVE RECALL WORKSPACE</span><h1>{selectedDeck.title}</h1><p>{unitLabel(selectedDeck.unit)} · {selectedDeck.cards.length} cards</p></div>
-          <div className="flashcards-heading-actions"><button type="button" className="flashcards-secondary-button" onClick={() => { if (view === "manage") startStudy(selectedDeck); else setView("manage"); }}>{view === "manage" ? "Study this deck" : "Manage cards"}</button></div>
+          <div className="flashcards-heading-actions">{view === "manage" ? <><button type="button" className="flashcards-secondary-button" onClick={() => { if (selectedDeck.cards.length) startStudy(selectedDeck); else document.getElementById("flashcard-editor")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>{selectedDeck.cards.length ? "Study deck" : "Add first card"}</button><button type="button" className="flashcards-text-button" onClick={() => deleteDeck(selectedDeck)}>Delete deck</button></> : <button type="button" className="flashcards-secondary-button" onClick={() => setView("manage")}>Manage cards</button>}</div>
         </header>
         {notice && <p className="flashcards-notice" role="status">{notice}</p>}
 
@@ -333,7 +338,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
               <div className="flashcards-study-footer"><button type="button" onClick={() => { setCardIndex(index => Math.max(0, index - 1)); setFlipped(false); }} disabled={cardIndex === 0}>← Previous</button><button type="button" onClick={skipCard}>Skip this card →</button><button type="button" onClick={() => startStudy(selectedDeck, false, true)}>Shuffle deck</button></div>
               <p className="flashcards-keyboard-hint">Use active recall first. Reveal only after you have formed an answer.</p>
             </div>
-          ) : <div className="flashcards-empty-state"><h2>This deck has no cards yet.</h2><p>Add questions and answers, then start reviewing.</p><button type="button" className="flashcards-primary-button" onClick={() => setView("manage")}>Add cards</button></div>
+          ) : <div className="flashcards-empty-state"><h2>{selectedDeck.cards.length ? "Your study session is ready." : "This deck is empty."}</h2><p>{selectedDeck.cards.length ? "Start the session to load the first question." : "Add your first question and answer, then start reviewing."}</p><button type="button" className="flashcards-primary-button" onClick={() => selectedDeck.cards.length ? startStudy(selectedDeck) : setView("manage")}>{selectedDeck.cards.length ? "Start studying" : "Add first card"}</button></div>
         )}
 
         {view === "manage" && (
@@ -363,17 +368,19 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
   return (
     <section className="flashcards-panel">
       <header className="flashcards-page-heading flashcards-overview-heading">
-        <div><span className="flashcards-eyebrow">ACTIVE RECALL & SPACED REVISION</span><h1>Flashcards</h1><p>Turn important clinical knowledge into short recall sessions. Read the prompt, retrieve the answer, then rate your recall honestly.</p></div>
-        <button type="button" className="flashcards-primary-button" onClick={() => { setShowCreate(value => !value); setNotice(""); }}>{showCreate ? "Close" : "+ Create a deck"}</button>
+        <div><span className="flashcards-eyebrow">ACTIVE RECALL & SPACED REVISION</span><h1>Flashcards</h1><p>Choose a deck and start recalling. Create cards from a lecture or build your own set.</p></div>
+        <div className="flashcards-overview-actions">
+          <button type="button" className="flashcards-primary-button" onClick={() => { setShowSourceBuilder(value => !value); setShowCreate(false); setNotice(""); }}>{showSourceBuilder ? "Close lecture builder" : "Create from lecture"}</button>
+          <button type="button" className="flashcards-secondary-button" onClick={() => { setShowCreate(value => !value); setShowSourceBuilder(false); setNotice(""); }}>{showCreate ? "Close" : "Create manually"}</button>
+        </div>
       </header>
       {notice && <p className="flashcards-notice" role="status">{notice}</p>}
 
-      <section className="flashcards-source-builder" aria-labelledby="flashcards-source-title">
+      {showSourceBuilder && <section className="flashcards-source-builder" aria-labelledby="flashcards-source-title">
         <div className="flashcards-source-copy">
           <span className="flashcards-eyebrow">START WITH YOUR LECTURE</span>
           <h2 id="flashcards-source-title">Generate from my materials</h2>
-          <p>Choose a lecture you have uploaded. ClerkME builds a revision deck from its generated study guide, including recall questions, viva prompts and key terms.</p>
-          <div className="flashcards-source-steps"><span><b>01</b> Choose a lecture</span><span><b>02</b> Preview cards</span><span><b>03</b> Save and revise</span></div>
+          <p>Choose an uploaded lecture. ClerkME prepares question-and-answer cards from its generated study guide.</p>
         </div>
         <div className="flashcards-source-controls">
           <label htmlFor="flashcards-source-select">Uploaded material</label>
@@ -391,7 +398,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
           {sourceCards.length > 5 && <small className="flashcards-source-more">Showing the first 5 of {sourceCards.length} cards. All cards will be saved.</small>}
           <button type="button" className="flashcards-primary-button" onClick={saveSourceDeck}>Save {sourceCards.length} flashcards to my library <span>→</span></button>
         </div>}
-      </section>
+      </section>}
       <div className="flashcards-stat-grid" aria-label="Flashcard library statistics">
         <div><span>YOUR DECKS</span><strong>{decks.length}</strong></div><div><span>TOTAL CARDS</span><strong>{totalCards}</strong></div><div><span>MASTERED</span><strong>{masteredCards}</strong></div><div><span>FLAGGED FOR REVIEW</span><strong>{reviewCards}</strong></div>
       </div>
@@ -404,7 +411,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
           <div className="flashcards-create-actions"><button type="submit" className="flashcards-primary-button">Create deck <span>→</span></button><button type="button" className="flashcards-text-button" onClick={() => setShowCreate(false)}>Cancel</button></div>
         </form>
       )}
-      <div className="flashcards-library-heading"><div><h2>Your revision decks</h2><p>Pick up a deck or create a focused set from your current study guide.</p></div><label className="flashcards-search"><span aria-hidden="true">⌕</span><input value={deckSearch} onChange={event => setDeckSearch(event.target.value)} placeholder="Search decks…" aria-label="Search flashcard decks"/></label></div>
+      <div className="flashcards-library-heading"><div><h2>Your decks</h2><p>Choose a deck to begin. Use the three-dot menu to manage its cards.</p></div><label className="flashcards-search"><span aria-hidden="true">⌕</span><input value={deckSearch} onChange={event => setDeckSearch(event.target.value)} placeholder="Search decks…" aria-label="Search flashcard decks"/></label></div>
       {visibleDecks.length ? (
         <div className="flashcards-deck-grid">
           {visibleDecks.map(deck => {
@@ -415,9 +422,8 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
               <div className="flashcards-deck-card-top"><span className="flashcards-deck-icon" aria-hidden="true">▤</span><span className="flashcards-deck-unit">{unitLabel(deck.unit)}</span></div>
               <h3>{deck.title}</h3><div className="flashcards-deck-metrics"><span><strong>{deck.cards.length}</strong> cards</span><span><strong>{due}</strong> to review</span></div>
               <div className="flashcards-deck-progress"><span style={{ width: progress + "%" }}/></div><div className="flashcards-deck-progress-label"><span>{known} mastered</span><span>{progress}%</span></div>
-              <div className="flashcards-deck-actions"><button type="button" className="flashcards-primary-button" onClick={() => openDeck(deck, deck.cards.length ? "study" : "manage")}>{deck.cards.length ? "Study deck" : "Add cards"} <span>→</span></button><button type="button" className="flashcards-icon-button" onClick={() => openDeck(deck, "manage")} aria-label={"Manage " + deck.title}>•••</button></div>
+              <div className="flashcards-deck-actions"><button type="button" className="flashcards-primary-button" onClick={() => deck.cards.length ? startStudy(deck) : openDeck(deck)}>{deck.cards.length ? "Study now" : "Add first card"} <span>→</span></button><button type="button" className="flashcards-icon-button" onClick={() => openDeck(deck)} aria-label={"Manage " + deck.title}>•••</button></div>
               {due > 0 && <button type="button" className="flashcards-review-link" onClick={() => startStudy(deck, true)}>Review {due} flagged card{due === 1 ? "" : "s"} →</button>}
-              <button type="button" className="flashcards-delete-deck" onClick={() => deleteDeck(deck)}>Delete deck</button>
             </article>;
           })}
         </div>
@@ -427,7 +433,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
           <span className="flashcards-eyebrow">{decks.length ? "NO MATCHES" : "START WITH ACTIVE RECALL"}</span>
           <h2>{decks.length ? "No decks match that search." : "Build your first revision deck."}</h2>
           <p>{decks.length ? "Try another topic or unit name." : "Create a deck for a lecture, disease or clinical topic. You can also turn questions and key terms from a ClerkME study guide into flashcards in one step."}</p>
-          {!decks.length && <button type="button" className="flashcards-primary-button" onClick={() => setShowCreate(true)}>Create your first deck <span>→</span></button>}
+          {!decks.length && <button type="button" className="flashcards-primary-button" onClick={() => setShowCreate(true)}>Create manually <span>→</span></button>}
         </div>
       )}
       <p className="flashcards-storage-note"><span>✓</span> Saved in this browser on this device. Cross-device sync is not enabled yet.</p>
