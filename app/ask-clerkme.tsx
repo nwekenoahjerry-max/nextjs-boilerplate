@@ -1128,7 +1128,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const sendAllowed = (draft.trim().length > 0 || hasContext) && !sending && !extracting;
   const currentTitle = activeThread?.title || "New conversation";
 
-  if (!hydrated) return <section className="ask-workspace-loading"><span className="ask-loading-mark"><AskIcon name="sparkles" size={24}/></span><p>Preparing your learning assistant…</p></section>;
+  if (!hydrated) return <section className="ask-workspace-loading"><span className="ask-loading-mark"><img src="/clerkme-mark-navy.svg" alt="" width={38} height={38} decoding="async"/></span><p>Preparing your learning assistant…</p></section>;
 
   return (
     <section className="ask-clerkme" aria-label="Ask ClerkME AI learning workspace">

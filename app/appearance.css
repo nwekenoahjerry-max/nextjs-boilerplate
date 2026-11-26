@@ -2148,6 +2148,10 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   color:#D5E9FF;
 }
 .ask-clerkme-fab-icon svg{width:19px;height:19px}
+.ask-clerkme-fab-icon{border-radius:11px;background:#F5F8FC;overflow:hidden}
+.ask-clerkme-fab-icon img{display:block;width:100%;height:100%;object-fit:contain;border-radius:10px}
+.ask-nav-item .nav-icon{display:grid;place-items:center}
+.ask-nav-brand-icon{display:block;width:21px;height:21px;object-fit:contain;border-radius:6px}
 .ask-clerkme-fab-label{white-space:nowrap}
 .ask-clerkme-fab-arrow{margin-left:auto;color:#C8DDF3;font-size:15px;line-height:1}
 [data-theme="dark"] .ask-clerkme-fab{

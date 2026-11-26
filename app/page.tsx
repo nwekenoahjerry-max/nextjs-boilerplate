@@ -1109,7 +1109,7 @@ export default function Home() {
             </button>
           ))}
           <button type="button" className={active === "ask" ? "nav-item active ask-nav-item" : "nav-item ask-nav-item"} onClick={() => selectSection("ask")} aria-current={active === "ask" ? "page" : undefined}>
-            <span className="nav-icon"><WorkspaceIcon name="sparkles"/></span><span className="nav-label">Ask ClerkME</span>
+            <span className="nav-icon"><img className="ask-nav-brand-icon" src="/clerkme-mark-navy.svg" alt="" width={21} height={21} decoding="async"/></span><span className="nav-label">Ask ClerkME</span>
           </button>
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
           {navItems.slice(12).map(([label, id, icon]) => (
@@ -1187,7 +1187,7 @@ export default function Home() {
             aria-label="Open Ask ClerkME"
             title="Open Ask ClerkME"
           >
-            <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="bot"/></span>
+            <span className="ask-clerkme-fab-icon"><img src="/clerkme-mark-navy.svg" alt="" width={36} height={36} decoding="async"/></span>
             <span className="ask-clerkme-fab-label">Ask ClerkME</span>
           </button>
         )}
