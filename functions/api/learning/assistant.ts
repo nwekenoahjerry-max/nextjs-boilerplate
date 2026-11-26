@@ -135,17 +135,6 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
           uses: 3,
           expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
           newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-          liveConnectConstraints: {
-            model: LIVE_MODEL,
-            config: {
-              // Match Google's minimal documented token constraints. Keep
-              // only session capabilities locked during token provisioning;
-              // the personalised teaching prompt is sent in the first setup
-              // frame after the token is issued.
-              responseModalities: ["AUDIO"],
-              sessionResumption: {}
-            }
-          }
         }),
         signal: AbortSignal.timeout(20000)
       });
