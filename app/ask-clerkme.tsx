@@ -439,22 +439,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     setVoiceStatus("connecting");
 
     try {
-      const response = await fetch("/api/learning/assistant", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          intent: "live-token",
-          history: activeMessages.slice(-10).map(message => ({ role: message.role, content: message.content })),
-          attachmentText: attachment?.text || "",
-          sourceName: attachment?.name || materialTitle || "",
-          materialId
-        })
-      });
-      const tokenData = await response.json().catch(() => ({}));
-      if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
-      if (attempt !== callAttemptRef.current || endingRef.current) return;
-
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
       });
@@ -488,6 +472,22 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       microphone.connect(processor);
       processor.connect(silentGain);
       silentGain.connect(audioContext.destination);
+
+      const response = await fetch("/api/learning/assistant", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          intent: "live-token",
+          history: activeMessages.slice(-10).map(message => ({ role: message.role, content: message.content })),
+          attachmentText: attachment?.text || "",
+          sourceName: attachment?.name || materialTitle || "",
+          materialId
+        })
+      });
+      const tokenData = await response.json().catch(() => ({}));
+      if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
+      if (attempt !== callAttemptRef.current || endingRef.current) return;
 
       const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
       const socket = new WebSocket(endpoint);
@@ -764,7 +764,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               </div>
               <div className="ask-composer-foot"><span>Enter to send · Shift + Enter for a new line</span><span>Check important clinical facts against current guidance.</span></div>
             </form>
-            <input type="file" hidden/>
           </div>
         </div>
       </div>
