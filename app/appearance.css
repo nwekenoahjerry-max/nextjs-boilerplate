@@ -1975,3 +1975,117 @@ html[data-theme="dark"] .app-shell :is(.primary-button, .video-library-play-butt
     transition: none !important;
   }
 }
+
+
+/* Continue-learning card: protect the lecture title and keep its CTA compact. */
+.home-resume-card{
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) auto;
+  align-items:center;
+  gap:13px;
+  width:100%;
+  max-width:1120px;
+  min-width:0;
+  margin:13px auto 17px;
+  padding:15px 17px;
+  border:1px solid #dbe5ef;
+  border-radius:17px;
+  background:#fff;
+  box-shadow:0 5px 18px rgba(12,39,72,.055);
+}
+.home-resume-icon{
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  background:#edf3f9;
+  color:#244c73;
+}
+.home-resume-copy{display:grid;gap:4px;min-width:0}
+.home-resume-kicker{color:#8c9aad;font:800 8px Manrope,Arial,sans-serif;letter-spacing:.12em}
+.home-resume-copy h2{
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+  min-width:0;
+  margin:0;
+  color:#173858;
+  font:800 14px/1.35 Manrope,Arial,sans-serif;
+  overflow-wrap:anywhere;
+}
+.home-resume-copy p{margin:0;color:#73859b;font:500 10px/1.5 "DM Sans",Arial,sans-serif;overflow-wrap:anywhere}
+.home-resume-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  width:auto;
+  min-width:82px;
+  max-width:112px;
+  min-height:38px;
+  padding:8px 12px;
+  border:0;
+  border-radius:10px;
+  background:#173d65;
+  color:#fff;
+  font:800 10px Manrope,Arial,sans-serif;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.home-resume-button:hover{background:#245783}
+html[data-theme="dark"] .home-resume-card{
+  border-color:#2b4564;
+  background:#112b49;
+  box-shadow:0 5px 18px rgba(0,0,0,.14);
+}
+html[data-theme="dark"] .home-resume-icon{background:#1d3c5c;color:#e1edf9}
+html[data-theme="dark"] .home-resume-copy h2{color:#f0f5fc}
+html[data-theme="dark"] .home-resume-copy p{color:#b3c4d8}
+html[data-theme="dark"] .home-resume-button{background:#d8b16a;color:#142b45}
+html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
+
+@media(max-width:760px){
+  .home-resume-card{
+    grid-template-columns:34px minmax(0,1fr) auto;
+    gap:9px;
+    margin:9px auto 12px;
+    padding:11px;
+    border-radius:14px;
+  }
+  .home-resume-icon{width:34px;height:34px;border-radius:10px}
+  .home-resume-kicker{font-size:7px;letter-spacing:.09em}
+  .home-resume-copy h2{font-size:11px;line-height:1.35}
+  .home-resume-copy p{font-size:8px;line-height:1.4}
+  .home-resume-button{min-width:72px;max-width:88px;min-height:34px;padding:7px 9px;font-size:9px}
+}
+@media(max-width:390px){
+  .home-resume-card{grid-template-columns:30px minmax(0,1fr) auto;gap:7px;padding:9px}
+  .home-resume-icon{width:30px;height:30px}
+  .home-resume-copy h2{font-size:10px}
+  .home-resume-copy p{font-size:7.5px}
+  .home-resume-button{min-width:66px;max-width:74px;padding:6px 7px;font-size:8px}
+}
+
+/* Ask ClerkME stays in the home workspace's lower action area without
+   covering the mobile dock or pushing the dashboard wider than the viewport. */
+.ask-clerkme-launcher{
+  right:clamp(14px,2.3vw,30px);
+  bottom:clamp(18px,2.5vh,28px);
+  max-width:calc(100vw - 28px);
+  min-height:48px;
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  .ask-clerkme-launcher{
+    right:clamp(10px,3vw,16px);
+    bottom:calc(82px + env(safe-area-inset-bottom));
+    min-height:44px;
+    max-width:calc(100vw - 20px);
+  }
+}
+@media(max-width:360px){
+  .ask-clerkme-launcher{min-height:42px;padding-right:11px;font-size:9px}
+  .ask-clerkme-launcher-mark{width:23px;height:23px}
+}
