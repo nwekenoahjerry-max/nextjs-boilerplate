@@ -128,9 +128,14 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
       };
       setDecks(current => [deck, ...current]);
       setSelectedDeckId(deck.id);
-      setView("manage");
+      setStudyQueue(cards.map(card => card.id));
+      setCardIndex(0);
+      setFlipped(false);
+      setSessionScore({ known: 0, review: 0, skipped: 0 });
+      setView("study");
       setShowCreate(false);
-      setNotice(cards.length + " source-based flashcards added to your library.");
+      setShowSourceBuilder(false);
+      setNotice("");
     } catch {
       setNotice("ClerkME could not import those study-guide cards. Please try again.");
     }
@@ -316,7 +321,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
                       <span className="flashcards-flip-count">THINK IT THROUGH</span>
                     </span>
                     <span className="flashcards-flip-content">{currentCard.front}</span>
-                    <span className="flashcards-flip-bottom"><i>↻</i><span>Tap anywhere to reveal the answer</span></span>
+                    <span className="flashcards-flip-bottom"><i>↻</i><span>Think first, then reveal the answer</span></span>
                   </span>
                   <span className="flashcards-flip-face flashcards-flip-back" aria-hidden={!flipped}>
                     <span className="flashcards-flip-topline">
@@ -335,7 +340,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
                 {!flipped ? <button type="button" className="flashcards-primary-button" onClick={() => setFlipped(true)}>Reveal answer <span>↗</span></button>
                   : <><button type="button" className="flashcards-review-button" onClick={() => rateCard("review")}>↻ Need more practice</button><button type="button" className="flashcards-known-button" onClick={() => rateCard("known")}>✓ I knew it</button></>}
               </div>
-              <div className="flashcards-study-footer"><button type="button" onClick={() => { setCardIndex(index => Math.max(0, index - 1)); setFlipped(false); }} disabled={cardIndex === 0}>← Previous</button><button type="button" onClick={skipCard}>Skip this card →</button><button type="button" onClick={() => startStudy(selectedDeck, false, true)}>Shuffle deck</button></div>
+              <div className="flashcards-study-footer"><button type="button" onClick={() => { setCardIndex(index => Math.max(0, index - 1)); setFlipped(false); }} disabled={cardIndex === 0}>← Previous</button><button type="button" onClick={skipCard}>Skip this card →</button></div>
               <p className="flashcards-keyboard-hint">Use active recall first. Reveal only after you have formed an answer.</p>
             </div>
           ) : <div className="flashcards-empty-state"><h2>{selectedDeck.cards.length ? "Your study session is ready." : "This deck is empty."}</h2><p>{selectedDeck.cards.length ? "Start the session to load the first question." : "Add your first question and answer, then start reviewing."}</p><button type="button" className="flashcards-primary-button" onClick={() => selectedDeck.cards.length ? startStudy(selectedDeck) : setView("manage")}>{selectedDeck.cards.length ? "Start studying" : "Add first card"}</button></div>
@@ -396,7 +401,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
           <div className="flashcards-source-preview-heading"><div><strong>{sourceCards.length} cards ready to review</strong><small>{sourceTitle} · Source-linked preview</small></div><button type="button" className="flashcards-text-button" onClick={() => setSourceCards([])}>Discard</button></div>
           <div className="flashcards-source-preview-list">{sourceCards.slice(0,5).map((item,index) => <article key={index}><span>QUESTION {String(index+1).padStart(2,"0")} · {item.source}</span><strong>{item.front}</strong><p>{item.back}</p></article>)}</div>
           {sourceCards.length > 5 && <small className="flashcards-source-more">Showing the first 5 of {sourceCards.length} cards. All cards will be saved.</small>}
-          <button type="button" className="flashcards-primary-button" onClick={saveSourceDeck}>Save {sourceCards.length} flashcards to my library <span>→</span></button>
+          <button type="button" className="flashcards-primary-button" onClick={saveSourceDeck}>Save deck & start studying <span>→</span></button>
         </div>}
       </section>}
       <div className="flashcards-stat-grid" aria-label="Flashcard library statistics">
@@ -406,8 +411,10 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
         <form className="flashcards-create-form" onSubmit={event => { event.preventDefault(); createDeck(); }}>
           <div className="flashcards-create-heading"><div><span className="flashcards-eyebrow">BUILD YOUR REVISION SET</span><h2>Create a deck</h2><p>Name it by topic, lecture or clinical unit.</p></div><span className="flashcards-create-symbol">＋</span></div>
           <div className="flashcards-create-fields"><label>Deck name<input value={deckTitle} onChange={event => setDeckTitle(event.target.value)} maxLength={90} placeholder="e.g. Hypertensive disorders in pregnancy" required/></label><label>Clinical unit<select value={deckUnit} onChange={event => setDeckUnit(event.target.value)}>{clinicalUnits.map(unit => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></label></div>
-          <label className="flashcards-bulk-label">Add questions now <span>OPTIONAL · ONE CARD PER LINE</span><textarea value={bulkCards} onChange={event => setBulkCards(event.target.value)} rows={4} placeholder={"What is the diagnostic threshold for…? | Write the threshold and relevant qualifier.\nWhich finding distinguishes…? | State the key differentiating feature."}/></label>
-          <p className="flashcards-format-note">Separate the question and answer with a vertical bar ( | ). You can add or edit cards after creating the deck. Up to 60 cards can be added here.</p>
+          <details className="flashcards-bulk-details"><summary>Import multiple cards (optional)</summary>
+            <label className="flashcards-bulk-label">Paste questions and answers <span>ONE CARD PER LINE</span><textarea value={bulkCards} onChange={event => setBulkCards(event.target.value)} rows={4} placeholder={"What is the diagnostic threshold for…? | Write the threshold and relevant qualifier.\nWhich finding distinguishes…? | State the key differentiating feature."}/></label>
+            <p className="flashcards-format-note">Separate each question and answer with a vertical bar ( | ). Up to 60 cards can be imported.</p>
+          </details>
           <div className="flashcards-create-actions"><button type="submit" className="flashcards-primary-button">Create deck <span>→</span></button><button type="button" className="flashcards-text-button" onClick={() => setShowCreate(false)}>Cancel</button></div>
         </form>
       )}
