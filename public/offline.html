@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102D5A">
+  <title>ClerkME · Connection needed</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#f3f6fb;color:#17385d;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{width:min(100%,410px);padding:34px 26px;border:1px solid #e1e9f2;border-radius:22px;background:#fff;box-shadow:0 20px 60px rgba(16,45,90,.1);text-align:center}
+    .mark{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 18px;border:1px solid #dce6f0;border-radius:17px;background:#edf3f8;color:#173d65;font-size:26px;font-weight:800}
+    h1{margin:0;font-size:22px;line-height:1.25;letter-spacing:-.04em}
+    p{margin:10px 0 22px;color:#718299;font-size:13px;line-height:1.65}
+    button{min-height:45px;padding:10px 18px;border:0;border-radius:11px;background:#173d65;color:white;font-size:13px;font-weight:750}
+    @media(prefers-color-scheme:dark){body{background:#0c1b2d;color:#edf4fb}main{border-color:#304760;background:#142941}p{color:#a8bbd0}.mark{border-color:#405873;background:#1b3652;color:#dceafb}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">C</div>
+    <h1>Your ClerkME workspace is waiting.</h1>
+    <p>You’re offline, so ClerkME cannot verify your secure sign-in. Reconnect to the internet and reopen the app to continue your learning.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </main>
+</body>
+</html>
