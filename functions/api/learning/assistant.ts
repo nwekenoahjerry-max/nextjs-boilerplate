@@ -34,18 +34,33 @@ const TUTOR_SYSTEM = [
   "Use readable headings and concise paragraphs. Use tables only when they genuinely improve comparison. Do not open with generic disclaimers or repeatedly mention that you are an AI."
 ].join("\n");
 
-function makeVoicePrompt(sourceName: string, sourceText: string, conversation: string) {
-  return [
-    TUTOR_SYSTEM,
-    "VOICE CONVERSATION MODE",
+type VoiceMode = "tutor" | "viva";
+
+function makeVoicePrompt(sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
+  const modeInstructions = mode === "viva" ? [
+    "VIVA EXAMINER MODE",
+    "Act as a fair, academically rigorous medical examiner conducting a spoken undergraduate MBBS Viva. Use British English and a calm, professional but encouraging tone.",
+    "Ask one focused question at a time and pause for the student's answer. Do not reveal the model answer before the student has attempted the question.",
+    "After each answer, give concise, specific examiner feedback: identify what was correct, what important point was missing, and one correction where necessary. Then ask one logical follow-up question.",
+    "Progress from core understanding to applied clinical reasoning, investigations, interpretation, management principles and safety priorities when relevant. Do not turn the session into a rapid-fire list.",
+    "When a private lecture or attachment is available, use it as the preferred examination source and distinguish its content from supplementary clinical knowledge. Never invent that the source contains a fact it does not.",
+    "If the student asks to stop or requests a final review, summarise strengths, gaps and the highest-yield points to revise. Do not claim to be an official university examiner or predict an examination result."
+  ] : [
+    "LIVE TEACHING MODE",
     "Speak naturally and warmly in clear, unhurried English. Be concise enough to sound conversational, but teach thoroughly when the student asks for detail.",
     "This is a two-way conversation: answer the latest spoken question, then pause and let the student respond. Allow interruptions. Do not read long tables or markdown aloud; explain them conversationally.",
-    "When teaching clinical concepts, use signposting such as 'First...', 'The key distinction is...' and 'A useful exam point is...'. Check understanding occasionally without turning every answer into a quiz.",
+    "When teaching clinical concepts, use signposting such as 'First...', 'The key distinction is...' and 'A useful exam point is...'. Check understanding occasionally without turning every answer into a quiz."
+  ];
+  return [
+    TUTOR_SYSTEM,
+    ...modeInstructions,
     "Do not claim to have seen an attachment unless its text is included in this session context.",
-    conversation ? "RECENT CONVERSATION CONTEXT:\n" + conversation.slice(0, 14000) : "",
+    conversation ? "RECENT CONVERSATION CONTEXT:\\n" + conversation.slice(0, 14000) : "",
     contextPrompt(sourceName, sourceText),
-    "Begin by greeting the student briefly and asking what they would like to learn."
-  ].filter(Boolean).join("\n\n");
+    mode === "viva"
+      ? "Begin with a brief welcome. If a lecture or attachment is supplied, start with one relevant Viva question from that source. Otherwise ask the student which clinical topic they want to be examined on. Ask only one question, then pause."
+      : "Begin by greeting the student briefly and asking what they would like to learn."
+  ].filter(Boolean).join("\\n\\n");
 }
 
 async function askGemini(apiKey: string, history: Turn[], question: string, sourceName: string, sourceText: string) {
@@ -100,9 +115,9 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
   throw new Error(lastError);
 }
 
-async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string) {
+async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
   const now = Date.now();
-  const response = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
@@ -112,7 +127,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
       liveConnectConstraints: {
         model: LIVE_MODEL,
         config: {
-          systemInstruction: { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation) }] },
+          systemInstruction: { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation, mode) }] },
           responseModalities: ["AUDIO"],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
           inputAudioTranscription: {},
@@ -176,7 +191,9 @@ export const onRequestPost = async (context: AppContext) => {
 
   if (intent === "live-token") {
     try {
-      const token = await createLiveToken(apiKey, sourceName, sourceText, conversation);
+      const requestedMode = clean(body.voiceMode, 16);
+      const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
+      const token = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode);
       return json({ token });
     } catch (error) {
       return json({
