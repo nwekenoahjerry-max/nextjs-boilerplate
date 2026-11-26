@@ -2449,3 +2449,81 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
     min-height: 112px;
   }
 }
+
+
+/* Desktop Home: use the document as the scroll surface; keep the fixed sidebar independently scrollable. */
+@media (min-width: 761px) {
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow-x: hidden;
+    overflow-y: auto !important;
+  }
+
+  .app-shell.home-overview-shell {
+    display: block !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .app-shell.home-overview-shell > .sidebar {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+
+  .app-shell.home-overview-shell > .sidebar > .brand,
+  .app-shell.home-overview-shell > .sidebar > .nav-list,
+  .app-shell.home-overview-shell > .sidebar > .sidebar-bottom {
+    flex-shrink: 0;
+  }
+
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+    align-self: auto;
+  }
+
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active > .content {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 64px !important;
+  }
+
+  .app-shell.home-overview-shell .home-dashboard-card {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 720px) {
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active > .content {
+    padding-top: 18px !important;
+    padding-bottom: 54px !important;
+  }
+
+  .app-shell.home-overview-shell > .sidebar {
+    padding-top: 14px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .app-shell.home-overview-shell > .sidebar > .brand {
+    padding-bottom: 22px !important;
+  }
+
+  .app-shell.home-overview-shell > .sidebar .nav-item {
+    min-height: 40px;
+    height: 40px;
+  }
+}
