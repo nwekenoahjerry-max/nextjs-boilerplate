@@ -136,6 +136,71 @@ function renderInline(value: string): ReactNode[] {
     return part;
   });
 }
+function FormattedAnswer({ content }: { content: string }) {
+  const lines = content.replace(/\r/g, "").split("\n");
+  const blocks: ReactNode[] = [];
+  let paragraph: string[] = [];
+  let list: string[] = [];
+  let listType: "ul" | "ol" | null = null;
+  let codeLines: string[] | null = null;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push(<p key={blocks.length}>{renderInline(paragraph.join(" "))}</p>);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!list.length || !listType) return;
+    const items = list.map((item, index) => <li key={index}>{renderInline(item)}</li>);
+    blocks.push(listType === "ol" ? <ol key={blocks.length}>{items}</ol> : <ul key={blocks.length}>{items}</ul>);
+    list = [];
+    listType = null;
+  };
+  const flushCode = () => {
+    if (!codeLines) return;
+    blocks.push(<pre key={blocks.length}><code>{codeLines.join("\n")}</code></pre>);
+    codeLines = null;
+  };
+
+  for (const line of lines) {
+    if (line.trim().startsWith("```")) {
+      flushParagraph(); flushList();
+      if (codeLines) flushCode(); else codeLines = [];
+      continue;
+    }
+    if (codeLines) { codeLines.push(line); continue; }
+    if (!line.trim()) { flushParagraph(); flushList(); continue; }
+
+    const heading = line.match(/^#{1,4}\s+(.+)$/);
+    if (heading) {
+      flushParagraph(); flushList();
+      blocks.push(<h3 key={blocks.length}>{renderInline(heading[1])}</h3>);
+      continue;
+    }
+    if (/^\s*([-*_])\s*\1\s*\1\s*$/.test(line)) { flushParagraph(); flushList(); continue; }
+    const unordered = line.match(/^\s*[-*•]\s+(.+)$/);
+    const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (unordered || ordered) {
+      flushParagraph();
+      const type = unordered ? "ul" : "ol";
+      if (listType && listType !== type) flushList();
+      listType = type;
+      list.push((unordered || ordered)![1]);
+      continue;
+    }
+    const quote = line.match(/^\s*>\s?(.*)$/);
+    if (quote) {
+      flushParagraph(); flushList();
+      blocks.push(<blockquote key={blocks.length}>{renderInline(quote[1])}</blockquote>);
+      continue;
+    }
+    flushList();
+    paragraph.push(line.trim());
+  }
+  flushParagraph(); flushList(); flushCode();
+  return <div className="ask-formatted-answer">{blocks}</div>;
+}
+
 type AskIconName =
   | "sparkles" | "menu" | "plus" | "x" | "paperclip" | "folder" | "mic"
   | "headphones" | "clipboard-check" | "layers" | "arrow-up" | "message"
