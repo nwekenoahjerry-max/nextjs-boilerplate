@@ -116,43 +116,68 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
 }
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
-  const now = Date.now();
-  // Keep the ephemeral-token constraints deliberately small. Google documents
-  // model, response modality and session resumption as the constrained setup;
-  // optional audio/transcription/compression settings are sent by the client
-  // after the socket opens instead of being locked into token provisioning.
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
-    body: JSON.stringify({
-      uses: 1,
-      expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
-      newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-      liveConnectConstraints: {
-        model: LIVE_MODEL,
-        config: {
-          systemInstruction: { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation, mode) }] },
-          responseModalities: ["AUDIO"],
-          sessionResumption: {}
-        }
+  const retryableStatuses = new Set([429, 500, 502, 503, 504]);
+  const systemInstruction = { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation, mode) }] };
+  let lastStatus = 0;
+  let lastCode = "NETWORK_FAILURE";
+  let lastDetail = "";
+
+  // Gemini's token endpoint can transiently return gateway/availability errors.
+  // Retry only transient failures; never retry authentication or bad-request errors.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const now = Date.now();
+    try {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
+        body: JSON.stringify({
+          uses: 1,
+          expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
+          newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
+          liveConnectConstraints: {
+            model: LIVE_MODEL,
+            config: {
+              systemInstruction,
+              responseModalities: ["AUDIO"],
+              sessionResumption: {}
+            }
+          }
+        }),
+        signal: AbortSignal.timeout(20000)
+      });
+
+      const raw = await response.text();
+      let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
+      try { data = JSON.parse(raw) as typeof data; } catch { /* Google or an upstream gateway may return non-JSON text. */ }
+
+      if (response.ok && typeof data.name === "string" && data.name.trim()) {
+        // Treat the API's returned resource name as opaque; do not assume a
+        // particular camelCase/snake_case resource prefix across API versions.
+        return data.name.trim();
       }
-    }),
-    signal: AbortSignal.timeout(15000)
-  });
-  const raw = await response.text();
-  let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
-  try { data = JSON.parse(raw) as typeof data; } catch { /* retain HTTP status for non-JSON gateway errors */ }
-  if (!response.ok || typeof data.name !== "string" || !data.name.startsWith("authTokens/")) {
-    const upstreamCode = data.error?.status || "HTTP_ERROR";
-    const detail = clean(data.error?.message || raw, 240);
-    console.error("[ClerkME] Ask ClerkME live-session token creation failed.", {
-      status: response.status,
-      upstreamCode,
-      detail
-    });
-    throw new Error("LIVE_TOKEN_UPSTREAM_" + response.status + "_" + upstreamCode);
+
+      lastStatus = response.status;
+      lastCode = data.error?.status || "HTTP_ERROR";
+      lastDetail = clean(data.error?.message || raw, 240);
+
+      if (!retryableStatuses.has(response.status) || attempt === 2) break;
+    } catch (error) {
+      lastStatus = 0;
+      lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
+      lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
+      if (attempt === 2) break;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
   }
-  return data.name;
+
+  console.error("[ClerkME] Ask ClerkME live-session token creation failed.", {
+    status: lastStatus,
+    upstreamCode: lastCode,
+    detail: lastDetail
+  });
+  if (!lastStatus) throw new Error("LIVE_TOKEN_NETWORK_" + lastCode);
+  throw new Error("LIVE_TOKEN_UPSTREAM_" + lastStatus + "_" + lastCode.replace(/[^A-Z_]/g, "_"));
 }
 
 export const onRequestPost = async (context: AppContext) => {
@@ -202,6 +227,14 @@ export const onRequestPost = async (context: AppContext) => {
       return json({ token });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
+      const network = detail.match(/^LIVE_TOKEN_NETWORK_([A-Z_]+)$/);
+      if (network) {
+        const code = network[1] === "TIMEOUT" ? "LIVE_API_TIMEOUT" : "LIVE_API_NETWORK_FAILURE";
+        const message = network[1] === "TIMEOUT"
+          ? "Google's Live API token service timed out. Please retry in a moment."
+          : "ClerkME could not reach Google's Live API token service. Please check the service connection and retry.";
+        return json({ error: message, code }, 502);
+      }
       const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)$/);
       if (upstream) {
         const status = Number(upstream[1]);
