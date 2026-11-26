@@ -921,3 +921,7 @@
 @media(min-width:1051px){
   .ask-clerkme .ask-shortcut-row{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+
+.ask-clerkme .ask-new-chat>span{display:grid;place-items:center}
+.ask-clerkme .ask-message-attachment{display:flex;align-items:center;gap:6px}
+.ask-clerkme .ask-source-chip button{display:grid;place-items:center}
