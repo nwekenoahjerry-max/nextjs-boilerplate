@@ -55,12 +55,12 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
     TUTOR_SYSTEM,
     ...modeInstructions,
     "Do not claim to have seen an attachment unless its text is included in this session context.",
-    conversation ? "RECENT CONVERSATION CONTEXT:\\n" + conversation.slice(0, 14000) : "",
+    conversation ? "RECENT CONVERSATION CONTEXT:\n" + conversation.slice(0, 14000) : "",
     contextPrompt(sourceName, sourceText),
     mode === "viva"
       ? "Begin with a brief welcome. If a lecture or attachment is supplied, start with one relevant Viva question from that source. Otherwise ask the student which clinical topic they want to be examined on. Ask only one question, then pause."
       : "Begin by greeting the student briefly and asking what they would like to learn."
-  ].filter(Boolean).join("\\n\\n");
+  ].filter(Boolean).join("\n\n");
 }
 
 async function askGemini(apiKey: string, history: Turn[], question: string, sourceName: string, sourceText: string) {
