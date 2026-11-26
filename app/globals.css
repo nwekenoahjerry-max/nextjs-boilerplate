@@ -8530,10 +8530,10 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
 .study-guide-provider-note { display:block; margin-top:5px; color:var(--muted,#64748b); font-size:12px; line-height:1.45; }
 
 
-/* Six-item mobile dock: Ask sits directly before the account/tools control. */
+/* Five core mobile destinations; Ask is available from the floating launcher. */
 @media(max-width:760px){
   .mobile-dock{
-    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
   }
   .mobile-dock-item:has(svg):focus-visible{outline-offset:1px}
 }
