@@ -286,3 +286,20 @@
  .ask-clerkme-content .ask-composer-foot{font-size:7px!important}
  .ask-clerkme-content .ask-voice-subtitle{font-size:9px!important}
 }
+
+
+/* Keep Ask ClerkME fixed to the available viewport, with no nested page scroll. */
+.ask-workspace-shell{height:100dvh;min-height:0;overflow:hidden;padding-bottom:0!important}
+.ask-workspace-shell .main-area{display:flex;height:100dvh;min-height:0;flex-direction:column;overflow:hidden}
+.ask-workspace-shell .topbar{flex:0 0 70px}
+.ask-workspace-shell .content{display:flex;flex:1;flex-direction:column;width:100%;min-height:0;overflow:hidden;padding:14px 24px 18px}
+.ask-workspace-shell .ask-clerkme{display:flex;flex:1;flex-direction:column;min-height:0;overflow:hidden}
+.ask-workspace-shell .ask-workspace{height:100%;min-height:0;max-height:none}
+@media(max-width:760px){
+ .ask-workspace-shell{height:calc(100dvh - 80px - env(safe-area-inset-bottom));min-height:0;padding-bottom:0!important}
+ .ask-workspace-shell .main-area{height:100%;min-height:0}
+ .ask-workspace-shell .topbar{flex:0 0 58px}
+ .ask-workspace-shell .content{height:calc(100% - 58px);flex:1;padding:7px 9px 8px!important}
+ .ask-workspace-shell .ask-clerkme-content{padding:0!important}
+ .ask-workspace-shell .ask-workspace{height:100%;min-height:0}
+}
