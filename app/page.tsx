@@ -961,8 +961,11 @@ export default function Home() {
     }
   };
 
-  if(authLoading) return <main className="public-loading"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><span>Preparing your workspace…</span></main>;
-  if(!authUser) return <PublicLanding/>;
+  // Render the public landing page immediately. The authentication check runs
+  // after hydration; signed-in users are then routed into their private workspace.
+  // This keeps meaningful page content in the initial HTML for search engines and
+  // visitors while preserving the existing authenticated experience.
+  if(authLoading || !authUser) return <PublicLanding/>;
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
