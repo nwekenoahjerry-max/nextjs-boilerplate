@@ -2272,3 +2272,38 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 @media(prefers-reduced-motion:reduce){
   .session-check-spinner{animation:none;border-top-color:#173d65}
 }
+
+
+/* Returning-user recovery: sign-in is primary; session retry stays secondary. */
+.session-check-signin{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  width:min(100%,240px);
+  min-height:45px;
+  margin-top:20px;
+  padding:10px 18px;
+  border:0;
+  border-radius:11px;
+  background:#173d65;
+  color:#fff;
+  font:800 12px "DM Sans",Arial,sans-serif;
+  text-decoration:none;
+  box-shadow:0 6px 16px rgba(23,61,101,.17);
+}
+.session-check-signin:hover{background:#214f7f}
+.session-check-signin:focus-visible{outline:3px solid rgba(72,133,195,.5);outline-offset:3px}
+.session-check-retry-secondary{
+  min-height:38px;
+  margin-top:10px;
+  padding:7px 12px;
+  border:1px solid #dce6f0;
+  background:#f5f8fc;
+  color:#526b85;
+  box-shadow:none;
+  font-size:10px;
+}
+.session-check-retry-secondary:hover{border-color:#b9cadc;background:#edf3f8;color:#173d65}
+[data-theme="dark"] .session-check-retry-secondary{border-color:#405873;background:#1b3652;color:#d5e4f3}
+[data-theme="dark"] .session-check-retry-secondary:hover{background:#27435f;color:#fff}
