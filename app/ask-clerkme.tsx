@@ -690,6 +690,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       const response = await fetch("/api/learning/assistant", {
         method: "POST",
         credentials: "same-origin",
+        cache: "no-store",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({
           intent: "live-token",
@@ -700,9 +701,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           materialId
         })
       });
-      const tokenData = await response.json().catch(() => ({}));
+      const rawTokenResponse = await response.text();
+      let tokenData: { token?: string; error?: string; code?: string; upstreamCode?: string } = {};
+      try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain HTTP status for readable diagnostics */ }
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
-        throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
+        const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
+        const reference = [tokenData.code, tokenData.upstreamCode].filter(Boolean).join(" / ");
+        const diagnostic = reference ? " (reference: " + reference + ")" : " (HTTP " + response.status + ")";
+        throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + diagnostic);
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
