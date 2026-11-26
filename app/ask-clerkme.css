@@ -619,3 +619,309 @@
  .ask-clerkme-content .ask-shortcut-row button{transition:none}
  .ask-clerkme-content .ask-shortcut-row button:hover{transform:none}
 }
+
+
+/* Ask ClerkME polish pass — clearer iconography, a complete shortcut set and a more tactile composer. */
+.ask-clerkme .ask-icon-button,
+.ask-clerkme .ask-header-action,
+.ask-clerkme .ask-tool-button,
+.ask-clerkme .ask-live-small,
+.ask-clerkme .ask-shortcut-row button,
+.ask-clerkme .ask-send-button{
+  -webkit-tap-highlight-color:transparent;
+}
+.ask-clerkme .ask-icon-button:focus-visible,
+.ask-clerkme .ask-header-action:focus-visible,
+.ask-clerkme .ask-tool-button:focus-visible,
+.ask-clerkme .ask-live-small:focus-visible,
+.ask-clerkme .ask-shortcut-row button:focus-visible,
+.ask-clerkme .ask-send-button:focus-visible,
+.ask-clerkme .ask-history-item:focus-visible{
+  outline:3px solid rgba(67,126,184,.38);
+  outline-offset:2px;
+}
+.ask-clerkme .ask-history-brand>span,
+.ask-clerkme .ask-conversation-mark,
+.ask-clerkme .ask-message-avatar,
+.ask-clerkme .ask-welcome-orb,
+.ask-clerkme .ask-history-footer-mark,
+.ask-clerkme .ask-history-item-icon,
+.ask-clerkme .ask-tool-button>span,
+.ask-clerkme .ask-live-small>span,
+.ask-clerkme .ask-shortcut-row button>span,
+.ask-clerkme .ask-source-chip>span:first-child,
+.ask-clerkme .ask-material-picker>button>span:first-child{
+  display:grid;
+  place-items:center;
+}
+.ask-clerkme .ask-history-brand>span svg,
+.ask-clerkme .ask-conversation-mark svg,
+.ask-clerkme .ask-message-avatar svg,
+.ask-clerkme .ask-welcome-orb svg,
+.ask-clerkme .ask-history-footer-mark svg,
+.ask-clerkme .ask-history-item-icon svg,
+.ask-clerkme .ask-tool-button>span svg,
+.ask-clerkme .ask-live-small>span svg,
+.ask-clerkme .ask-shortcut-row button>span svg,
+.ask-clerkme .ask-source-chip>span:first-child svg,
+.ask-clerkme .ask-material-picker>button>span:first-child svg{
+  display:block;
+  flex:0 0 auto;
+}
+.ask-clerkme .ask-clear-source{color:#7d8ca0}
+.ask-clerkme .ask-header-action{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.ask-clerkme .ask-conversation-mark{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 4px 12px rgba(23,61,101,.05);
+}
+.ask-clerkme .ask-welcome-orb{
+  width:62px;height:62px;margin:14px auto 17px;border-radius:20px;
+  background:radial-gradient(circle at 28% 24%,#fff 0,#f2f7fc 48%,#e4edf6 100%);
+  box-shadow:0 12px 28px rgba(23,61,101,.09),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.ask-clerkme .ask-welcome-orb>span{
+  display:grid;place-items:center;width:100%;height:100%;
+}
+.ask-clerkme .ask-welcome-orb>span svg{filter:drop-shadow(0 2px 2px rgba(23,61,101,.08))}
+.ask-clerkme .ask-welcome h1{text-wrap:balance}
+.ask-clerkme .ask-welcome>p{text-wrap:pretty}
+.ask-clerkme .ask-shortcut-row{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  width:100%;
+  max-width:820px;
+  margin:0 auto;
+  padding:2px 0 4px!important;
+  overflow:visible!important;
+}
+.ask-clerkme .ask-shortcut-row button{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:9px;
+  min-width:0;
+  min-height:54px;
+  padding:9px 11px;
+  border:1px solid #e2eaf2;
+  border-radius:14px;
+  background:linear-gradient(145deg,#fff,#fbfcfe);
+  color:#31516f;
+  text-align:left;
+  box-shadow:0 4px 14px rgba(16,45,90,.035);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.ask-clerkme .ask-shortcut-row button:hover:not(:disabled){
+  transform:translateY(-2px);
+  border-color:#b8cadd;
+  background:#f8fbfe;
+  box-shadow:0 9px 21px rgba(16,45,90,.075);
+}
+.ask-clerkme .ask-shortcut-row button>span{
+  width:29px;height:29px;min-width:29px;flex:0 0 29px;
+  border-radius:9px;background:#edf3f8;color:#315d88;
+}
+.ask-clerkme .ask-shortcut-row button strong{
+  min-width:0;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  font:750 10px/1.3 "DM Sans",Arial,sans-serif;
+}
+.ask-clerkme .ask-shortcut-row .ask-shortcut-viva{
+  border-color:#e8dfcf;background:#fbfaf6;color:#795f38;
+}
+.ask-clerkme .ask-shortcut-row .ask-shortcut-viva>span{background:#f4eddf;color:#98733d}
+.ask-clerkme .ask-composer-area{
+  padding:13px clamp(14px,3vw,34px) calc(13px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(255,255,255,.96),#fff 20%);
+}
+.ask-clerkme .ask-composer{
+  padding:15px 16px 10px;
+  border:1px solid #dce6f0;
+  border-radius:21px;
+  background:#fff;
+  box-shadow:0 9px 28px rgba(16,45,90,.065),inset 0 1px 0 rgba(255,255,255,.95);
+  transition:border-color .18s ease,box-shadow .18s ease;
+}
+.ask-clerkme .ask-composer:focus-within{
+  border-color:#9db6d0;
+  box-shadow:0 0 0 3px rgba(49,93,136,.08),0 12px 32px rgba(16,45,90,.08);
+}
+.ask-clerkme .ask-composer textarea{
+  min-height:55px!important;
+  max-height:150px!important;
+  height:auto;
+  overflow-y:hidden;
+  resize:none;
+  padding:3px 4px 10px!important;
+  font-size:14px!important;
+  line-height:1.55!important;
+}
+.ask-clerkme .ask-composer textarea::placeholder{color:#8393a7}
+.ask-clerkme .ask-composer-toolbar{align-items:center;gap:7px}
+.ask-clerkme .ask-composer-tools{gap:3px;flex-wrap:nowrap}
+.ask-clerkme .ask-tool-button{
+  min-height:38px;
+  padding:7px 8px;
+  gap:6px;
+  border-radius:10px;
+  color:#526b85;
+  font:750 9px/1.2 "DM Sans",Arial,sans-serif;
+  white-space:nowrap;
+  transition:background .16s ease,color .16s ease;
+}
+.ask-clerkme .ask-tool-button:hover:not(:disabled){background:#f0f5fa;color:#173d65}
+.ask-clerkme .ask-tool-button>span{width:18px;height:18px;color:#456b91}
+.ask-clerkme .ask-live-small{
+  min-height:38px;
+  padding:7px 9px;
+  gap:6px;
+  border-color:#e0e8f0;
+  border-radius:10px;
+  background:#f7f9fc;
+  color:#355572;
+  font-size:9px;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.ask-clerkme .ask-live-small>span{width:18px;height:18px;color:#b18b4c}
+.ask-clerkme .ask-live-small:hover{transform:translateY(-1px);border-color:#c4d3e2;background:#edf3f8}
+.ask-clerkme .ask-send-button{
+  width:40px;height:40px;flex-basis:40px;border-radius:13px;
+  background:linear-gradient(145deg,#214d79,#102f55);
+  box-shadow:0 5px 13px rgba(16,45,85,.19);
+  transition:transform .16s ease,box-shadow .16s ease,opacity .16s ease;
+}
+.ask-clerkme .ask-send-button:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 8px 18px rgba(16,45,85,.24);
+}
+.ask-clerkme .ask-composer-foot{margin-top:8px;font-size:8px;line-height:1.5}
+.ask-clerkme .ask-composer-foot span:first-child{color:#8a99aa}
+.ask-clerkme .ask-source-chip{border-color:#dbe6f0;background:#f4f8fc}
+.ask-clerkme .ask-source-chip>span:first-child{color:#315d88}
+.ask-clerkme .ask-material-picker>div button,
+.ask-clerkme .ask-source-chip button{
+  display:grid;place-items:center;
+}
+[data-theme="dark"] .ask-clerkme .ask-shortcut-row button{
+  border-color:#344c66;background:linear-gradient(145deg,#1d354f,#172c43);color:#e3edf8;
+}
+[data-theme="dark"] .ask-clerkme .ask-shortcut-row button:hover:not(:disabled){background:#25415f;border-color:#557392}
+[data-theme="dark"] .ask-clerkme .ask-shortcut-row button>span{background:#2a4562;color:#c2daf4}
+[data-theme="dark"] .ask-clerkme .ask-shortcut-row .ask-shortcut-viva{
+  border-color:#66563c;background:#2a3443;color:#f1d9aa;
+}
+[data-theme="dark"] .ask-clerkme .ask-shortcut-row .ask-shortcut-viva>span{background:#453e33;color:#f1d9aa}
+[data-theme="dark"] .ask-clerkme .ask-composer-area{border-color:#2b4059;background:linear-gradient(180deg,rgba(16,36,59,.94),#10243b 20%)}
+[data-theme="dark"] .ask-clerkme .ask-composer{border-color:#354d67;background:#152b44;box-shadow:0 12px 30px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.035)}
+[data-theme="dark"] .ask-clerkme .ask-composer:focus-within{border-color:#6b91b8;box-shadow:0 0 0 3px rgba(111,157,202,.12),0 12px 30px rgba(0,0,0,.22)}
+[data-theme="dark"] .ask-clerkme .ask-composer textarea{color:#edf4fb}
+[data-theme="dark"] .ask-clerkme .ask-composer textarea::placeholder{color:#9eb2c8}
+[data-theme="dark"] .ask-clerkme .ask-tool-button{color:#c0d2e5}
+[data-theme="dark"] .ask-clerkme .ask-tool-button>span{color:#b7d0ed}
+[data-theme="dark"] .ask-clerkme .ask-tool-button:hover:not(:disabled){background:#263f59;color:#fff}
+[data-theme="dark"] .ask-clerkme .ask-live-small{border-color:#344c66;background:#1d354f;color:#e3edf8}
+[data-theme="dark"] .ask-clerkme .ask-live-small>span{color:#dfbc7d}
+[data-theme="dark"] .ask-clerkme .ask-live-small:hover{background:#28435f;border-color:#557392}
+[data-theme="dark"] .ask-clerkme .ask-composer-foot span:first-child{color:#a3b6ca}
+[data-theme="dark"] .ask-clerkme .ask-source-chip{border-color:#3c5570;background:#1b3652}
+@media(max-width:1050px){
+  .ask-clerkme .ask-shortcut-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .ask-clerkme .ask-conversation-header{min-height:58px;padding:8px 12px}
+  .ask-clerkme .ask-conversation-heading{gap:8px}
+  .ask-clerkme .ask-conversation-mark{width:36px;height:36px;flex-basis:36px;border-radius:12px}
+  .ask-clerkme .ask-conversation-heading strong{max-width:min(48vw,230px);font-size:11px}
+  .ask-clerkme .ask-conversation-heading small{font-size:8px}
+  .ask-clerkme .ask-header-actions{gap:6px}
+  .ask-clerkme .ask-header-action{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;min-height:38px;padding:0;border-radius:11px}
+  .ask-clerkme .ask-header-action>span{display:none}
+  .ask-clerkme .ask-clear-source{width:36px;height:36px}
+  .ask-clerkme .ask-message-scroll.is-welcome{
+    align-items:flex-start;
+    padding:clamp(22px,4.5vh,40px) 13px 20px;
+  }
+  .ask-clerkme .ask-welcome{justify-content:flex-start;min-height:0;padding:0 0 12px}
+  .ask-clerkme .ask-welcome-kicker{font-size:8px;letter-spacing:.16em}
+  .ask-clerkme .ask-welcome-orb{width:56px;height:56px;margin:13px auto 15px;border-radius:18px}
+  .ask-clerkme .ask-welcome h1{max-width:380px;font-size:clamp(25px,6.5vw,31px);line-height:1.16;letter-spacing:-.045em}
+  .ask-clerkme .ask-welcome>p{max-width:360px;margin:9px auto 19px;font-size:11px!important;line-height:1.55!important}
+  .ask-clerkme .ask-shortcut-row{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:7px;
+    width:100%;
+    max-width:480px;
+    margin:0 auto;
+  }
+  .ask-clerkme .ask-shortcut-row button{
+    flex-direction:column;
+    justify-content:center;
+    gap:6px;
+    min-height:68px;
+    padding:8px 5px;
+    border-radius:13px;
+    text-align:center;
+  }
+  .ask-clerkme .ask-shortcut-row button>span{width:27px;height:27px;min-width:27px;flex-basis:27px;border-radius:9px}
+  .ask-clerkme .ask-shortcut-row button>span svg{width:15px;height:15px}
+  .ask-clerkme .ask-shortcut-row button strong{font-size:8.5px;line-height:1.25;text-align:center}
+  .ask-clerkme .ask-composer-area{padding:9px 10px calc(8px + env(safe-area-inset-bottom))}
+  .ask-clerkme .ask-composer{padding:12px 12px 9px;border-radius:18px}
+  .ask-clerkme .ask-composer textarea{min-height:48px!important;max-height:116px!important;font-size:13px!important;padding:2px 3px 8px!important}
+  .ask-clerkme .ask-composer-toolbar{gap:4px}
+  .ask-clerkme .ask-composer-tools{gap:1px;flex:1 1 auto}
+  .ask-clerkme .ask-tool-button{min-height:37px;gap:4px;padding:6px 6px;font-size:8px}
+  .ask-clerkme .ask-tool-button>span{width:16px;height:16px}
+  .ask-clerkme .ask-tool-button>span svg{width:14px;height:14px}
+  .ask-clerkme .ask-tool-button b{font-size:8px}
+  .ask-clerkme .ask-composer-submit{gap:4px;flex:0 0 auto}
+  .ask-clerkme .ask-live-small{min-height:36px;gap:4px;padding:6px 7px;font-size:8px}
+  .ask-clerkme .ask-live-small>span{width:16px;height:16px}
+  .ask-clerkme .ask-live-small>span svg{width:14px;height:14px}
+  .ask-clerkme .ask-live-small b{display:inline;font-size:8px}
+  .ask-clerkme .ask-send-button{width:38px;height:38px;flex-basis:38px;border-radius:12px}
+  .ask-clerkme .ask-composer-foot{margin-top:7px;font-size:7.5px}
+  .ask-clerkme .ask-composer-foot span:last-child{display:none}
+  .ask-clerkme .ask-material-picker{left:10px;bottom:calc(100% - 2px);width:min(390px,calc(100% - 20px))}
+  .ask-clerkme .ask-material-picker>button{min-height:48px}
+  .ask-clerkme .ask-source-chip{margin-bottom:7px;padding:8px 9px}
+  .ask-clerkme .ask-message-scroll:not(.is-welcome){padding:17px 12px 13px}
+}
+@media(max-width:390px){
+  .ask-clerkme .ask-welcome h1{font-size:25px}
+  .ask-clerkme .ask-welcome>p{font-size:10px!important}
+  .ask-clerkme .ask-shortcut-row{gap:6px}
+  .ask-clerkme .ask-shortcut-row button{min-height:65px;padding:7px 4px}
+  .ask-clerkme .ask-shortcut-row button strong{font-size:8px}
+  .ask-clerkme .ask-composer-toolbar{flex-wrap:wrap}
+  .ask-clerkme .ask-composer-tools{justify-content:space-between;flex:1 1 100%}
+  .ask-clerkme .ask-composer-submit{justify-content:flex-end;width:100%}
+  .ask-clerkme .ask-tool-button{padding-inline:8px;font-size:8.5px}
+  .ask-clerkme .ask-tool-button b{font-size:8.5px}
+  .ask-clerkme .ask-live-small{min-height:35px;padding-inline:10px}
+  .ask-clerkme .ask-composer-foot{font-size:7.5px}
+}
+@media(min-width:761px) and (max-width:1050px){
+  .ask-clerkme .ask-shortcut-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ask-clerkme .ask-shortcut-row button{min-height:57px;padding:8px}
+}
+@media(prefers-reduced-motion:reduce){
+  .ask-clerkme .ask-shortcut-row button,
+  .ask-clerkme .ask-live-small,
+  .ask-clerkme .ask-send-button{transition:none}
+  .ask-clerkme .ask-shortcut-row button:hover,
+  .ask-clerkme .ask-live-small:hover,
+  .ask-clerkme .ask-send-button:hover{transform:none}
+}
+
+
+/* Wider displays keep the quick actions in one balanced strip; smaller screens show all six without clipping. */
+@media(min-width:1051px){
+  .ask-clerkme .ask-shortcut-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+.ask-clerkme .ask-new-chat>span{display:grid;place-items:center}
+.ask-clerkme .ask-message-attachment{display:flex;align-items:center;gap:6px}
+.ask-clerkme .ask-source-chip button{display:grid;place-items:center}

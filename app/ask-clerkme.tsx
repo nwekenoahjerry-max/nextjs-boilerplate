@@ -153,12 +153,47 @@ function FormattedAnswer({ content }: { content: string }) {
   return <div className="ask-formatted-answer">{blocks}</div>;
 }
 
+type AskIconName =
+  | "sparkles" | "menu" | "plus" | "x" | "paperclip" | "folder" | "mic"
+  | "headphones" | "clipboard-check" | "layers" | "arrow-up" | "message"
+  | "file" | "shield-check" | "clock" | "chevron-right" | "trash" | "mic-off";
+
+function AskIcon({ name, size = 16, strokeWidth = 1.9 }: { name: AskIconName; size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      {name === "sparkles" && <>
+        <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/>
+        <path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/>
+        <path d="m5 2 .7 1.6L7.5 4.5l-1.8.7L5 7l-.7-1.8-1.8-.7 1.8-.9L5 2Z"/>
+      </>}
+      {name === "menu" && <><path d="M4 6h16M4 12h16M4 18h16"/></>}
+      {name === "plus" && <><path d="M12 5v14M5 12h14"/></>}
+      {name === "x" && <><path d="m18 6-12 12M6 6l12 12"/></>}
+      {name === "paperclip" && <path d="m8 12.5 6.2-6.2a3.2 3.2 0 0 1 4.5 4.5l-8.5 8.5a5 5 0 0 1-7.1-7.1l8.1-8.1"/>}
+      {name === "folder" && <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-10Z"/>}
+      {name === "mic" && <><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M9 21.5h6"/></>}
+      {name === "mic-off" && <><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 11.1 4.6M12 18v3.5M9 21.5h6M3 3l18 18"/></>}
+      {name === "headphones" && <><path d="M3 13v-1a9 9 0 0 1 18 0v1"/><rect x="3" y="12" width="4" height="7" rx="2"/><rect x="17" y="12" width="4" height="7" rx="2"/><path d="M17 20a5 5 0 0 1-5 2"/></>}
+      {name === "clipboard-check" && <><rect x="5" y="4.5" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 13l2.2 2.2 4.8-4.8"/></>}
+      {name === "layers" && <><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></>}
+      {name === "arrow-up" && <><path d="M12 19V5M6 11l6-6 6 6"/></>}
+      {name === "message" && <><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-9.5A7.5 7.5 0 0 1 10.5 4h2A7.5 7.5 0 0 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></>}
+      {name === "file" && <><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M13 2v7h7"/></>}
+      {name === "shield-check" && <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></>}
+      {name === "clock" && <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>}
+      {name === "chevron-right" && <path d="m9 18 6-6-6-6"/>}
+      {name === "trash" && <><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></>}
+    </svg>
+  );
+}
+
 function AssistantMessage({ message }: { message: ChatMessage }) {
   return (
     <article className={"ask-message-row " + (message.role === "user" ? "is-user" : "is-assistant")}>
-      {message.role === "assistant" && <span className="ask-message-avatar" aria-hidden="true">✦</span>}
+      {message.role === "assistant" && <span className="ask-message-avatar" aria-hidden="true"><AskIcon name="sparkles" size={16}/></span>}
       <div className="ask-message-bubble">
-        {message.attachmentName && <div className="ask-message-attachment">▤ {message.attachmentName}</div>}
+        {message.attachmentName && <div className="ask-message-attachment"><AskIcon name="file" size={13}/> {message.attachmentName}</div>}
         <div className="ask-message-text">{message.role === "assistant" ? <FormattedAnswer content={message.content}/> : message.content}</div>
         <time>{new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}</time>
       </div>
@@ -850,36 +885,47 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   }, []);
 
   const suggestions = [
-    { icon: "✧", title: "Explain a difficult topic", prompt: "Teach me a difficult medical topic step by step, using clinical examples and exam pearls." },
-    { icon: "☑", title: "Test my knowledge", prompt: "Create five challenging single-best-answer medical questions. Ask them one at a time and wait for my answer before explaining." },
-    { icon: "▤", title: "Create flashcards", prompt: "Help me turn the key facts in my lecture into concise active-recall flashcards." },
-    { icon: "♧", title: "Practise a Viva", prompt: "Act as a medical examiner and conduct a challenging Viva. Ask one question at a time and give feedback after each answer." }
+    { icon: "sparkles" as AskIconName, title: "Explain a difficult topic", prompt: "Teach me a difficult medical topic step by step, using clinical examples and exam pearls." },
+    { icon: "clipboard-check" as AskIconName, title: "Test my knowledge", prompt: "Create five challenging single-best-answer medical questions. Ask them one at a time and wait for my answer before explaining." },
+    { icon: "layers" as AskIconName, title: "Create flashcards", prompt: "Help me turn the key facts in my lecture into concise active-recall flashcards." },
+    { icon: "message" as AskIconName, title: "Practise a Viva", prompt: "Act as a medical examiner and conduct a challenging Viva. Ask one question at a time and give feedback after each answer." }
   ];
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const field = composerRef.current;
+    if (!field) return;
+    field.style.height = "auto";
+    const maximum = window.matchMedia("(max-width: 760px)").matches ? 116 : 150;
+    const nextHeight = Math.min(Math.max(field.scrollHeight, 48), maximum);
+    field.style.height = nextHeight + "px";
+    field.style.overflowY = field.scrollHeight > maximum ? "auto" : "hidden";
+  }, [draft, hydrated]);
 
   const sendAllowed = (draft.trim().length > 0 || hasContext) && !sending && !extracting;
   const currentTitle = activeThread?.title || "New conversation";
 
-  if (!hydrated) return <section className="ask-workspace-loading"><span className="ask-loading-mark">✦</span><p>Preparing your learning assistant…</p></section>;
+  if (!hydrated) return <section className="ask-workspace-loading"><span className="ask-loading-mark"><AskIcon name="sparkles" size={24}/></span><p>Preparing your learning assistant…</p></section>;
 
   return (
     <section className="ask-clerkme" aria-label="Ask ClerkME AI learning workspace">
       <div className="ask-workspace">
         <aside className={"ask-history-panel" + (showHistoryMobile ? " is-mobile-open" : "")}>
           <div className="ask-history-top">
-            <div className="ask-history-brand"><span>✦</span><div><strong>Ask ClerkME</strong><small>YOUR AI LEARNING COMPANION</small></div></div>
-            <button type="button" className="ask-icon-button ask-history-close" onClick={() => setShowHistoryMobile(false)} aria-label="Close conversation history">×</button>
+            <div className="ask-history-brand"><span><AskIcon name="sparkles" size={18}/></span><div><strong>Ask ClerkME</strong><small>YOUR AI LEARNING COMPANION</small></div></div>
+            <button type="button" className="ask-icon-button ask-history-close" onClick={() => setShowHistoryMobile(false)} aria-label="Close conversation history"><AskIcon name="x"/></button>
           </div>
-          <button type="button" className="ask-new-chat" onClick={createConversation}><span>＋</span> New conversation</button>
+          <button type="button" className="ask-new-chat" onClick={createConversation}><span><AskIcon name="plus" size={16}/></span> New conversation</button>
           <div className="ask-history-heading"><span>RECENT CONVERSATIONS</span><span>{threads.length}</span></div>
           <div className="ask-history-list">
             {threads.map(thread => (
               <button type="button" key={thread.id} className={"ask-history-item" + (thread.id === activeThreadId ? " is-active" : "")} onClick={() => selectConversation(thread.id)}>
-                <span className="ask-history-item-icon">◌</span>
+                <span className="ask-history-item-icon"><AskIcon name="message" size={14}/></span>
                 <span><strong>{thread.title}</strong><small>{thread.messages.length ? thread.messages.length + " messages" : "New conversation"}</small></span>
               </button>
             ))}
           </div>
-          <div className="ask-history-footer"><span className="ask-history-footer-mark">✓</span><span>Saved in this browser for this account</span></div>
+          <div className="ask-history-footer"><span className="ask-history-footer-mark"><AskIcon name="shield-check" size={12}/></span><span>Saved in this browser for this account</span></div>
         </aside>
 
         {showHistoryMobile && <button type="button" className="ask-history-scrim" onClick={() => setShowHistoryMobile(false)} aria-label="Close history"/>}
@@ -887,13 +933,13 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         <div className="ask-conversation">
           <header className="ask-conversation-header">
             <div className="ask-conversation-heading">
-              <button type="button" className="ask-icon-button ask-mobile-history" onClick={() => setShowHistoryMobile(true)} aria-label="Open conversation history">☰</button>
-              <span className="ask-conversation-mark">✦</span>
+              <button type="button" className="ask-icon-button ask-mobile-history" onClick={() => setShowHistoryMobile(true)} aria-label="Open conversation history"><AskIcon name="menu" size={18}/></button>
+              <span className="ask-conversation-mark"><AskIcon name="sparkles" size={19}/></span>
               <div><strong>{currentTitle}</strong><small><i/> ClerkME learning assistant</small></div>
             </div>
             <div className="ask-header-actions">
-              <button type="button" className="ask-header-action" onClick={createConversation}>＋ <span>New chat</span></button>
-              <button type="button" className="ask-icon-button" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Clear attached learning source" title="Clear attached source">⌫</button>
+              <button type="button" className="ask-header-action" onClick={createConversation} aria-label="Start a new conversation" title="Start a new conversation"><AskIcon name="plus" size={16}/> <span>New chat</span></button>
+              {(attachment || materialId) && <button type="button" className="ask-icon-button ask-clear-source" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Clear attached learning source" title="Clear attached source"><AskIcon name="x" size={15}/></button>}
             </div>
           </header>
 
@@ -901,20 +947,20 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             {activeMessages.length === 0 ? (
               <div className="ask-welcome">
                 <span className="ask-welcome-kicker">YOUR PERSONAL MEDICAL LEARNING SPACE</span>
-                <div className="ask-welcome-orb"><span>✦</span><i/><b/></div>
+                <div className="ask-welcome-orb" aria-hidden="true"><span><AskIcon name="sparkles" size={30} strokeWidth={1.65}/></span><i/><b/></div>
                 <h1>What are we learning today?</h1>
                 <p>Ask a question, explore a difficult concept, or bring your lecture and learn directly from it.</p>
-                <div className="ask-shortcut-row" aria-label="Quick learning tools">
+                <div className="ask-shortcut-row" role="group" aria-label="Quick learning tools">
                   {suggestions.map(item => (
                     <button type="button" key={item.title} onClick={() => void sendMessage(item.prompt)} disabled={sending}>
-                      <span>{item.icon}</span><strong>{item.title}</strong>
+                      <span><AskIcon name={item.icon} size={15}/></span><strong>{item.title}</strong>
                     </button>
                   ))}
                   <button type="button" onClick={() => void startVoiceCall("tutor")} disabled={voiceStatus !== "idle"}>
-                    <span>♫</span><strong>Talk live</strong>
+                    <span><AskIcon name="headphones" size={15}/></span><strong>Talk live</strong>
                   </button>
                   <button type="button" className="ask-shortcut-viva" onClick={() => void startVoiceCall("viva")} disabled={voiceStatus !== "idle"}>
-                    <span>☷</span><strong>Viva</strong>
+                    <span><AskIcon name="clipboard-check" size={15}/></span><strong>Live Viva</strong>
                   </button>
                 </div>
               </div>
@@ -922,7 +968,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               <div className="ask-message-list">
                 <div className="ask-date-divider"><span>YOUR CONVERSATION</span></div>
                 {activeMessages.map(message => <AssistantMessage key={message.id} message={message}/>)}
-                {sending && <div className="ask-message-row is-assistant"><span className="ask-message-avatar">✦</span><div className="ask-thinking"><i/><i/><i/><span>ClerkME is thinking</span></div></div>}
+                {sending && <div className="ask-message-row is-assistant"><span className="ask-message-avatar"><AskIcon name="sparkles" size={15}/></span><div className="ask-thinking"><i/><i/><i/><span>ClerkME is thinking</span></div></div>}
                 <div ref={messagesEndRef}/>
               </div>
             )}
@@ -931,16 +977,16 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           <div className="ask-composer-area">
             {(attachment || materialId) && (
               <div className="ask-source-chip">
-                <span>▤</span><span><strong>{attachment?.name || materialTitle}</strong><small>{materialId ? "Saved lecture · private library" : "Lecture text ready · " + (attachment?.characters || 0).toLocaleString() + " characters"}</small></span>
-                <button type="button" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Remove attached source">×</button>
+                <span><AskIcon name="file" size={15}/></span><span><strong>{attachment?.name || materialTitle}</strong><small>{materialId ? "Saved lecture · private library" : "Lecture text ready · " + (attachment?.characters || 0).toLocaleString() + " characters"}</small></span>
+                <button type="button" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Remove attached source"><AskIcon name="x" size={14}/></button>
               </div>
             )}
             {showMaterials && (
               <div className="ask-material-picker">
-                <div><strong>Choose from My materials</strong><button type="button" onClick={() => setShowMaterials(false)}>×</button></div>
+                <div><strong>Choose from My materials</strong><button type="button" onClick={() => setShowMaterials(false)} aria-label="Close materials picker"><AskIcon name="x" size={14}/></button></div>
                 {materials.length ? materials.map(material => (
                   <button type="button" key={material.id} onClick={() => selectMaterial(material)}>
-                    <span>▤</span><span><strong>{material.title}</strong><small>{material.unit || "Uploaded lecture"}</small></span><b>＋</b>
+                    <span><AskIcon name="file" size={15}/></span><span><strong>{material.title}</strong><small>{material.unit || "Uploaded lecture"}</small></span><b><AskIcon name="plus" size={14}/></b>
                   </button>
                 )) : <p>No saved lectures found. Upload a file using Attach.</p>}
               </div>
@@ -957,28 +1003,29 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                 }}
                 placeholder="Ask ClerkME anything…"
                 aria-label="Ask ClerkME a question"
+                aria-describedby="ask-composer-help"
                 disabled={sending}
               />
               <div className="ask-composer-toolbar">
                 <div className="ask-composer-tools">
                   <button type="button" className="ask-tool-button" onClick={() => fileInputRef.current?.click()} disabled={extracting} aria-label="Attach a lecture or file" title={"Attach " + STUDY_FILE_TYPES}>
-                    <span>＋</span><b>{extracting ? "Reading…" : "Attach"}</b>
+                    <span><AskIcon name="paperclip" size={15}/></span><b>{extracting ? "Reading…" : "Attach"}</b>
                   </button>
                   <input ref={fileInputRef} type="file" accept={STUDY_FILE_ACCEPT} hidden onChange={event => void pickFile(event.target.files?.[0])}/>
                   <button type="button" className="ask-tool-button" onClick={() => { setShowMaterials(value => !value); setNotice(""); }} aria-expanded={showMaterials}>
-                    <span>▤</span><b>My materials</b>
+                    <span><AskIcon name="folder" size={15}/></span><b>Materials</b>
                   </button>
                   <button type="button" className={"ask-tool-button ask-mic-button" + (dictating ? " is-active" : "")} onClick={startDictation} aria-label={dictating ? "Stop voice typing" : "Dictate a message"}>
-                    <span>{dictating ? "■" : "♩"}</span><b>{dictating ? "Stop" : "Voice input"}</b>
+                    <span><AskIcon name={dictating ? "x" : "mic"} size={15}/></span><b>{dictating ? "Stop" : "Voice"}</b>
                   </button>
                 </div>
                 <div className="ask-composer-submit">
-                  <button type="button" className="ask-live-small" onClick={() => void startVoiceCall("tutor")} title="Start a live voice conversation"><span>♫</span><b>Talk live</b></button>
-                  <button type="button" className="ask-live-small ask-viva-small" onClick={() => void startVoiceCall("viva")} title="Start a spoken Viva examination"><span>☷</span><b>Viva</b></button>
-                  <button type="submit" className="ask-send-button" disabled={!sendAllowed} aria-label="Send message">↑</button>
+                  <button type="button" className="ask-live-small" onClick={() => void startVoiceCall("tutor")} title="Start a live voice Tutor session" aria-label="Start live voice Tutor"><span><AskIcon name="headphones" size={15}/></span><b>Talk</b></button>
+                  <button type="button" className="ask-live-small ask-viva-small" onClick={() => void startVoiceCall("viva")} title="Start a spoken Viva examination" aria-label="Start live Viva"><span><AskIcon name="clipboard-check" size={15}/></span><b>Viva</b></button>
+                  <button type="submit" className="ask-send-button" disabled={!sendAllowed} aria-label="Send message" title="Send message"><AskIcon name="arrow-up" size={19}/></button>
                 </div>
               </div>
-              <div className="ask-composer-foot"><span>Enter to send · Shift + Enter for a new line</span><span>Check important clinical facts against current guidance.</span></div>
+              <div id="ask-composer-help" className="ask-composer-foot"><span>Enter to send · Shift + Enter for a new line</span><span>Check important clinical facts against current guidance.</span></div>
             </form>
           </div>
         </div>
@@ -988,11 +1035,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         <div className="ask-voice-overlay" role="dialog" aria-modal="true" aria-label={voiceMode === "viva" ? "Viva examiner voice session" : "Live voice conversation with ClerkME"}>
           <section className="ask-voice-card">
             <div className="ask-voice-top">
-              <button type="button" className="ask-icon-button" onClick={() => stopVoiceCall(true)} aria-label="Close voice conversation">×</button>
+              <button type="button" className="ask-icon-button" onClick={() => stopVoiceCall(true)} aria-label="Close voice conversation"><AskIcon name="x"/></button>
               <span>{voiceMode === "viva" ? "CLERKME · VIVA EXAMINER" : "CLERKME · LIVE VOICE"}</span>
               <span className="ask-voice-live-dot"/>
             </div>
-            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span>✦</span><i/><b/></div>
+            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span><AskIcon name="sparkles" size={36}/></span><i/><b/></div>
             <span className="ask-voice-state">{voiceStatus === "connecting"
               ? (voiceReconnecting ? "RESTORING LIVE CONNECTION" : "CONNECTING TO CLERKME")
               : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
@@ -1010,9 +1057,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             </div>
             {voiceNotice && <p className="ask-voice-notice" role="status">{voiceNotice}</p>}
             <div className="ask-voice-controls">
-              <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""}><span>{voiceMuted ? "◌" : "♩"}</span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
-              <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span>■</span><small>End session</small></button>
-              <button type="button" onClick={() => setVoiceNotice("Use headphones if you hear an echo. Your transcript will be saved in the conversation.")}><span>ⓘ</span><small>Help</small></button>
+              <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""} aria-label={voiceMuted ? "Unmute microphone" : "Mute microphone"}><span><AskIcon name={voiceMuted ? "mic-off" : "mic"} size={17}/></span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
+              <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span><AskIcon name="x" size={17}/></span><small>End session</small></button>
+              <button type="button" onClick={() => setVoiceNotice("Use headphones if you hear an echo. Your transcript will be saved in the conversation.")}><span><AskIcon name="message" size={17}/></span><small>Help</small></button>
             </div>
             <p className="ask-voice-disclaimer">Educational support only. Do not share identifiable real-patient information.</p>
           </section>

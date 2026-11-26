@@ -52,6 +52,7 @@ const workspaceIconShapes: Record<string, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></>,
   award: <><circle cx="12" cy="8" r="5"/><path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9"/></>,
   sparkles: <><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16Z"/><path d="m5 2 .7 1.6L7.5 4.5l-1.8.7L5 7l-.7-1.8-1.8-.7 1.8-.9L5 2Z"/></>,
+  bot: <><rect x="4" y="7" width="16" height="13" rx="4"/><path d="M12 3v4M9 3h6M8.5 13h.01M15.5 13h.01M9 16h6"/><path d="M4 12H2M22 12h-2"/></>,
   download: <><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/></>,
 };
 
@@ -1123,7 +1124,7 @@ export default function Home() {
             aria-label="Open Ask ClerkME"
             title="Ask ClerkME"
           >
-            <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="sparkles"/></span>
+            <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="bot"/></span>
             <span className="ask-clerkme-fab-label">Ask ClerkME</span>
             <span className="ask-clerkme-fab-arrow" aria-hidden="true">↗</span>
           </button>
