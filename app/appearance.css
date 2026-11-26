@@ -2531,3 +2531,316 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
     height: 40px;
   }
 }
+
+
+/* ClerkMe account, mobile scrolling, profile contrast and support refinement. */
+/* The mobile dock stays fixed while the actual workspace becomes the scroll surface.
+   This avoids relying on document scrolling inside the installed/PWA viewport. */
+@media (max-width: 760px) {
+  .app-shell:not(.home-overview-shell) {
+    display: block !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    padding-bottom: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app-shell:not(.home-overview-shell) > .main-area {
+    position: relative;
+    display: block !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    scroll-padding-top: 72px;
+    scroll-padding-bottom: 132px;
+  }
+
+  .app-shell:not(.home-overview-shell) > .main-area > .content {
+    min-height: 0 !important;
+    padding-bottom: calc(132px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Account overview: the action row must occupy the full grid width. */
+  .you-account-panel {
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 12px !important;
+  }
+
+  .you-account-panel .you-account-avatar {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .you-account-panel .you-account-details {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0 !important;
+  }
+
+  .you-account-panel .you-account-actions {
+    grid-column: 1 / -1 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch !important;
+    gap: 9px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .you-account-panel .you-account-actions .you-profile-link {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 44px;
+    margin: 0 !important;
+    padding: 11px 13px !important;
+    box-sizing: border-box;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  /* A separate profile route has no workspace dock, so let its document grow
+     naturally and keep the sticky save control close to the bottom edge. */
+  .profile-page {
+    display: block !important;
+    min-height: 100svh !important;
+    height: auto !important;
+    padding: 22px 14px calc(112px + env(safe-area-inset-bottom)) !important;
+    overflow: visible !important;
+  }
+
+  .profile-page .profile-card {
+    width: min(100%, 900px) !important;
+    margin: 0 auto !important;
+    padding: clamp(19px, 4vw, 30px) !important;
+  }
+
+  .profile-page .profile-form-actions {
+    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .clerkme-support-fab:not(.profile-support-fab) {
+    left: 14px;
+    bottom: calc(88px + env(safe-area-inset-bottom) + 14px);
+  }
+}
+
+/* Consistent support entry point. The phone number is never printed in the UI. */
+.clerkme-support-fab {
+  position: fixed;
+  z-index: 45;
+  left: clamp(16px, 2.2vw, 28px);
+  bottom: clamp(18px, 2.5vh, 28px);
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 50%;
+  background: #20B85A;
+  color: #ffffff !important;
+  box-shadow: 0 9px 24px rgba(7, 105, 51, .25), 0 2px 6px rgba(7, 105, 51, .14);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.clerkme-support-fab:hover {
+  transform: translateY(-2px);
+  background: #159D4B;
+  box-shadow: 0 13px 28px rgba(7, 105, 51, .28);
+}
+
+.clerkme-support-fab:active {
+  transform: scale(.96);
+}
+
+.clerkme-support-fab svg {
+  display: block;
+  width: 27px;
+  height: 27px;
+}
+
+.clerkme-support-fab:focus-visible {
+  outline: 3px solid rgba(32, 184, 90, .42) !important;
+  outline-offset: 3px !important;
+}
+
+.profile-support-fab {
+  bottom: 22px;
+}
+
+.clerkme-support-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: inherit;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.clerkme-support-inline svg {
+  display: block;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: #20B85A;
+}
+
+.clerkme-support-inline:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+html[data-theme="dark"] .clerkme-support-inline {
+  color: var(--clerkme-text) !important;
+}
+
+@media (max-width: 760px) {
+  .profile-support-fab {
+    left: 14px !important;
+    bottom: 18px !important;
+    width: 45px;
+    height: 45px;
+  }
+
+  .profile-support-fab svg {
+    width: 25px;
+    height: 25px;
+  }
+}
+
+/* Full-coverage contrast for the student profile editor in dark appearance. */
+html[data-theme="dark"] .profile-page {
+  background: var(--clerkme-canvas) !important;
+  color: var(--clerkme-text) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card {
+  background: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+  box-shadow: 0 20px 58px rgba(0, 0, 0, .22) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  h1, h2, h3, h4, label, strong,
+  .profile-progress-heading > strong,
+  .profile-progress-heading > div > span
+) {
+  color: var(--clerkme-text) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  p, small, .profile-intro, .profile-form-section-heading p,
+  .profile-progress-note, .profile-progress-heading > div > p,
+  .student-profile-form label small, .profile-email-field small,
+  .profile-account-summary span
+) {
+  color: var(--clerkme-muted) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  .profile-account-summary, .profile-progress-card, .profile-form-section,
+  .profile-email-field, .profile-manual-university
+) {
+  background: #1b2c43 !important;
+  border-color: var(--clerkme-border) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  .student-profile-form input, .student-profile-form select,
+  .student-profile-form textarea, .profile-email-field input,
+  .university-native-select, .profile-search-picker-trigger,
+  .profile-search-picker-search
+) {
+  background: #101e30 !important;
+  border-color: #405773 !important;
+  color: #f0f5fc !important;
+  -webkit-text-fill-color: #f0f5fc !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  input, select, textarea
+)::placeholder {
+  color: #a8bbd0 !important;
+  opacity: 1;
+}
+
+html[data-theme="dark"] .profile-page .profile-card select option {
+  background: #101e30 !important;
+  color: #f0f5fc !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-form-section-heading > span {
+  background: #2a405d !important;
+  color: #e4effc !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-manual-university-toggle {
+  color: #9dc8fa !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .required-mark {
+  background: #4a3924 !important;
+  color: #ffdda0 !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .optional-mark {
+  background: #293f5a !important;
+  color: #d9eaff !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-progress-track {
+  background: #314763 !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-form-actions {
+  background: rgba(19, 31, 49, .97) !important;
+  border-color: var(--clerkme-border) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .34) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-form-actions > p {
+  color: var(--clerkme-muted) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card :is(
+  .profile-search-picker-panel, .profile-search-picker-option
+) {
+  background: #1b2c43 !important;
+  border-color: var(--clerkme-border) !important;
+  color: var(--clerkme-text) !important;
+}
+
+html[data-theme="dark"] .profile-page .profile-card .profile-search-picker-option:hover {
+  background: #2a405d !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clerkme-support-fab {
+    transition: none !important;
+  }
+  .clerkme-support-fab:hover,
+  .clerkme-support-fab:active {
+    transform: none !important;
+  }
+}
