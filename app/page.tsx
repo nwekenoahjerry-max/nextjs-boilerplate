@@ -639,6 +639,76 @@ export default function Home() {
   const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
   const [moreOpen, setMoreOpen] = useState(false);
+  const [askFabPosition, setAskFabPosition] = useState<{ left: number; top: number } | null>(null);
+  const askFabDragRef = useRef<{ pointerId: number; startX: number; startY: number; left: number; top: number; moved: boolean } | null>(null);
+  const suppressAskFabClickRef = useRef(false);
+  const askFabRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("clerkme:ask-fab-position:v1");
+      if (saved) {
+        const parsed = JSON.parse(saved) as { left?: number; top?: number };
+        if (Number.isFinite(parsed.left) && Number.isFinite(parsed.top)) {
+          const button = askFabRef.current;
+          const width = button?.offsetWidth || 154;
+          const height = button?.offsetHeight || 52;
+          setAskFabPosition({
+            left: Math.max(8, Math.min(window.innerWidth - width - 8, Number(parsed.left))),
+            top: Math.max(8, Math.min(window.innerHeight - height - 8, Number(parsed.top)))
+          });
+        }
+      }
+    } catch { /* Ignore invalid saved launcher positions. */ }
+  }, []);
+  useEffect(() => {
+    const keepInViewport = () => setAskFabPosition(current => {
+      if (!current) return current;
+      const button = askFabRef.current;
+      const width = button?.offsetWidth || 154;
+      const height = button?.offsetHeight || 52;
+      return {
+        left: Math.max(8, Math.min(window.innerWidth - width - 8, current.left)),
+        top: Math.max(8, Math.min(window.innerHeight - height - 8, current.top))
+      };
+    });
+    window.addEventListener("resize", keepInViewport);
+    return () => window.removeEventListener("resize", keepInViewport);
+  }, []);
+  const handleAskFabPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    askFabDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, left: rect.left, top: rect.top, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const handleAskFabPointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = askFabDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(dx, dy) < 7) return;
+    drag.moved = true;
+    suppressAskFabClickRef.current = true;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setAskFabPosition({
+      left: Math.max(8, Math.min(window.innerWidth - rect.width - 8, drag.left + dx)),
+      top: Math.max(8, Math.min(window.innerHeight - rect.height - 8, drag.top + dy))
+    });
+  };
+  const finishAskFabDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = askFabDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    askFabDragRef.current = null;
+    if (drag.moved) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const position = {
+        left: Math.max(8, Math.min(window.innerWidth - rect.width - 8, rect.left)),
+        top: Math.max(8, Math.min(window.innerHeight - rect.height - 8, rect.top))
+      };
+      setAskFabPosition(position);
+      try { window.localStorage.setItem("clerkme:ask-fab-position:v1", JSON.stringify(position)); } catch { /* Position remains usable for this visit. */ }
+      window.setTimeout(() => { suppressAskFabClickRef.current = false; }, 180);
+    }
+  };
   const mobileAccountCloseRef = useRef<HTMLButtonElement>(null);
   const selectSection = (id: string) => { setActive(id); setShowNew(id === "clerking"); setMoreOpen(false); };
   useEffect(() => {
@@ -1171,11 +1241,17 @@ export default function Home() {
         </header>
         {active !== "ask" && (
           <button
+            ref={askFabRef}
             type="button"
-            className="ask-clerkme-fab"
-            onClick={() => selectSection("ask")}
-            aria-label="Open Ask ClerkME"
-            title="Ask ClerkME"
+            className={askFabPosition ? "ask-clerkme-fab ask-clerkme-fab-positioned" : "ask-clerkme-fab"}
+            style={askFabPosition ? { left: askFabPosition.left, top: askFabPosition.top, right: "auto", bottom: "auto" } : undefined}
+            onPointerDown={handleAskFabPointerDown}
+            onPointerMove={handleAskFabPointerMove}
+            onPointerUp={finishAskFabDrag}
+            onPointerCancel={finishAskFabDrag}
+            onClick={() => { if (suppressAskFabClickRef.current) { suppressAskFabClickRef.current = false; return; } selectSection("ask"); }}
+            aria-label="Open Ask ClerkME. Drag to move."
+            title="Drag to move · Tap to open Ask ClerkME"
           >
             <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="bot"/></span>
             <span className="ask-clerkme-fab-label">Ask ClerkME</span>
