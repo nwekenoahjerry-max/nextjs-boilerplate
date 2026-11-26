@@ -1355,3 +1355,23 @@
   .ask-clerkme-content .ask-clerkme .ask-welcome>p{font-size:12.5px!important}
   .ask-clerkme-content .ask-clerkme .ask-message-text{font-size:13px!important}
 }
+
+
+/* Live diagnostics: make the actual microphone/session stage visible during troubleshooting. */
+.ask-clerkme .ask-voice-diagnostic {
+  width: min(100%, 430px);
+  margin: 8px auto 0;
+  padding: 8px 11px;
+  border: 1px solid rgba(159, 190, 221, .45);
+  border-radius: 10px;
+  background: rgba(237, 244, 251, .82);
+  color: #36516e;
+  font: 600 10px/1.5 "DM Sans", Inter, sans-serif;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+[data-theme="dark"] .ask-clerkme .ask-voice-diagnostic {
+  border-color: #3b5673;
+  background: #172b40;
+  color: #bdd0e4;
+}
