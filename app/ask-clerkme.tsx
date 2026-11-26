@@ -878,6 +878,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               ? " (Google error " + String(message.error.code) + ")"
               : "";
             const reference = liveRequestIdRef.current ? " · ref " + liveRequestIdRef.current : "";
+            setVoiceDiagnostics("Google rejected Live setup" + serverCode + ": " + serverError.slice(0, 120));
             stopVoiceCall(false);
             const messageText = "Google Live rejected the session" + serverCode + ": " + serverError.slice(0, 180) + reference;
             setVoiceNotice(messageText);
@@ -952,6 +953,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           // Browsers omit the handshake response body from the ErrorEvent.
           // Keep the socket alive until onclose so its close code and reason
           // can identify whether this is auth, configuration, or networking.
+          setVoiceDiagnostics("Browser reported a WebSocket error; checking the close code…");
           setVoiceNotice(!setupReadyRef.current
             ? "Google Live is opening the secure connection…"
             : "The connection encountered a problem. Checking whether it can recover…");
@@ -1006,6 +1008,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         SecurityError: "Microphone access requires HTTPS. Open ClerkME using its secure address."
       };
       const message = messages[name] || (error instanceof Error ? error.message : "ClerkME could not start the voice session.");
+      setVoiceDiagnostics("Live startup failed: " + message.slice(0, 140));
       setVoiceNotice(message);
       setNotice(message);
       setVoiceStatus("idle");
