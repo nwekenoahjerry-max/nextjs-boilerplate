@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
+import { LiveAudioGate } from "../lib/live-audio-gate";
 import "./ask-clerkme.css";
 
 type ChatMessage = {
@@ -196,6 +197,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioGateRef = useRef(new LiveAudioGate());
   const silentGainRef = useRef<GainNode | null>(null);
   const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextPlaybackTimeRef = useRef(0);
@@ -507,6 +509,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     endingRef.current = true;
     setupReadyRef.current = false;
     const socket = socketRef.current;
+    if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
+      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+    } else {
+      audioGateRef.current.reset();
+    }
     socketRef.current = null;
     try { if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Student ended voice session"); } catch {}
     releaseVoiceMedia();
@@ -542,6 +549,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
     startedAtRef.current = 0;
+    audioGateRef.current.reset();
     studentTranscriptRef.current = "";
     assistantTranscriptRef.current = "";
     setVoiceTranscript("");
@@ -577,10 +585,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       processor.onaudioprocess = event => {
         const socket = socketRef.current;
         if (!setupReadyRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
-        const pcm = resampleTo16k(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
+        const samples = event.inputBuffer.getChannelData(0);
+        const pcm = resampleTo16k(samples, audioContext.sampleRate);
         if (!pcm.length) return;
+        const gated = audioGateRef.current.process(pcm, samples, audioContext.sampleRate);
         try {
-          socket.send(JSON.stringify({ realtimeInput: { audio: { data: pcmToBase64(pcm), mimeType: "audio/pcm;rate=16000" } } }));
+          for (const chunk of gated.chunks) {
+            socket.send(JSON.stringify({ realtimeInput: { audio: { data: pcmToBase64(chunk), mimeType: "audio/pcm;rate=16000" } } }));
+          }
+          if (gated.audioStreamEnd) {
+            socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+          }
         } catch {
           setVoiceNotice("The audio connection paused. Check your internet connection.");
         }
@@ -808,6 +823,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   };
   const toggleMute = () => {
     const next = !mutedRef.current;
+    const socket = socketRef.current;
+    if (next && socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
+      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+    } else if (next) {
+      audioGateRef.current.reset();
+    }
     mutedRef.current = next;
     setVoiceMuted(next);
     setVoiceNotice(next ? "Your microphone is muted." : "Microphone on. Continue speaking naturally.");
@@ -819,6 +840,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     clearConnectionTimeout();
     if (reconnectTimerRef.current !== null) window.clearTimeout(reconnectTimerRef.current);
     reconnectTimerRef.current = null;
+    audioGateRef.current.reset();
     sessionHandleRef.current = "";
     liveTokenExpiresAtRef.current = 0;
     try { socketRef.current?.close(); } catch {}
