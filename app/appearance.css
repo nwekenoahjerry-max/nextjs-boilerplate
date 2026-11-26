@@ -2387,3 +2387,65 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 .session-check-retry-secondary:hover{border-color:#b9cadc;background:#edf3f8;color:#173d65}
 [data-theme="dark"] .session-check-retry-secondary{border-color:#405873;background:#1b3652;color:#d5e4f3}
 [data-theme="dark"] .session-check-retry-secondary:hover{background:#27435f;color:#fff}
+
+
+/* Home dashboard desktop viewport: keep the workspace content in a real scroll container. */
+@media (min-width: 761px) {
+  .app-shell.home-overview-shell {
+    display: flex !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+  }
+
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active {
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    overflow-x: clip !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    align-self: stretch;
+  }
+
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active > .content {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    padding-bottom: max(58px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .app-shell.home-overview-shell .home-dashboard-card {
+    height: auto !important;
+    min-height: max-content;
+  }
+}
+
+/* Short laptop viewports keep the whole dashboard reachable without shrinking text. */
+@media (min-width: 761px) and (max-height: 720px) {
+  .app-shell.home-overview-shell > .main-area.home-dashboard-active > .content {
+    padding-top: 18px !important;
+    padding-bottom: 48px !important;
+  }
+
+  .home-dashboard-active .home-dashboard-card {
+    padding-top: 13px;
+    padding-bottom: 13px;
+  }
+
+  .home-dashboard-active .home-compact-header {
+    min-height: 0;
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .home-dashboard-active .home-stats-strip {
+    margin-bottom: 10px;
+  }
+
+  .home-dashboard-active .home-action-card {
+    min-height: 112px;
+  }
+}
