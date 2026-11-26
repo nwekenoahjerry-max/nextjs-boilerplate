@@ -273,7 +273,7 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
         <div className="flashcards-breadcrumb"><button type="button" onClick={() => { setView("overview"); setNotice(""); }}>← All decks</button><span>/</span><span>{selectedDeck.title}</span></div>
         <header className="flashcards-page-heading">
           <div><span className="flashcards-eyebrow">ACTIVE RECALL WORKSPACE</span><h1>{selectedDeck.title}</h1><p>{unitLabel(selectedDeck.unit)} · {selectedDeck.cards.length} cards</p></div>
-          <div className="flashcards-heading-actions"><button type="button" className="flashcards-secondary-button" onClick={() => setView(view === "manage" ? "study" : "manage")}>{view === "manage" ? "Study this deck" : "Manage cards"}</button></div>
+          <div className="flashcards-heading-actions"><button type="button" className="flashcards-secondary-button" onClick={() => { if (view === "manage") startStudy(selectedDeck); else setView("manage"); }}>{view === "manage" ? "Study this deck" : "Manage cards"}</button></div>
         </header>
         {notice && <p className="flashcards-notice" role="status">{notice}</p>}
 
