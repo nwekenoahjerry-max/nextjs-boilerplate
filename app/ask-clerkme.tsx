@@ -776,7 +776,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       setVoiceDiagnostics("Secure token issued; opening Google Live WebSocket…");
       const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
         ? tokenData.model
-        : "models/gemini-3.8-live";
+        : "models/gemini-3.1-flash-live-preview";
       liveRequestIdRef.current = typeof tokenData.requestId === "string" ? tokenData.requestId : "";
       const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
@@ -826,7 +826,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                   prefixPaddingMs: 300,
                   silenceDurationMs: 700
                 },
-                turnCoverage: "TURN_INCLUDES_ONLY_ACTIVITY"
               },
               sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
             }
@@ -1220,7 +1219,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               {voiceTranscript || (voiceStatus === "connected" ? "ClerkME is ready and listening…" : "Preparing a secure connection…")}
             </div>
             {voiceNotice && <p className="ask-voice-notice" role="status">{voiceNotice}</p>}
-            {voiceDiagnostics && <p className="ask-voice-diagnostic" role="status">Connection check · {voiceDiagnostics}</p>}
             <div className="ask-voice-controls">
               <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""} aria-label={voiceMuted ? "Unmute microphone" : "Mute microphone"}><span><AskIcon name={voiceMuted ? "mic-off" : "mic"} size={17}/></span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
               <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span><AskIcon name="x" size={17}/></span><small>End session</small></button>
