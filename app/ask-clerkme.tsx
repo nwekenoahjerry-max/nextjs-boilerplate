@@ -2,7 +2,6 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
-import { LiveAudioGate } from "../lib/live-audio-gate";
 import "./ask-clerkme.css";
 
 type ChatMessage = {
@@ -280,7 +279,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const audioGateRef = useRef(new LiveAudioGate());
   const pendingAudioFramesRef = useRef<Int16Array[]>([]);
   const pendingAudioSamplesRef = useRef(0);
   const liveRequestIdRef = useRef("");
@@ -632,13 +630,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     endingRef.current = true;
     setupReadyRef.current = false;
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
+    if (socket?.readyState === WebSocket.OPEN) {
       try {
         flushPendingAudio(socket, true);
         socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
       } catch {}
     } else {
-      audioGateRef.current.reset();
       clearPendingAudio();
     }
     socketRef.current = null;
@@ -678,7 +675,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     liveRequestIdRef.current = "";
     clearPendingAudio();
     startedAtRef.current = 0;
-    audioGateRef.current.reset();
     studentTranscriptRef.current = "";
     assistantTranscriptRef.current = "";
     setVoiceTranscript("");
@@ -717,17 +713,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const samples = event.inputBuffer.getChannelData(0);
         const pcm = resampleTo16k(samples, audioContext.sampleRate);
         if (!pcm.length) return;
-        const gated = audioGateRef.current.process(pcm, samples, audioContext.sampleRate);
+        // Stream continuous 16 kHz PCM and let Gemini's server-side VAD
+        // identify speech boundaries. audioStreamEnd is reserved for an
+        // actual microphone pause/mute or session shutdown, not each pause
+        // between words or sentences.
         try {
-          for (const chunk of gated.chunks) {
-            pendingAudioFramesRef.current.push(chunk);
-            pendingAudioSamplesRef.current += chunk.length;
-          }
+          pendingAudioFramesRef.current.push(pcm);
+          pendingAudioSamplesRef.current += pcm.length;
           flushPendingAudio(socket);
-          if (gated.audioStreamEnd) {
-            flushPendingAudio(socket, true);
-            socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
-          }
         } catch {
           setVoiceNotice("The audio connection paused. Check your internet connection.");
         }
@@ -763,6 +756,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
+      const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
+        ? tokenData.model
+        : "models/gemini-3.1-flash-live-preview";
       liveRequestIdRef.current = typeof tokenData.requestId === "string" ? tokenData.requestId : "";
       const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
@@ -773,7 +769,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (attempt !== callAttemptRef.current || endingRef.current) return;
         setupReadyRef.current = false;
         clearConnectionTimeout();
-        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
+        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
         const socket = new WebSocket(endpoint);
         socketRef.current = socket;
         connectionTimeoutRef.current = window.setTimeout(() => {
@@ -794,7 +790,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           }
           socket.send(JSON.stringify({
             setup: {
-              model: "models/gemini-3.8-live",
+              model: liveModel,
               ...(voiceSystemInstruction ? { systemInstruction: { parts: [{ text: voiceSystemInstruction }] } } : {}),
               generationConfig: {
                 responseModalities: ["AUDIO"],
@@ -971,10 +967,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const toggleMute = () => {
     const next = !mutedRef.current;
     const socket = socketRef.current;
-    if (next && socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
-    } else if (next) {
-      audioGateRef.current.reset();
+    if (next) {
+      try {
+        if (socket?.readyState === WebSocket.OPEN) {
+          flushPendingAudio(socket, true);
+          socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+        } else {
+          clearPendingAudio();
+        }
+      } catch {
+        setVoiceNotice("The microphone could not be paused cleanly. End the session and reconnect.");
+      }
     }
     mutedRef.current = next;
     setVoiceMuted(next);
@@ -987,7 +990,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     clearConnectionTimeout();
     if (reconnectTimerRef.current !== null) window.clearTimeout(reconnectTimerRef.current);
     reconnectTimerRef.current = null;
-    audioGateRef.current.reset();
     sessionHandleRef.current = "";
     liveTokenExpiresAtRef.current = 0;
     try { socketRef.current?.close(); } catch {}
