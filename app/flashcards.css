@@ -207,4 +207,4 @@
  .flashcards-flip-count{font-size:7px;letter-spacing:.08em}
  .flashcards-flip-bottom{font-size:8px}
 }
-@media(prefers-reduced-motion:reduce){.flashcards-flip-inner{transition:none}.flashcards-flip-trigger:hover .flashcards-flip-inner,.flashcards-flip-trigger:hover .flashcards-flip-inner.is-flipped{transform:none}}
+@media(prefers-reduced-motion:reduce){.flashcards-flip-inner{transition:none}.flashcards-flip-trigger:hover .flashcards-flip-inner:not(.is-flipped){transform:none}.flashcards-flip-trigger:hover .flashcards-flip-inner.is-flipped{transform:rotateY(180deg)}}
