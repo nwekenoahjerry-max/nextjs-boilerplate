@@ -181,6 +181,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("idle");
   const [voiceMode, setVoiceMode] = useState<VoiceMode>("tutor");
+  const [voiceReconnecting, setVoiceReconnecting] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState("");
   const [voiceMuted, setVoiceMuted] = useState(false);
   const [voiceElapsed, setVoiceElapsed] = useState(0);
@@ -517,12 +518,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
     setVoiceStatus("idle");
+    setVoiceReconnecting(false);
     if (notify) setVoiceNotice("Voice session ended. The conversation transcript has been added to your chat.");
   };
 
   const startVoiceCall = async (mode: VoiceMode = "tutor") => {
     if (voiceStatus !== "idle") return;
     setVoiceMode(mode);
+    setVoiceReconnecting(false);
     setVoiceNotice("");
     if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === "undefined" || typeof AudioContext === "undefined") {
       const message = "Live voice needs microphone access and a modern browser. You can continue with text chat.";
@@ -685,6 +688,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             setupReadyRef.current = true;
             if (!startedAtRef.current) startedAtRef.current = Date.now();
             setVoiceStatus("connected");
+            setVoiceReconnecting(false);
             setVoiceNotice(resumeHandle
               ? "Reconnected securely. Your live conversation is continuing."
               : "Connected. Speak naturally; you can interrupt ClerkME at any time.");
@@ -766,6 +770,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           if (canResume) {
             reconnectAttemptsRef.current += 1;
             setupReadyRef.current = false;
+            setVoiceReconnecting(true);
             setVoiceStatus("connecting");
             setVoiceNotice("Reconnecting securely to keep your session active…");
             reconnectTimerRef.current = window.setTimeout(() => {
@@ -972,12 +977,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               <span className="ask-voice-live-dot"/>
             </div>
             <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span>✦</span><i/><b/></div>
-            <span className="ask-voice-state">{voiceStatus === "connecting" ? "CONNECTING TO CLERKME" : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
+            <span className="ask-voice-state">{voiceStatus === "connecting"
+              ? (voiceReconnecting ? "RESTORING LIVE CONNECTION" : "CONNECTING TO CLERKME")
+              : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
             <h2>{voiceStatus === "connecting"
-              ? (voiceMode === "viva" ? "Preparing your Viva examiner…" : "Getting your voice session ready…")
+              ? (voiceReconnecting ? "Reconnecting securely…" : voiceMode === "viva" ? "Preparing your Viva examiner…" : "Getting your voice session ready…")
               : (voiceMode === "viva" ? "Your Viva is under way" : "What would you like to learn?")}</h2>
             <p className="ask-voice-subtitle">{voiceStatus === "connecting"
-              ? "Allow microphone access when your browser asks."
+              ? (voiceReconnecting ? "Your conversation is being preserved. Stay on this screen while ClerkME restores the audio connection." : "Allow microphone access when your browser asks.")
               : voiceMode === "viva"
                 ? "Answer aloud, one question at a time. ClerkME will give examiner-style feedback after each response."
                 : "Speak naturally. You can interrupt, ask follow-up questions and change direction at any time."}</p>
