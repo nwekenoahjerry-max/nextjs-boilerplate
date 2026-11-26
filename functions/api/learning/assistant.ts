@@ -45,7 +45,7 @@ const TEXT_VISUAL_INSTRUCTIONS = [
   "When a visual materially improves understanding, or the student explicitly asks for an image/diagram, add exactly one visual marker at the relevant point in the answer using this exact format: [[CLERKME_IMAGE: a precise prompt for one educational illustration]]. Use it sparingly for concepts such as anatomy, physiology, mechanisms or pathways; do not generate an image when a table or concise explanation is clearer.",
   "A visual marker is an instruction for ClerkME's image service, not text for the student. Request a clean, scientifically coherent educational schematic with simple shapes and clear relationships; avoid small labels, lettering, numbers, watermarks and decorative text. Do not make diagnostic radiographs, histology slides, pathology specimens, real-patient depictions, surgical scenes or clinical decision evidence. Never imply an AI-generated illustration is a diagnostic reference or a substitute for a trusted atlas, lecture or guideline.",
   "Do not add more than one visual marker to an answer. Do not invent patient-specific images or imply an illustration comes from the student's uploaded source."
-].join("\\n");
+].join("\n");
 
 type VoiceMode = "tutor" | "viva";
 
@@ -99,7 +99,7 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
           method: "POST",
           headers: { "Content-Type": "application/json", "Accept": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({
-            systemInstruction: { parts: [{ text: TUTOR_SYSTEM + "\\n\\n" + TEXT_VISUAL_INSTRUCTIONS }] },
+            systemInstruction: { parts: [{ text: TUTOR_SYSTEM + "\n\n" + TEXT_VISUAL_INSTRUCTIONS }] },
             contents,
             generationConfig: { temperature: 0.25, maxOutputTokens: 3000 }
           }),
