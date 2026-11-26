@@ -86,7 +86,43 @@ const publicClinicalFeatures = [
   {number:"06",title:"Private cases and learning activity",description:"Keep your learning cases in your account and follow your current streak, personal best, active days and weekly study check-ins.",detail:"Your work and progress in one workspace"},
 ];
 
-function SessionCheckOverlay({ error, onRetry }: { error?: string; onRetry: () => void }) {
+const AUTH_SESSION_SEEN_KEY = "clerkme:session-seen:v1";
+const EXPLICIT_SIGN_OUT_KEY = "clerkme:explicit-sign-out:v1";
+
+function hasReturningSessionHint() {
+  try {
+    if (window.localStorage.getItem(EXPLICIT_SIGN_OUT_KEY) === "1") return false;
+    if (window.localStorage.getItem(AUTH_SESSION_SEEN_KEY) === "1") return true;
+    // Older ClerkME installations may not have the marker yet. Existing,
+    // account-scoped study or Ask history is a safe signal to show recovery
+    // rather than misclassifying this browser as a first-time visitor.
+    return Object.keys(window.localStorage).some(key =>
+      key.startsWith("clerkme:last-study:") || key.startsWith("clerkme:ask-threads:v1:")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function rememberVerifiedSession() {
+  try {
+    window.localStorage.setItem(AUTH_SESSION_SEEN_KEY, "1");
+    window.localStorage.removeItem(EXPLICIT_SIGN_OUT_KEY);
+  } catch {
+    // The server cookie remains the source of truth if storage is unavailable.
+  }
+}
+
+function rememberExplicitSignOut() {
+  try {
+    window.localStorage.removeItem(AUTH_SESSION_SEEN_KEY);
+    window.localStorage.setItem(EXPLICIT_SIGN_OUT_KEY, "1");
+  } catch {
+    // Sign-out still completes on the server if storage is unavailable.
+  }
+}
+
+function SessionCheckOverlay({ error, onRetry, signInRequired = false }: { error?: string; onRetry: () => void; signInRequired?: boolean }) {
   return (
     <div className="session-check-overlay" aria-live="polite">
       <div className="session-check-card">
@@ -94,9 +130,10 @@ function SessionCheckOverlay({ error, onRetry }: { error?: string; onRetry: () =
         {error ? (
           <>
             <span className="session-check-error-icon" aria-hidden="true">!</span>
-            <h1>We couldn't verify your session.</h1>
+            <h1>{signInRequired ? "Restore your workspace" : "We couldn't verify your session."}</h1>
             <p>{error}</p>
-            <button type="button" className="session-check-retry" onClick={onRetry}>Try again <span>→</span></button>
+            {signInRequired && <a className="session-check-signin" href="/login">Sign in again <span>→</span></a>}
+            <button type="button" className={signInRequired ? "session-check-retry session-check-retry-secondary" : "session-check-retry"} onClick={onRetry}>{signInRequired ? "Check again" : "Try again"} <span>→</span></button>
           </>
         ) : (
           <>
@@ -702,6 +739,7 @@ export default function Home() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
+  const [authSessionExpired, setAuthSessionExpired] = useState(false);
   const [apiError, setApiError] = useState("");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -769,6 +807,7 @@ export default function Home() {
   const checkAuthSession = useCallback(async () => {
     setAuthLoading(true);
     setAuthError("");
+    setAuthSessionExpired(false);
     try {
       const response = await fetch("/api/auth/me", {
         credentials: "same-origin",
@@ -776,8 +815,15 @@ export default function Home() {
         headers: { "Accept": "application/json" }
       });
       if (response.status === 401) {
-        // A confirmed unauthenticated response is the only path to the public landing page.
+        // A new visitor may see the public landing. A returning installation
+        // must instead be offered session recovery; do not disguise a lost
+        // cookie or an expired session as a first visit.
+        const returning = hasReturningSessionHint();
         setAuthUser(null);
+        if (returning) {
+          setAuthSessionExpired(true);
+          setAuthError("ClerkME recognises this as a returning workspace, but its secure sign-in could not be restored. Sign in again to reopen your account. Your saved learning materials and progress remain attached to your account.");
+        }
         return;
       }
       const data = await response.json().catch(() => ({}));
@@ -787,6 +833,8 @@ export default function Home() {
       if (!data?.user || typeof data.user.id !== "string") {
         throw new Error("ClerkME received an incomplete session response. Please try again.");
       }
+      rememberVerifiedSession();
+      setAuthSessionExpired(false);
       setAuthUser(data.user);
     } catch (error) {
       setAuthError(error instanceof Error
@@ -928,6 +976,7 @@ export default function Home() {
         credentials: "same-origin",
       });
       if (!response.ok) throw new Error("Sign out could not be completed. Please try again.");
+      rememberExplicitSignOut();
       window.location.assign("/login");
     } catch (error) {
       setSignOutError(error instanceof Error ? error.message : "Sign out could not be completed. Please try again.");
@@ -1022,7 +1071,7 @@ export default function Home() {
   // reveal the public landing to a visitor; temporary API failures must not look
   // like a sign-out.
   if (authLoading) return <><PublicLanding/><SessionCheckOverlay onRetry={checkAuthSession}/></>;
-  if (authError) return <><PublicLanding/><SessionCheckOverlay error={authError} onRetry={checkAuthSession}/></>;
+  if (authError) return <><PublicLanding/><SessionCheckOverlay error={authError} onRetry={checkAuthSession} signInRequired={authSessionExpired}/></>;
   if (!authUser) return <PublicLanding/>;
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
