@@ -393,7 +393,6 @@ function PublicLanding() {
         </p>
         <div className="public-footer-contact">
           <strong>Contact</strong>
-          <WhatsAppSupportLink variant="inline" />
           <a href="mailto:nwekenoahjerry@gmail.com">nwekenoahjerry@gmail.com</a>
           <small>Designed by Noah Chidindu Nweke</small>
         </div>
@@ -1145,7 +1144,6 @@ export default function Home() {
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
         </button>
       </nav>
-      <WhatsAppSupportLink />
       {moreOpen && <div className="mobile-more-scrim" onClick={()=>setMoreOpen(false)}>
         <section id="mobile-account-sheet" className="mobile-more-panel mobile-account-sheet" role="dialog" aria-modal="true" aria-label="Your ClerkME account and tools" onClick={event=>event.stopPropagation()}>
           <div className="mobile-account-sheet-topline"><span>YOUR CLERKME</span><button ref={mobileAccountCloseRef} type="button" onClick={()=>setMoreOpen(false)} aria-label="Close account menu">×</button></div>
@@ -1420,6 +1418,7 @@ export default function Home() {
               </article>
               <InstallAppAction promptEvent={deferredInstallPrompt} onPromptConsumed={() => setDeferredInstallPrompt(null)}/>
               <ReminderSettings/>
+              <WhatsAppSupportLink />
             </section>
             <div className="account-session-footer">
               <span className="account-session-copy"><strong>Signed in securely</strong><small>Sign out when you are using a shared or public device.</small></span>
