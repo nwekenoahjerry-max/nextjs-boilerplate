@@ -904,23 +904,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                 <div className="ask-welcome-orb"><span>✦</span><i/><b/></div>
                 <h1>What are we learning today?</h1>
                 <p>Ask a question, explore a difficult concept, or bring your lecture and learn directly from it.</p>
-                <div className="ask-suggestion-grid">
+                <div className="ask-shortcut-row" aria-label="Quick learning tools">
                   {suggestions.map(item => (
                     <button type="button" key={item.title} onClick={() => void sendMessage(item.prompt)} disabled={sending}>
-                      <span>{item.icon}</span><strong>{item.title}</strong><b>→</b>
+                      <span>{item.icon}</span><strong>{item.title}</strong>
                     </button>
                   ))}
-                </div>
-                <div className="ask-live-actions">
-                  <button type="button" className="ask-live-feature" onClick={() => void startVoiceCall("tutor")}>
-                    <span className="ask-live-feature-icon">♫</span>
-                    <span><strong>Talk to ClerkME</strong><small>Discuss topics in a natural voice conversation</small></span>
-                    <b>Start live <i>→</i></b>
+                  <button type="button" onClick={() => void startVoiceCall("tutor")} disabled={voiceStatus !== "idle"}>
+                    <span>♫</span><strong>Talk live</strong>
                   </button>
-                  <button type="button" className="ask-live-feature ask-live-feature-viva" onClick={() => void startVoiceCall("viva")}>
-                    <span className="ask-live-feature-icon">☷</span>
-                    <span><strong>Viva examiner</strong><small>Answer aloud and receive examiner-style feedback</small></span>
-                    <b>Start Viva <i>→</i></b>
+                  <button type="button" className="ask-shortcut-viva" onClick={() => void startVoiceCall("viva")} disabled={voiceStatus !== "idle"}>
+                    <span>☷</span><strong>Viva</strong>
                   </button>
                 </div>
               </div>
