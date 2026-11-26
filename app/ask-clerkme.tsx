@@ -79,80 +79,63 @@ function formatClock(seconds: number) {
   return Math.floor(seconds / 60).toString().padStart(2, "0") + ":" + (seconds % 60).toString().padStart(2, "0");
 }
 
+const mathSymbols: Record<string, string> = {
+  "\\mu": "μ", "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ",
+  "\\Delta": "Δ", "\\theta": "θ", "\\lambda": "λ", "\\pi": "π", "\\sigma": "σ",
+  "\\omega": "ω", "\\Omega": "Ω", "\\times": "×", "\\cdot": "·", "\\pm": "±",
+  "\\leq": "≤", "\\le": "≤", "\\geq": "≥", "\\ge": "≥", "\\neq": "≠",
+  "\\approx": "≈", "\\rightarrow": "→", "\\to": "→", "\\infty": "∞",
+  "\\degree": "°", "\\circ": "°"
+};
+const superscriptChars: Record<string, string> = {
+  "0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹",
+  "+":"⁺","-":"⁻","=":"⁼","(":"⁽",")":"⁾","n":"ⁿ","i":"ⁱ"
+};
+const subscriptChars: Record<string, string> = {
+  "0":"₀","1":"₁","2":"₂","3":"₃","4":"₄","5":"₅","6":"₆","7":"₇","8":"₈","9":"₉",
+  "+":"₊","-":"₋","=":"₌","(":"₍",")":"₎","a":"ₐ","e":"ₑ","h":"ₕ","i":"ᵢ",
+  "j":"ⱼ","k":"ₖ","l":"ₗ","m":"ₘ","n":"ₙ","o":"ₒ","p":"ₚ","r":"ᵣ","s":"ₛ","t":"ₜ","u":"ᵤ","v":"ᵥ","x":"ₓ"
+};
+
+function formatMath(source: string): string {
+  let value = source.trim()
+    .replace(/\\(?:left|right|displaystyle|textstyle|scriptstyle)\b/g, "")
+    .replace(/\\(?:text|mathrm|textrm|operatorname)\s*\{([^{}]*)\}/g, "$1")
+    .replace(/\\(?:,|;|:|!|quad|qquad|enspace|thinspace)/g, " ");
+  for (const [command, symbol] of Object.entries(mathSymbols)) value = value.split(command).join(symbol);
+  value = value
+    .replace(/\\(?:mathbf|mathit|mathsf|mathtt)\b/g, "")
+    .replace(/[{}]/g, "")
+    .replace(/\\([#$%&_])/g, "$1")
+    .replace(/\\([A-Za-z]+)/g, "$1");
+  value = value.replace(/\^\{([^{}]+)\}|\^([A-Za-z0-9+=()-])/g, (_match, group: string | undefined, single: string | undefined) =>
+    [...(group || single || "")].map(char => superscriptChars[char] || char).join("")
+  );
+  value = value.replace(/_\{([^{}]+)\}|_([A-Za-z0-9+=()-])/g, (_match, group: string | undefined, single: string | undefined) =>
+    [...(group || single || "")].map(char => subscriptChars[char] || char).join("")
+  );
+  return value.replace(/\s+/g, " ").trim();
+}
+
 function renderInline(value: string): ReactNode[] {
-  return value.split(/(\*\*[^*]+\*\*|\`[^\`]+\`|\*[^*]+\*)/g).filter(Boolean).map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{part.slice(2, -2)}</strong>;
-    if (part.startsWith("`") && part.endsWith("`")) return <code key={index}>{part.slice(1, -1)}</code>;
-    if (part.startsWith("*") && part.endsWith("*")) return <em key={index}>{part.slice(1, -1)}</em>;
+  const tokens = value.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\*\*[^*]+\*\*|\`[^\`]+\`|\*[^*]+\*)/g).filter(Boolean);
+  return tokens.map((part, index) => {
+    const isMath = (part.startsWith("$") && part.endsWith("$")) ||
+      (part.startsWith("$") && part.endsWith("$")) ||
+      (part.startsWith("\\(") && part.endsWith("\\)")) ||
+      (part.startsWith("\\[") && part.endsWith("\\]"));
+    if (isMath) {
+      const display = part.startsWith("$") || part.startsWith("\\[");
+      const inner = part.startsWith("$") ? part.slice(2, -2)
+        : part.startsWith("$") ? part.slice(1, -1) : part.slice(2, -2);
+      return <span key={index} className={display ? "ask-math ask-math-display" : "ask-math"} aria-label={inner}>{formatMath(inner)}</span>;
+    }
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{renderInline(part.slice(2, -2))}</strong>;
+    if (part.startsWith("\`") && part.endsWith("\`")) return <code key={index}>{part.slice(1, -1)}</code>;
+    if (part.startsWith("*") && part.endsWith("*")) return <em key={index}>{renderInline(part.slice(1, -1))}</em>;
     return part;
   });
 }
-
-function FormattedAnswer({ content }: { content: string }) {
-  const lines = content.replace(/\r/g, "").split("\n");
-  const blocks: ReactNode[] = [];
-  let paragraph: string[] = [];
-  let list: string[] = [];
-  let listType: "ul" | "ol" | null = null;
-  let codeLines: string[] | null = null;
-
-  const flushParagraph = () => {
-    if (!paragraph.length) return;
-    blocks.push(<p key={blocks.length}>{renderInline(paragraph.join(" "))}</p>);
-    paragraph = [];
-  };
-  const flushList = () => {
-    if (!list.length || !listType) return;
-    const items = list.map((item, index) => <li key={index}>{renderInline(item)}</li>);
-    blocks.push(listType === "ol" ? <ol key={blocks.length}>{items}</ol> : <ul key={blocks.length}>{items}</ul>);
-    list = [];
-    listType = null;
-  };
-  const flushCode = () => {
-    if (!codeLines) return;
-    blocks.push(<pre key={blocks.length}><code>{codeLines.join("\n")}</code></pre>);
-    codeLines = null;
-  };
-
-  for (const line of lines) {
-    if (line.trim().startsWith("```")) {
-      flushParagraph(); flushList();
-      if (codeLines) flushCode(); else codeLines = [];
-      continue;
-    }
-    if (codeLines) { codeLines.push(line); continue; }
-    if (!line.trim()) { flushParagraph(); flushList(); continue; }
-
-    const heading = line.match(/^#{1,4}\s+(.+)$/);
-    if (heading) {
-      flushParagraph(); flushList();
-      blocks.push(<h3 key={blocks.length}>{renderInline(heading[1])}</h3>);
-      continue;
-    }
-    if (/^\s*([-*_])\s*\1\s*\1\s*$/.test(line)) { flushParagraph(); flushList(); continue; }
-    const unordered = line.match(/^\s*[-*•]\s+(.+)$/);
-    const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
-    if (unordered || ordered) {
-      flushParagraph();
-      const type = unordered ? "ul" : "ol";
-      if (listType && listType !== type) flushList();
-      listType = type;
-      list.push((unordered || ordered)![1]);
-      continue;
-    }
-    const quote = line.match(/^\s*>\s?(.*)$/);
-    if (quote) {
-      flushParagraph(); flushList();
-      blocks.push(<blockquote key={blocks.length}>{renderInline(quote[1])}</blockquote>);
-      continue;
-    }
-    flushList();
-    paragraph.push(line.trim());
-  }
-  flushParagraph(); flushList(); flushCode();
-  return <div className="ask-formatted-answer">{blocks}</div>;
-}
-
 type AskIconName =
   | "sparkles" | "menu" | "plus" | "x" | "paperclip" | "folder" | "mic"
   | "headphones" | "clipboard-check" | "layers" | "arrow-up" | "message"
