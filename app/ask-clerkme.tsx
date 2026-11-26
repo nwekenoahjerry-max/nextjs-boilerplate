@@ -156,7 +156,7 @@ function FormattedAnswer({ content }: { content: string }) {
 type AskIconName =
   | "sparkles" | "menu" | "plus" | "x" | "paperclip" | "folder" | "mic"
   | "headphones" | "clipboard-check" | "layers" | "arrow-up" | "message"
-  | "file" | "shield-check" | "clock" | "chevron-right" | "trash";
+  | "file" | "shield-check" | "clock" | "chevron-right" | "trash" | "mic-off";
 
 function AskIcon({ name, size = 16, strokeWidth = 1.9 }: { name: AskIconName; size?: number; strokeWidth?: number }) {
   return (
@@ -173,6 +173,7 @@ function AskIcon({ name, size = 16, strokeWidth = 1.9 }: { name: AskIconName; si
       {name === "paperclip" && <path d="m8 12.5 6.2-6.2a3.2 3.2 0 0 1 4.5 4.5l-8.5 8.5a5 5 0 0 1-7.1-7.1l8.1-8.1"/>}
       {name === "folder" && <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-10Z"/>}
       {name === "mic" && <><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M9 21.5h6"/></>}
+      {name === "mic-off" && <><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 11.1 4.6M12 18v3.5M9 21.5h6M3 3l18 18"/></>}
       {name === "headphones" && <><path d="M3 13v-1a9 9 0 0 1 18 0v1"/><rect x="3" y="12" width="4" height="7" rx="2"/><rect x="17" y="12" width="4" height="7" rx="2"/><path d="M17 20a5 5 0 0 1-5 2"/></>}
       {name === "clipboard-check" && <><rect x="5" y="4.5" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M8.5 13l2.2 2.2 4.8-4.8"/></>}
       {name === "layers" && <><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></>}
@@ -1034,11 +1035,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         <div className="ask-voice-overlay" role="dialog" aria-modal="true" aria-label={voiceMode === "viva" ? "Viva examiner voice session" : "Live voice conversation with ClerkME"}>
           <section className="ask-voice-card">
             <div className="ask-voice-top">
-              <button type="button" className="ask-icon-button" onClick={() => stopVoiceCall(true)} aria-label="Close voice conversation">×</button>
+              <button type="button" className="ask-icon-button" onClick={() => stopVoiceCall(true)} aria-label="Close voice conversation"><AskIcon name="x"/></button>
               <span>{voiceMode === "viva" ? "CLERKME · VIVA EXAMINER" : "CLERKME · LIVE VOICE"}</span>
               <span className="ask-voice-live-dot"/>
             </div>
-            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span>✦</span><i/><b/></div>
+            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span><AskIcon name="sparkles" size={36}/></span><i/><b/></div>
             <span className="ask-voice-state">{voiceStatus === "connecting"
               ? (voiceReconnecting ? "RESTORING LIVE CONNECTION" : "CONNECTING TO CLERKME")
               : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
@@ -1056,9 +1057,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             </div>
             {voiceNotice && <p className="ask-voice-notice" role="status">{voiceNotice}</p>}
             <div className="ask-voice-controls">
-              <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""}><span>{voiceMuted ? "◌" : "♩"}</span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
-              <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span>■</span><small>End session</small></button>
-              <button type="button" onClick={() => setVoiceNotice("Use headphones if you hear an echo. Your transcript will be saved in the conversation.")}><span>ⓘ</span><small>Help</small></button>
+              <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""} aria-label={voiceMuted ? "Unmute microphone" : "Mute microphone"}><span><AskIcon name={voiceMuted ? "mic-off" : "mic"} size={17}/></span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
+              <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span><AskIcon name="x" size={17}/></span><small>End session</small></button>
+              <button type="button" onClick={() => setVoiceNotice("Use headphones if you hear an echo. Your transcript will be saved in the conversation.")}><span><AskIcon name="message" size={17}/></span><small>Help</small></button>
             </div>
             <p className="ask-voice-disclaimer">Educational support only. Do not share identifiable real-patient information.</p>
           </section>
