@@ -1279,3 +1279,52 @@
   .ask-clerkme .ask-shortcut-row button:hover,
   .ask-clerkme .ask-send-button:hover{transform:none}
 }
+
+
+/* Navy icon glyphs remain legible in both themes by sitting on consistent pale tiles. */
+.ask-clerkme .ask-tool-button>span,
+.ask-clerkme .ask-live-small>span{
+  display:grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  border-radius:8px;
+  background:#eaf1f8;
+  color:#102d5a!important;
+}
+.ask-clerkme .ask-tool-button>span svg,
+.ask-clerkme .ask-live-small>span svg{
+  width:16px;
+  height:16px;
+  color:#102d5a!important;
+  stroke:#102d5a!important;
+}
+.ask-clerkme .ask-voice-orb>span{
+  display:grid;
+  place-items:center;
+  width:66px;
+  height:66px;
+  border-radius:21px;
+  background:#eaf1f8;
+  color:#102d5a!important;
+}
+.ask-clerkme .ask-voice-orb>span svg{color:#102d5a!important;stroke:#102d5a!important}
+.ask-clerkme .ask-voice-controls button>span{
+  background:#eaf1f8;
+  border-color:#d6e2ef;
+  color:#102d5a;
+}
+.ask-clerkme .ask-voice-controls button>span svg{color:#102d5a;stroke:#102d5a}
+.ask-clerkme .ask-voice-controls .ask-voice-end>span{
+  background:#b94d4b;
+  border-color:#d16b67;
+  color:#fff;
+}
+.ask-clerkme .ask-voice-controls .ask-voice-end>span svg{color:#fff;stroke:#fff}
+@media(max-width:760px){
+  .ask-clerkme .ask-tool-button>span,
+  .ask-clerkme .ask-live-small>span{width:22px;height:22px;flex-basis:22px;border-radius:7px}
+  .ask-clerkme .ask-tool-button>span svg,
+  .ask-clerkme .ask-live-small>span svg{width:15px;height:15px}
+}
