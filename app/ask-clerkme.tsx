@@ -317,6 +317,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       if (!response.ok || typeof data.answer !== "string") throw new Error(data.error || "ClerkME could not complete that answer.");
       appendMessages(threadId, [{ id: makeId(), role: "assistant", content: data.answer, createdAt: stamp() }]);
     } catch (error) {
+      updateThread(threadId, current => {
+        const messages = current.messages.filter(message => message.id !== userMessage.id);
+        return { ...current, title: messages.length ? current.title : "New conversation", updatedAt: stamp(), messages };
+      });
+      setDraft(question);
       setNotice(error instanceof Error ? error.message : "ClerkME could not complete that answer. Please retry.");
     } finally {
       setSending(false);
