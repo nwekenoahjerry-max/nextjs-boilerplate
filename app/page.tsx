@@ -1066,6 +1066,19 @@ export default function Home() {
             <button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button>
           </div>
         </header>
+        {active !== "ask" && (
+          <button
+            type="button"
+            className="ask-clerkme-fab"
+            onClick={() => selectSection("ask")}
+            aria-label="Open Ask ClerkME"
+            title="Ask ClerkME"
+          >
+            <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="sparkles"/></span>
+            <span className="ask-clerkme-fab-label">Ask ClerkME</span>
+            <span className="ask-clerkme-fab-arrow" aria-hidden="true">↗</span>
+          </button>
+        )}
         <div className={active === "ask" ? "content ask-clerkme-content" : "content"}>
           {active !== "ask" && <FocusMusicPlayer inVideoLibrary={active === "videos"}/>}
 {active === "ask" && <AskClerkMePanel userKey={authUser.id}/>}
