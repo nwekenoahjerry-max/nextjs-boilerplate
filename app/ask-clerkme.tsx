@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import "./ask-clerkme.css";
 
@@ -586,6 +586,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           clearConnectionTimeout();
           stopVoiceCall(false);
           setVoiceNotice("ClerkME could not establish the live voice call. Please retry or continue by text.");
+          setNotice("The live voice connection could not be established. You can continue using text chat.");
         } else {
           setVoiceNotice("The connection encountered a problem. Try moving to a stronger internet connection.");
         }
@@ -610,7 +611,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         NotReadableError: "The microphone is being used by another app. Close that app and retry.",
         SecurityError: "Microphone access requires HTTPS. Open ClerkME using its secure address."
       };
-      setVoiceNotice(messages[name] || (error instanceof Error ? error.message : "ClerkME could not start the voice session."));
+      const message = messages[name] || (error instanceof Error ? error.message : "ClerkME could not start the voice session.");
+      setVoiceNotice(message);
+      setNotice(message);
       setVoiceStatus("idle");
     }
   };
@@ -743,7 +746,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               />
               <div className="ask-composer-toolbar">
                 <div className="ask-composer-tools">
-                  <button type="button" className="ask-tool-button" onClick={() => fileInputRef.current?.click()} disabled={extracting} aria-label="Attach a lecture or file">
+                  <button type="button" className="ask-tool-button" onClick={() => fileInputRef.current?.click()} disabled={extracting} aria-label="Attach a lecture or file" title={"Attach " + STUDY_FILE_TYPES}>
                     <span>＋</span><b>{extracting ? "Reading…" : "Attach"}</b>
                   </button>
                   <input ref={fileInputRef} type="file" accept={STUDY_FILE_ACCEPT} hidden onChange={event => void pickFile(event.target.files?.[0])}/>
