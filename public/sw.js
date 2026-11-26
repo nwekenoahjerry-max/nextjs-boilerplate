@@ -1,5 +1,5 @@
-const CACHE_NAME = "clerkme-shell-v31-google-favicon";
-const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png"];
+const CACHE_NAME = "clerkme-shell-v32-branded-app-icons";
+const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -42,7 +42,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark-navy.svg" || url.pathname === "/favicon.png") {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname === "/manifest.webmanifest" || url.pathname === "/clerkme-mark-navy.svg" || url.pathname === "/favicon.png" || url.pathname === "/clerkme-icon-512.png" || url.pathname === "/apple-touch-icon.png") {
     event.respondWith(
       fetch(request)
         .then(response => {

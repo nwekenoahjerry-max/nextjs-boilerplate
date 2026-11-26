@@ -38,10 +38,12 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   icons: {
-    // Google Search currently lists raster formats for search-result favicons.
-    // Keep one stable, square PNG as the primary site icon.
-    icon: [{ url: "/favicon.png", type: "image/png", sizes: "192x192" }],
-    apple: [{ url: "/favicon.png", type: "image/png", sizes: "192x192" }],
+    // Use PNGs for browser and installed-app icons; keep the SVG as the in-app brand mark.
+    icon: [
+      { url: "/favicon.png", type: "image/png", sizes: "192x192" },
+      { url: "/clerkme-icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
   },
   keywords: ["clinical clerking", "medical students", "AI exam preparation", "SBA questions", "YouTube medical lectures", "OSCE", "Viva", "clinical simulation", "Africa"],
 };
