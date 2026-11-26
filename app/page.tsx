@@ -1188,7 +1188,6 @@ export default function Home() {
           >
             <span className="ask-clerkme-fab-icon"><WorkspaceIcon name="bot"/></span>
             <span className="ask-clerkme-fab-label">Ask ClerkME</span>
-            <span className="ask-clerkme-fab-arrow" aria-hidden="true">↗</span>
           </button>
         )}
         <div className={active === "ask" ? "content ask-clerkme-content" : "content"}>
