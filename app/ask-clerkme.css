@@ -1375,3 +1375,180 @@
   background: #172b40;
   color: #bdd0e4;
 }
+
+
+/* ClerkME assistant identity, readable comparison tables and generated study visuals. */
+.ask-message-avatar-brand{
+  padding:2px;
+  overflow:hidden;
+  border-color:#dce6f0;
+  background:#f5f8fc;
+}
+.ask-message-avatar-brand img,
+.ask-conversation-mark img,
+.ask-history-brand-mark img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.ask-history-brand-mark{
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  overflow:hidden;
+  border:1px solid #e0e8f0;
+  border-radius:11px;
+  background:#f5f8fc;
+}
+.ask-conversation-mark{
+  overflow:hidden;
+  padding:3px;
+  background:#f5f8fc!important;
+}
+.ask-conversation-mark img{
+  border-radius:8px;
+}
+.ask-welcome-orb>span{
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+}
+.ask-welcome-orb>span img{
+  display:block;
+  width:76%;
+  height:76%;
+  object-fit:contain;
+  border-radius:13px;
+}
+.ask-voice-orb>span{
+  display:grid;
+  place-items:center;
+  width:100%;
+  height:100%;
+}
+.ask-voice-orb>span img{
+  display:block;
+  width:58px;
+  height:58px;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:16px;
+  background:#f5f8fc;
+  object-fit:contain;
+  box-shadow:0 5px 18px rgba(0,0,0,.12);
+}
+.ask-formatted-answer .ask-table-wrap{
+  width:100%;
+  max-width:100%;
+  margin:13px 0 16px;
+  overflow-x:auto;
+  overscroll-behaviour-x:contain;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid #dfe7ef;
+  border-radius:12px;
+  background:#fff;
+  scrollbar-width:thin;
+}
+.ask-formatted-answer .ask-response-table{
+  width:100%;
+  min-width:420px;
+  border-collapse:separate;
+  border-spacing:0;
+  color:#314d6c;
+  font:500 10px/1.55 "DM Sans",Arial,sans-serif;
+  white-space:normal;
+}
+.ask-formatted-answer .ask-response-table th,
+.ask-formatted-answer .ask-response-table td{
+  min-width:90px;
+  padding:10px 12px;
+  border-right:1px solid #e8edf3;
+  border-bottom:1px solid #e8edf3;
+  text-align:left;
+  vertical-align:top;
+}
+.ask-formatted-answer .ask-response-table th{
+  background:#edf3f8;
+  color:#183858;
+  font-weight:800;
+}
+.ask-formatted-answer .ask-response-table tr:last-child td{border-bottom:0}
+.ask-formatted-answer .ask-response-table th:last-child,
+.ask-formatted-answer .ask-response-table td:last-child{border-right:0}
+.ask-formatted-answer .ask-response-table tbody tr:nth-child(even) td{background:#fafbfd}
+.ask-generated-visual{
+  display:block;
+  width:min(100%,620px);
+  margin:14px 0 17px;
+}
+.ask-generated-visual img{
+  display:block;
+  width:100%;
+  max-height:520px;
+  object-fit:contain;
+  border:1px solid #e0e8f0;
+  border-radius:14px;
+  background:#f7f9fc;
+}
+.ask-generated-visual small{
+  display:block;
+  margin-top:6px;
+  color:#8998a9;
+  font:500 8px/1.5 "DM Sans",Arial,sans-serif;
+}
+.ask-formatted-answer .ask-table-wrap:focus-visible{
+  outline:3px solid rgba(67,126,184,.35);
+  outline-offset:2px;
+}
+[data-theme="dark"] .ask-message-avatar-brand,
+[data-theme="dark"] .ask-history-brand-mark,
+[data-theme="dark"] .ask-conversation-mark{
+  border-color:#405a75;
+  background:#eaf0f6!important;
+}
+[data-theme="dark"] .ask-formatted-answer .ask-table-wrap{
+  border-color:#3b536d;
+  background:#152b44;
+}
+[data-theme="dark"] .ask-formatted-answer .ask-response-table{
+  color:#d7e4f2;
+}
+[data-theme="dark"] .ask-formatted-answer .ask-response-table th{
+  border-color:#3a536d;
+  background:#243e59;
+  color:#f1f6fb;
+}
+[data-theme="dark"] .ask-formatted-answer .ask-response-table td{
+  border-color:#344b64;
+}
+[data-theme="dark"] .ask-formatted-answer .ask-response-table tbody tr:nth-child(even) td{
+  background:#192f48;
+}
+[data-theme="dark"] .ask-generated-visual img{
+  border-color:#3a536d;
+  background:#1b334d;
+}
+[data-theme="dark"] .ask-generated-visual small{color:#a1b2c5}
+@media(max-width:760px){
+  .ask-formatted-answer .ask-response-table{
+    min-width:390px;
+    font-size:9px;
+  }
+  .ask-formatted-answer .ask-response-table th,
+  .ask-formatted-answer .ask-response-table td{
+    padding:9px 10px;
+  }
+  .ask-generated-visual{
+    width:100%;
+    margin:12px 0 15px;
+  }
+  .ask-generated-visual img{max-height:390px}
+}
+@media(prefers-reduced-motion:reduce){
+  .ask-message-avatar-brand img,
+  .ask-conversation-mark img,
+  .ask-history-brand-mark img{transition:none}
+}
