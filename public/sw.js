@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v22-live-voice-brand-loader";
+const CACHE_NAME = "clerkme-shell-v23-fixed-ask-launcher";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
