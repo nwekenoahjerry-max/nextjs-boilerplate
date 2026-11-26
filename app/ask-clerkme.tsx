@@ -166,7 +166,13 @@ function AssistantMessage({ message }: { message: ChatMessage }) {
   );
 }
 
-export default function AskClerkMePanel({ userKey }: { userKey: string }) {
+type AskClerkMePanelProps = {
+  userKey: string;
+  initialPrompt?: string;
+  onInitialPromptConsumed?: () => void;
+};
+
+export default function AskClerkMePanel({ userKey, initialPrompt, onInitialPromptConsumed }: AskClerkMePanelProps) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -216,6 +222,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const initialGreetingSentRef = useRef(false);
+  const initialPromptHandledRef = useRef(false);
+  const sendMessageRef = useRef<(suggested?: string) => Promise<void>>(async () => undefined);
 
   const activeThread = threads.find(thread => thread.id === activeThreadId) || null;
   const activeMessages = activeThread?.messages || [];
@@ -412,6 +420,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       composerRef.current?.focus();
     }
   };
+
+  // Keep the sender in a ref so a Home-screen prompt is submitted once,
+  // after the saved conversation list has finished hydrating.
+  sendMessageRef.current = sendMessage;
+  useEffect(() => {
+    const prompt = initialPrompt?.trim();
+    if (!hydrated || !prompt || initialPromptHandledRef.current) return;
+    initialPromptHandledRef.current = true;
+    void sendMessageRef.current(prompt);
+    onInitialPromptConsumed?.();
+  }, [hydrated, initialPrompt, onInitialPromptConsumed]);
 
   const startDictation = () => {
     if (dictating) {
