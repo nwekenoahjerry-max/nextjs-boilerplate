@@ -112,7 +112,7 @@ export const onRequestPost = async (context:AppContext) => {
     ].join("\n\n");
 
     const now=Date.now();
-    const expireTime=new Date(now+12*60*1000).toISOString();
+    const expireTime=new Date(now+30*60*1000).toISOString();
     const newSessionExpireTime=new Date(now+60*1000).toISOString();
     const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
 
