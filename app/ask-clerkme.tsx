@@ -14,6 +14,7 @@ type ChatMessage = {
 type ChatThread = { id: string; title: string; updatedAt: number; messages: ChatMessage[] };
 type SourceMaterial = { id: string; title: string; unit?: string };
 type VoiceStatus = "idle" | "connecting" | "connected";
+type VoiceMode = "tutor" | "viva";
 type Attachment = { name: string; text: string; characters: number };
 type SpeechResult = { transcript: string };
 type SpeechResultEvent = { resultIndex: number; results: ArrayLike<ArrayLike<SpeechResult>> };
@@ -179,6 +180,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const [showMaterials, setShowMaterials] = useState(false);
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("idle");
+  const [voiceMode, setVoiceMode] = useState<VoiceMode>("tutor");
   const [voiceNotice, setVoiceNotice] = useState("");
   const [voiceMuted, setVoiceMuted] = useState(false);
   const [voiceElapsed, setVoiceElapsed] = useState(0);
@@ -505,8 +507,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     if (notify) setVoiceNotice("Voice session ended. The conversation transcript has been added to your chat.");
   };
 
-  const startVoiceCall = async () => {
+  const startVoiceCall = async (mode: VoiceMode = "tutor") => {
     if (voiceStatus !== "idle") return;
+    setVoiceMode(mode);
+    setVoiceNotice("");
     if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === "undefined" || typeof AudioContext === "undefined") {
       const message = "Live voice needs microphone access and a modern browser. You can continue with text chat.";
       setVoiceNotice(message);
@@ -564,6 +568,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({
           intent: "live-token",
+          voiceMode: mode,
           history: activeMessages.slice(-10).map(message => ({ role: message.role, content: message.content })),
           attachmentText: attachment?.text || "",
           sourceName: attachment?.name || materialTitle || "",
@@ -574,7 +579,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) throw new Error(tokenData.error || "ClerkME could not authorise the live voice session.");
       if (attempt !== callAttemptRef.current || endingRef.current) return;
 
-      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
       const socket = new WebSocket(endpoint);
       socketRef.current = socket;
       connectionTimeoutRef.current = window.setTimeout(() => {
@@ -630,7 +635,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           setVoiceNotice("Connected. Speak naturally; you can interrupt ClerkME at any time.");
           socket.send(JSON.stringify({
             clientContent: {
-              turns: [{ role: "user", parts: [{ text: "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response." }] }],
+              turns: [{ role: "user", parts: [{ text: mode === "viva"
+                ? "Start the spoken medical Viva. Briefly introduce yourself as ClerkME's examiner, then, if a lecture is attached, ask one relevant first question from it; otherwise ask the student which clinical topic they want to be examined on. Ask one question only, then pause."
+                : "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response." }] }],
               turnComplete: true
             }
           }));
@@ -786,11 +793,18 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                     </button>
                   ))}
                 </div>
-                <button type="button" className="ask-live-feature" onClick={() => void startVoiceCall()}>
-                  <span className="ask-live-feature-icon">♫</span>
-                  <span><strong>Talk to ClerkME</strong><small>Start a natural, two-way voice conversation</small></span>
-                  <b>Start call <i>→</i></b>
-                </button>
+                <div className="ask-live-actions">
+                  <button type="button" className="ask-live-feature" onClick={() => void startVoiceCall("tutor")}>
+                    <span className="ask-live-feature-icon">♫</span>
+                    <span><strong>Talk to ClerkME</strong><small>Discuss topics in a natural voice conversation</small></span>
+                    <b>Start live <i>→</i></b>
+                  </button>
+                  <button type="button" className="ask-live-feature ask-live-feature-viva" onClick={() => void startVoiceCall("viva")}>
+                    <span className="ask-live-feature-icon">☷</span>
+                    <span><strong>Viva examiner</strong><small>Answer aloud and receive examiner-style feedback</small></span>
+                    <b>Start Viva <i>→</i></b>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="ask-message-list">
@@ -847,7 +861,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                   </button>
                 </div>
                 <div className="ask-composer-submit">
-                  <button type="button" className="ask-live-small" onClick={() => void startVoiceCall()} title="Start a live voice conversation"><span>♫</span><b>Talk live</b></button>
+                  <button type="button" className="ask-live-small" onClick={() => void startVoiceCall("tutor")} title="Start a live voice conversation"><span>♫</span><b>Talk live</b></button>
                   <button type="submit" className="ask-send-button" disabled={!sendAllowed} aria-label="Send message">↑</button>
                 </div>
               </div>
@@ -858,17 +872,23 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       </div>
 
       {voiceStatus !== "idle" && (
-        <div className="ask-voice-overlay" role="dialog" aria-modal="true" aria-label="Live voice conversation with ClerkME">
+        <div className="ask-voice-overlay" role="dialog" aria-modal="true" aria-label={voiceMode === "viva" ? "Viva examiner voice session" : "Live voice conversation with ClerkME"}>
           <section className="ask-voice-card">
             <div className="ask-voice-top">
               <button type="button" className="ask-icon-button" onClick={() => stopVoiceCall(true)} aria-label="Close voice conversation">×</button>
-              <span>CLERKME · LIVE VOICE</span>
+              <span>{voiceMode === "viva" ? "CLERKME · VIVA EXAMINER" : "CLERKME · LIVE VOICE"}</span>
               <span className="ask-voice-live-dot"/>
             </div>
             <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span>✦</span><i/><b/></div>
-            <span className="ask-voice-state">{voiceStatus === "connecting" ? "CONNECTING TO CLERKME" : voiceMuted ? "MICROPHONE MUTED" : "YOU'RE TALKING TO CLERKME"}</span>
-            <h2>{voiceStatus === "connecting" ? "Getting your voice session ready…" : "What would you like to learn?"}</h2>
-            <p className="ask-voice-subtitle">{voiceStatus === "connecting" ? "Allow microphone access when your browser asks." : "Speak naturally. You can interrupt, ask follow-up questions and change direction at any time."}</p>
+            <span className="ask-voice-state">{voiceStatus === "connecting" ? "CONNECTING TO CLERKME" : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
+            <h2>{voiceStatus === "connecting"
+              ? (voiceMode === "viva" ? "Preparing your Viva examiner…" : "Getting your voice session ready…")
+              : (voiceMode === "viva" ? "Your Viva is under way" : "What would you like to learn?")}</h2>
+            <p className="ask-voice-subtitle">{voiceStatus === "connecting"
+              ? "Allow microphone access when your browser asks."
+              : voiceMode === "viva"
+                ? "Answer aloud, one question at a time. ClerkME will give examiner-style feedback after each response."
+                : "Speak naturally. You can interrupt, ask follow-up questions and change direction at any time."}</p>
             {voiceStatus === "connected" && <span className="ask-voice-timer">{formatClock(voiceElapsed)}</span>}
             <div className="ask-voice-transcript" aria-live="polite">
               {voiceTranscript || (voiceStatus === "connected" ? "ClerkME is ready and listening…" : "Preparing a secure connection…")}
