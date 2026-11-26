@@ -2634,97 +2634,119 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
     bottom: calc(10px + env(safe-area-inset-bottom)) !important;
   }
 
-  .clerkme-support-fab:not(.profile-support-fab) {
-    left: 14px;
-    bottom: calc(88px + env(safe-area-inset-bottom) + 14px);
-  }
 }
 
-/* Consistent support entry point. The phone number is never printed in the UI. */
-.clerkme-support-fab {
-  position: fixed;
-  z-index: 45;
-  left: clamp(16px, 2.2vw, 28px);
-  bottom: clamp(18px, 2.5vh, 28px);
+/* WhatsApp support appears only in Account & settings, styled as a native ClerkMe setting. */
+.clerkme-support-setting {
+  width: 100%;
+  min-width: 0;
+  color: var(--clerkme-text, #102D5A) !important;
+}
+
+.clerkme-support-setting > span:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.clerkme-support-setting .clerkme-support-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 1px solid rgba(255,255,255,.38);
-  border-radius: 50%;
-  background: #20B85A;
-  color: #ffffff !important;
-  box-shadow: 0 9px 24px rgba(7, 105, 51, .25), 0 2px 6px rgba(7, 105, 51, .14);
-  text-decoration: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #DCE5F0;
+  border-radius: 10px;
+  background: #EDF2F8;
+  color: #102D5A !important;
 }
 
-.clerkme-support-fab:hover {
-  transform: translateY(-2px);
-  background: #159D4B;
-  box-shadow: 0 13px 28px rgba(7, 105, 51, .28);
-}
-
-.clerkme-support-fab:active {
-  transform: scale(.96);
-}
-
-.clerkme-support-fab svg {
-  display: block;
-  width: 27px;
-  height: 27px;
-}
-
-.clerkme-support-fab:focus-visible {
-  outline: 3px solid rgba(32, 184, 90, .42) !important;
-  outline-offset: 3px !important;
-}
-
-.profile-support-fab {
-  bottom: 22px;
-}
-
-.clerkme-support-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  color: inherit;
-  font-weight: 750;
-  text-decoration: none;
-}
-
-.clerkme-support-inline svg {
+.clerkme-support-setting .clerkme-support-mark svg {
   display: block;
   width: 21px;
   height: 21px;
+}
+
+.clerkme-support-setting strong {
+  color: #102D5A !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.clerkme-support-setting small {
+  color: #52647C !important;
+  font-size: 10px !important;
+  line-height: 1.5 !important;
+}
+
+.clerkme-support-setting:hover {
+  border-color: #C8D5E5 !important;
+  background: #F5F8FC !important;
+}
+
+.clerkme-support-setting .you-action-label {
   flex: 0 0 auto;
-  color: #20B85A;
 }
 
-.clerkme-support-inline:hover {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-html[data-theme="dark"] .clerkme-support-inline {
+html[data-theme="dark"] .clerkme-support-setting {
+  background: var(--clerkme-surface) !important;
+  border-color: var(--clerkme-border) !important;
   color: var(--clerkme-text) !important;
 }
 
+html[data-theme="dark"] .clerkme-support-setting .clerkme-support-mark {
+  border-color: #405773;
+  background: #263D59;
+  color: #A9C9F2 !important;
+}
+
+html[data-theme="dark"] .clerkme-support-setting strong {
+  color: var(--clerkme-text) !important;
+}
+
+html[data-theme="dark"] .clerkme-support-setting small {
+  color: var(--clerkme-muted) !important;
+}
+
+html[data-theme="dark"] .clerkme-support-setting .you-action-label {
+  border-color: #405773 !important;
+  background: #21324A !important;
+  color: #D9E9FC !important;
+}
+
 @media (max-width: 760px) {
-  .profile-support-fab {
-    left: 14px !important;
-    bottom: 18px !important;
-    width: 45px;
-    height: 45px;
+  .clerkme-support-setting {
+    align-items: center;
+    min-height: 72px;
+    padding: 10px !important;
   }
 
-  .profile-support-fab svg {
-    width: 25px;
-    height: 25px;
+  .clerkme-support-setting .clerkme-support-mark {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+
+  .clerkme-support-setting .you-action-label {
+    padding: 7px 9px !important;
+    font-size: 9px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .clerkme-support-setting {
+    gap: 7px;
+  }
+
+  .clerkme-support-setting .clerkme-support-mark {
+    flex-basis: 31px;
+    width: 31px;
+    height: 31px;
+  }
+
+  .clerkme-support-setting small {
+    font-size: 9px !important;
   }
 }
 
