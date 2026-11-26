@@ -117,9 +117,13 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
   const now = Date.now();
+  // Keep the ephemeral-token constraints deliberately small. Google documents
+  // model, response modality and session resumption as the constrained setup;
+  // optional audio/transcription/compression settings are sent by the client
+  // after the socket opens instead of being locked into token provisioning.
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
     body: JSON.stringify({
       uses: 1,
       expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
@@ -129,23 +133,24 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         config: {
           systemInstruction: { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation, mode) }] },
           responseModalities: ["AUDIO"],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-          sessionResumption: {},
-          contextWindowCompression: { slidingWindow: { targetTokens: 12000 } }
+          sessionResumption: {}
         }
       }
     }),
     signal: AbortSignal.timeout(15000)
   });
-  const data = await response.json().catch(() => ({})) as { name?: string; error?: { message?: string } };
-  if (!response.ok || !data.name) {
+  const raw = await response.text();
+  let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
+  try { data = JSON.parse(raw) as typeof data; } catch { /* retain HTTP status for non-JSON gateway errors */ }
+  if (!response.ok || typeof data.name !== "string" || !data.name.startsWith("authTokens/")) {
+    const upstreamCode = data.error?.status || "HTTP_ERROR";
+    const detail = clean(data.error?.message || raw, 240);
     console.error("[ClerkME] Ask ClerkME live-session token creation failed.", {
       status: response.status,
-      detail: clean(data.error?.message, 280)
+      upstreamCode,
+      detail
     });
-    throw new Error("The live voice service could not start just now. Please retry or use text chat.");
+    throw new Error("LIVE_TOKEN_UPSTREAM_" + response.status + "_" + upstreamCode);
   }
   return data.name;
 }
@@ -196,8 +201,30 @@ export const onRequestPost = async (context: AppContext) => {
       const token = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode);
       return json({ token });
     } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\\d+)_([A-Z_]+)$/);
+      if (upstream) {
+        const status = Number(upstream[1]);
+        const upstreamCode = upstream[2];
+        const code = status === 401 || status === 403 ? "LIVE_API_KEY_NOT_AUTHORISED"
+          : status === 429 ? "LIVE_API_QUOTA"
+          : status === 400 ? "LIVE_TOKEN_CONFIGURATION_REJECTED"
+          : status === 404 ? "LIVE_MODEL_OR_ENDPOINT_UNAVAILABLE"
+          : "LIVE_TOKEN_PROVISIONING_FAILED";
+        const message = status === 401 || status === 403
+          ? "Google rejected the Gemini Live API credentials. The server key needs Live API access."
+          : status === 429
+            ? "Gemini Live has reached its current quota. Please try again later."
+            : status === 400
+              ? "Google rejected the Live session configuration. ClerkME has reported the failure for correction."
+              : status === 404
+                ? "Google could not find the requested Live API endpoint or model."
+                : "ClerkME could not obtain a Live API session token. Please retry.";
+        return json({ error: message, code, upstreamCode }, status === 429 ? 429 : 502);
+      }
+      console.error("[ClerkME] Live token provisioning failed unexpectedly.", { detail: clean(detail, 240) });
       return json({
-        error: error instanceof Error ? error.message : "ClerkME could not start the live voice session.",
+        error: "ClerkME could not obtain a secure Live API session. Please retry or continue with text chat.",
         code: "LIVE_SESSION_UNAVAILABLE"
       }, 502);
     }
