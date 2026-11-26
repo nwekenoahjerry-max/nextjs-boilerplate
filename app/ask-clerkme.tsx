@@ -81,7 +81,7 @@ function formatClock(seconds: number) {
 
 const mathSymbols: Record<string, string> = {
   "\\mu": "μ", "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ",
-  "\\Delta": "Δ", "\\theta": "θ", "\\lambda": "λ", "\\pi": "π", "\\sigma": "σ",
+  "\\Delta": "Δ", "\\theta": "θ", "\\lambda": "λ", "\\pi": "π", "\sigma": "σ",
   "\\omega": "ω", "\\Omega": "Ω", "\\times": "×", "\\cdot": "·", "\\pm": "±",
   "\\leq": "≤", "\\le": "≤", "\\geq": "≥", "\\ge": "≥", "\\neq": "≠",
   "\\approx": "≈", "\\rightarrow": "→", "\\to": "→", "\\infty": "∞",
@@ -101,7 +101,7 @@ function formatMath(source: string): string {
   let value = source.trim()
     .replace(/\\(?:left|right|displaystyle|textstyle|scriptstyle)\b/g, "")
     .replace(/\\(?:text|mathrm|textrm|operatorname)\s*\{([^{}]*)\}/g, "$1")
-    .replace(/\\\\\s*/g, " ")
+    .replace(/\\\\s*/g, " ")
     .replace(/\\(?:,|;|:|!|quad|qquad|enspace|thinspace)/g, " ");
   for (const [command, symbol] of Object.entries(mathSymbols)) value = value.split(command).join(symbol);
   value = value
@@ -708,7 +708,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
         const reference = [tokenData.code, tokenData.upstreamCode].filter(Boolean).join(" / ");
         const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
-        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
         const diagnostic = reference ? " (reference: " + reference + ")" : htmlTitle ? " (" + htmlTitle.slice(0, 100) + "; HTTP " + response.status + ")" : " (HTTP " + response.status + ")";
         throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + upstreamMessage + diagnostic);
       }
