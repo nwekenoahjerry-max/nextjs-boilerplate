@@ -127,7 +127,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   for (let attempt = 0; attempt < 3; attempt++) {
     const now = Date.now();
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
         body: JSON.stringify({
