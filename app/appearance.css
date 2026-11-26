@@ -2123,14 +2123,18 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   box-shadow:0 16px 34px rgba(10,37,70,.27),0 3px 7px rgba(10,37,70,.12);
 }
 .ask-clerkme-fab:active{cursor:grabbing}
+.ask-clerkme-fab-dragging{
+  cursor:grabbing!important;
+  transform:none!important;
+  transition:none!important;
+  opacity:.96;
+}
 .ask-clerkme-fab-icon{
-  cursor:grab;
-  touch-action:none;
+  cursor:inherit;
+  pointer-events:none;
   user-select:none;
   -webkit-user-select:none;
-  -webkit-tap-highlight-color:transparent;
 }
-.ask-clerkme-fab-icon:active{cursor:grabbing}
 .ask-clerkme-fab:focus-visible{
   outline:3px solid rgba(72,133,195,.55);
   outline-offset:3px;
@@ -2209,16 +2213,23 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 }
 .session-check-brand{margin-bottom:29px}
 .session-check-brand .brand-caption{letter-spacing:.14em}
-.session-check-spinner{
+.session-check-logo-loader{
+  display:grid;
+  place-items:center;
+  width:78px;
+  height:78px;
+  margin:0 auto 18px;
+  border-radius:24px;
+  background:linear-gradient(145deg,#f7faff 0%,#eaf1f9 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 12px 28px rgba(16,45,90,.09);
+  animation:clerkme-mark-breathe 1.65s ease-in-out infinite;
+}
+.session-check-logo-loader img{
   display:block;
-  width:39px;
-  height:39px;
-  margin:0 auto 19px;
-  border:3px solid #e3ebf4;
-  border-top-color:#173d65;
-  border-right-color:#5d8ab7;
-  border-radius:50%;
-  animation:clerkme-session-spin .82s linear infinite;
+  width:56px;
+  height:56px;
+  object-fit:contain;
+  filter:drop-shadow(0 4px 7px rgba(16,45,90,.12));
 }
 .session-check-card h1{
   margin:0;
@@ -2263,7 +2274,10 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 }
 .session-check-retry:hover{background:#214f7f}
 .session-check-retry:focus-visible{outline:3px solid rgba(72,133,195,.5);outline-offset:3px}
-@keyframes clerkme-session-spin{to{transform:rotate(360deg)}}
+@keyframes clerkme-mark-breathe{
+  0%,100%{transform:translateY(1px) scale(.96);opacity:.88}
+  50%{transform:translateY(-3px) scale(1.045);opacity:1}
+}
 [data-theme="dark"] .session-check-overlay{background:rgba(7,18,32,.96)}
 [data-theme="dark"] .session-check-card{
   border-color:#304760;
@@ -2272,7 +2286,7 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 }
 [data-theme="dark"] .session-check-card h1{color:#edf4fb}
 [data-theme="dark"] .session-check-card p{color:#a8bbd0}
-[data-theme="dark"] .session-check-spinner{border-color:#304760;border-top-color:#d8e9fb;border-right-color:#83b1df}
+[data-theme="dark"] .session-check-logo-loader{background:linear-gradient(145deg,#213b56 0%,#172d44 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 28px rgba(0,0,0,.22)}
 [data-theme="dark"] .session-check-error-icon{border-color:#67463d;background:#382b2b;color:#ffc7b1}
 @media(max-width:480px){
   .session-check-overlay{padding:17px}
@@ -2282,7 +2296,7 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   .session-check-card p{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){
-  .session-check-spinner{animation:none;border-top-color:#173d65}
+  .session-check-logo-loader{animation:none}
 }
 
 
