@@ -297,6 +297,29 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
       .filter(group=>group.materials.length>0);
   },[visibleMaterials,libraryMode]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
+
+  const flashcardCandidates = useMemo(() => {
+    const summary = selectedMaterial?.summary;
+    if (!summary) return [];
+    const candidates = [
+      ...(summary.revisionQuestions || []).map(item => ({ front: item.question, back: item.answer })),
+      ...(summary.examFocus?.vivaQuestions || []).map(item => ({ front: item.question, back: item.answer })),
+      ...(summary.sections || []).flatMap(section => (section.subsections || [])
+        .filter(item => item.recallQuestion && item.recallAnswer)
+        .map(item => ({ front: item.recallQuestion || "", back: item.recallAnswer || "" }))),
+      ...(summary.keyTerms || []).map(item => ({ front: "Define " + item.term, back: item.meaning })),
+    ];
+    const seen = new Set<string>();
+    return candidates.filter(item => {
+      const front = (item.front || "").trim();
+      const back = (item.back || "").trim();
+      const key = (front + "|" + back).toLowerCase();
+      if (!front || !back || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 60);
+  }, [selectedMaterial]);
+
   const selectedMaterialIsGeneral = !!selectedMaterial && isCustomSubjectUnit(selectedMaterial.unit);
   const selectedVisuals = useMemo<GeneratedStudyIllustration[]>(()=>{
     if (!selectedMaterial) return [];
@@ -1352,6 +1375,18 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
               <div><span className="eyebrow">{selectedMaterial.summary.quickPreview?"QUICK SOURCE OUTLINE":"YOUR STUDY GUIDE"}</span><p>{selectedMaterial.summary.quickPreview?"Instant extraction from your upload. The detailed AI guide is still being generated and will replace this outline automatically when ready.":"Read the topic in sequence, review the key exam points, then test yourself with the practice questions."}</p>{selectedMaterial.summary.generationProvider==="Cloudflare Workers AI"&&<small className="study-guide-provider-note">Your study guide is ready — built around the material you shared to support your learning.</small>}</div>
               <div className="study-guide-toolbar-actions">
                 {activeQuestions.length>0&&<button type="button" className="primary-button" onClick={()=>setTab("questions")}>{selectedMaterialIsGeneral?"Start practice":"Start MCQ practice"} <span>→</span></button>}
+                {!!flashcardCandidates.length&&<button type="button" className="secondary-button" onClick={()=>{
+                  try {
+                    window.localStorage.setItem("clerkme:flashcards:pending:"+userKey,JSON.stringify({
+                      title:selectedMaterial.title+" · Revision cards",
+                      unit:selectedMaterial.unit,
+                      cards:flashcardCandidates
+                    }));
+                    window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"flashcards"}}));
+                  } catch {
+                    window.alert("ClerkME could not prepare the flashcard deck in this browser. Please try again.");
+                  }
+                }}>Make {flashcardCandidates.length} flashcards</button>}
                 <button type="button" className="secondary-button" onClick={()=>setTab("source")}>Open original file</button>
                 <button type="button" className="secondary-button" onClick={()=>window.print()}>Print / Save PDF</button>
                 <button type="button" className="secondary-button study-inline-visual-refresh" disabled={illustratingMaterialId===selectedMaterial.id} onClick={()=>generateIllustrations(selectedMaterial.id,true)}>{illustratingMaterialId===selectedMaterial.id?"Finding images…":selectedVisuals.length?"Refresh images":"Find images"}</button>

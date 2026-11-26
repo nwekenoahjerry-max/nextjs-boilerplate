@@ -9,6 +9,7 @@ import VideoLibraryPanel from "./video-library-panel";
 import FocusMusicPlayer from "./focus-music-player";
 import AdaptiveFlightGame from "./adaptive-flight-game";
 import LearningQuestionBank from "./learning-question-bank";
+import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import NotificationCenter from "../components/notification-center";
 import ReminderSettings from "../components/reminder-settings";
@@ -24,6 +25,7 @@ const navItems = [
   ["Clinical simulation", "simulation", "stethoscope"],
   ["Study", "study", "book-open"],
   ["My materials", "materials", "folder-open"],
+  ["Flashcards", "flashcards", "layers"],
   ["Video library", "videos", "play-square"],
   ["OSCE & Viva", "osce", "clipboard-list"],
   ["Question bank", "qbank", "list-checks"],
@@ -39,6 +41,7 @@ const workspaceIconShapes: Record<string, ReactNode> = {
   stethoscope: <><path d="M6 3v5a5 5 0 0 0 10 0V3"/><path d="M4 3h4M14 3h4"/><path d="M11 13v2a5 5 0 0 0 10 0v-1"/><circle cx="20" cy="12" r="2"/><path d="M11 18v2a3 3 0 0 0 6 0v-1"/></>,
   "book-open": <><path d="M12 7v14"/><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13"/><path d="M3 18h6a3 3 0 0 1 3 3"/><path d="M21 18h-6a3 3 0 0 0-3 3"/></>,
   "folder-open": <><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v1"/><path d="M3 17V7"/><path d="M2 17l2-6a2 2 0 0 1 2-1h15a1 1 0 0 1 1 1l-2 7a2 2 0 0 1-2 1H4a2 2 0 0 1-2-2Z"/></>,
+  layers: <><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/></>,
   "play-square": <><rect x="3" y="3" width="18" height="18" rx="3"/><path d="m10 8 6 4-6 4z"/></>,
   "clipboard-list": <><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M8 10h8M8 14h8M8 18h5"/></>,
   "list-checks": <><path d="m3 6 2 2 3-3"/><path d="M11 6h10"/><path d="m3 12 2 2 3-3"/><path d="M11 12h10"/><path d="m3 18 2 2 3-3"/><path d="M11 18h10"/></>,
@@ -982,13 +985,13 @@ export default function Home() {
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">STUDY & PRACTISE</div>
-          {navItems.slice(5, 11).map(([label, id, icon]) => (
+          {navItems.slice(5, 12).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
-          {navItems.slice(11).map(([label, id, icon]) => (
+          {navItems.slice(12).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
@@ -1010,7 +1013,7 @@ export default function Home() {
         <button type="button" className={active==="clerking"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("clerking")} aria-current={active==="clerking"?"page":undefined}>
           <span><WorkspaceIcon name="file-plus"/></span><small>Clerk</small>
         </button>
-        <button type="button" className={["study","materials","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","videos","osce","qbank","game"].includes(active)?"page":undefined}>
+        <button type="button" className={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"page":undefined}>
           <span><WorkspaceIcon name="book-open"/></span><small>Study</small>
         </button>
         <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
@@ -1037,6 +1040,7 @@ export default function Home() {
           <div className="mobile-account-tool-grid">
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("study")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="book-open"/></span><strong>Study home</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("materials")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="folder-open"/></span><strong>My materials</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("flashcards")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="layers"/></span><strong>Flashcards</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("videos")}><span className="mobile-account-tool-icon video"><WorkspaceIcon name="play-square"/></span><strong>YouTube library</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("osce")}><span className="mobile-account-tool-icon osce"><WorkspaceIcon name="clipboard-list"/></span><strong>OSCE & Viva</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("qbank")}><span className="mobile-account-tool-icon questions"><WorkspaceIcon name="list-checks"/></span><strong>Question bank</strong></button>
@@ -1218,6 +1222,9 @@ export default function Home() {
               <button type="button" className="study-hub-format-card" onClick={()=>selectSection("game")}>
                 <span className="study-hub-format-icon flight">✈</span><span><strong>Flight Academy</strong><small>Test your recall through adaptive, unit- and lecture-based questions.</small></span><b>→</b>
               </button>
+              <button type="button" className="study-hub-format-card" onClick={()=>selectSection("flashcards")}>
+                <span className="study-hub-format-icon">▤</span><span><strong>Flashcards</strong><small>Use active recall to retain key facts, differentials, investigations and management decisions from your lectures.</small></span><b>→</b>
+              </button>
             </div>
           </>}
           
@@ -1310,6 +1317,7 @@ export default function Home() {
           {active === "patients" && <><div className="page-intro"><div className="eyebrow">PRIVATE CASE LIBRARY</div><h1>My cases</h1><p>Cases are visible only to the account that created them.</p></div><button className="primary-button" onClick={loadCases}>Refresh cases</button>{!authUser ? <div className="empty-state"><p>Sign in to view your saved cases.</p><a className="sign-in-link" href="/login">Sign in with Google</a></div> : <div className="panel case-library">{caseList.length ? caseList.map(c=><div className="template-row" key={c.id}><span className="template-icon">▤</span><span className="template-info"><strong>{c.title} · {c.case_reference}</strong><small>{c.specialty} · {c.presenting_complaint}</small></span><span className="template-tag">{c.status}</span></div>) : <div className="empty-state"><p>No saved cases yet. Start your first clerking.</p><button className="primary-button" onClick={() => startClerking()}>Start a clerking →</button></div>}</div>}</> }
           {active === "guides" && <ClinicalGuides/>}
           {active === "materials" && <MaterialsPanel userKey={authUser.id}/>}
+          {active === "flashcards" && <FlashcardsPanel userKey={authUser.id}/> }
           {active === "videos" && <VideoLibraryPanel/>}
           {active === "osce" && <><div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div><div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>{(()=>{const qs=questionBank.filter(q=>q.unit===osceUnit);const q=qs[osceIndex%qs.length];return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>})()}</>}
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
