@@ -85,6 +85,30 @@ const publicClinicalFeatures = [
   {number:"06",title:"Private cases and learning activity",description:"Keep your learning cases in your account and follow your current streak, personal best, active days and weekly study check-ins.",detail:"Your work and progress in one workspace"},
 ];
 
+function SessionCheckOverlay({ error, onRetry }: { error?: string; onRetry: () => void }) {
+  return (
+    <div className="session-check-overlay" aria-live="polite">
+      <div className="session-check-card">
+        <ClerkMeBrand caption="AI CLINICAL LEARNING & EXAM PREP" className="session-check-brand"/>
+        {error ? (
+          <>
+            <span className="session-check-error-icon" aria-hidden="true">!</span>
+            <h1>We couldn't verify your session.</h1>
+            <p>{error}</p>
+            <button type="button" className="session-check-retry" onClick={onRetry}>Try again <span>→</span></button>
+          </>
+        ) : (
+          <>
+            <span className="session-check-spinner" aria-hidden="true"/>
+            <h1>Opening your workspace</h1>
+            <p>Checking your secure sign-in…</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PublicLanding() {
   const [sampleAnswer, setSampleAnswer] = useState<number | null>(null);
   const sampleOptions = [
@@ -676,6 +700,7 @@ export default function Home() {
 
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<ClerkMeInstallPromptEvent | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
   const [apiError, setApiError] = useState("");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -740,15 +765,40 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    fetch("/api/auth/me", {credentials:"same-origin",cache:"no-store"})
-      .then(response => response.ok ? response.json() : null)
-      .then(data => { if(mounted && data?.user) setAuthUser(data.user); })
-      .catch(() => {})
-      .finally(() => { if(mounted) setAuthLoading(false); });
-    return () => { mounted = false; };
+  const checkAuthSession = useCallback(async () => {
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      const response = await fetch("/api/auth/me", {
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Accept": "application/json" }
+      });
+      if (response.status === 401) {
+        // A confirmed unauthenticated response is the only path to the public landing page.
+        setAuthUser(null);
+        return;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || "ClerkME could not verify your sign-in. Please try again.");
+      }
+      if (!data?.user || typeof data.user.id !== "string") {
+        throw new Error("ClerkME received an incomplete session response. Please try again.");
+      }
+      setAuthUser(data.user);
+    } catch (error) {
+      setAuthError(error instanceof Error
+        ? error.message
+        : "We could not verify your sign-in. Check your connection and try again.");
+    } finally {
+      setAuthLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void checkAuthSession();
+  }, [checkAuthSession]);
   useEffect(() => {
     if (!authUser) return;
     fetch("/api/activity", { method: "POST", credentials: "same-origin" })
@@ -966,11 +1016,13 @@ export default function Home() {
     }
   };
 
-  // Render the public landing page immediately. The authentication check runs
-  // after hydration; signed-in users are then routed into their private workspace.
-  // This keeps meaningful page content in the initial HTML for search engines and
-  // visitors while preserving the existing authenticated experience.
-  if(authLoading || !authUser) return <PublicLanding/>;
+  // Keep the public landing in the initial HTML for search engines, but cover it
+  // while ClerkME checks the HttpOnly session cookie. Only a confirmed 401 should
+  // reveal the public landing to a visitor; temporary API failures must not look
+  // like a sign-out.
+  if (authLoading) return <><PublicLanding/><SessionCheckOverlay onRetry={checkAuthSession}/></>;
+  if (authError) return <><PublicLanding/><SessionCheckOverlay error={authError} onRetry={checkAuthSession}/></>;
+  if (!authUser) return <PublicLanding/>;
   if(authUser.profileComplete !== 1) return <main className="profile-required-screen"><ClerkMeBrand caption="CLINICAL LEARNING WORKSPACE" className="public-brand"/><section><span className="eyebrow">ONE QUICK SETUP</span><h1>Complete your student profile</h1><p>Add your university, level and location to unlock your private learning workspace.</p><a className="primary-button" href="/profile?setup=1">Complete my profile <span>→</span></a></section></main>;
 
   return (
