@@ -970,7 +970,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       <div className="ask-workspace">
         <aside className={"ask-history-panel" + (showHistoryMobile ? " is-mobile-open" : "")}>
           <div className="ask-history-top">
-            <div className="ask-history-brand"><span><AskIcon name="sparkles" size={18}/></span><div><strong>Ask ClerkME</strong><small>YOUR AI LEARNING COMPANION</small></div></div>
+            <div className="ask-history-brand"><span><AskIcon name="sparkles" size={18}/></span><div><strong>Ask ClerkME</strong><small>YOUR MEDICAL LEARNING COMPANION</small></div></div>
             <button type="button" className="ask-icon-button ask-history-close" onClick={() => setShowHistoryMobile(false)} aria-label="Close conversation history"><AskIcon name="x"/></button>
           </div>
           <button type="button" className="ask-new-chat" onClick={createConversation}><span><AskIcon name="plus" size={16}/></span> New conversation</button>
@@ -993,7 +993,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             <div className="ask-conversation-heading">
               <button type="button" className="ask-icon-button ask-mobile-history" onClick={() => setShowHistoryMobile(true)} aria-label="Open conversation history"><AskIcon name="menu" size={18}/></button>
               <span className="ask-conversation-mark"><AskIcon name="sparkles" size={19}/></span>
-              <div><strong>{currentTitle}</strong><small><i/> ClerkME learning assistant</small></div>
+              <div><strong>{currentTitle}</strong><small><i/> Medical learning assistant</small></div>
             </div>
             <div className="ask-header-actions">
               <button type="button" className="ask-header-action" onClick={createConversation} aria-label="Start a new conversation" title="Start a new conversation"><AskIcon name="plus" size={16}/> <span>New chat</span></button>
@@ -1007,7 +1007,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
                 <span className="ask-welcome-kicker">YOUR PERSONAL MEDICAL LEARNING SPACE</span>
                 <div className="ask-welcome-orb" aria-hidden="true"><span><AskIcon name="sparkles" size={30} strokeWidth={1.65}/></span><i/><b/></div>
                 <h1>What are we learning today?</h1>
-                <p>Ask a question, explore a difficult concept, or bring your lecture and learn directly from it.</p>
+                <p>Ask a clinical question, work through a difficult concept, or upload a lecture to study from your own materials.</p>
                 <div className="ask-shortcut-row" role="group" aria-label="Quick learning tools">
                   {suggestions.map(item => (
                     <button type="button" key={item.title} onClick={() => void sendMessage(item.prompt)} disabled={sending}>
