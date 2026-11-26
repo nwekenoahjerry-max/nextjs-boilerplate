@@ -2110,30 +2110,27 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   color:#fff;
   box-shadow:0 12px 28px rgba(10,37,70,.22),0 2px 5px rgba(10,37,70,.1);
   font:800 11px/1.1 Manrope,Arial,sans-serif;
-  cursor:grab;
-  touch-action:none;
-  user-select:none;
-  -webkit-user-select:none;
+  cursor:pointer;
+  touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;
   transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
 }
-.ask-clerkme-fab-positioned{right:auto!important;bottom:auto!important;}
 .ask-clerkme-fab:hover{
+  transform:translateY(-2px);
   background:linear-gradient(135deg,#173D6B 0%,#2E6798 100%);
   box-shadow:0 16px 34px rgba(10,37,70,.27),0 3px 7px rgba(10,37,70,.12);
 }
-.ask-clerkme-fab:active{cursor:grabbing}
-.ask-clerkme-fab-dragging{
-  cursor:grabbing!important;
-  transform:none!important;
-  transition:none!important;
-  opacity:.96;
-}
+.ask-clerkme-fab:active{transform:translateY(0) scale(.985)}
 .ask-clerkme-fab-icon{
-  cursor:inherit;
-  pointer-events:none;
-  user-select:none;
-  -webkit-user-select:none;
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  flex:0 0 36px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:50%;
+  background:rgba(255,255,255,.15);
+  color:#D5E9FF;
 }
 .ask-clerkme-fab:focus-visible{
   outline:3px solid rgba(72,133,195,.55);
@@ -2160,8 +2157,8 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 }
 @media(max-width:760px){
   .ask-clerkme-fab{
-    right:15px;
-    bottom:calc(68px + clamp(74px,12vh,112px) + env(safe-area-inset-bottom));
+    right:14px;
+    bottom:calc(72px + env(safe-area-inset-bottom) + 12px);
     min-width:146px;
     min-height:47px;
     gap:8px;
@@ -2173,10 +2170,10 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
 }
 @media(max-width:380px){
   .ask-clerkme-fab{
-    right:12px;
-    min-width:138px;
-    min-height:45px;
-    bottom:calc(68px + clamp(70px,11vh,96px) + env(safe-area-inset-bottom));
+    right:11px;
+    min-width:136px;
+    min-height:44px;
+    bottom:calc(72px + env(safe-area-inset-bottom) + 12px);
     padding-right:10px;
   }
   .ask-clerkme-fab-icon{width:31px;height:31px;flex-basis:31px}
