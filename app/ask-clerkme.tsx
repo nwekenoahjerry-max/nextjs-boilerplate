@@ -266,6 +266,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const [voiceMode, setVoiceMode] = useState<VoiceMode>("tutor");
   const [voiceReconnecting, setVoiceReconnecting] = useState(false);
   const [voiceNotice, setVoiceNotice] = useState("");
+  const [voiceDiagnostics, setVoiceDiagnostics] = useState("");
   const [voiceMuted, setVoiceMuted] = useState(false);
   const [voiceElapsed, setVoiceElapsed] = useState(0);
   const [voiceTranscript, setVoiceTranscript] = useState("");
@@ -300,6 +301,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<number | null>(null);
   const initialGreetingSentRef = useRef(false);
+  const microphoneInputDetectedRef = useRef(false);
+  const assistantAudioReceivedRef = useRef(false);
 
   const activeThread = threads.find(thread => thread.id === activeThreadId) || null;
   const activeMessages = activeThread?.messages || [];
@@ -672,7 +675,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     liveTokenExpiresAtRef.current = 0;
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
+    microphoneInputDetectedRef.current = false;
+    assistantAudioReceivedRef.current = false;
     liveRequestIdRef.current = "";
+    setVoiceDiagnostics("Requesting microphone permission…");
     clearPendingAudio();
     startedAtRef.current = 0;
     studentTranscriptRef.current = "";
@@ -691,9 +697,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         return;
       }
       streamRef.current = stream;
+      setVoiceDiagnostics("Microphone permission granted; preparing audio…");
       const audioContext = new AudioContext({ latencyHint: "interactive" });
       audioContextRef.current = audioContext;
       await audioContext.resume();
+      setVoiceDiagnostics("Microphone is ready; requesting a secure Live session…");
       if (attempt !== callAttemptRef.current || endingRef.current) {
         stream.getTracks().forEach(track => track.stop());
         if (audioContext.state !== "closed") void audioContext.close();
@@ -711,6 +719,15 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const socket = socketRef.current;
         if (!setupReadyRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
         const samples = event.inputBuffer.getChannelData(0);
+        if (!microphoneInputDetectedRef.current) {
+          let energy = 0;
+          for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
+          const rms = Math.sqrt(energy / samples.length);
+          if (rms >= 0.008) {
+            microphoneInputDetectedRef.current = true;
+            setVoiceDiagnostics("Microphone input detected; streaming audio to Google Live…");
+          }
+        }
         const pcm = resampleTo16k(samples, audioContext.sampleRate);
         if (!pcm.length) return;
         // Stream continuous 16 kHz PCM and let Gemini's server-side VAD
@@ -756,6 +773,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
+      setVoiceDiagnostics("Secure token issued; opening Google Live WebSocket…");
       const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
         ? tokenData.model
         : "models/gemini-3.8-live";
@@ -789,6 +807,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             try { socket.close(1000, "Session no longer active"); } catch {}
             return;
           }
+          setVoiceDiagnostics("WebSocket connected; sending Live session setup…");
           socket.send(JSON.stringify({
             setup: {
               model: liveModel,
@@ -872,6 +891,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             if (!startedAtRef.current) startedAtRef.current = Date.now();
             setVoiceStatus("connected");
             setVoiceReconnecting(false);
+            setVoiceDiagnostics("Google Live session is ready; waiting for microphone input…");
             setVoiceNotice(resumeHandle
               ? "Reconnected securely. Your live conversation is continuing."
               : "Connected. Speak naturally; you can interrupt ClerkME at any time.");
@@ -898,6 +918,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           for (const part of parts) {
             const audioData = part.inlineData?.data;
             if (typeof audioData !== "string" || audioData.length < 8) continue;
+            if (!assistantAudioReceivedRef.current) {
+              assistantAudioReceivedRef.current = true;
+              setVoiceDiagnostics("Google Live audio received; playing the spoken response…");
+            }
             const context = audioContextRef.current;
             if (!context || context.state === "closed") continue;
             try {
@@ -963,6 +987,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             ? "Voice session ended. The transcript is saved in this conversation."
             : "Google Live closed " + (hadCompletedSetup ? "the active session" : "before setup completed") +
               " (WebSocket " + event.code + (closeReason ? ": " + closeReason : "") + ")." + reference;
+          setVoiceDiagnostics("Live WebSocket closed with code " + event.code + (closeReason ? ": " + closeReason : ""));
           stopVoiceCall(false);
           setVoiceNotice(messageText);
           setNotice(messageText);
@@ -1192,6 +1217,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               {voiceTranscript || (voiceStatus === "connected" ? "ClerkME is ready and listening…" : "Preparing a secure connection…")}
             </div>
             {voiceNotice && <p className="ask-voice-notice" role="status">{voiceNotice}</p>}
+            {voiceDiagnostics && <p className="ask-voice-diagnostic" role="status">Connection check · {voiceDiagnostics}</p>}
             <div className="ask-voice-controls">
               <button type="button" onClick={toggleMute} disabled={voiceStatus !== "connected"} className={voiceMuted ? "is-muted" : ""} aria-label={voiceMuted ? "Unmute microphone" : "Mute microphone"}><span><AskIcon name={voiceMuted ? "mic-off" : "mic"} size={17}/></span><small>{voiceMuted ? "Unmute" : "Mute"}</small></button>
               <button type="button" className="ask-voice-end" onClick={() => stopVoiceCall(true)}><span><AskIcon name="x" size={17}/></span><small>End session</small></button>
