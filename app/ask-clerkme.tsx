@@ -773,7 +773,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (attempt !== callAttemptRef.current || endingRef.current) return;
         setupReadyRef.current = false;
         clearConnectionTimeout();
-        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
+        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
         const socket = new WebSocket(endpoint);
         socketRef.current = socket;
         connectionTimeoutRef.current = window.setTimeout(() => {
