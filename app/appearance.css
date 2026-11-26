@@ -2110,9 +2110,15 @@ html[data-theme="dark"] .home-resume-button:hover{background:#e7c98b}
   color:#fff;
   box-shadow:0 12px 28px rgba(10,37,70,.22),0 2px 5px rgba(10,37,70,.1);
   font:800 11px/1.1 Manrope,Arial,sans-serif;
-  cursor:pointer;
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
   transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
 }
+.ask-clerkme-fab:active{cursor:grabbing}
+.ask-clerkme-fab-positioned{right:auto!important;bottom:auto!important;}
 .ask-clerkme-fab:hover{
   transform:translateY(-3px);
   background:linear-gradient(135deg,#173D6B 0%,#2E6798 100%);
