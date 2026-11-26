@@ -538,6 +538,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     liveTokenExpiresAtRef.current = 0;
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
+    startedAtRef.current = 0;
     studentTranscriptRef.current = "";
     assistantTranscriptRef.current = "";
     setVoiceTranscript("");
@@ -811,6 +812,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     endingRef.current = true;
     callAttemptRef.current += 1;
     clearConnectionTimeout();
+    if (reconnectTimerRef.current !== null) window.clearTimeout(reconnectTimerRef.current);
+    reconnectTimerRef.current = null;
+    sessionHandleRef.current = "";
+    liveTokenExpiresAtRef.current = 0;
     try { socketRef.current?.close(); } catch {}
     socketRef.current = null;
     releaseVoiceMedia();
