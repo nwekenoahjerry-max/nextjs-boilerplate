@@ -193,7 +193,7 @@ function AssistantMessage({ message }: { message: ChatMessage }) {
     <article className={"ask-message-row " + (message.role === "user" ? "is-user" : "is-assistant")}>
       {message.role === "assistant" && <span className="ask-message-avatar" aria-hidden="true"><AskIcon name="sparkles" size={16}/></span>}
       <div className="ask-message-bubble">
-        {message.attachmentName && <div className="ask-message-attachment">▤ {message.attachmentName}</div>}
+        {message.attachmentName && <div className="ask-message-attachment"><AskIcon name="file" size={13}/> {message.attachmentName}</div>}
         <div className="ask-message-text">{message.role === "assistant" ? <FormattedAnswer content={message.content}/> : message.content}</div>
         <time>{new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(new Date(message.createdAt))}</time>
       </div>
@@ -915,7 +915,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             <div className="ask-history-brand"><span><AskIcon name="sparkles" size={18}/></span><div><strong>Ask ClerkME</strong><small>YOUR AI LEARNING COMPANION</small></div></div>
             <button type="button" className="ask-icon-button ask-history-close" onClick={() => setShowHistoryMobile(false)} aria-label="Close conversation history"><AskIcon name="x"/></button>
           </div>
-          <button type="button" className="ask-new-chat" onClick={createConversation}><span>＋</span> New conversation</button>
+          <button type="button" className="ask-new-chat" onClick={createConversation}><span><AskIcon name="plus" size={16}/></span> New conversation</button>
           <div className="ask-history-heading"><span>RECENT CONVERSATIONS</span><span>{threads.length}</span></div>
           <div className="ask-history-list">
             {threads.map(thread => (
@@ -978,7 +978,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             {(attachment || materialId) && (
               <div className="ask-source-chip">
                 <span><AskIcon name="file" size={15}/></span><span><strong>{attachment?.name || materialTitle}</strong><small>{materialId ? "Saved lecture · private library" : "Lecture text ready · " + (attachment?.characters || 0).toLocaleString() + " characters"}</small></span>
-                <button type="button" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Remove attached source">×</button>
+                <button type="button" onClick={() => { setAttachment(null); setMaterialId(""); setMaterialTitle(""); }} aria-label="Remove attached source"><AskIcon name="x" size={14}/></button>
               </div>
             )}
             {showMaterials && (
