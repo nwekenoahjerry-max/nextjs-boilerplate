@@ -45,7 +45,7 @@ const LATEX_SYMBOLS: Record<string, string> = {
   div: "÷", in: "∈", notin: "∉", subset: "⊂", supset: "⊃",
   alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ",
   mu: "μ", pi: "π", lambda: "λ", theta: "θ", sigma: "σ",
-  Omega: "Ω", omega: "ω",rightarrow: "→", leftarrow: "←",
+  Omega: "Ω", omega: "ω", rightarrow: "→", leftarrow: "←",
   Rightarrow: "⇒", Leftarrow: "⇐", to: "→", infinity: "∞",
   degree: "°", circ: "°", ell: "…", ldots: "…",
 };
@@ -65,15 +65,15 @@ const SUBSCRIPTS: Record<string, string> = {
 /** Render common inline LaTeX notation as readable Unicode without HTML injection. */
 function formatFlashcardText(value: string): string {
   return value
-    .replace(/\\\\\((.*?)\\\\\)/gs, "$1")
-    .replace(/\\\\\[(.*?)\\\\\]/gs, "$1")
-    .replace(/\\$\\$([\\s\\S]*?)\\$\\$/g, "$1")
-    .replace(/\\$([^$\\n]+)\\$/g, "$1")
-    .replace(/\\\\(?:text|mathrm|operatorname)\\{([^{}]*)\\}/g, "$1")
-    .replace(/\\\\([a-zA-Z]+)\\b/g, (match, command: string) => LATEX_SYMBOLS[command] ?? match)
-    .replace(/\\\\([{}$%_#])/g, "$1")
-    .replace(/\\^\\{([0-9+\\-=()]+)\\}/g, (_match, value: string) => [...value].map(char => SUPERSCRIPTS[char] ?? char).join(""))
-    .replace(/_\\{?([0-9+\\-=]+)\\}?/g, (_match, value: string) => [...value].map(char => SUBSCRIPTS[char] ?? char).join(""));
+    .replace(/\\\((.*?)\\\)/gs, "$1")
+    .replace(/\\\[(.*?)\\\]/gs, "$1")
+    .replace(/\$\$([\s\S]*?)\$\$/g, "$1")
+    .replace(/\$([^$\n]+)\$/g, "$1")
+    .replace(/\\(?:text|mathrm|operatorname)\{([^{}]*)\}/g, "$1")
+    .replace(/\\([a-zA-Z]+)\b/g, (match, command: string) => LATEX_SYMBOLS[command] ?? match)
+    .replace(/\\([{}$%_#])/g, "$1")
+    .replace(/\^\{([0-9+\-=()]+)\}/g, (_match, value: string) => [...value].map(char => SUPERSCRIPTS[char] ?? char).join(""))
+    .replace(/_\{?([0-9+\-=]+)\}?/g, (_match, value: string) => [...value].map(char => SUBSCRIPTS[char] ?? char).join(""));
 }
 
 function unitLabel(unit: string) {
