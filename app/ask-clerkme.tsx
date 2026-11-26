@@ -624,7 +624,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (message.error) {
           clearConnectionTimeout();
           stopVoiceCall(false);
-          setVoiceNotice("ClerkME could not continue the voice connection. Please retry or use text chat.");
+          const messageText = "ClerkME could not continue the voice connection. Please retry or use text chat.";
+          setVoiceNotice(messageText);
+          setNotice(messageText);
           return;
         }
         if (message.setupComplete) {
