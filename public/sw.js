@@ -29,7 +29,7 @@ self.addEventListener("fetch", event => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => {
+      fetch(new Request(request, { cache: "no-store" })).catch(async () => {
         // Never replay a cached public homepage for a returning, signed-in
         // learner when ClerkME cannot reach the server to verify the session.
         const offline = await caches.match("/offline.html");
