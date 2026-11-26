@@ -293,10 +293,38 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
             <div className="flashcards-study-layout">
               <div className="flashcards-study-toolbar"><span>CARD {cardIndex + 1} <i>OF</i> {studyQueue.length}</span><span>{Math.round((cardIndex / studyQueue.length) * 100)}% complete</span></div>
               <div className="flashcards-progress-track"><span style={{ width: (cardIndex / studyQueue.length) * 100 + "%" }}/></div>
-              <button type="button" className={"flashcards-card-face" + (flipped ? " is-answer" : "")} onClick={() => setFlipped(value => !value)} aria-label={flipped ? "Show question" : "Reveal answer"}>
-                <span className="flashcards-card-label">{flipped ? "ANSWER" : "QUESTION"}</span>
-                <span className="flashcards-card-content">{flipped ? currentCard.back : currentCard.front}</span>
-                <span className="flashcards-card-hint">{flipped ? "Tap to see the question" : "Tap to reveal the answer"}</span>
+              <div className="flashcards-study-intro">
+                <span className="flashcards-eyebrow">ACTIVE RECALL</span>
+                <p>Read the question, think of your answer, then flip the card.</p>
+              </div>
+              <button
+                type="button"
+                className="flashcards-flip-trigger"
+                onClick={() => setFlipped(value => !value)}
+                aria-label={flipped ? "Flip back to the question" : "Flip card to reveal the answer"}
+                aria-pressed={flipped}
+              >
+                <span className={"flashcards-flip-inner" + (flipped ? " is-flipped" : "")}>
+                  <span className="flashcards-flip-face flashcards-flip-front" aria-hidden={flipped}>
+                    <span className="flashcards-flip-topline">
+                      <span className="flashcards-flip-label"><i>?</i> QUESTION</span>
+                      <span className="flashcards-flip-count">THINK IT THROUGH</span>
+                    </span>
+                    <span className="flashcards-flip-content">{currentCard.front}</span>
+                    <span className="flashcards-flip-bottom"><i>↻</i><span>Tap anywhere to reveal the answer</span></span>
+                  </span>
+                  <span className="flashcards-flip-face flashcards-flip-back" aria-hidden={!flipped}>
+                    <span className="flashcards-flip-topline">
+                      <span className="flashcards-flip-label"><i>✓</i> ANSWER</span>
+                      <span className="flashcards-flip-count">CHECK YOUR RECALL</span>
+                    </span>
+                    <span className="flashcards-flip-content">{currentCard.back}</span>
+                    <span className="flashcards-flip-bottom">
+                      {currentCard.source ? <span className="flashcards-flip-source">{currentCard.source}</span> : <span>Review the key point</span>}
+                      <span>Tap to return to question</span>
+                    </span>
+                  </span>
+                </span>
               </button>
               <div className="flashcards-study-actions">
                 {!flipped ? <button type="button" className="flashcards-primary-button" onClick={() => setFlipped(true)}>Reveal answer <span>↗</span></button>
