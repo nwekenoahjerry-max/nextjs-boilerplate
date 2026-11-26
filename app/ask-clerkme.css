@@ -915,3 +915,9 @@
   .ask-clerkme .ask-live-small:hover,
   .ask-clerkme .ask-send-button:hover{transform:none}
 }
+
+
+/* Wider displays keep the quick actions in one balanced strip; smaller screens show all six without clipping. */
+@media(min-width:1051px){
+  .ask-clerkme .ask-shortcut-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
