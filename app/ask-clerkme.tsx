@@ -429,7 +429,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const startVoiceCall = async () => {
     if (voiceStatus !== "idle") return;
     if (!navigator.mediaDevices?.getUserMedia || typeof WebSocket === "undefined" || typeof AudioContext === "undefined") {
-      setVoiceNotice("Live voice needs microphone access and a modern browser. You can continue with text chat.");
+      const message = "Live voice needs microphone access and a modern browser. You can continue with text chat.";
+      setVoiceNotice(message);
+      setNotice(message);
       return;
     }
     const attempt = ++callAttemptRef.current;
@@ -499,7 +501,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       connectionTimeoutRef.current = window.setTimeout(() => {
         if (attempt !== callAttemptRef.current || setupReadyRef.current) return;
         stopVoiceCall(false);
-        setVoiceNotice("ClerkME did not finish connecting. Check your network and microphone permission, then retry.");
+        const message = "ClerkME did not finish connecting. Check your network and microphone permission, then retry.";
+        setVoiceNotice(message);
+        setNotice(message);
       }, 22000);
 
       socket.onopen = () => {
@@ -600,10 +604,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (endingRef.current) return;
         clearConnectionTimeout();
         commitVoiceTranscript();
-        stopVoiceCall(false);
-        setVoiceNotice(event.code === 1000
+        const message = event.code === 1000
           ? "Voice session ended."
-          : "The voice session disconnected. Your completed transcript is saved in this conversation; please retry.");
+          : "The voice session disconnected. Your completed transcript is saved in this conversation; please retry.";
+        stopVoiceCall(false);
+        setVoiceNotice(message);
+        setNotice(message);
       };
     } catch (error) {
       if (attempt !== callAttemptRef.current || endingRef.current) return;
