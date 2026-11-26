@@ -117,9 +117,33 @@ function formatMath(source: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function splitMarkdownTableRow(line: string): string[] {
+  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  return trimmed.replace(/\\\|/g, "\u0000").split("|").map(cell => cell.replace(/\u0000/g, "|").trim());
+}
+
+function isMarkdownTableSeparator(line: string): boolean {
+  const cells = splitMarkdownTableRow(line);
+  return cells.length > 1 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+}
+
 function renderInline(value: string): ReactNode[] {
-  const tokens = value.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\*\*[^*]+\*\*|\`[^\`]+\`|\*[^*]+\*)/g).filter(Boolean);
+  const tokens = value.split(/(!\[[^\]]*\]\([^\s)]+\)|\$\$[\s\S]+?\$\$|\$[^$\n]+\$|\\\([\s\S]+?\\\)|\\\[[\s\S]+?\\\]|\*\*[^*]+\*\*|\u0060[^\u0060]+\u0060|\*[^*]+\*)/g).filter(Boolean);
   return tokens.map((part, index) => {
+    const image = part.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (image) {
+      const [, alt, src] = image;
+      // Only render ClerkME's authenticated image endpoint. Never fetch arbitrary
+      // model-supplied URLs from inside a conversation.
+      const safeImage = /^\/api\/learning\/ask-image\?id=[0-9a-f-]{36}$/i.test(src);
+      if (!safeImage) return alt || "";
+      return (
+        <span className="ask-generated-visual" key={index}>
+          <img src={src} alt={alt || "AI-generated educational illustration"} loading="lazy" decoding="async"/>
+          <small>AI-generated study illustration · check details against trusted learning resources</small>
+        </span>
+      );
+    }
     const isMath = (part.charAt(0) === "$" && part.endsWith("$")) ||
       (part.startsWith("\\(") && part.endsWith("\\)")) ||
       (part.startsWith("\\[") && part.endsWith("\\]"));
@@ -130,7 +154,8 @@ function renderInline(value: string): ReactNode[] {
       return <span key={index} className={display ? "ask-math ask-math-display" : "ask-math"} aria-label={inner}>{formatMath(inner)}</span>;
     }
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={index}>{renderInline(part.slice(2, -2))}</strong>;
-    if (part.startsWith("\`") && part.endsWith("\`")) return <code key={index}>{part.slice(1, -1)}</code>;
+    const backtick = String.fromCharCode(96);
+    if (part.startsWith(backtick) && part.endsWith(backtick)) return <code key={index}>{part.slice(1, -1)}</code>;
     if (part.startsWith("*") && part.endsWith("*")) return <em key={index}>{renderInline(part.slice(1, -1))}</em>;
     return part;
   });
@@ -160,15 +185,44 @@ function FormattedAnswer({ content }: { content: string }) {
     blocks.push(<pre key={blocks.length}><code>{codeLines.join("\n")}</code></pre>);
     codeLines = null;
   };
+  const addTable = (header: string[], rows: string[][]) => {
+    const width = header.length;
+    const fit = (row: string[]) => Array.from({ length: width }, (_unused, index) => row[index] || "");
+    blocks.push(
+      <div className="ask-table-wrap" key={blocks.length} role="region" aria-label="Comparison table" tabIndex={0}>
+        <table className="ask-response-table">
+          <thead><tr>{header.map((cell, index) => <th scope="col" key={index}>{renderInline(cell)}</th>)}</tr></thead>
+          <tbody>{rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>{fit(row).map((cell, cellIndex) => <td key={cellIndex}>{renderInline(cell)}</td>)}</tr>
+          ))}</tbody>
+        </table>
+      </div>
+    );
+  };
 
-  for (const line of lines) {
-    if (line.trim().startsWith("```")) {
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    if (line.trim().startsWith(String.fromCharCode(96).repeat(3))) {
       flushParagraph(); flushList();
       if (codeLines) flushCode(); else codeLines = [];
       continue;
     }
     if (codeLines) { codeLines.push(line); continue; }
     if (!line.trim()) { flushParagraph(); flushList(); continue; }
+
+    // A Markdown table is identified by a header row followed by a separator row.
+    if (line.includes("|") && index + 1 < lines.length && isMarkdownTableSeparator(lines[index + 1])) {
+      flushParagraph(); flushList();
+      const header = splitMarkdownTableRow(line);
+      index++;
+      const rows: string[][] = [];
+      while (index + 1 < lines.length && lines[index + 1].trim() && lines[index + 1].includes("|")) {
+        rows.push(splitMarkdownTableRow(lines[index + 1]));
+        index++;
+      }
+      addTable(header, rows);
+      continue;
+    }
 
     const heading = line.match(/^#{1,4}\s+(.+)$/);
     if (heading) {
@@ -199,7 +253,6 @@ function FormattedAnswer({ content }: { content: string }) {
   flushParagraph(); flushList(); flushCode();
   return <div className="ask-formatted-answer">{blocks}</div>;
 }
-
 type AskIconName =
   | "sparkles" | "menu" | "plus" | "x" | "paperclip" | "folder" | "mic"
   | "headphones" | "clipboard-check" | "layers" | "arrow-up" | "message"
@@ -238,7 +291,7 @@ function AskIcon({ name, size = 16, strokeWidth = 1.9 }: { name: AskIconName; si
 function AssistantMessage({ message }: { message: ChatMessage }) {
   return (
     <article className={"ask-message-row " + (message.role === "user" ? "is-user" : "is-assistant")}>
-      {message.role === "assistant" && <span className="ask-message-avatar" aria-hidden="true"><AskIcon name="sparkles" size={16}/></span>}
+      {message.role === "assistant" && <span className="ask-message-avatar ask-message-avatar-brand" aria-label="ClerkME"><img src="/clerkme-mark-navy.svg" alt="" width="26" height="26" decoding="async"/></span>}
       <div className="ask-message-bubble">
         {message.attachmentName && <div className="ask-message-attachment"><AskIcon name="file" size={13}/> {message.attachmentName}</div>}
         <div className="ask-message-text">{message.role === "assistant" ? <FormattedAnswer content={message.content}/> : message.content}</div>
@@ -1082,7 +1135,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       <div className="ask-workspace">
         <aside className={"ask-history-panel" + (showHistoryMobile ? " is-mobile-open" : "")}>
           <div className="ask-history-top">
-            <div className="ask-history-brand"><span><AskIcon name="sparkles" size={18}/></span><div><strong>Ask ClerkME</strong><small>YOUR MEDICAL LEARNING COMPANION</small></div></div>
+            <div className="ask-history-brand"><span className="ask-history-brand-mark"><img src="/clerkme-mark-navy.svg" alt="" width="34" height="34" decoding="async"/></span><div><strong>Ask ClerkME</strong><small>YOUR MEDICAL LEARNING COMPANION</small></div></div>
             <button type="button" className="ask-icon-button ask-history-close" onClick={() => setShowHistoryMobile(false)} aria-label="Close conversation history"><AskIcon name="x"/></button>
           </div>
           <button type="button" className="ask-new-chat" onClick={createConversation}><span><AskIcon name="plus" size={16}/></span> New conversation</button>
@@ -1104,7 +1157,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           <header className="ask-conversation-header">
             <div className="ask-conversation-heading">
               <button type="button" className="ask-icon-button ask-mobile-history" onClick={() => setShowHistoryMobile(true)} aria-label="Open conversation history"><AskIcon name="menu" size={18}/></button>
-              <span className="ask-conversation-mark"><AskIcon name="sparkles" size={19}/></span>
+              <span className="ask-conversation-mark"><img src="/clerkme-mark-navy.svg" alt="" width="32" height="32" decoding="async"/></span>
               <div><strong>{currentTitle}</strong><small><i/> Medical learning assistant</small></div>
             </div>
             <div className="ask-header-actions">
@@ -1117,7 +1170,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             {activeMessages.length === 0 ? (
               <div className="ask-welcome">
                 <span className="ask-welcome-kicker">YOUR PERSONAL MEDICAL LEARNING SPACE</span>
-                <div className="ask-welcome-orb" aria-hidden="true"><span><AskIcon name="sparkles" size={30} strokeWidth={1.65}/></span><i/><b/></div>
+                <div className="ask-welcome-orb" aria-hidden="true"><span><img src="/clerkme-mark-navy.svg" alt="" width="48" height="48" decoding="async"/></span><i/><b/></div>
                 <h1>What are we learning today?</h1>
                 <p>Ask a clinical question, work through a difficult concept, or upload a lecture to study from your own materials.</p>
                 <div className="ask-shortcut-row" role="group" aria-label="Quick learning tools">
@@ -1138,7 +1191,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               <div className="ask-message-list">
                 <div className="ask-date-divider"><span>YOUR CONVERSATION</span></div>
                 {activeMessages.map(message => <AssistantMessage key={message.id} message={message}/>)}
-                {sending && <div className="ask-message-row is-assistant"><span className="ask-message-avatar"><AskIcon name="sparkles" size={15}/></span><div className="ask-thinking"><i/><i/><i/><span>ClerkME is thinking</span></div></div>}
+                {sending && <div className="ask-message-row is-assistant"><span className="ask-message-avatar ask-message-avatar-brand" aria-label="ClerkME"><img src="/clerkme-mark-navy.svg" alt="" width="26" height="26" decoding="async"/></span><div className="ask-thinking"><i/><i/><i/><span>ClerkME is thinking</span></div></div>}
                 <div ref={messagesEndRef}/>
               </div>
             )}
@@ -1209,7 +1262,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               <span>{voiceMode === "viva" ? "CLERKME · VIVA EXAMINER" : "CLERKME · LIVE VOICE"}</span>
               <span className="ask-voice-live-dot"/>
             </div>
-            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span><AskIcon name="sparkles" size={36}/></span><i/><b/></div>
+            <div className={"ask-voice-orb" + (voiceStatus === "connected" ? " is-listening" : " is-connecting")}><span><img src="/clerkme-mark-navy.svg" alt="" width="64" height="64" decoding="async"/></span><i/><b/></div>
             <span className="ask-voice-state">{voiceStatus === "connecting"
               ? (voiceReconnecting ? "RESTORING LIVE CONNECTION" : "CONNECTING TO CLERKME")
               : voiceMuted ? "MICROPHONE MUTED" : voiceMode === "viva" ? "VIVA SESSION ACTIVE" : "YOU'RE TALKING TO CLERKME"}</span>
