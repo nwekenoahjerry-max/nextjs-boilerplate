@@ -680,6 +680,7 @@ export default function Home() {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    suppressAskFabClickRef.current = false;
     const rect = askFabRef.current?.getBoundingClientRect();
     if (!rect) return;
     askFabDragRef.current = {
