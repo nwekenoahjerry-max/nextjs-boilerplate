@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { LiveAudioGate } from "../lib/live-audio-gate";
 
 export type LivePatientTurn = { role: "patient" | "student"; content: string };
 export type LiveCallStatus = "idle" | "connecting" | "connected";
@@ -71,6 +72,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioGateRef = useRef(new LiveAudioGate());
   const silentGainRef = useRef<GainNode | null>(null);
   const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextPlaybackTimeRef = useRef(0);
@@ -167,6 +169,11 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     endingRef.current = true;
     setupCompleteRef.current = false;
     const socket = socketRef.current;
+    if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
+      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+    } else {
+      audioGateRef.current.reset();
+    }
     socketRef.current = null;
     try {
       if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Call ended");
@@ -194,6 +201,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     endingRef.current = true;
     setupCompleteRef.current = false;
     clearTranscriptFlush();
+    audioGateRef.current.reset();
     try { socketRef.current?.close(); } catch {}
     socketRef.current = null;
     releaseMedia();
@@ -215,6 +223,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     studentTranscriptRef.current = "";
     patientTranscriptRef.current = "";
     patientHasSpokenOpeningRef.current = false;
+    audioGateRef.current.reset();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -246,12 +255,19 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
       processor.onaudioprocess = event => {
         const socket = socketRef.current;
         if (!setupCompleteRef.current || mutedRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
-        const pcm = resampleTo16k(event.inputBuffer.getChannelData(0), audioContext.sampleRate);
+        const samples = event.inputBuffer.getChannelData(0);
+        const pcm = resampleTo16k(samples, audioContext.sampleRate);
         if (!pcm.length) return;
+        const gated = audioGateRef.current.process(pcm, samples, audioContext.sampleRate);
         try {
-          socket.send(JSON.stringify({
-            realtimeInput: { audio: { data: pcmToBase64(pcm), mimeType: "audio/pcm;rate=16000" } }
-          }));
+          for (const chunk of gated.chunks) {
+            socket.send(JSON.stringify({
+              realtimeInput: { audio: { data: pcmToBase64(chunk), mimeType: "audio/pcm;rate=16000" } }
+            }));
+          }
+          if (gated.audioStreamEnd) {
+            socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+          }
         } catch {
           setNotice("The audio connection paused. Check your internet connection.");
         }
@@ -418,6 +434,12 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
   const toggleMute = () => {
     const next = !mutedRef.current;
+    const socket = socketRef.current;
+    if (next && socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
+      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+    } else if (next) {
+      audioGateRef.current.reset();
+    }
     mutedRef.current = next;
     setMuted(next);
     setNotice(next ? "Microphone muted. The patient cannot hear you." : "Microphone on. Continue speaking naturally.");
