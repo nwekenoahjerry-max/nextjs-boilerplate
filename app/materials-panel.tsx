@@ -144,6 +144,7 @@ function formatTimer(seconds:number) {
   return String(Math.floor(safe/60)).padStart(2,"0")+":"+String(safe%60).padStart(2,"0");
 }
 const ACTIVE_LIVE_MATERIAL_KEY = "clerkme:live-test:active-material";
+const materialsUnitKey = (userKey:string) => "clerkme:materials-unit:v1:" + userKey;
 const liveSessionKey = (materialId:string) => "clerkme:live-test:"+materialId;
 const illustrationSessionKey = (materialId:string) => "clerkme:illustrations:"+materialId;
 type LibraryMode = "clinical" | "general";
@@ -289,13 +290,17 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
       .map(id=>({id,name:unitName(id)}));
   },[libraryMode,modeMaterials]);
   const groupedVisibleMaterials = useMemo(()=>{
-    const orderedIds = libraryMode==="clinical"
-      ? clinicalUnits.map(item=>item.id).filter(id=>visibleMaterials.some(material=>material.unit===id))
-      : [...new Set(visibleMaterials.map(item=>item.unit))].sort((a,b)=>unitName(a).localeCompare(unitName(b),"en"));
+    // A unit-specific view must never leak headings or uploads from other units.
+    const orderedIds = libraryUnit==="all"
+      ? (libraryMode==="clinical"
+          ? clinicalUnits.map(item=>item.id).filter(id=>visibleMaterials.some(material=>material.unit===id))
+          : [...new Set(visibleMaterials.map(item=>item.unit))].sort((a,b)=>unitName(a).localeCompare(unitName(b),"en")))
+      : libraryUnit==="select" ? []
+      : visibleMaterials.some(material=>material.unit===libraryUnit) ? [libraryUnit] : [];
     return orderedIds
-      .map(id=>({id,name:unitName(id),materials:visibleMaterials.filter(item=>item.unit===id)}))
+      .map(id=>({id,name:unitName(id),materials:visibleMaterials.filter(material=>material.unit===id)}))
       .filter(group=>group.materials.length>0);
-  },[visibleMaterials,libraryMode]);
+  },[visibleMaterials,libraryMode,libraryUnit]);
   const selectedMaterial = useMemo(()=>materials.find(item=>item.id===selectedId)||null,[materials,selectedId]);
 
   const flashcardCandidates = useMemo(() => {
@@ -335,6 +340,7 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
   const selectLibraryMode = (nextMode:LibraryMode) => {
     setLibraryMode(nextMode);
     setLibraryUnit("select");
+    try { window.localStorage.removeItem(materialsUnitKey(userKey)); } catch {}
     setLibrarySearch("");
     setExpandedUnits({});
     setSelectedId("");
@@ -350,6 +356,11 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
   };
   const selectLibraryUnit = (nextUnit:string) => {
     setLibraryUnit(nextUnit);
+    // Remember a specific unit, but never make "See all" the automatic next visit.
+    try {
+      if(nextUnit!=="all" && nextUnit!=="select") window.localStorage.setItem(materialsUnitKey(userKey),nextUnit);
+      else window.localStorage.removeItem(materialsUnitKey(userKey));
+    } catch {}
     setUnit(nextUnit==="all"||nextUnit==="select"?"general-medicine":nextUnit);
     if(libraryMode==="general" && nextUnit!=="all" && nextUnit!=="select") setCustomSubject(unitName(nextUnit));
     setLibrarySearch("");
@@ -531,6 +542,17 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
     });
     setMaterials(next);
 
+    // Restore the last specifically selected unit, never an old "see all" view.
+    if (userKey) {
+      try {
+        const savedUnit = window.localStorage.getItem(materialsUnitKey(userKey));
+        if (savedUnit && savedUnit!=="all" && savedUnit!=="select" &&
+            (next.some(item=>item.unit===savedUnit) || clinicalUnits.some(item=>item.id===savedUnit))) {
+          setLibraryUnit(savedUnit);
+        }
+      } catch {}
+    }
+
     // Restore this learner's last opened material and study area on this device.
     // The material is matched against the authenticated library response before opening.
     if (userKey) {
@@ -547,8 +569,11 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
           if (savedMaterial) {
             const savedScrollY = Number(resume.scrollY);
             pendingResumeScrollRef.current = Number.isFinite(savedScrollY) && savedScrollY >= 0 ? savedScrollY : 0;
-            setLibraryMode(savedMaterial.unit.startsWith("custom:") ? "general" : "clinical");
-            setLibraryUnit("all");
+            const savedMode = savedMaterial.unit.startsWith("custom:") ? "general" : "clinical";
+            setLibraryMode(savedMode);
+            // Reopen only the unit containing the resumed material.
+            setLibraryUnit(savedMaterial.unit);
+            try { window.localStorage.setItem(materialsUnitKey(userKey),savedMaterial.unit); } catch {}
             setSelectedId(savedMaterial.id);
             setTab(validTab);
             if (Number.isInteger(resume.questionIndex) && Number(resume.questionIndex) >= 0) {
@@ -1023,6 +1048,7 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
       setMobileDetailOpen(false);
       setSourceTextByMaterial(current=>({...current,[material.id]:extractedText}));
       setLibraryUnit(uploadUnit);
+      try { window.localStorage.setItem(materialsUnitKey(userKey),uploadUnit); } catch {}
       setUnit(uploadUnit);
       setTitle(""); setFile(null);
       setNotice("Material uploaded successfully. Its study guide is being prepared in the background. Select it from your library whenever you are ready to open it.");
@@ -1199,7 +1225,7 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
               <span>{libraryMode==="clinical"?"Clinical unit":"Subject / course"}</span>
               <select value={libraryUnit} onChange={event=>selectLibraryUnit(event.target.value)} disabled={liveInProgress} aria-label={libraryMode==="clinical"?"Choose a clinical unit":"Choose a subject"}>
                 <option value="select" disabled>Choose a {libraryMode==="clinical"?"clinical unit":"subject"}</option>
-                <option value="all">All {libraryMode==="clinical"?"units":"subjects"} ({modeMaterials.length})</option>
+                <option value="all">See all {libraryMode==="clinical"?"units":"subjects"} ({modeMaterials.length})</option>
                 {libraryBrowseUnits.map(item=>{
                   const count=modeMaterials.filter(material=>material.unit===item.id).length;
                   return <option key={item.id} value={item.id}>{item.name} ({count})</option>;
@@ -1213,7 +1239,7 @@ export default function MaterialsPanel({userKey}:{userKey:string}) {
             {librarySearch&&<button type="button" onClick={()=>setLibrarySearch("")} aria-label="Clear search">×</button>}
           </label>}
           {modeMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Your library is ready</strong><p>Upload your first lecture, slide deck or revision document. It will be organised under the unit or subject you choose.</p><button type="button" className="primary-button" onClick={openUploadForm}>Upload your first material <span>→</span></button></div> :
-            libraryUnit==="select" ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Select a {libraryMode==="clinical"?"clinical unit":"subject"}</strong><p>Choose a unit from the menu above to see only the materials uploaded there. Select “All {libraryMode==="clinical"?"units":"subjects"}” in that same menu to see your full library.</p></div> :
+            libraryUnit==="select" ? <div className="materials-empty materials-library-empty"><span>▤</span><strong>Select a {libraryMode==="clinical"?"clinical unit":"subject"}</strong><p>Choose one unit to keep this page focused. Materials from other units stay hidden. Use “See all {libraryMode==="clinical"?"units":"subjects"}” only when you need the full library.</p></div> :
             visibleMaterials.length===0 ? <div className="materials-empty materials-library-empty"><span>⌕</span><strong>{librarySearch.trim()?"No matching materials":libraryUnit==="all"?"No uploaded materials yet":"No materials in "+unitName(libraryUnit)+" yet"}</strong><p>{librarySearch.trim()?"Try another title or filename, or clear your search.":libraryUnit==="all"?(libraryMode==="clinical"?"Upload a lecture or choose a clinical unit to start building your library.":"Add your first subject and upload a resource. Your subjects will become the folders for your library."):"Upload a resource for this "+(libraryMode==="clinical"?"unit":"subject")+" and it will appear here. Your other "+(libraryMode==="clinical"?"units":"subjects")+" will remain untouched."}</p><button type="button" className="secondary-button" onClick={()=>{if(librarySearch.trim()){setLibrarySearch("");}else{openUploadForm();}}}>{librarySearch.trim()?"Clear search":"Upload to "+(libraryUnit==="all"?"your library":unitName(libraryUnit))}</button></div> :
             <div className="materials-unit-groups">
               {groupedVisibleMaterials.map(group=>{
