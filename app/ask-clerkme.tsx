@@ -758,7 +758,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       const token = tokenData.token as string;
       const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
         ? tokenData.model
-        : "models/gemini-3.1-flash-live-preview";
+        : "models/gemini-3.8-live";
       liveRequestIdRef.current = typeof tokenData.requestId === "string" ? tokenData.requestId : "";
       const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
@@ -771,6 +771,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         clearConnectionTimeout();
         const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
         const socket = new WebSocket(endpoint);
+        socket.binaryType = "arraybuffer";
         socketRef.current = socket;
         connectionTimeoutRef.current = window.setTimeout(() => {
           if (attempt !== callAttemptRef.current || setupReadyRef.current) return;
@@ -798,16 +799,38 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               },
               inputAudioTranscription: {},
               outputAudioTranscription: {},
-              sessionResumption: resumeHandle ? { handle: resumeHandle } : {},
-              contextWindowCompression: { slidingWindow: { targetTokens: 12000 } }
+              // Explicit server-side VAD: do not wait for a client silence marker
+              // between ordinary phrases; Google detects speech boundaries.
+              realtimeInputConfig: {
+                automaticActivityDetection: {
+                  disabled: false,
+                  prefixPaddingMs: 300,
+                  silenceDurationMs: 700
+                },
+                turnCoverage: "TURN_INCLUDES_ONLY_ACTIVITY"
+              },
+              sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
             }
           }));
         };
 
-        socket.onmessage = event => {
-          if (typeof event.data !== "string") return;
+        socket.onmessage = async event => {
+          let rawMessage = "";
+          try {
+            if (typeof event.data === "string") rawMessage = event.data;
+            else if (event.data instanceof ArrayBuffer) rawMessage = new TextDecoder().decode(event.data);
+            else if (event.data instanceof Blob) rawMessage = await event.data.text();
+            else return;
+          } catch {
+            setVoiceNotice("Google Live sent a message ClerkME could not read. Reconnecting is recommended.");
+            return;
+          }
           let message: Record<string, any>;
-          try { message = JSON.parse(event.data) as Record<string, any>; } catch { return; }
+          try { message = JSON.parse(rawMessage) as Record<string, any>; }
+          catch {
+            setVoiceNotice("Google Live returned an unreadable session message.");
+            return;
+          }
           const serverContent = message.serverContent as Record<string, any> | undefined;
 
           const resumptionUpdate = message.sessionResumptionUpdate ?? serverContent?.sessionResumptionUpdate;
@@ -856,11 +879,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             if (!initialGreetingSentRef.current) {
               initialGreetingSentRef.current = true;
               socket.send(JSON.stringify({
-                clientContent: {
-                  turns: [{ role: "user", parts: [{ text: mode === "viva"
+                realtimeInput: {
+                  text: mode === "viva"
                     ? "Start the spoken medical Viva. Briefly introduce yourself as ClerkME's examiner, then, if a lecture is attached, ask one relevant first question from it; otherwise ask the student which clinical topic they want to be examined on. Ask one question only, then pause."
-                    : "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response." }] }],
-                  turnComplete: true
+                    : "Start the live conversation. Greet the student briefly, ask what they want to learn, and then pause for their response."
                 }
               }));
             }
