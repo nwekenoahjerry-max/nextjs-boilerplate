@@ -2857,12 +2857,4 @@ html[data-theme="dark"] .profile-page .profile-card .profile-search-picker-optio
   background: #2a405d !important;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .clerkme-support-fab {
-    transition: none !important;
-  }
-  .clerkme-support-fab:hover,
-  .clerkme-support-fab:active {
-    transform: none !important;
-  }
-}
+
