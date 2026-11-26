@@ -117,7 +117,7 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
-  const systemInstruction = { parts: [{ text: makeVoicePrompt(sourceName, sourceText, conversation, mode) }] };
+  const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode);
   let lastStatus = 0;
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
@@ -137,7 +137,10 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
           liveConnectConstraints: {
             model: LIVE_MODEL,
             config: {
-              systemInstruction,
+              // Match Google's minimal documented token constraints. Keep
+              // only session capabilities locked during token provisioning;
+              // the personalised teaching prompt is sent in the first setup
+              // frame after the token is issued.
               responseModalities: ["AUDIO"],
               sessionResumption: {}
             }
@@ -153,7 +156,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
       if (response.ok && typeof data.name === "string" && data.name.trim()) {
         // Treat the API's returned resource name as opaque; do not assume a
         // particular camelCase/snake_case resource prefix across API versions.
-        return data.name.trim();
+        return { name: data.name.trim(), systemInstruction };
       }
 
       lastStatus = response.status;
@@ -177,7 +180,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
     detail: lastDetail
   });
   if (!lastStatus) throw new Error("LIVE_TOKEN_NETWORK_" + lastCode);
-  throw new Error("LIVE_TOKEN_UPSTREAM_" + lastStatus + "_" + lastCode.replace(/[^A-Z_]/g, "_"));
+  throw new Error("LIVE_TOKEN_UPSTREAM_" + lastStatus + "_" + lastCode.replace(/[^A-Z_]/g, "_") + "|" + lastDetail);
 }
 
 export const onRequestPost = async (context: AppContext) => {
@@ -223,8 +226,8 @@ export const onRequestPost = async (context: AppContext) => {
     try {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
-      const token = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode);
-      return json({ token });
+      const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode);
+      return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
       const network = detail.match(/^LIVE_TOKEN_NETWORK_([A-Z_]+)$/);
@@ -235,10 +238,12 @@ export const onRequestPost = async (context: AppContext) => {
           : "ClerkME could not reach Google's Live API token service. Please check the service connection and retry.";
         return json({ error: message, code }, 502);
       }
-      const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)$/);
+      const upstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)\|([\s\S]{0,240})$/)
+        || detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)$/);
       if (upstream) {
         const status = Number(upstream[1]);
         const upstreamCode = upstream[2];
+        const upstreamMessage = clean(upstream[3] || "", 240);
         const code = status === 401 || status === 403 ? "LIVE_API_KEY_NOT_AUTHORISED"
           : status === 429 ? "LIVE_API_QUOTA"
           : status === 400 ? "LIVE_TOKEN_CONFIGURATION_REJECTED"
@@ -253,7 +258,12 @@ export const onRequestPost = async (context: AppContext) => {
               : status === 404
                 ? "Google could not find the requested Live API endpoint or model."
                 : "ClerkME could not obtain a Live API session token. Please retry.";
-        return json({ error: message, code, upstreamCode }, status === 429 ? 429 : 502);
+        return json({
+          error: message,
+          code,
+          upstreamCode,
+          ...(upstreamMessage ? { upstreamMessage } : {})
+        }, status === 429 ? 429 : 502);
       }
       console.error("[ClerkME] Live token provisioning failed unexpectedly.", { detail: clean(detail, 240) });
       return json({
