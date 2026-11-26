@@ -264,3 +264,25 @@
 @media(prefers-reduced-motion:reduce){
  .ask-clerkme-launcher,.ask-history-panel,.ask-suggestion-grid button,.ask-voice-orb i,.ask-voice-orb b,.ask-thinking i{transition:none;animation:none}
 }
+
+/* Ask ClerkME typography and app-shell integration overrides */
+.ask-clerkme-content .ask-clerkme p{font-size:inherit!important;line-height:inherit!important}
+.ask-clerkme-content .ask-welcome>p{font-size:10px!important;line-height:1.7!important}
+.ask-clerkme-content .ask-live-feature small,
+.ask-clerkme-content .ask-conversation-heading small,
+.ask-clerkme-content .ask-history-item small,
+.ask-clerkme-content .ask-source-chip small,
+.ask-clerkme-content .ask-material-picker small{font-size:8px!important;line-height:1.45!important}
+.ask-clerkme-content .ask-composer textarea{min-height:43px!important;max-height:130px!important;padding:4px 5px 9px!important;font-size:12px!important;line-height:1.6!important}
+.ask-clerkme-content .ask-composer-foot{font-size:8px!important;line-height:1.5!important}
+.ask-clerkme-content .ask-message-text{font-size:12px!important;line-height:1.75!important}
+.ask-clerkme-content .ask-notice{font-size:9px!important;line-height:1.5!important}
+.ask-clerkme-content .ask-voice-subtitle{font-size:10px!important;line-height:1.65!important}
+.ask-clerkme-content .ask-voice-disclaimer{font-size:8px!important;line-height:1.5!important}
+@media(max-width:760px){
+ .ask-clerkme-content .ask-welcome>p{font-size:10px!important}
+ .ask-clerkme-content .ask-message-text{font-size:11px!important;line-height:1.7!important}
+ .ask-clerkme-content .ask-composer textarea{min-height:40px!important;font-size:12px!important}
+ .ask-clerkme-content .ask-composer-foot{font-size:7px!important}
+ .ask-clerkme-content .ask-voice-subtitle{font-size:9px!important}
+}
