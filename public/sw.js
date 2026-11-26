@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v21-auth-safe";
+const CACHE_NAME = "clerkme-shell-v22-live-voice-brand-loader";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
