@@ -640,9 +640,6 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     clearConnectionTimeout();
     clearSpeechResponseTimer();
     pendingSpeechTurnRef.current = false;
-    speechActiveRef.current = false;
-    lastSpeechAtRef.current = 0;
-    clearPendingAudio();
     if (reconnectTimerRef.current !== null) {
       window.clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -660,6 +657,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     }
     clearPendingAudio();
     speechActiveRef.current = false;
+    lastSpeechAtRef.current = 0;
     socketRef.current = null;
     try { if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Student ended voice session"); } catch {}
     releaseVoiceMedia();
@@ -747,14 +745,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
         const rms = Math.sqrt(energy / samples.length);
         const now = Date.now();
-        const speechThreshold = Math.max(0.007, Math.min(0.018, microphoneNoiseFloorRef.current * 2.8));
+        const speechThreshold = Math.max(0.008, Math.min(0.012, microphoneNoiseFloorRef.current * 2.5));
         const speechDetected = rms >= speechThreshold;
 
         // Estimate the quiet-room microphone floor only while no speech turn is
         // active. This avoids sending a constant stream of room noise as speech.
-        if (!speechActiveRef.current && !speechDetected) {
+        if (!speechActiveRef.current && rms < 0.004) {
           microphoneNoiseFloorRef.current =
-            microphoneNoiseFloorRef.current * 0.96 + Math.min(rms, 0.02) * 0.04;
+            microphoneNoiseFloorRef.current * 0.96 + rms * 0.04;
         }
 
         if (speechDetected) {
