@@ -281,6 +281,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioGateRef = useRef(new LiveAudioGate());
+  const pendingAudioFramesRef = useRef<Int16Array[]>([]);
+  const pendingAudioSamplesRef = useRef(0);
+  const liveRequestIdRef = useRef("");
   const silentGainRef = useRef<GainNode | null>(null);
   const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextPlaybackTimeRef = useRef(0);
@@ -582,6 +585,43 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     setVoiceTranscript("");
   };
 
+  // Gemini recommends microphone audio in roughly 100 ms PCM packets. The
+  // ScriptProcessor callback is shorter on common 48 kHz devices, so combine
+  // frames before sending and flush the remainder at utterance end.
+  const flushPendingAudio = (socket: WebSocket, flushRemainder = false) => {
+    while (
+      socket.readyState === WebSocket.OPEN &&
+      (pendingAudioSamplesRef.current >= 1600 || (flushRemainder && pendingAudioSamplesRef.current > 0))
+    ) {
+      const packetLength = Math.min(1600, pendingAudioSamplesRef.current);
+      const packet = new Int16Array(packetLength);
+      let written = 0;
+      while (written < packetLength) {
+        const first = pendingAudioFramesRef.current[0];
+        if (!first?.length) {
+          pendingAudioFramesRef.current.shift();
+          continue;
+        }
+        const take = Math.min(first.length, packetLength - written);
+        packet.set(first.subarray(0, take), written);
+        if (take === first.length) pendingAudioFramesRef.current.shift();
+        else pendingAudioFramesRef.current[0] = first.subarray(take);
+        written += take;
+      }
+      pendingAudioSamplesRef.current -= packetLength;
+      socket.send(JSON.stringify({
+        realtimeInput: {
+          audio: { data: pcmToBase64(packet), mimeType: "audio/pcm;rate=16000" }
+        }
+      }));
+    }
+  };
+
+  const clearPendingAudio = () => {
+    pendingAudioFramesRef.current = [];
+    pendingAudioSamplesRef.current = 0;
+  };
+
   const stopVoiceCall = (notify = true) => {
     callAttemptRef.current += 1;
     clearConnectionTimeout();
@@ -593,9 +633,13 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     setupReadyRef.current = false;
     const socket = socketRef.current;
     if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+      try {
+        flushPendingAudio(socket, true);
+        socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+      } catch {}
     } else {
       audioGateRef.current.reset();
+      clearPendingAudio();
     }
     socketRef.current = null;
     try { if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Student ended voice session"); } catch {}
@@ -631,6 +675,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     liveTokenExpiresAtRef.current = 0;
     reconnectAttemptsRef.current = 0;
     initialGreetingSentRef.current = false;
+    liveRequestIdRef.current = "";
+    clearPendingAudio();
     startedAtRef.current = 0;
     audioGateRef.current.reset();
     studentTranscriptRef.current = "";
@@ -674,9 +720,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         const gated = audioGateRef.current.process(pcm, samples, audioContext.sampleRate);
         try {
           for (const chunk of gated.chunks) {
-            socket.send(JSON.stringify({ realtimeInput: { audio: { data: pcmToBase64(chunk), mimeType: "audio/pcm;rate=16000" } } }));
+            pendingAudioFramesRef.current.push(chunk);
+            pendingAudioSamplesRef.current += chunk.length;
           }
+          flushPendingAudio(socket);
           if (gated.audioStreamEnd) {
+            flushPendingAudio(socket, true);
             socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
           }
         } catch {
@@ -702,11 +751,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         })
       });
       const rawTokenResponse = await response.text();
-      let tokenData: { token?: string; systemInstruction?: string; error?: string; code?: string; upstreamCode?: string; upstreamMessage?: string } = {};
+      let tokenData: { token?: string; systemInstruction?: string; error?: string; code?: string; upstreamCode?: string; upstreamMessage?: string; requestId?: string; model?: string } = {};
       try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain a safe preview of unexpected gateway responses below */ }
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
         const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
-        const reference = [tokenData.code, tokenData.upstreamCode].filter(Boolean).join(" / ");
+        const reference = [tokenData.code, tokenData.upstreamCode, tokenData.requestId ? "ref " + tokenData.requestId : ""].filter(Boolean).join(" / ");
         const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
         const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
         const diagnostic = reference ? " (reference: " + reference + ")" : htmlTitle ? " (" + htmlTitle.slice(0, 100) + "; HTTP " + response.status + ")" : " (HTTP " + response.status + ")";
@@ -714,6 +763,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
+      liveRequestIdRef.current = typeof tokenData.requestId === "string" ? tokenData.requestId : "";
       const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
       // same token for its 30-minute lifetime, even when uses is set to one.
@@ -729,9 +779,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         connectionTimeoutRef.current = window.setTimeout(() => {
           if (attempt !== callAttemptRef.current || setupReadyRef.current) return;
           stopVoiceCall(false);
+          const reference = liveRequestIdRef.current ? " (ref " + liveRequestIdRef.current + ")" : "";
           const message = resumeHandle
-            ? "ClerkME could not restore the live session. Your completed transcript is saved; start another voice session to continue."
-            : "ClerkME did not finish connecting. Check your network and microphone permission, then retry.";
+            ? "ClerkME could not restore the live session. Your completed transcript is saved; start another voice session to continue." + reference
+            : "Google Live did not send setupComplete within 22 seconds. Check connectivity and retry." + reference;
           setVoiceNotice(message);
           setNotice(message);
         }, 22000);
@@ -782,10 +833,15 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
 
           if (message.error) {
             clearConnectionTimeout();
+            const serverError = typeof message.error === "string"
+              ? message.error
+              : String(message.error?.message || message.error?.status || "Unknown Live API error");
+            const serverCode = message.error && typeof message.error === "object" && message.error.code != null
+              ? " (Google error " + String(message.error.code) + ")"
+              : "";
+            const reference = liveRequestIdRef.current ? " · ref " + liveRequestIdRef.current : "";
             stopVoiceCall(false);
-            const messageText = resumeHandle
-              ? "ClerkME could not restore the previous voice session. Your completed transcript is saved; please start a new call."
-              : "ClerkME could not continue the voice connection. Please retry or use text chat.";
+            const messageText = "Google Live rejected the session" + serverCode + ": " + serverError.slice(0, 180) + reference;
             setVoiceNotice(messageText);
             setNotice(messageText);
             return;
@@ -851,22 +907,17 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         };
 
         socket.onerror = () => {
-          if (!setupReadyRef.current && resumeHandle) {
-            setVoiceNotice("Restoring the live connection…");
-            return;
-          }
-          if (!setupReadyRef.current) {
-            clearConnectionTimeout();
-            stopVoiceCall(false);
-            setVoiceNotice("ClerkME could not establish the live voice call. Please retry or continue by text.");
-            setNotice("The live voice connection could not be established. You can continue using text chat.");
-          } else {
-            setVoiceNotice("The connection encountered a problem. Trying to keep your session active…");
-          }
+          // Browsers omit the handshake response body from the ErrorEvent.
+          // Keep the socket alive until onclose so its close code and reason
+          // can identify whether this is auth, configuration, or networking.
+          setVoiceNotice(!setupReadyRef.current
+            ? "Google Live is opening the secure connection…"
+            : "The connection encountered a problem. Checking whether it can recover…");
         };
 
         socket.onclose = event => {
           if (endingRef.current || attempt !== callAttemptRef.current) return;
+          const hadCompletedSetup = setupReadyRef.current;
           clearConnectionTimeout();
           commitVoiceTranscript();
           const handle = sessionHandleRef.current;
@@ -888,9 +939,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
             return;
           }
 
-          const messageText = event.code === 1000
+          const closeReason = String(event.reason || "").replace(/[^\\x20-\\x7E]/g, " ").slice(0, 160);
+          const reference = liveRequestIdRef.current ? " · ref " + liveRequestIdRef.current : "";
+          const messageText = event.code === 1000 && hadCompletedSetup
             ? "Voice session ended. The transcript is saved in this conversation."
-            : "The voice session disconnected. Your completed transcript is saved in this conversation; please retry.";
+            : "Google Live closed " + (hadCompletedSetup ? "the active session" : "before setup completed") +
+              " (WebSocket " + event.code + (closeReason ? ": " + closeReason : "") + ")." + reference;
           stopVoiceCall(false);
           setVoiceNotice(messageText);
           setNotice(messageText);
