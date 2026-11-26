@@ -319,3 +319,66 @@
 [data-theme="dark"] .ask-formatted-answer code,[data-theme="dark"] .ask-formatted-answer pre,[data-theme="dark"] .ask-formatted-answer blockquote{border-color:#354e68;background:#1b3652;color:#d5e2f0}
 .ask-message-row.is-user .ask-formatted-answer strong{color:#fff}
 .ask-message-row.is-user .ask-formatted-answer code{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.13);color:#fff}
+
+
+/* Two distinct live-AI paths: conversational teaching and spoken Viva. */
+.ask-live-actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  width:100%;
+  margin-top:12px;
+}
+.ask-live-actions .ask-live-feature{
+  min-width:0;
+  min-height:76px;
+  margin-top:0;
+  padding:12px;
+  transition:border-color .18s,transform .18s,box-shadow .18s;
+}
+.ask-live-actions .ask-live-feature:hover{
+  transform:translateY(-2px);
+  border-color:#bdcddd;
+  box-shadow:0 8px 20px rgba(16,45,90,.07);
+}
+.ask-live-feature-viva{
+  border-color:#e7e1d4;
+  background:linear-gradient(105deg,#fbfaf7,#fff);
+}
+.ask-live-feature-viva .ask-live-feature-icon{
+  background:#9a7844;
+  color:#fff;
+}
+.ask-live-actions .ask-live-feature>span:nth-child(2){min-width:0}
+.ask-live-actions .ask-live-feature strong{font-size:10px;line-height:1.35}
+.ask-live-actions .ask-live-feature small{font-size:8px;line-height:1.45}
+.ask-live-actions .ask-live-feature>b{font-size:8px}
+[data-theme="dark"] .ask-live-feature-viva{
+  border-color:#514b3f;
+  background:linear-gradient(105deg,#28364a,#1a3048);
+}
+[data-theme="dark"] .ask-live-feature-viva .ask-live-feature-icon{background:#9b7b4d;color:#fff}
+.ask-voice-card{width:min(100%,520px)}
+.ask-voice-card .ask-voice-state{display:inline-flex;align-items:center;justify-content:center;min-height:22px;padding:4px 9px;border:1px solid rgba(229,196,134,.2);border-radius:999px;background:rgba(229,196,134,.08)}
+.ask-voice-transcript{overscroll-behavior:contain;scrollbar-width:thin}
+.ask-voice-controls button:focus-visible,
+.ask-live-actions .ask-live-feature:focus-visible,
+.ask-live-small:focus-visible,
+.ask-clerkme-launcher:focus-visible{
+  outline:3px solid rgba(215,176,104,.55);
+  outline-offset:3px;
+}
+@media(max-width:760px){
+  .ask-live-actions{gap:8px}
+  .ask-live-actions .ask-live-feature{align-items:flex-start;gap:7px;padding:9px;min-height:86px}
+  .ask-live-actions .ask-live-feature-icon{width:30px;height:30px;flex-basis:30px;font-size:15px}
+  .ask-live-actions .ask-live-feature strong{font-size:9px}
+  .ask-live-actions .ask-live-feature small{font-size:7.5px}
+  .ask-live-actions .ask-live-feature>b{align-self:flex-end;margin-left:auto}
+}
+@media(max-width:390px){
+  .ask-live-actions{grid-template-columns:minmax(0,1fr)}
+  .ask-live-actions .ask-live-feature{min-height:65px;align-items:center;padding:9px 11px}
+  .ask-live-actions .ask-live-feature strong{font-size:9px}
+  .ask-live-actions .ask-live-feature small{font-size:8px}
+}
