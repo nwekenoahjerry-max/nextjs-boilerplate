@@ -925,3 +925,34 @@
 .ask-clerkme .ask-new-chat>span{display:grid;place-items:center}
 .ask-clerkme .ask-message-attachment{display:flex;align-items:center;gap:6px}
 .ask-clerkme .ask-source-chip button{display:grid;place-items:center}
+
+
+/* Clinical notation: readable inline and display maths on narrow screens. */
+.ask-math{
+  display:inline;
+  font-family:"DM Sans",Arial,sans-serif;
+  font-variant-numeric:lining-nums;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  color:inherit;
+}
+.ask-math-display{
+  display:block;
+  width:fit-content;
+  max-width:100%;
+  margin:5px 0;
+  padding:3px 9px;
+  border-left:2px solid #d8a642;
+  border-radius:0 6px 6px 0;
+  background:#f4f7fb;
+  font-size:1.02em;
+  line-height:1.65;
+}
+[data-theme="dark"] .ask-math-display{
+  background:#1b3652;
+  border-left-color:#d8b66b;
+}
+.ask-formatted-answer sup,.ask-formatted-answer sub{
+  line-height:0;
+  font-size:.76em;
+}
