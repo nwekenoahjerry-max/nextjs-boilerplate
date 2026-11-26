@@ -1,5 +1,5 @@
-const CACHE_NAME = "clerkme-shell-v20-gentle-push";
-const APP_SHELL = ["/", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
+const CACHE_NAME = "clerkme-shell-v21-auth-safe";
+const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
@@ -29,15 +29,15 @@ self.addEventListener("fetch", event => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put("/", copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match("/") )
+      fetch(new Request(request, { cache: "no-store" })).catch(async () => {
+        // Never replay a cached public homepage for a returning, signed-in
+        // learner when ClerkME cannot reach the server to verify the session.
+        const offline = await caches.match("/offline.html");
+        return offline || new Response("ClerkME is offline. Reconnect to open your secure workspace.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }
+        });
+      })
     );
     return;
   }
