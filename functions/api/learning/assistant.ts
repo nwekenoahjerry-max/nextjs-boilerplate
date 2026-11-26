@@ -1,6 +1,6 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
+const LIVE_MODEL = "models/gemini-3.8-live";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -131,7 +131,8 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
         body: JSON.stringify({
-          uses: 1,
+          // Keep enough connection uses for short-lived reconnect/resumption attempts.
+          uses: 3,
           expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
           newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
           liveConnectConstraints: {
