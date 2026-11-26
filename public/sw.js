@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v25-live-scroll-repair";
+const CACHE_NAME = "clerkme-shell-v26-live-audio-fallback";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg"];
 
 self.addEventListener("install", event => {
