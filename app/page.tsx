@@ -137,7 +137,9 @@ function SessionCheckOverlay({ error, onRetry, signInRequired = false }: { error
           </>
         ) : (
           <>
-            <span className="session-check-spinner" aria-hidden="true"/>
+            <div className="session-check-logo-loader" aria-hidden="true">
+              <img src="/clerkme-mark-navy.svg" alt="" width="62" height="62" decoding="async"/>
+            </div>
             <h1>Opening your workspace</h1>
             <p>Checking your secure sign-in…</p>
           </>
