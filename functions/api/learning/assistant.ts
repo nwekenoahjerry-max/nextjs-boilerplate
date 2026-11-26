@@ -189,13 +189,11 @@ export const onRequestPost = async (context: AppContext) => {
   const question = clean(body.message, 5000);
   if (question.length < 2) return json({ error: "Type a question before sending it." }, 400);
 
-  const history: Turn[] = Array.isArray(body.history) ? body.history.slice(-18).map(item => {
+  const history: Turn[] = Array.isArray(body.history) ? body.history.slice(-18).map((item): Turn => {
     const turn = item as Record<string, unknown>;
-    return {
-      role: turn.role === "assistant" || turn.role === "model" ? "model" : "user",
-      content: clean(turn.content, 2600)
-    };
-  }).filter(turn => turn.content) : [];
+    const role: Turn["role"] = turn.role === "assistant" || turn.role === "model" ? "model" : "user";
+    return { role, content: clean(turn.content, 2600) };
+  }).filter(turn => turn.content.length > 0) : [];
 
   try {
     const answer = await askGemini(apiKey, history, question, sourceName, sourceText);
