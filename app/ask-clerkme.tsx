@@ -731,7 +731,9 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       }
 
       const microphone = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(2048, 1, 1);
+      // Smaller buffers reduce first-speech latency while the PCM queue still
+      // aggregates payloads into the recommended ~100 ms Live API packets.
+      const processor = audioContext.createScriptProcessor(1024, 1, 1);
       const silentGain = audioContext.createGain();
       silentGain.gain.value = 0;
       sourceRef.current = microphone;
@@ -764,7 +766,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
           if (!speechActiveRef.current) {
             // The selected fallback model is more reliable with explicit
             // utterance boundaries than an implicit server-VAD-only stream.
-            socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+            try {
+              socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+            } catch {
+              setVoiceNotice("The microphone connection paused. Please try speaking again.");
+              return;
+            }
             speechActiveRef.current = true;
             pendingSpeechTurnRef.current = true;
             clearSpeechResponseTimer();
@@ -847,6 +854,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       const connectSocket = (resumeHandle = "") => {
         if (attempt !== callAttemptRef.current || endingRef.current) return;
         setupReadyRef.current = false;
+        if (resumeHandle) {
+          // Never carry a half-spoken local VAD turn onto a resumed socket.
+          speechActiveRef.current = false;
+          lastSpeechAtRef.current = 0;
+          pendingSpeechTurnRef.current = false;
+          clearPendingAudio();
+          clearSpeechResponseTimer();
+        }
         clearConnectionTimeout();
         const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
         const socket = new WebSocket(endpoint);
@@ -879,8 +894,8 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
               },
               inputAudioTranscription: {},
               outputAudioTranscription: {},
-              // Explicit server-side VAD: do not wait for a client silence marker
-              // between ordinary phrases; Google detects speech boundaries.
+              // Manual client-side VAD is enabled below. The client sends
+              // activityStart/activityEnd for every speech turn.
               realtimeInputConfig: {
                 // ClerkME detects speech locally and sends explicit activity
                 // boundaries; this removes ambiguity about when a student turn ends.
