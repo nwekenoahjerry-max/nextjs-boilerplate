@@ -5,9 +5,10 @@ import { clinicalUnits } from "../lib/learning-content";
 import "./flashcards.css";
 
 type ReviewStatus = "new" | "known" | "review";
-type Flashcard = { id: string; front: string; back: string; status: ReviewStatus; reviewCount: number; lastReviewedAt?: number };
+type Flashcard = { id: string; front: string; back: string; status: ReviewStatus; reviewCount: number; lastReviewedAt?: number; source?: string };
 type FlashcardDeck = { id: string; title: string; unit: string; createdAt: number; updatedAt: number; cards: Flashcard[] };
 type FlashcardDraft = { title?: string; unit?: string; cards?: Array<{ front: string; back: string }> };
+type SourceMaterial = { id:string; title:string; unit:string; hasSummary?:boolean };
 
 const makeId = () => typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : "fc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
 const storageKey = (userKey: string) => "clerkme:flashcards:v1:" + userKey;
@@ -26,6 +27,7 @@ function cleanCards(value: unknown): Flashcard[] {
       status: item.status === "known" || item.status === "review" ? item.status : "new",
       reviewCount: Math.max(0, Number(item.reviewCount) || 0),
       ...(Number.isFinite(Number(item.lastReviewedAt)) ? { lastReviewedAt: Number(item.lastReviewedAt) } : {}),
+      ...(typeof item.source === "string" ? { source: item.source } : {}),
     }];
   });
 }
@@ -59,6 +61,27 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
   const [frontDraft, setFrontDraft] = useState("");
   const [backDraft, setBackDraft] = useState("");
   const [notice, setNotice] = useState("");
+  const [sourceMaterials, setSourceMaterials] = useState<SourceMaterial[]>([]);
+  const [sourceMaterialId, setSourceMaterialId] = useState("");
+  const [sourceCards, setSourceCards] = useState<Array<{front:string;back:string;source:string}>>([]);
+  const [sourceTitle, setSourceTitle] = useState("");
+  const [sourceUnit, setSourceUnit] = useState("general-medicine");
+  const [sourceError, setSourceError] = useState("");
+  const [sourceGenerating, setSourceGenerating] = useState(false);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/learning/materials", { credentials:"same-origin", cache:"no-store" })
+      .then(async response => {
+        const raw = await response.text(); const data = raw ? JSON.parse(raw) : {};
+        if (!response.ok) throw new Error(data.error || "Could not load uploaded materials.");
+        return data;
+      })
+      .then(data => { if (!cancelled) setSourceMaterials(Array.isArray(data.materials) ? data.materials : []); })
+      .catch(error => { if (!cancelled) setSourceError(error instanceof Error ? error.message : "Could not load uploaded materials."); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -113,6 +136,42 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
   }, [hydrated, userKey]);
 
   const selectedDeck = decks.find(deck => deck.id === selectedDeckId) || null;
+
+  const generateFromUploadedMaterial = async () => {
+    if (!sourceMaterialId) { setSourceError("Choose an uploaded material first."); return; }
+    setSourceGenerating(true); setSourceError(""); setSourceCards([]);
+    try {
+      const response = await fetch("/api/learning/materials?id=" + encodeURIComponent(sourceMaterialId) + "&include=study", {credentials:"same-origin",cache:"no-store"});
+      const raw = await response.text(); const data = raw ? JSON.parse(raw) : {};
+      if (!response.ok) throw new Error(data.error || "Could not open this study material.");
+      const material = data.material || {};
+      const summary = material.summary;
+      if (!summary) throw new Error("This material has no generated study guide yet. Open My materials, generate its study guide, then return here.");
+      const candidates:Array<{front:string;back:string;source:string}> = [
+        ...(summary.revisionQuestions || []).map((item:any) => ({front:item.question,back:item.answer,source:"Revision questions"})),
+        ...((summary.examFocus && summary.examFocus.vivaQuestions) || []).map((item:any) => ({front:item.question,back:item.answer,source:"Viva practice"})),
+        ...(summary.sections || []).flatMap((section:any) => (section.subsections || []).filter((item:any) => item.recallQuestion && item.recallAnswer).map((item:any) => ({front:item.recallQuestion,back:item.recallAnswer,source:section.heading + " · " + item.heading}))),
+        ...(summary.keyTerms || []).map((item:any) => ({front:"Define " + item.term,back:item.meaning,source:"Key terms"}))
+      ];
+      const seen = new Set<string>();
+      const clean = candidates.filter(item => typeof item.front === "string" && typeof item.back === "string" && item.front.trim() && item.back.trim()).filter(item => {
+        const key = (item.front + "|" + item.back).toLowerCase().replace(/\s+/g," ");
+        if (seen.has(key)) return false; seen.add(key); return true;
+      }).slice(0,60);
+      if (!clean.length) throw new Error("No suitable recall questions were found. Generate a detailed guide with recall questions and key terms first.");
+      setSourceCards(clean); setSourceTitle(material.title || "Uploaded material revision"); setSourceUnit(material.unit || "general-medicine");
+    } catch(error) { setSourceError(error instanceof Error ? error.message : "Flashcards could not be prepared from this material."); }
+    finally { setSourceGenerating(false); }
+  };
+
+  const saveSourceDeck = () => {
+    if (!sourceCards.length) return;
+    const now = Date.now();
+    const deck:FlashcardDeck = {id:makeId(),title:sourceTitle.slice(0,90),unit:sourceUnit,createdAt:now,updatedAt:now,cards:sourceCards.map(item=>({id:makeId(),front:item.front.trim().slice(0,1800),back:item.back.trim().slice(0,2400),status:"new" as ReviewStatus,reviewCount:0,source:item.source}))};
+    setDecks(current => [deck,...current]); setSelectedDeckId(deck.id); setView("manage"); setSourceCards([]);
+    setSourceMaterialId(""); setNotice(deck.cards.length + " flashcards created from " + deck.title + ".");
+  };
+
   const visibleDecks = useMemo(() => {
     const query = deckSearch.trim().toLowerCase();
     return query ? decks.filter(deck => (deck.title + " " + unitLabel(deck.unit)).toLowerCase().includes(query)) : decks;
@@ -280,6 +339,31 @@ export default function FlashcardsPanel({ userKey }: { userKey: string }) {
         <button type="button" className="flashcards-primary-button" onClick={() => { setShowCreate(value => !value); setNotice(""); }}>{showCreate ? "Close" : "+ Create a deck"}</button>
       </header>
       {notice && <p className="flashcards-notice" role="status">{notice}</p>}
+
+      <section className="flashcards-source-builder" aria-labelledby="flashcards-source-title">
+        <div className="flashcards-source-copy">
+          <span className="flashcards-eyebrow">START WITH YOUR LECTURE</span>
+          <h2 id="flashcards-source-title">Generate from my materials</h2>
+          <p>Choose a lecture you have uploaded. ClerkME builds a revision deck from its generated study guide, including recall questions, viva prompts and key terms.</p>
+          <div className="flashcards-source-steps"><span><b>01</b> Choose a lecture</span><span><b>02</b> Preview cards</span><span><b>03</b> Save and revise</span></div>
+        </div>
+        <div className="flashcards-source-controls">
+          <label htmlFor="flashcards-source-select">Uploaded material</label>
+          <select id="flashcards-source-select" value={sourceMaterialId} onChange={event => {setSourceMaterialId(event.target.value);setSourceCards([]);setSourceError("");}}>
+            <option value="">Select a lecture or document</option>
+            {sourceMaterials.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
+          </select>
+          <button type="button" className="flashcards-primary-button" onClick={generateFromUploadedMaterial} disabled={sourceGenerating || !sourceMaterialId}>{sourceGenerating ? "Preparing your cards…" : "Generate flashcards"} <span>→</span></button>
+          {!sourceMaterials.length && <small>Upload a lecture first in My materials.</small>}
+          {sourceError && <p className="flashcards-source-error" role="alert">{sourceError}</p>}
+        </div>
+        {sourceCards.length > 0 && <div className="flashcards-source-preview">
+          <div className="flashcards-source-preview-heading"><div><strong>{sourceCards.length} cards ready to review</strong><small>{sourceTitle} · Source-linked preview</small></div><button type="button" className="flashcards-text-button" onClick={() => setSourceCards([])}>Discard</button></div>
+          <div className="flashcards-source-preview-list">{sourceCards.slice(0,5).map((item,index) => <article key={index}><span>QUESTION {String(index+1).padStart(2,"0")} · {item.source}</span><strong>{item.front}</strong><p>{item.back}</p></article>)}</div>
+          {sourceCards.length > 5 && <small className="flashcards-source-more">Showing the first 5 of {sourceCards.length} cards. All cards will be saved.</small>}
+          <button type="button" className="flashcards-primary-button" onClick={saveSourceDeck}>Save {sourceCards.length} flashcards to my library <span>→</span></button>
+        </div>}
+      </section>
       <div className="flashcards-stat-grid" aria-label="Flashcard library statistics">
         <div><span>YOUR DECKS</span><strong>{decks.length}</strong></div><div><span>TOTAL CARDS</span><strong>{totalCards}</strong></div><div><span>MASTERED</span><strong>{masteredCards}</strong></div><div><span>FLAGGED FOR REVIEW</span><strong>{reviewCards}</strong></div>
       </div>
