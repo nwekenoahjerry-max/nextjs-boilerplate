@@ -13,6 +13,7 @@ import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
+import WhatsAppSupportLink from "../components/whatsapp-support-link";
 import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
@@ -392,7 +393,7 @@ function PublicLanding() {
         </p>
         <div className="public-footer-contact">
           <strong>Contact</strong>
-          <a href="https://wa.me/2349047324936" target="_blank" rel="noreferrer">WhatsApp · +234 904 732 4936</a>
+          <WhatsAppSupportLink variant="inline" />
           <a href="mailto:nwekenoahjerry@gmail.com">nwekenoahjerry@gmail.com</a>
           <small>Designed by Noah Chidindu Nweke</small>
         </div>
@@ -1144,6 +1145,7 @@ export default function Home() {
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
         </button>
       </nav>
+      <WhatsAppSupportLink />
       {moreOpen && <div className="mobile-more-scrim" onClick={()=>setMoreOpen(false)}>
         <section id="mobile-account-sheet" className="mobile-more-panel mobile-account-sheet" role="dialog" aria-modal="true" aria-label="Your ClerkME account and tools" onClick={event=>event.stopPropagation()}>
           <div className="mobile-account-sheet-topline"><span>YOUR CLERKME</span><button ref={mobileAccountCloseRef} type="button" onClick={()=>setMoreOpen(false)} aria-label="Close account menu">×</button></div>
