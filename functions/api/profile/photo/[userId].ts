@@ -5,6 +5,11 @@ export const onRequestGet = async (context: AppContext) => {
   if (isResponse(viewer)) return viewer;
   const userId = (context.params.userId || "").trim();
   if (!userId || userId.length > 100) return json({ error: "Profile photo not found." }, 404);
+  const verifiedViewer = await context.env.DB.prepare(
+    "SELECT 1 AS verified FROM student_profiles WHERE id = ? AND email_verified_at IS NOT NULL LIMIT 1"
+  ).bind(viewer.id).first();
+  if (!verifiedViewer) return json({ error: "A verified ClerkMe account is required to view profile photos." }, 403);
+
   const bucket = context.env.STATUS_MEDIA;
   if (!bucket) return json({ error: "Profile photo is unavailable." }, 503);
 
