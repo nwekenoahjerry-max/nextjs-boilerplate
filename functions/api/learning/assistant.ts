@@ -74,7 +74,7 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
     contextPrompt(sourceName, sourceText),
     mode === "viva"
       ? "Wait silently for the student to speak first; do not generate an unsolicited welcome or opening turn. When they speak, begin the Viva: if they name a topic, ask one focused question on it; if a lecture or attachment is supplied and they indicate they are ready, ask one relevant question from that source; otherwise ask which clinical topic they want to be examined on. Ask one question only, then pause."
-      : "Wait silently for the student's first spoken message. Do not generate a greeting or opening question. Answer the student's first actual spoken message directly, then pause for the next turn."
+      : "Wait silently for the student's first spoken message; do not create an unsolicited opening turn. After the student speaks for the first time, briefly greet them by first name as instructed, then answer their actual message. Do not repeat the greeting on later turns."
   ].filter(Boolean).join("\n\n");
 }
 
