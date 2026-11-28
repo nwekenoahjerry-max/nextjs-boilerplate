@@ -8,6 +8,10 @@ type CommunityAlert = {
 export async function notifyStudent(context: AppContext, alert: CommunityAlert): Promise<void> {
   const userId = alert.userId.trim();
   if (!userId) return;
+  const preferences = await context.env.DB.prepare(
+    "SELECT message_alerts_enabled AS enabled FROM student_profiles WHERE id = ?"
+  ).bind(userId).first<{ enabled: number }>();
+  if (!preferences || preferences.enabled === 0) return;
   await context.env.DB.prepare(`
     INSERT INTO student_notifications
       (id, user_id, dedupe_key, kind, title, message, destination, created_at)
