@@ -710,7 +710,7 @@ export default function Home() {
       void refreshUnreadMessages().finally(() => { inFlight = false; });
     };
     refresh();
-    const interval = window.setInterval(refresh, 15000);
+    const interval = window.setInterval(refresh, 8000);
     window.addEventListener("focus", refresh);
     window.addEventListener("clerkme:messages-unread-refresh", refresh);
     const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
@@ -1175,7 +1175,7 @@ export default function Home() {
         <nav className="nav-list" aria-label="Workspace navigation">
           <div className="nav-section-label">CLINICAL WORK</div>
           {navItems.slice(0,5).map(([label, id, icon]) => (
-            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={id === "messages" && unreadMessageCount > 0 ? "Messages, " + unreadMessageCount + " unread" : label} title={id === "messages" && unreadMessageCount > 0 ? "Messages · " + unreadMessageCount + " unread" : label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
               {id === "clerking" && <span className="nav-plus">+</span>}
             </button>

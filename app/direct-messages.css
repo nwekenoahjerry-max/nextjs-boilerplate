@@ -354,3 +354,110 @@
     color:#adbed3;
   }
 }
+
+
+/* WhatsApp-inspired composer clarity and navigation feedback */
+.dm-composer-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:0 2px 8px;
+}
+.dm-composer-heading label{
+  color:var(--dm-navy,#173765);
+  font-size:.78rem;
+  font-weight:850;
+  letter-spacing:.01em;
+}
+.dm-composer-heading span{
+  color:var(--dm-muted,#718096);
+  font-size:.66rem;
+  font-weight:650;
+}
+.dm-composer-input-row textarea{
+  display:block;
+  width:100%;
+  min-width:0;
+  border:1.5px solid #b8c9dd;
+  border-radius:14px;
+  background:#f8fafd;
+  color:var(--text-color,#172b4d);
+  padding:13px 14px;
+  font:inherit;
+  font-size:16px;
+  line-height:1.45;
+  outline:none;
+  box-shadow:inset 0 1px 2px #102d5a08;
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.dm-composer-input-row textarea::placeholder{color:#73839a;opacity:1}
+.dm-composer-input-row textarea:focus{
+  border-color:#315b91;
+  background:var(--surface,#fff);
+  box-shadow:0 0 0 3px #315b9122;
+}
+.dm-composer-footer{min-height:18px}
+.dm-composer-footer small{color:var(--dm-muted,#718096)}
+.dm-send-button{box-shadow:0 3px 9px #102d5a20}
+.dm-send-button:not(:disabled):active{transform:translateY(1px)}
+.nav-item[aria-label^="Messages,"] .nav-icon>.unread-message-badge,
+.mobile-dock-item[aria-label^="Messages,"] .message-dock-icon-wrap>.unread-message-badge{
+  min-width:20px;
+  height:20px;
+  font-size:10px;
+  background:#d52f45;
+  border:2px solid var(--surface,#fff);
+  box-shadow:0 2px 8px #8e243b40;
+}
+[data-theme="dark"] .dm-composer-heading label{color:#c7dcf7}
+[data-theme="dark"] .dm-composer-heading span{color:#b5c3d6}
+[data-theme="dark"] .dm-composer-input-row textarea{
+  border-color:#526b8a;
+  background:#14243a;
+  color:#edf3fb;
+}
+[data-theme="dark"] .dm-composer-input-row textarea::placeholder{color:#adbed3}
+[data-theme="dark"] .dm-composer-input-row textarea:focus{
+  border-color:#8fb7e8;
+  background:#101e31;
+  box-shadow:0 0 0 3px #8fb7e82b;
+}
+@media(max-width:760px){
+  .dm-workspace.has-selection .dm-composer-heading{margin:0 2px 7px}
+  .dm-workspace.has-selection .dm-composer-heading label{font-size:.78rem}
+  .dm-workspace.has-selection .dm-composer-heading span{font-size:.63rem}
+  .dm-workspace.has-selection .dm-composer-input-row textarea{
+    min-height:58px;
+    padding:12px 13px;
+    border-width:1.5px;
+    border-radius:14px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .dm-composer-input-row textarea{transition:none}
+}
+
+
+/* Native, uninterrupted scrolling across Messages lists. */
+.dm-message-scroll,.dm-conversation-list,.dm-search-results{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:auto;
+  scrollbar-gutter:auto;
+  scroll-behavior:auto;
+}
+.dm-message-scroll{
+  overflow-y:auto;
+  min-height:0;
+  flex:1 1 auto;
+  padding-bottom:max(18px,env(safe-area-inset-bottom));
+  overflow-anchor:none;
+}
+.dm-conversation-list,.dm-search-results{overflow-y:auto;overflow-x:hidden;min-height:0}
+@media(max-width:760px){
+  .dm-workspace.has-selection .dm-message-scroll{
+    overflow-y:auto;overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:max(18px,env(safe-area-inset-bottom));
+  }
+  .dm-workspace.has-selection .dm-thread{min-height:0}
+}
