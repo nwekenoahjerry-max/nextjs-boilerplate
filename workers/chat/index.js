@@ -162,7 +162,7 @@ export class ConversationRoom {
     const peer = await this.env.DB.prepare(
       "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
     ).bind(identity.conversationId, identity.userId).first();
-    if (!peer || !await this.isConnected(identity.userId, peer.id) || await this.isBlocked(identity.userId, peer.id)) {
+    if (!peer || await this.isBlocked(identity.userId, peer.id)) {
       socket.close(1008, "Conversation unavailable");
       return;
     }
