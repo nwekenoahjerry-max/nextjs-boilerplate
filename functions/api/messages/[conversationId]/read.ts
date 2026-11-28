@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
+import { areConnected } from "../../../_lib/connections";
 
 export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
@@ -24,6 +25,10 @@ export const onRequestPost = async (context: AppContext) => {
     LIMIT 1
   `).bind(conversationId, user.id).first();
   if (!member) return json({ error: "Conversation not found." }, 404);
+  const peer = await context.env.DB.prepare(
+    "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id=? AND user_id<>? LIMIT 1"
+  ).bind(conversationId,user.id).first<{id:string}>();
+  if (!peer || !await areConnected(context.env.DB,user.id,peer.id)) return json({ error: "Conversation not found." },404);
   const message = await context.env.DB.prepare(
     "SELECT id FROM direct_messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL"
   ).bind(messageId, conversationId).first<{ id: number }>();

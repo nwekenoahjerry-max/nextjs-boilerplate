@@ -120,7 +120,7 @@ export class ConversationRoom {
       WHERE me.conversation_id = ? AND me.user_id = ? AND me.archived_at IS NULL
       LIMIT 1
     `).bind(conversationId, session.userId).first();
-    if (!membership) return new Response("Conversation not found", { status: 404 });
+    if (!membership || !await this.isConnected(session.userId, membership.otherId)) return new Response("Conversation not found", { status: 404 });
 
     if (await this.isBlocked(session.userId, membership.otherId)) {
       return new Response("Conversation unavailable", { status: 403 });
@@ -276,7 +276,10 @@ export class ConversationRoom {
     const member = await this.env.DB.prepare(
       "SELECT 1 AS ok FROM direct_conversation_members WHERE conversation_id = ? AND user_id = ? AND archived_at IS NULL"
     ).bind(identity.conversationId, identity.userId).first();
-    return Boolean(member);
+    const peer = await this.env.DB.prepare(
+      "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
+    ).bind(identity.conversationId,identity.userId).first();
+    return Boolean(member && peer && await this.isConnected(identity.userId,peer.id) && !await this.isBlocked(identity.userId,peer.id));
   }
 
   async isBlocked(userId, otherId) {
@@ -285,6 +288,16 @@ export class ConversationRoom {
       WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)
       LIMIT 1
     `).bind(userId, otherId, otherId, userId).first();
+    return Boolean(row);
+  }
+
+  async isConnected(userId, otherId) {
+    if (!userId || !otherId || userId === otherId) return false;
+    const userA = userId < otherId ? userId : otherId;
+    const userB = userId < otherId ? otherId : userId;
+    const row = await this.env.DB.prepare(
+      "SELECT 1 AS ok FROM student_connections WHERE user_a_id = ? AND user_b_id = ? LIMIT 1"
+    ).bind(userA, userB).first();
     return Boolean(row);
   }
 

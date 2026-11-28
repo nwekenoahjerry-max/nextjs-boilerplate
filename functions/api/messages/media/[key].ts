@@ -17,6 +17,9 @@ export const onRequestGet = async (context: AppContext) => {
       ON me.conversation_id = m.conversation_id AND me.user_id = ? AND me.archived_at IS NULL
     INNER JOIN direct_conversation_members peer
       ON peer.conversation_id = m.conversation_id AND peer.user_id <> me.user_id
+    INNER JOIN student_connections sc
+      ON sc.user_a_id=CASE WHEN me.user_id < peer.user_id THEN me.user_id ELSE peer.user_id END
+      AND sc.user_b_id=CASE WHEN me.user_id < peer.user_id THEN peer.user_id ELSE me.user_id END
     WHERE m.deleted_at IS NULL
       AND instr(m.body, ?) > 0
       AND NOT EXISTS (

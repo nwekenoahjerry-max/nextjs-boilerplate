@@ -16,6 +16,10 @@ export const onRequestPost = async (context: AppContext) => {
     SELECT m.id, m.conversation_id AS conversationId, m.sender_id AS senderId
     FROM direct_messages m
     INNER JOIN direct_conversation_members cm ON cm.conversation_id = m.conversation_id AND cm.user_id = ?
+    INNER JOIN direct_conversation_members peer ON peer.conversation_id=m.conversation_id AND peer.user_id<>cm.user_id
+    INNER JOIN student_connections sc
+      ON sc.user_a_id=CASE WHEN cm.user_id < peer.user_id THEN cm.user_id ELSE peer.user_id END
+      AND sc.user_b_id=CASE WHEN cm.user_id < peer.user_id THEN peer.user_id ELSE cm.user_id END
     WHERE m.id = ? AND m.deleted_at IS NULL
   `).bind(user.id, messageId).first<{ id: number; conversationId: string; senderId: string }>();
   if (!message || message.senderId === user.id) return json({ error: "That message cannot be reported." }, 404);

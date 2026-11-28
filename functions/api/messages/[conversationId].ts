@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, type AppContext } from "../../_lib/auth";
+import { areConnected } from "../../_lib/connections";
 
 type MessageRow = {
   id: number; public_id: string; conversation_id: string; sender_id: string;
@@ -14,6 +15,10 @@ export const onRequestGet = async (context: AppContext) => {
     "SELECT last_read_message_id AS lastReadMessageId FROM direct_conversation_members WHERE conversation_id = ? AND user_id = ? AND archived_at IS NULL"
   ).bind(conversationId, user.id).first<{ lastReadMessageId: number | null }>();
   if (!membership) return json({ error: "Conversation not found." }, 404);
+  const peer = await context.env.DB.prepare(
+    "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
+  ).bind(conversationId,user.id).first<{id:string}>();
+  if (!peer || !await areConnected(context.env.DB,user.id,peer.id)) return json({ error: "Conversation not found." }, 404);
   const blocked = await context.env.DB.prepare(`
     SELECT 1 AS blocked
     FROM direct_conversation_members peer

@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
+import { areConnected } from "../../../_lib/connections";
 
 type EditableMessage = {
   id: number; public_id: string; conversation_id: string; sender_id: string;
@@ -39,6 +40,10 @@ export const onRequestPatch = async (context: AppContext) => {
     LIMIT 1
   `).bind(conversationId, user.id).first();
   if (!membership) return json({ error: "Conversation not found." }, 404);
+  const peer = await context.env.DB.prepare(
+    "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id=? AND user_id<>? LIMIT 1"
+  ).bind(conversationId,user.id).first<{id:string}>();
+  if (!peer || !await areConnected(context.env.DB,user.id,peer.id)) return json({error:"Conversation not found."},404);
 
   const existing = await context.env.DB.prepare(
     "SELECT id, sender_id FROM direct_messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL"

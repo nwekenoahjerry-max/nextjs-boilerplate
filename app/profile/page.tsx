@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ClerkMeBrand from "../../components/clerkme-brand";
+import ProfilePhotoControl from "../../components/profile-photo-control";
 import SearchablePicker from "../searchable-picker";
 import { nigeriaLgasByState, nigeriaStates } from "../../lib/nigeria-locations";
 import { nigerianUniversities } from "../../lib/nigerian-universities";
 
 type Profile = {
   id: string; email: string; name: string; university: string; country: string; level: string;
-  futureSpecialty: string; state: string; lga: string;
+  futureSpecialty: string; state: string; lga: string; photoUrl?: string | null;
 };
 type CountryOption = { code: string; name: string };
 type UniversityRecord = [string, string];
@@ -219,6 +220,7 @@ export default function ProfilePage() {
           <h1>Your student profile</h1>
           <p className="profile-intro">A few details help ClerkME organise your clinical learning. You can update them whenever your academic information changes.</p>
         </div>
+        <ProfilePhotoControl photoUrl={profile?.photoUrl||null} name={profile?.name||name||"Student"}/>
         {profile && <div className="profile-account-summary"><strong>{profile.name || "Student account"}</strong><span>{profile.email}</span></div>}
 
         <section className="profile-progress-card" aria-label="Student profile completion">
