@@ -187,6 +187,38 @@ export class ConversationRoom {
       safeSend(socket, { type: "pong", at: Math.floor(Date.now() / 1000) });
       return;
     }
+    if (typeof payload.type === "string" && payload.type.startsWith("call:")) {
+      const type = payload.type;
+      const supported = new Set(["call:offer","call:answer","call:ice","call:decline","call:hangup","call:busy"]);
+      if (!supported.has(type)) {
+        safeSend(socket,{type:"error",message:"Unsupported call action."});
+        return;
+      }
+      if (type === "call:offer" || type === "call:answer") {
+        const signal = payload.signal;
+        const expectedType = type === "call:offer" ? "offer" : "answer";
+        if (!signal || signal.type !== expectedType || typeof signal.sdp !== "string" || signal.sdp.length > 12000) {
+          safeSend(socket,{type:"error",message:"The call could not be started. Please try again."});
+          return;
+        }
+      } else if (type === "call:ice") {
+        const candidate = payload.signal;
+        if (!candidate || typeof candidate.candidate !== "string" || candidate.candidate.length > 3000) {
+          safeSend(socket,{type:"error",message:"The call connection details were invalid."});
+          return;
+        }
+      }
+      const delivered = this.sendToUser(identity.conversationId,peer.id,{
+        type,userId:identity.userId,
+        ...(payload.signal ? {signal:payload.signal} : {})
+      });
+      if (type === "call:offer") {
+        safeSend(socket,{type:delivered ? "call:ringing" : "call:unavailable"});
+      } else if (type !== "call:hangup" && !delivered) {
+        safeSend(socket,{type:"call:unavailable"});
+      }
+      return;
+    }
     if (payload.type === "typing") {
       this.broadcast(identity.conversationId, {
         type: "typing", userId: identity.userId, isTyping: payload.body === true
@@ -372,7 +404,8 @@ export class ConversationRoom {
         "INSERT OR IGNORE INTO status_replies (id,status_id,message_id,sender_id,created_at) VALUES (?,?,?,?,unixepoch())"
       ).bind(crypto.randomUUID(),replyToStatusId,messageId,identity.userId).run();
     }
-    const preview = body.length > 160 ? body.slice(0, 157) + "…" : body;
+    const isVoiceNote = body.startsWith("[[CLERKME_VOICE_NOTE_V1|");
+    const preview = isVoiceNote ? "🎙 Voice note" : body.length > 160 ? body.slice(0, 157) + "…" : body;
     await this.env.DB.prepare(`
       UPDATE direct_conversations
       SET last_message_id = ?, last_message_preview = ?, last_message_at = ?, updated_at = unixepoch()
@@ -435,7 +468,7 @@ export class ConversationRoom {
           body: JSON.stringify({
             userId: other.id,
             title: notificationTitle,
-            body: "You have a new private message on ClerkMe.",
+            body: isVoiceNote ? "You received a voice note on ClerkMe." : "You have a new private message on ClerkMe.",
             url: "/?open=messages",
             tag: "clerkme-dm-" + messageId,
             messageId,
