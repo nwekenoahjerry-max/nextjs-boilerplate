@@ -32,7 +32,7 @@ const isOnline = (lastSeen?: number | null) => Boolean(lastSeen && Date.now() / 
 const socketUrl = (id: string) => (window.location.protocol === "https:" ? "wss://" : "ws://") +
   window.location.host + "/api/messages/" + encodeURIComponent(id) + "/socket";
 const getVoiceNote = (body:string) => {
-  const match = /^\\[\\[CLERKME_VOICE_NOTE_V1\\|(voice-[0-9a-f-]{36}\\.(?:webm|ogg|m4a|mp3|wav|aac))\\|([0-9]{1,2})\\]\\]$/.exec(body);
+  const match = /^\[\[CLERKME_VOICE_NOTE_V1\|(voice-[0-9a-f-]{36}\.(?:webm|ogg|m4a|mp3|wav|aac))\|([0-9]{1,2})\]\]$/.exec(body);
   return match ? { key:match[1], duration:Number(match[2]) } : null;
 };
 const durationLabel = (seconds:number) => String(Math.floor(seconds/60)).padStart(2,"0") + ":" + String(seconds%60).padStart(2,"0");
@@ -306,7 +306,6 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   };
 
   const discardVoiceDraft = () => {
-    if (voiceDraft?.url) URL.revokeObjectURL(voiceDraft.url);
     setVoiceDraft(null);
     setRecordingSeconds(0);
   };
@@ -340,8 +339,12 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     callStreamRef.current?.getTracks().forEach(track=>track.stop());
     try { callPeerConnectionRef.current?.close(); } catch { /* already closed */ }
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
-    if (voiceDraft?.url) URL.revokeObjectURL(voiceDraft.url);
   },[]);
+
+  useEffect(() => {
+    if (!voiceDraft) return;
+    return () => URL.revokeObjectURL(voiceDraft.url);
+  },[voiceDraft]);
 
   const filteredConversations = useMemo(() => {
     const query = conversationSearch.trim().toLocaleLowerCase();
