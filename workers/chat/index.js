@@ -155,20 +155,31 @@ export class ConversationRoom {
     safeSend(socket, { type: "error", code: "UNKNOWN_EVENT", message: "Unsupported messaging event." });
   }
 
-  async webSocketClose(socket) {
+  async webSocketClose(socket, code, reason) {
     let identity;
-    try { identity = socket.deserializeAttachment(); } catch { return; }
-    const remaining = this.state.getWebSockets().some(candidate => {
-      try {
-        return candidate.deserializeAttachment().userId === identity.userId &&
-          candidate.readyState === WebSocket.OPEN;
-      } catch { return false; }
-    });
-    if (!remaining) {
-      this.broadcast(identity.conversationId, {
-        type: "presence:update", userId: identity.userId,
-        isOnline: false, at: Math.floor(Date.now() / 1000)
-      }, identity.userId);
+    try { identity = socket.deserializeAttachment(); } catch { identity = null; }
+    if (identity) {
+      const remaining = this.state.getWebSockets().some(candidate => {
+        try {
+          return candidate !== socket &&
+            candidate.deserializeAttachment().userId === identity.userId &&
+            candidate.readyState === WebSocket.OPEN;
+        } catch { return false; }
+      });
+      if (!remaining) {
+        this.broadcast(identity.conversationId, {
+          type: "presence:update", userId: identity.userId,
+          isOnline: false, at: Math.floor(Date.now() / 1000)
+        }, identity.userId);
+      }
+    }
+
+    // Complete the RFC 6455 close handshake for hibernatable WebSockets.
+    const reservedCodes = [1004, 1005, 1006, 1015];
+    if (Number.isInteger(code) && code >= 1000 && code < 5000 && !reservedCodes.includes(code)) {
+      try { socket.close(code, typeof reason === "string" ? reason : ""); } catch { /* already closed */ }
+    } else {
+      try { socket.close(); } catch { /* already closed */ }
     }
   }
 
