@@ -167,7 +167,20 @@ export default function FocusMusicPlayer({ inVideoLibrary }: { inVideoLibrary: b
         </div>
       )}
 
-      {error && !loading && <p className="focus-music-error" role="alert">{error}</p>}
+      {error && !loading && (
+        <div className="focus-music-error" role="alert">
+          <p>{error}</p>
+          {/YOUTUBE_API_KEY_MISSING|YOUTUBE_API_KEY/i.test(error) && (
+            <a
+              href={"https://www.youtube.com/results?search_query=" + encodeURIComponent(musicStyles.find(item => item.id === style)?.query || musicStyles[0].query)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Search this music style directly on YouTube ↗
+            </a>
+          )}
+        </div>
+      )}
 
       {!loading && recommendations.length > 0 && (
         <div className="focus-music-recommendations">

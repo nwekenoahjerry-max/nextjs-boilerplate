@@ -128,6 +128,48 @@ async function askGemini(apiKey: string, history: Turn[], question: string, sour
   throw new Error(lastError);
 }
 
+async function askWorkersAITutor(
+  context: AppContext,
+  history: Turn[],
+  question: string,
+  sourceName: string,
+  sourceText: string
+): Promise<string> {
+  if (!context.env.AI) throw new Error("The backup text-learning engine is not connected.");
+  const messages = history.slice(-18).map(turn => ({
+    role: turn.role === "model" ? "assistant" : "user",
+    content: turn.content
+  }));
+  messages.push({
+    role: "user",
+    content: [question, sourceText ? contextPrompt(sourceName, sourceText) : ""].filter(Boolean).join("\n\n")
+  });
+  const result = await context.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+    messages: [
+      {
+        role: "system",
+        content: TUTOR_SYSTEM + "\n\nAnswer in clear Markdown. Do not emit [[CLERKME_IMAGE:...]] markers because this backup text route does not generate images. Use a concise written explanation or a Markdown table when it materially improves understanding."
+      },
+      ...messages
+    ],
+    max_tokens: 3000,
+    temperature: 0.25,
+    chat_template_kwargs: { enable_thinking: false }
+  }, { rejectIfBusy: true });
+  const envelope = result as {
+    response?: unknown;
+    choices?: Array<{ message?: { content?: unknown }; finish_reason?: string }>;
+  };
+  const textValue = typeof envelope?.response === "string"
+    ? envelope.response
+    : typeof envelope?.choices?.[0]?.message?.content === "string"
+      ? envelope.choices[0].message.content
+      : "";
+  const answer = textValue.trim();
+  if (!answer) throw new Error("The backup tutor returned an empty answer.");
+  return answer.replace(/\[\[CLERKME_IMAGE:[\s\S]*?\]\]/gi, "").trim();
+}
+
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode);
@@ -246,12 +288,7 @@ export const onRequestPost = async (context: AppContext) => {
   if (isResponse(user)) return user;
 
   const requestId = crypto.randomUUID().slice(0, 12);
-  const apiKey = context.env.GEMINI_API_KEY;
-  if (!apiKey) return json({
-    error: "ClerkME's AI service is not configured at the moment. Your conversation remains on this device; please contact support.",
-    code: "GEMINI_NOT_CONFIGURED",
-    requestId
-  }, 503);
+  const apiKey = context.env.GEMINI_API_KEY?.trim() || "";
 
   let body: Record<string, unknown>;
   try { body = await context.request.json() as Record<string, unknown>; }
@@ -282,6 +319,11 @@ export const onRequestPost = async (context: AppContext) => {
   }).filter(Boolean).join("\n\n") : "";
 
   if (intent === "live-token") {
+    if (!apiKey) return json({
+      error: "Live voice requires the Gemini Live credential. Text tutoring remains available.",
+      code: "GEMINI_LIVE_NOT_CONFIGURED",
+      requestId
+    }, 503);
     try {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
@@ -345,9 +387,27 @@ export const onRequestPost = async (context: AppContext) => {
   }).filter(turn => turn.content.length > 0) : [];
 
   try {
-    const answer = await askGemini(apiKey, history, question, sourceName, sourceText);
-    const imageMarker = answer.match(/\[\[CLERKME_IMAGE:\s*([\s\S]{8,1600}?)\]\]/i);
-    if (imageMarker) {
+    let answer = "";
+    let usedGemini = false;
+    if (apiKey) {
+      try {
+        answer = await askGemini(apiKey, history, question, sourceName, sourceText);
+        usedGemini = true;
+      } catch (primaryError) {
+        if (!context.env.AI) throw primaryError;
+        console.warn("[ClerkME] Gemini tutor unavailable; using the Workers AI text fallback.", {
+          requestId,
+          reason: primaryError instanceof Error ? clean(primaryError.message, 180) : "Gemini request failed."
+        });
+        answer = await askWorkersAITutor(context, history, question, sourceName, sourceText);
+      }
+    } else {
+      answer = await askWorkersAITutor(context, history, question, sourceName, sourceText);
+    }
+    const imageMarker = apiKey && usedGemini
+      ? answer.match(/\[\[CLERKME_IMAGE:\s*([\s\S]{8,1600}?)\]\]/i)
+      : null;
+    if (imageMarker && apiKey) {
       const withoutMarkers = answer.replace(/\[\[CLERKME_IMAGE:[\s\S]*?\]\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
       if (!context.env.SOURCE_FILES) {
         return json({ answer: withoutMarkers + "\n\n*I could not attach the illustration because image storage is temporarily unavailable.*", sourceName: sourceName || null });

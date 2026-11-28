@@ -292,7 +292,20 @@ export default function VideoLibraryPanel() {
 
           {notice && <p className="video-library-notice" role="status">{notice}</p>}
           {savedError && <p className="video-library-error" role="alert">{savedError}</p>}
-          {searchError && <p className="video-library-error" role="alert">{searchError}</p>}
+          {searchError && (
+            <div className="video-library-error" role="alert">
+              <p>{searchError}</p>
+              {/YOUTUBE_API_KEY_MISSING|YOUTUBE_API_KEY/i.test(searchError) && query.trim().length >= 2 && (
+                <a
+                  href={"https://www.youtube.com/results?search_query=" + encodeURIComponent([query.trim(), unit === "all" ? "" : unitName(unit)].filter(Boolean).join(" "))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Search this topic directly on YouTube ↗
+                </a>
+              )}
+            </div>
+          )}
           {player}
 
           {loading && <div className="video-library-empty"><span className="video-library-spinner" />Searching for relevant, playable lectures…</div>}
