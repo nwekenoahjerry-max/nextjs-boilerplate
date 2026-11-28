@@ -43,7 +43,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
       const nextItems = Array.isArray(data.notifications) ? data.notifications : [];
       if (hasInitialSnapshot.current && document.visibilityState === "visible") {
         const fresh = nextItems.find(item =>
-          !knownIds.current.has(item.id) &&
+          !knownIds.current.has(item.id + ":" + item.createdAt) &&
           (item.kind === "direct_message" || item.kind === "connection_request" || item.kind === "connection_accepted")
         );
         if (fresh) {
@@ -52,7 +52,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
           toastTimer.current = window.setTimeout(() => setForegroundToast(null), 6500);
         }
       }
-      knownIds.current = new Set(nextItems.map(item => item.id));
+      knownIds.current = new Set(nextItems.map(item => item.id + ":" + item.createdAt));
       hasInitialSnapshot.current = true;
       setItems(nextItems);
       setUnreadCount(Number(data.unreadCount) || 0);
