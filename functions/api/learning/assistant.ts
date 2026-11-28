@@ -49,7 +49,7 @@ const TEXT_VISUAL_INSTRUCTIONS = [
 
 type VoiceMode = "tutor" | "viva";
 
-function makeVoicePrompt(sourceName: string, sourceText: string, conversation: string, mode: VoiceMode) {
+function makeVoicePrompt(sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, studentName: string) {
   const modeInstructions = mode === "viva" ? [
     "VIVA EXAMINER MODE",
     "Act as a fair, academically rigorous medical examiner conducting a spoken undergraduate MBBS Viva. Use British English and a calm, professional but encouraging tone.",
@@ -67,6 +67,7 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
   return [
     TUTOR_SYSTEM,
     ...modeInstructions,
+    studentName ? "PERSONALISATION: The authenticated student is " + studentName + ". In your first spoken response after the student starts the conversation, greet them naturally by first name (for example, “Hi, " + studentName + " — let’s work through that”). Then answer their actual question. Do not speak before they initiate the conversation, and do not repeat the greeting or their name in every turn." : "",
     "Do not claim to have seen an attachment unless its text is included in this session context.",
     conversation ? "RECENT CONVERSATION CONTEXT:\n" + conversation.slice(0, 14000) : "",
     contextPrompt(sourceName, sourceText),
@@ -170,9 +171,10 @@ async function askWorkersAITutor(
   return answer.replace(/\[\[CLERKME_IMAGE:[\s\S]*?\]\]/gi, "").trim();
 }
 
-async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string) {
+async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
-  const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode);
+  const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
+  const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
   let lastStatus = 0;
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
@@ -327,7 +329,7 @@ export const onRequestPost = async (context: AppContext) => {
     try {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
-      const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode, requestId);
+      const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode, requestId, user.name);
       console.info("[ClerkME] Live token provisioned.", { requestId, model: LIVE_MODEL });
       return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction, requestId, model: LIVE_MODEL });
     } catch (error) {
