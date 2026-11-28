@@ -4861,66 +4861,82 @@ body{background:var(--paper);color:var(--ink)}
 .study-hub-section-heading h2{margin:0 0 4px;color:#0B2348;font:800 21px/1.25 Manrope,sans-serif;letter-spacing:-.035em}
 .study-hub-section-heading p{margin:0;color:#52647C;font-size:13px!important;line-height:1.5!important}
 .study-hub-primary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.study-hub-card{
-  display:flex;min-width:0;min-height:224px;flex-direction:column;align-items:flex-start;gap:13px;
-  padding:19px;border:1px solid #EAF0F8;border-radius:17px;background:#fff;color:#102D5A;text-align:left;
-  box-shadow:0 4px 15px rgba(11, 35, 72, .035);cursor:pointer;
-  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
-}
-.study-hub-card:hover{transform:translateY(-3px);border-color:#D6E0EE;box-shadow:0 13px 28px rgba(11, 35, 72, .085)}
+.study-hub-resume{display:flex;align-items:center;gap:14px;min-width:0;margin:0 0 25px;padding:15px 17px;border:1px solid #DCE6F2;border-radius:15px;background:linear-gradient(110deg,#F2F6FB 0%,#FFFFFF 78%);box-shadow:0 5px 18px rgba(11,35,72,.045)}
+.study-hub-resume-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border-radius:12px;background:#E4ECF6;color:#102D5A}
+.study-hub-resume-icon svg{width:21px;height:21px}
+.study-hub-resume-copy{display:grid;gap:3px;min-width:0;flex:1}
+.study-hub-resume-copy>span{color:#647894;font:850 8px/1.3 Manrope,sans-serif;letter-spacing:.13em}
+.study-hub-resume-copy strong{overflow:hidden;color:#0B2348;font:800 13px/1.4 Manrope,sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.study-hub-resume-copy small{overflow:hidden;color:#52647C;font:600 10px/1.45 "DM Sans",sans-serif;text-overflow:ellipsis;white-space:nowrap}
+.study-hub-resume-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;min-height:38px;padding:9px 13px;border:1px solid #102D5A;border-radius:9px;background:#102D5A;color:#fff;font:800 10px/1 Manrope,sans-serif;cursor:pointer;transition:background .16s,transform .16s}
+.study-hub-resume-button:hover{background:#173D75;transform:translateY(-1px)}
+.study-hub-card{display:flex;min-width:0;min-height:218px;flex-direction:column;align-items:flex-start;gap:13px;padding:19px;border:1px solid #E5ECF5;border-radius:16px;background:#fff;color:#102D5A;text-align:left;box-shadow:0 4px 15px rgba(11,35,72,.035);cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.study-hub-card:hover{transform:translateY(-3px);border-color:#CCD9E9;box-shadow:0 13px 28px rgba(11,35,72,.085)}
 .study-hub-card:active{transform:translateY(-1px)}
-.study-hub-card:focus-visible,.study-hub-format-card:focus-visible{outline:3px solid rgba(231,179,79,.72)!important;outline-offset:3px!important}
-.study-hub-card-icon{display:grid;place-items:center;width:45px;height:45px;flex:0 0 45px;border-radius:14px;background:#F5F8FC;color:#102D5A;font-size:21px;font-weight:850}
-.study-hub-card-icon.quiz{background:#eef2f8;color:#4f6f91}
-.study-hub-card-icon.videos{background:#EAF0F8;color:#102D5A}
+.study-hub-card:focus-visible,.study-hub-format-card:focus-visible,.study-hub-resume-button:focus-visible{outline:3px solid rgba(231,179,79,.72)!important;outline-offset:3px!important}
+.study-hub-card-icon{display:grid;place-items:center;width:45px;height:45px;flex:0 0 45px;border-radius:13px;background:#F1F5FA;color:#102D5A}
+.study-hub-card-icon svg,.study-hub-format-icon svg{width:21px;height:21px}
+.study-hub-card-icon.quiz{background:#EAF0F8;color:#173E70}
+.study-hub-card-icon.videos{background:#E7EEF7;color:#102D5A}
 .study-hub-card-copy{display:grid;gap:7px;min-width:0;flex:1}
 .study-hub-card-copy strong{color:#0B2348;font:800 15px/1.35 Manrope,sans-serif}
-.study-hub-card-copy small{color:#52647C;font-size:12px;line-height:1.65}
-.study-hub-card-link{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:2px;padding-top:12px;border-top:1px solid #F5F8FC;color:#102D5A;font-size:11px;font-weight:850}
+.study-hub-card-copy small{color:#52647C;font:500 12px/1.6 "DM Sans",sans-serif}
+.study-hub-card-link{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;margin-top:2px;padding-top:12px;border-top:1px solid #EDF1F6;color:#102D5A;font:800 10px/1.4 Manrope,sans-serif}
 .study-hub-card-link b{font-size:16px}
 .study-hub-more-heading{margin-top:27px}
-.study-hub-secondary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.study-hub-format-card{display:flex;align-items:center;gap:13px;min-width:0;min-height:91px;padding:15px;border:1px solid #EAF0F8;border-radius:14px;background:#fff;color:#102D5A;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,transform .16s}
-.study-hub-format-card:hover{border-color:#D6E0EE;background:#F5F8FC;transform:translateY(-1px)}
-.study-hub-format-icon{display:grid;place-items:center;width:41px;height:41px;flex:0 0 41px;border-radius:12px;background:#F5F8FC;color:#102D5A;font-size:20px}
-.study-hub-format-icon.flight{background:#EAF0F8;color:#102D5A}
+.study-hub-secondary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.study-hub-format-card{display:flex;align-items:center;gap:12px;min-width:0;min-height:88px;padding:14px;border:1px solid #E5ECF5;border-radius:13px;background:#fff;color:#102D5A;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,transform .16s}
+.study-hub-format-card:hover{border-color:#CCD9E9;background:#F7F9FC;transform:translateY(-1px)}
+.study-hub-format-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:11px;background:#F1F5FA;color:#102D5A}
+.study-hub-format-icon.flight{background:#E7EEF7;color:#102D5A}
 .study-hub-format-card>span:nth-child(2){display:grid;gap:5px;min-width:0;flex:1}
-.study-hub-format-card strong{color:#102D5A;font-size:13px;font-weight:850;line-height:1.4}
-.study-hub-format-card small{color:#52647C;font-size:11px;line-height:1.55}
-.study-hub-format-card>b{color:#52647C;font-size:17px}
-@media(max-width:1050px){
-  .study-hub-primary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .study-hub-card:last-child{grid-column:1/-1;min-height:180px}
-}
+.study-hub-format-card strong{color:#102D5A;font:800 12px/1.4 Manrope,sans-serif}
+.study-hub-format-card small{color:#52647C;font:500 11px/1.55 "DM Sans",sans-serif}
+.study-hub-format-card>b{flex:0 0 auto;color:#52647C;font-size:16px}
+@media(max-width:1050px){.study-hub-primary-grid,.study-hub-secondary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){
   .study-hub-intro{margin:3px 0 18px!important}
   .study-hub-intro h1{font-size:clamp(29px,7.5vw,36px)!important}
   .study-hub-intro p{font-size:14px!important;line-height:1.65!important}
-  .study-hub-start{display:grid;gap:14px;padding:18px 17px;margin-bottom:22px;border-radius:16px}
-  .study-hub-start-copy h2{font-size:21px}
-  .study-hub-start-copy p{font-size:13px!important}
-  .study-hub-start-button{width:100%;min-height:47px}
   .study-hub-section-heading h2{font-size:19px}
   .study-hub-section-heading p{font-size:12px!important}
+  .study-hub-resume{gap:10px;margin-bottom:22px;padding:12px;border-radius:12px}
+  .study-hub-resume-icon{width:37px;height:37px;flex-basis:37px;border-radius:10px}
+  .study-hub-resume-icon svg{width:19px;height:19px}
+  .study-hub-resume-copy strong{font-size:11px}
+  .study-hub-resume-copy small{font-size:10px}
+  .study-hub-resume-button{min-height:37px;padding:8px 10px;font-size:10px}
   .study-hub-primary-grid{grid-template-columns:1fr;gap:10px}
-  .study-hub-card,.study-hub-card:last-child{display:grid;grid-template-columns:45px minmax(0,1fr);grid-template-rows:1fr auto;align-items:start;gap:7px 12px;min-height:0;padding:15px}
-  .study-hub-card-icon{grid-row:1/3;width:42px;height:42px}
+  .study-hub-card{display:grid;grid-template-columns:43px minmax(0,1fr);grid-template-rows:auto auto;align-items:start;gap:7px 12px;min-height:0;padding:14px}
+  .study-hub-card-icon{grid-row:1/3;width:41px;height:41px}
+  .study-hub-card-icon svg{width:20px;height:20px}
   .study-hub-card-copy{gap:5px}
   .study-hub-card-copy strong{font-size:14px}
-  .study-hub-card-copy small{font-size:11px;line-height:1.55}
+  .study-hub-card-copy small{font-size:12px;line-height:1.55}
   .study-hub-card-link{grid-column:2;padding-top:8px;margin-top:3px;font-size:10px}
   .study-hub-more-heading{margin-top:23px}
   .study-hub-secondary-grid{grid-template-columns:1fr;gap:9px}
-  .study-hub-format-card{min-height:78px;padding:12px}
+  .study-hub-format-card{min-height:74px;padding:12px}
   .study-hub-format-card strong{font-size:12px}
-  .study-hub-format-card small{font-size:10px}
+  .study-hub-format-card small{font-size:12px;line-height:1.5}
 }
 @media(max-width:390px){
   .study-hub-card{padding:13px;gap:6px 10px}
-  .study-hub-card-copy small{font-size:10.5px}
+  .study-hub-card-copy small{font-size:12px}
   .study-hub-format-card{gap:10px}
+  .study-hub-resume{align-items:flex-start;flex-wrap:wrap}
+  .study-hub-resume-copy{flex-basis:calc(100% - 50px)}
+  .study-hub-resume-button{margin-left:47px}
 }
-
+[data-theme="dark"] .study-hub-resume{background:#172B43;border-color:#304760;box-shadow:none}
+[data-theme="dark"] .study-hub-resume-icon,[data-theme="dark"] .study-hub-card-icon,[data-theme="dark"] .study-hub-format-icon{background:#223A56;color:#DCE8F7}
+[data-theme="dark"] .study-hub-resume-copy>span,[data-theme="dark"] .study-hub-card-copy small,[data-theme="dark"] .study-hub-format-card small{color:#AFC0D4}
+[data-theme="dark"] .study-hub-resume-copy strong,[data-theme="dark"] .study-hub-card-copy strong,[data-theme="dark"] .study-hub-format-card strong{color:#EDF3FB}
+[data-theme="dark"] .study-hub-card,[data-theme="dark"] .study-hub-format-card{background:#14243A;border-color:#2C405A;color:#E6EEF9}
+[data-theme="dark"] .study-hub-card:hover,[data-theme="dark"] .study-hub-format-card:hover{background:#1A304A;border-color:#48617D}
+[data-theme="dark"] .study-hub-card-link{border-color:#2C405A;color:#D7E5F5}
+[data-theme="dark"] .study-hub-format-card>b{color:#AEC0D5}
+@media(prefers-reduced-motion:reduce){.study-hub-card,.study-hub-format-card,.study-hub-resume-button{transition:none}}
 
 /* The bottom You tab is the single mobile account entry point; keep the top bar focused on the ClerkME brand. */
 @media(max-width:760px){
