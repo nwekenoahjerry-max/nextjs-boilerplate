@@ -954,9 +954,16 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
         const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
         const reference = [tokenData.code, tokenData.upstreamCode, tokenData.requestId ? "ref " + tokenData.requestId : ""].filter(Boolean).join(" / ");
         const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
+        const contentType = response.headers.get("content-type") || "unknown response type";
+        const cfRay = response.headers.get("cf-ray");
         const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-        const diagnostic = reference ? " (reference: " + reference + ")" : htmlTitle ? " (" + htmlTitle.slice(0, 100) + "; HTTP " + response.status + ")" : " (HTTP " + response.status + ")";
-        throw new Error((serverMessage || "ClerkME could not obtain a Live API session.") + upstreamMessage + diagnostic);
+        const gatewayHint = !contentType.toLowerCase().includes("json") && htmlTitle ? " · " + htmlTitle.slice(0, 90) : "";
+        const diagnostics = ["HTTP " + response.status, contentType, cfRay ? "CF-Ray " + cfRay : ""].filter(Boolean).join(" · ");
+        const diagnostic = " ( " + (reference ? reference + " · " : "") + diagnostics + gatewayHint + " )";
+        const fallbackMessage = contentType.toLowerCase().includes("json")
+          ? "ClerkME could not obtain a Live API session."
+          : "The Live session endpoint returned a gateway response instead of its normal JSON reply.";
+        throw new Error((serverMessage || fallbackMessage) + upstreamMessage + diagnostic);
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
