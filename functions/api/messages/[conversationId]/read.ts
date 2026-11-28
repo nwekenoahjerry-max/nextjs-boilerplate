@@ -38,5 +38,10 @@ export const onRequestPost = async (context: AppContext) => {
   `).bind(messageId, conversationId, user.id).run();
   const changes = Number((updated as { meta?: { changes?: number } }).meta?.changes || 0);
   if (changes < 1) return json({ error: "Conversation not found." }, 404);
+  // Clear the conversation's grouped notification when its newest message is read.
+  await context.env.DB.prepare(
+    "UPDATE student_notifications SET is_read = 1, read_at = unixepoch() " +
+    "WHERE user_id = ? AND kind = 'direct_message' AND dedupe_key = ? AND is_read = 0"
+  ).bind(user.id, "direct-message:" + conversationId).run();
   return json({ read: true, lastReadMessageId: messageId });
 };
