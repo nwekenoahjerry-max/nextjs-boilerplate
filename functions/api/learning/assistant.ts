@@ -1,7 +1,8 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Gemini 3.8 Live is the supported replacement for the retired 3.1 Live preview.
+// Gemini 3.8 Live is primary; Gemini 3.1 Live Preview remains a compatibility fallback.
 const LIVE_MODEL = "models/gemini-3.8-live";
+const LIVE_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -170,7 +171,7 @@ async function askWorkersAITutor(
 }
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
-  const models = [LIVE_MODEL] as const;
+  const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
   const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
@@ -178,14 +179,16 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
 
-  // A single bounded retry handles transient Google gateway failures without
-  // reverting to the retired 3.1 model or keeping the browser waiting too long.
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+  // Try Gemini 3.8 first, retry one transient failure, then make one
+  // bounded attempt with the previously supported 3.1 Live preview.
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex];
+    const attempts = modelIndex === 0 ? 2 : 1;
+    for (let attempt = 0; attempt < attempts; attempt++) {
       const startedAt = Date.now();
       let shouldRetry = false;
       try {
-        const response = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
           body: JSON.stringify({
@@ -200,7 +203,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
               }
             }
           }),
-          signal: AbortSignal.timeout(9000)
+          signal: AbortSignal.timeout(7000)
         });
 
         const raw = await response.text();
@@ -220,7 +223,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         shouldRetry = retryableStatuses.has(response.status);
         console.warn("[ClerkME] Live token model attempt failed.", {
           requestId, model, attempt: attempt + 1, status: lastStatus,
-          upstreamCode: lastCode, retrying: shouldRetry && attempt === 0,
+          upstreamCode: lastCode, retrying: shouldRetry && attempt + 1 < attempts,
           durationMs: Date.now() - startedAt
         });
       } catch (error) {
@@ -230,11 +233,11 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         shouldRetry = true;
         console.warn("[ClerkME] Live token model attempt did not complete.", {
           requestId, model, attempt: attempt + 1, upstreamCode: lastCode,
-          retrying: attempt === 0, durationMs: Date.now() - startedAt
+          retrying: attempt + 1 < attempts, durationMs: Date.now() - startedAt
         });
       }
 
-      if (!shouldRetry || attempt === 1) break;
+      if (!shouldRetry || attempt + 1 >= attempts) break;
       await new Promise(resolve => setTimeout(resolve, 350));
     }
   }

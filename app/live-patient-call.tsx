@@ -392,10 +392,23 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
       const tokenData = await tokenResponse.json().catch(() => ({ error: "The live-call service returned an unreadable response." }));
       if (callAttempt !== callAttemptRef.current || endingRef.current) return;
       if (!tokenResponse.ok || typeof tokenData.token !== "string" || !tokenData.token) {
-        throw new Error(tokenData.error || "The live patient call could not be authorised.");
+        const reference = [
+          tokenData.code,
+          tokenData.upstreamCode,
+          typeof tokenData.upstreamStatus === "number" ? "Google HTTP " + tokenData.upstreamStatus : "",
+          tokenData.requestId ? "ref " + tokenData.requestId : ""
+        ].filter(Boolean).join(" / ");
+        const providerMessage = typeof tokenData.upstreamMessage === "string"
+          ? " — " + tokenData.upstreamMessage.slice(0, 180)
+          : "";
+        throw new Error(
+          (tokenData.error || "The live patient call could not be authorised.") +
+          providerMessage +
+          (reference ? " (" + reference + ")" : "")
+        );
       }
 
-      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
       const socket = new WebSocket(endpoint);
       socketRef.current = socket;
       connectionTimeoutRef.current = window.setTimeout(() => {
