@@ -32,7 +32,7 @@ export const onRequestGet=async(context:AppContext)=>{
   ]);
   const photoUrl=(key:string|null,id:string)=>key?"/api/profile/photo?userId="+encodeURIComponent(id):null;
   return json({
-    connections:connections.results.map(item=>({...item,photoUrl:photoUrl(item.profilePhotoKey,item.id)})),
+    connections:connections.results.map(item=>({id:item.id,name:item.name,university:item.university,level:item.level,createdAt:item.createdAt,photoUrl:photoUrl(item.profilePhotoKey,item.id)})),
     incoming:incoming.results,
     outgoing:outgoing.results,
     incomingCount:incoming.results.length
