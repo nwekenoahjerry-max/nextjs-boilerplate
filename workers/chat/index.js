@@ -444,20 +444,32 @@ export class ConversationRoom {
       });
     }
     const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
-    if (!delivered) {
+    // The workspace refreshes last_seen_at every 30 seconds while a student
+    // is using ClerkMe. A 90-second window allows for a missed heartbeat but
+    // avoids interrupting an active study session with a push alert.
+    const recipientPresence = await this.env.DB.prepare(
+      "SELECT last_seen_at AS lastSeenAt FROM student_profiles WHERE id = ?"
+    ).bind(other.id).first();
+    const recipientActive = Number(recipientPresence?.lastSeenAt || 0) >= Math.floor(Date.now() / 1000) - 90;
+    if (!delivered && !recipientActive) {
       await this.env.DB.prepare(`
-        INSERT OR IGNORE INTO student_notifications
+        INSERT INTO student_notifications
           (id, user_id, dedupe_key, kind, title, message, destination, created_at)
         VALUES (?, ?, ?, 'direct_message', ?, 'Open ClerkMe Messages to read it.', 'you', unixepoch())
+        ON CONFLICT(dedupe_key) DO UPDATE SET
+          title = excluded.title,
+          message = excluded.message,
+          is_read = 0,
+          created_at = excluded.created_at,
+          read_at = NULL
       `).bind(
-        crypto.randomUUID(), other.id, "direct-message:" + messageId, notificationTitle
+        crypto.randomUUID(), other.id, "direct-message:" + identity.conversationId, notificationTitle
       ).run();
     }
 
-    // Push every direct message through a dedicated service-to-service token.
-    // The recipient may have ClerkMe open on a different screen, so the device
-    // alert is still useful even when a WebSocket is connected.
-    if (this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
+    // Do not alert a student who is already using ClerkMe. Their unread
+    // conversation badge remains available; push is reserved for away users.
+    if (!recipientActive && !delivered && this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
       try {
         const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
           method: "POST",
@@ -470,7 +482,7 @@ export class ConversationRoom {
             title: notificationTitle,
             body: isVoiceNote ? "You received a voice note on ClerkMe." : "You have a new private message on ClerkMe.",
             url: "/?open=messages",
-            tag: "clerkme-dm-" + messageId,
+            tag: "clerkme-dm-" + identity.conversationId,
             messageId,
             conversationId: identity.conversationId
           })
