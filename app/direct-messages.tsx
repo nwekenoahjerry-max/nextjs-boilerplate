@@ -171,6 +171,8 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
 
         if (data.type === "message:new" && data.message && typeof data.message === "object") {
           const incoming = data.message;
+          const nearBottom = !scrollRef.current ||
+            scrollRef.current.scrollHeight - scrollRef.current.scrollTop - scrollRef.current.clientHeight < 100;
           setMessages(current => {
             const exists = current.some(item => item.id === incoming.id ||
               Boolean(incoming.client_message_id && item.client_message_id === incoming.client_message_id));
@@ -180,16 +182,16 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
             );
             return [...current, incoming];
           });
-          keepScroll.current = true;
+          keepScroll.current = nearBottom;
           setConversations(current => {
             const updated = current.map(item => item.id === selectedId ? {
               ...item, lastMessagePreview: incoming.body, lastMessageAt: incoming.created_at,
-              unreadCount: incoming.sender_id === userId ? item.unreadCount : item.unreadCount + 1
+              unreadCount: incoming.sender_id === userId || nearBottom ? item.unreadCount : item.unreadCount + 1
             } : item);
             return updated.sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
           });
           if (incoming.sender_id !== userId) {
-            void markRead(selectedId, incoming.id);
+            if (nearBottom) void markRead(selectedId, incoming.id);
             window.dispatchEvent(new Event("clerkme:notifications-refresh"));
           }
           void loadConversations();
