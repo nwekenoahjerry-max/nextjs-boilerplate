@@ -1,9 +1,9 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
+import { writeLiveDiagnostic } from "../../_lib/live-diagnostics";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const LIVE_PATIENT_MODEL = "models/gemini-3.8-live";
-const LIVE_PATIENT_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
-const LIVE_PATIENT_MODELS = [LIVE_PATIENT_MODEL, LIVE_PATIENT_MODEL_FALLBACK] as const;
+const LIVE_PATIENT_MODELS = [LIVE_PATIENT_MODEL] as const;
 const ALLOWED_UNITS = ["general-medicine","surgery","paediatrics","obstetrics-gynaecology","emergency","psychiatry","community-medicine","orthopaedics"];
 
 type CaseProfile = {
@@ -78,7 +78,8 @@ const UNIT_FOCUS:Record<string,string>={
   orthopaedics:"Focus on injury mechanism, anatomy, function, open wounds, distal neurovascular status and limb/spinal red flags."
 };
 
-const handleSimulationPost = async (context:AppContext) => {
+const handleSimulationPost = async (context:AppContext, requestId: string) => {
+  const rayId=context.request.headers.get("CF-Ray")||"";
   if(!validSameOrigin(context.request)) return json({error:"Invalid request origin."},403);
   const user=await requireUser(context);
   if(isResponse(user)) return user;
@@ -93,8 +94,17 @@ const handleSimulationPost = async (context:AppContext) => {
   }
 
   if(intent==="live-token"){
+    await writeLiveDiagnostic(context,{
+      requestId,route:"patient-simulation",rayId,stage:"route_entered",model:LIVE_PATIENT_MODEL
+    });
     const apiKey=context.env.GEMINI_API_KEY?.trim();
-    if(!apiKey) return json({error:"Live patient calls are not available right now. You can continue with the text interview."},503);
+    if(!apiKey){
+      await writeLiveDiagnostic(context,{
+        requestId,route:"patient-simulation",rayId,stage:"credential_missing",
+        statusCode:503,errorCode:"GEMINI_LIVE_NOT_CONFIGURED",model:LIVE_PATIENT_MODEL
+      });
+      return json({error:"Live patient calls are not available right now. You can continue with the text interview."},503);
+    }
 
     const patientVoicePrompt=[
       "You are playing one consistent fictional patient, caregiver or informant in a medical-student history-taking simulation. This is an educational role-play, not a real patient consultation.",
@@ -115,14 +125,16 @@ const handleSimulationPost = async (context:AppContext) => {
     ].join("\n\n");
 
     const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
-    const requestId=crypto.randomUUID().slice(0,12);
     const retryableStatuses=new Set([408,429,500,502,503,504]);
+    await writeLiveDiagnostic(context,{
+      requestId,route:"patient-simulation",rayId,stage:"token_request_started",model:LIVE_PATIENT_MODEL
+    });
     let lastStatus=0;
     let lastCode="NETWORK_FAILURE";
     let lastDetail="";
 
-    // Use Gemini 3.8 first. If Google rejects that model or its token request,
-    // make one bounded attempt with the previously supported 3.1 Live preview.
+    // Retry only transient Gemini 3.8 token-service failures. The retired 3.1
+    // Live preview is not used as a fallback.
     for(let modelIndex=0;modelIndex<LIVE_PATIENT_MODELS.length;modelIndex++){
       const model=LIVE_PATIENT_MODELS[modelIndex];
       const attempts=modelIndex===0?2:1;
@@ -154,10 +166,14 @@ const handleSimulationPost = async (context:AppContext) => {
           });
           const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string;status?:string;code?:number}};
           if(tokenResponse.ok&&typeof tokenData.name==="string"&&tokenData.name){
+            await writeLiveDiagnostic(context,{
+              requestId,route:"patient-simulation",rayId,stage:"token_issued",
+              statusCode:200,model
+            });
             console.info("[ClerkMe] Live patient token provisioned.",{
               requestId,unit,caseId,model,attempt:attempt+1
             });
-            return json({token:tokenData.name,expiresAt:expireTime,model});
+            return json({token:tokenData.name,expiresAt:expireTime,model,requestId});
           }
           lastStatus=tokenResponse.status;
           lastCode=tokenData.error?.status||"HTTP_ERROR";
@@ -204,6 +220,10 @@ const handleSimulationPost = async (context:AppContext) => {
             :lastStatus===0
               ?"ClerkMe could not reach Google's Live token service. Check the connection and retry."
               :"ClerkMe could not start the Live patient call just now. Your text interview is still available.";
+    await writeLiveDiagnostic(context,{
+      requestId,route:"patient-simulation",rayId,stage:"token_request_failed",
+      statusCode:lastStatus||null,model:LIVE_PATIENT_MODEL,errorCode:lastCode,detail:lastDetail
+    });
     console.error("[ClerkMe] Patient Live token provisioning failed for all configured models.",{
       requestId,unit,caseId,models:LIVE_PATIENT_MODELS,status:lastStatus,
       upstreamCode:lastCode,detail:lastDetail
@@ -320,8 +340,17 @@ const handleSimulationPost = async (context:AppContext) => {
 export const onRequestPost = async (context:AppContext) => {
   const requestId=crypto.randomUUID().slice(0,12);
   try {
-    return await handleSimulationPost(context);
+    return await handleSimulationPost(context,requestId);
   } catch(error) {
+    const requestBody=await context.request.clone().json().catch(()=>null) as Record<string,unknown>|null;
+    if(requestBody?.intent==="live-token"){
+      await writeLiveDiagnostic(context,{
+        requestId,route:"patient-simulation",
+        rayId:context.request.headers.get("CF-Ray")||"",
+        stage:"route_unhandled_error",errorCode:"SIMULATION_ROUTE_FAILURE",
+        detail:error instanceof Error?error.message.slice(0,240):"Unknown simulation route failure"
+      });
+    }
     console.error("[ClerkMe] Clinical simulation route failed unexpectedly.", {
       requestId,
       detail:error instanceof Error ? error.message.slice(0,240) : "Unknown simulation route failure"
