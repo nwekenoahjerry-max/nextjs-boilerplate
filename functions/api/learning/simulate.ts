@@ -120,7 +120,7 @@ const handleSimulationPost = async (context:AppContext) => {
         const now=Date.now();
         const expireTime=new Date(now+30*60*1000).toISOString();
         const newSessionExpireTime=new Date(now+60*1000).toISOString();
-        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens",{
+        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
           method:"POST",
           headers:{"Content-Type":"application/json","Accept":"application/json","x-goog-api-key":apiKey},
           body:JSON.stringify({
