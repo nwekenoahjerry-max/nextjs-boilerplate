@@ -389,14 +389,6 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [loadConversations]);
-  useEffect(()=>{
-    void loadConnections();
-    const refresh=()=>{if(document.visibilityState==="visible")void loadConnections();};
-    const interval=window.setInterval(refresh,30000);
-    document.addEventListener("visibilitychange",refresh);
-    return()=>{window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);};
-  },[loadConnections]);
-
   useEffect(() => {
     setPeerOnline(isOnline(selected?.otherLastSeenAt));
   }, [selected?.otherLastSeenAt]);
@@ -497,6 +489,14 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       }
     }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be sent.");}
   };
+
+  useEffect(()=>{
+    void loadConnections();
+    const refresh=()=>{if(document.visibilityState==="visible")void loadConnections();};
+    const interval=window.setInterval(refresh,30000);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);};
+  },[loadConnections]);
 
   useEffect(() => {
     if (!selectedId) {
