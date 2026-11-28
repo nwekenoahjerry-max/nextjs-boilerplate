@@ -25,3 +25,30 @@
 .dm-conversation-search input{display:block;width:100%;border:1px solid var(--dm-border,#dce4ed);border-radius:10px;padding:10px 12px;background:var(--dm-input,#f8fafc);color:var(--dm-text,#17263f);font:inherit;font-size:12px;outline:none}
 .dm-conversation-search input:focus{border-color:#5278ab;box-shadow:0 0 0 3px #5278ab1f}
 .dm-status-reply-marker{display:inline-flex;margin:0 0 5px;color:#8aa4c6;font-size:9px;font-weight:750;letter-spacing:.02em}
+
+
+/* Conversation controls: aligned iconography and generous touch targets */
+.dm-new-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 15px}
+.dm-new-button svg,.dm-inbox-action svg,.dm-back-button svg,.dm-composer-footer button svg,.dm-welcome-icon svg{display:block;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.dm-new-button span{margin:0;font-size:.82rem}
+.dm-inbox-action{display:grid;place-items:center;width:40px;height:40px;border-radius:11px}
+.dm-inbox-action svg{width:19px;height:19px}
+.dm-conversation-search{position:relative;padding:12px 13px;border-bottom:1px solid var(--dm-border);background:var(--surface,#fff)}
+.dm-conversation-search>svg{position:absolute;left:26px;top:25px;width:18px;height:18px;fill:none;stroke:var(--dm-muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.dm-conversation-search input{width:100%;min-height:44px;border:1px solid var(--dm-border);border-radius:12px;padding:10px 12px 10px 40px;background:var(--composer-background,#f8fafc);color:var(--text-color,#172b4d);font:inherit;font-size:.8rem;outline:none}
+.dm-conversation-search input:focus{border-color:#6e91c0;box-shadow:0 0 0 3px #23518f16}
+.dm-back-button{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border:1px solid var(--dm-border);border-radius:11px;background:var(--surface,#fff);color:var(--dm-navy)}
+.dm-back-button svg{width:20px;height:20px}
+.dm-composer-footer button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:88px;min-height:42px}
+.dm-composer-footer button svg{width:16px;height:16px}
+.dm-welcome-icon svg{width:31px;height:31px}
+.dm-menu-button:focus-visible,.dm-back-button:focus-visible,.dm-inbox-action:focus-visible,.dm-new-button:focus-visible,.dm-conversation:focus-visible,.dm-student-result:focus-visible,.dm-composer button:focus-visible{outline:3px solid #7da4d4;outline-offset:3px}
+[data-theme="dark"] .dm-conversation-search{background:#111e30}
+[data-theme="dark"] .dm-conversation-search input{background:#142238;color:#e5edf7;border-color:#29384d}
+@media(max-width:760px){
+ .dm-new-button{min-height:42px;padding:9px 11px;gap:7px}
+ .dm-new-button span{font-size:.74rem}
+ .dm-conversation-search{padding:10px 11px}
+ .dm-conversation-search>svg{left:23px;top:22px}
+ .dm-back-button{width:38px;height:38px;flex-basis:38px}
+}

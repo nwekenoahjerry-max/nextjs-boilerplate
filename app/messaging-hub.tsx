@@ -52,21 +52,30 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
   return <section className="cmh-shell" aria-label="ClerkMe messaging">
     <header className="cmh-heading">
       <div><span className="cmh-eyebrow">CLERKME CONNECT</span><h1>Stay connected.</h1><p>Private conversations and everyday moments with your student community.</p></div>
-      <div className="cmh-mark" aria-hidden="true"><span>C</span><b>M</b></div>
+      <img className="cmh-mark" src="/clerkme-mark-navy.svg" alt="" aria-hidden="true" width={56} height={56} decoding="async"/>
     </header>
-    <nav className="cmh-tabs" aria-label="Messaging sections" role="tablist">
-      <button type="button" role="tab" aria-selected={section==="chats"} className={section==="chats"?"is-active":""} onClick={()=>setSection("chats")}><CmhIcon name="chat"/>Chats</button>
-      <button type="button" role="tab" aria-selected={section==="status"} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><CmhIcon name="spark"/>Status</button>
-      <button type="button" role="tab" aria-selected={section==="profile"} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><CmhIcon name="user"/>Profile</button>
+    <nav className="cmh-tabs" aria-label="Messaging sections" role="tablist"
+      onKeyDown={event=>{
+        const order=["chats","status","profile"] as const;
+        const currentIndex=order.indexOf(section);
+        const next=event.key==="ArrowRight"?(currentIndex+1)%order.length:event.key==="ArrowLeft"?(currentIndex+order.length-1)%order.length:event.key==="Home"?0:event.key==="End"?order.length-1:-1;
+        if(next<0)return;
+        event.preventDefault();
+        setSection(order[next]);
+        document.getElementById("cmh-tab-"+order[next])?.focus();
+      }}>
+      <button id="cmh-tab-chats" type="button" role="tab" aria-controls="cmh-panel-chats" aria-selected={section==="chats"} tabIndex={section==="chats"?0:-1} className={section==="chats"?"is-active":""} onClick={()=>setSection("chats")}><span className="cmh-tab-icon"><CmhIcon name="chat"/></span><span className="cmh-tab-label">Chats</span></button>
+      <button id="cmh-tab-status" type="button" role="tab" aria-controls="cmh-panel-status" aria-selected={section==="status"} tabIndex={section==="status"?0:-1} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><span className="cmh-tab-icon"><CmhIcon name="spark"/></span><span className="cmh-tab-label">Status</span></button>
+      <button id="cmh-tab-profile" type="button" role="tab" aria-controls="cmh-panel-profile" aria-selected={section==="profile"} tabIndex={section==="profile"?0:-1} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><span className="cmh-tab-icon"><CmhIcon name="user"/></span><span className="cmh-tab-label">Profile</span></button>
     </nav>
     {hubNotice&&<div className="cmh-alert" role="alert">{hubNotice}<button type="button" onClick={()=>setHubNotice("")} aria-label="Dismiss">×</button></div>}
-    {section==="chats"&&<DirectMessagesPanel key={replyLaunch?.statusId||"clerkme-chats"} userId={userId} initialConversationId={replyLaunch?.conversationId||""} initialStatusReplyId={replyLaunch?.statusId||""} initialDraft={replyLaunch?.draft||""}/>}
-    {section==="status"&&<StatusPanel userId={userId} onReply={startReply}/>}
-    {section==="profile"&&<MessagingProfilePanel/>}
+    {section==="chats"&&<div id="cmh-panel-chats" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-chats" tabIndex={0}><DirectMessagesPanel key={replyLaunch?.statusId||"clerkme-chats"} userId={userId} initialConversationId={replyLaunch?.conversationId||""} initialStatusReplyId={replyLaunch?.statusId||""} initialDraft={replyLaunch?.draft||""}/></div>}
+    {section==="status"&&<div id="cmh-panel-status" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-status" tabIndex={0}><StatusPanel userId={userId} onReply={startReply}/></div>}
+    {section==="profile"&&<div id="cmh-panel-profile" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-profile" tabIndex={0}><MessagingProfilePanel/></div>}
   </section>;
 }
 
-function CmhIcon({name}:{name:"chat"|"spark"|"user"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"}) {
+function CmhIcon({name}:{name:"chat"|"spark"|"user"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"|"search"|"upload"|"video"|"close"|"chevron-left"|"chevron-right"}) {
   const paths:Record<string,ReactNode>={
     chat:<><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></>,
     spark:<><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></>,
@@ -79,9 +88,15 @@ function CmhIcon({name}:{name:"chat"|"spark"|"user"|"eye"|"plus"|"clock"|"shield
     image:<><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></>,
     send:<><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></>,
     trash:<><path d="M4 7h16M10 11v6M14 11v6"/><path d="m6 7 1 14h10l1-14M9 7V4h6v3"/></>,
-    chevron:<path d="m9 18 6-6-6-6"/>
+    chevron:<path d="m9 18 6-6-6-6"/>,
+    "chevron-left":<path d="m15 18-6-6 6-6"/>,
+    "chevron-right":<path d="m9 18 6-6-6-6"/>,
+    search:<><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></>,
+    upload:<><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 19v1h16v-1"/></>,
+    video:<><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></>,
+    close:<path d="m6 6 12 12M18 6 6 18"/>
   };
-  return <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return <svg className="cmh-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[name]}</svg>;
 }
 
 function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draft:string)=>void}) {
@@ -126,6 +141,30 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
   const current=stories[viewerIndex]||null;
 
   useEffect(()=>{
+    if(!creating&&!viewerGroup)return;
+    const previousOverflow=document.body.style.overflow;
+    document.body.style.overflow="hidden";
+    const onKeyDown=(event:KeyboardEvent)=>{
+      if(event.key==="Escape"){
+        event.preventDefault();
+        if(viewerGroup)setViewerGroup(null);
+        else setCreating(false);
+      }else if(viewerGroup&&event.key==="ArrowRight"){
+        event.preventDefault();
+        setViewerIndex(index=>Math.min(stories.length-1,index+1));
+      }else if(viewerGroup&&event.key==="ArrowLeft"){
+        event.preventDefault();
+        setViewerIndex(index=>Math.max(0,index-1));
+      }
+    };
+    window.addEventListener("keydown",onKeyDown);
+    return()=>{
+      document.body.style.overflow=previousOverflow;
+      window.removeEventListener("keydown",onKeyDown);
+    };
+  },[creating,viewerGroup,stories.length]);
+
+  useEffect(()=>{
     if(!current||current.userId===userId) return;
     fetch("/api/status/"+encodeURIComponent(current.id)+"/view",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:"{}"})
       .then(response=>{if(!response.ok) return;setGroups(now=>now.map(group=>group.userId!==current.userId?group:{...group,statuses:group.statuses.map(status=>status.id===current.id?{...status,hasViewed:true}:status)}));})
@@ -137,6 +176,12 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
     const first=ordered.findIndex(status=>!status.hasViewed);
     setViewerGroup(group);
     setViewerIndex(first>=0&&group.userId!==userId?first:Math.max(0,ordered.length-1));
+    setReplyText("");setViewers(null);
+  };  const openStatus=(group:StatusGroup,statusId:string)=>{
+    const ordered=[...group.statuses].sort((a,b)=>a.createdAt-b.createdAt);
+    const selected=ordered.findIndex(status=>status.id===statusId);
+    setViewerGroup(group);
+    setViewerIndex(Math.max(0,selected));
     setReplyText("");setViewers(null);
   };
   const createStatus=async(event:FormEvent)=>{
@@ -202,7 +247,7 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
       <div className="cmh-feed-heading"><h3>Your updates</h3><span><CmhIcon name="clock"/> Disappear after 24 hours</span></div>
       {loading?<div className="cmh-status-loading" role="status"><i/><i/><i/><span>Loading statuses…</span></div>:
         !ownGroup||ownGroup.statuses.length===0?<div className="cmh-empty-status"><span className="cmh-empty-mark"><CmhIcon name="spark"/></span><strong>Your story starts here.</strong><p>Post a thought, a photo or a short video. Your update will be available for 24 hours.</p><button type="button" className="cmh-secondary" onClick={()=>setCreating(true)}>Create your first status</button></div>:
-        <div className="cmh-status-cards">{ownGroup.statuses.map(status=><button type="button" key={status.id} className="cmh-status-card" onClick={()=>openGroup(ownGroup)}>
+        <div className="cmh-status-cards">{ownGroup.statuses.map(status=><button type="button" key={status.id} className="cmh-status-card" onClick={()=>openStatus(ownGroup,status.id)}>
           {status.mediaUrl&&status.mediaType?.startsWith("image/")?<img src={status.mediaUrl} alt="" loading="lazy"/>:
             status.mediaUrl&&status.mediaType?.startsWith("video/")?<span className="cmh-video-thumb"><b>▶</b> Video update</span>:
             <span className="cmh-status-text-thumb" style={{background:status.background}}>{status.body}</span>}
@@ -214,7 +259,7 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
 
     {creating&&<div className="cmh-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setCreating(false);}}>
       <section className="cmh-create-modal" role="dialog" aria-modal="true" aria-labelledby="cmh-create-title">
-        <button type="button" className="cmh-close" onClick={()=>setCreating(false)} aria-label="Close">×</button>
+        <button type="button" className="cmh-close" onClick={()=>setCreating(false)} aria-label="Close"><CmhIcon name="close"/></button>
         <span className="cmh-eyebrow">YOUR NEXT 24 HOURS</span><h2 id="cmh-create-title">Create a status</h2>
         <form onSubmit={createStatus}>
           <label className="cmh-status-caption">What would you like to share?
@@ -222,7 +267,21 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
             <small>{statusText.length}/500 characters</small>
           </label>
           <div className="cmh-background-picker"><span>Text background</span>{backgrounds.map(color=><button type="button" key={color} style={{background:color}} aria-label={"Choose "+color} aria-pressed={background===color} onClick={()=>setBackground(color)}/>)}</div>
-          <label className="cmh-file-picker"><span>Add a photo or short video</span><input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={event=>setFile(event.target.files?.[0]||null)}/><small>{file?file.name+" · "+(file.size/1024/1024).toFixed(1)+" MB":"Photos up to 8 MB · videos up to 25 MB"}</small></label>
+          <div className="cmh-file-picker">
+            <input id="cmh-status-file" key={file?.name||"empty"} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={event=>{
+              const selected=event.target.files?.[0]||null;
+              if(!selected){setFile(null);return;}
+              const video=selected.type.startsWith("video/");
+              const limit=video?25*1024*1024:8*1024*1024;
+              if(selected.size>limit){setFile(null);setError(video?"Choose a video of 25 MB or less.":"Choose an image of 8 MB or less.");event.currentTarget.value="";return;}
+              setError("");setFile(selected);
+            }}/>
+            <label htmlFor="cmh-status-file" className="cmh-file-picker-label">
+              <span className="cmh-file-icon"><CmhIcon name={file?.type.startsWith("video/")?"video":"upload"}/></span>
+              <span className="cmh-file-copy"><b>{file?"Media selected":"Add a photo or short video"}</b><small>{file?file.name+" · "+(file.size/1024/1024).toFixed(1)+" MB":"Photos up to 8 MB · videos up to 25 MB"}</small></span>
+              <span className="cmh-file-browse">Browse</span>
+            </label>
+          </div>
           {file&&<div className="cmh-selected-file"><CmhIcon name="image"/><span>{file.name}</span><button type="button" onClick={()=>setFile(null)}>Remove</button></div>}
           <label className="cmh-audience">Who can see this status?
             <select value={audience} onChange={event=>setAudience(event.target.value as Audience)}>
@@ -237,14 +296,14 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
     {current&&viewerGroup&&<div className="cmh-story-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setViewerGroup(null);}}>
       <section className="cmh-story-viewer" role="dialog" aria-modal="true" aria-label={viewerGroup.name+"'s status"}>
         <div className="cmh-story-progress" aria-label={"Status "+(viewerIndex+1)+" of "+stories.length}>{stories.map((story,index)=><span key={story.id} className={index<=viewerIndex?"is-filled":""}/>)}</div>
-        <header className="cmh-story-header"><span className="cmh-story-avatar">{initials(viewerGroup.name)}</span><div><strong>{viewerGroup.name}</strong><small>{relativeAge(current.createdAt)} · {remaining(current.expiresAt)}</small></div><button type="button" onClick={()=>setViewerGroup(null)} aria-label="Close status">×</button></header>
+        <header className="cmh-story-header"><span className="cmh-story-avatar">{initials(viewerGroup.name)}</span><div><strong>{viewerGroup.name}</strong><small>{relativeAge(current.createdAt)} · {remaining(current.expiresAt)}</small></div><button type="button" onClick={()=>setViewerGroup(null)} aria-label="Close status"><CmhIcon name="close"/></button></header>
         <div className="cmh-story-stage">
           {current.mediaUrl&&current.mediaType?.startsWith("image/")?<img src={current.mediaUrl} alt={"Status from "+viewerGroup.name}/>:
             current.mediaUrl&&current.mediaType?.startsWith("video/")?<video src={current.mediaUrl} controls autoPlay playsInline/>:
             <div className="cmh-story-text" style={{background:current.background}}>{current.body}</div>}
           {current.body&&current.mediaUrl&&<p className="cmh-story-caption">{current.body}</p>}
-          <button type="button" className="cmh-story-nav cmh-story-prev" onClick={()=>setViewerIndex(index=>Math.max(0,index-1))} disabled={viewerIndex===0} aria-label="Previous status">‹</button>
-          <button type="button" className="cmh-story-nav cmh-story-next" onClick={()=>setViewerIndex(index=>Math.min(stories.length-1,index+1))} disabled={viewerIndex>=stories.length-1} aria-label="Next status">›</button>
+          <button type="button" className="cmh-story-nav cmh-story-prev" onClick={()=>setViewerIndex(index=>Math.max(0,index-1))} disabled={viewerIndex===0} aria-label="Previous status"><CmhIcon name="chevron-left"/></button>
+          <button type="button" className="cmh-story-nav cmh-story-next" onClick={()=>setViewerIndex(index=>Math.min(stories.length-1,index+1))} disabled={viewerIndex>=stories.length-1} aria-label="Next status"><CmhIcon name="chevron-right"/></button>
         </div>
         <footer className="cmh-story-footer">
           {viewerGroup.userId===userId?<><button type="button" className="cmh-viewers-btn" onClick={()=>void loadViewers(current)}><CmhIcon name="eye"/>{current.viewCount} viewers</button><button type="button" className="cmh-delete-status" onClick={()=>void deleteStatus(current)}><CmhIcon name="trash"/>Delete</button></>:
@@ -337,10 +396,10 @@ function MessagingProfilePanel() {
     <div className="cmh-settings-card">
       <div className="cmh-settings-heading"><span>PRIVACY</span><h3>Your status, your choice.</h3><p>Choose who sees your updates and what activity is visible.</p></div>
       <label className="cmh-setting-row"><span><b>Default status audience</b><small>Who can view new statuses you share</small></span>
-        <select value={preferences.defaultAudience} onChange={event=>void savePreferences({defaultAudience:event.target.value as Audience})}><option value="everyone">All verified students</option><option value="conversations">Students I have chatted with</option><option value="only_me">Only me</option></select>
+        <select value={preferences.defaultAudience} disabled={saving} onChange={event=>void savePreferences({defaultAudience:event.target.value as Audience})}><option value="everyone">All verified students</option><option value="conversations">Students I have chatted with</option><option value="only_me">Only me</option></select>
       </label>
-      <label className="cmh-setting-row"><span><b>Hide my status views</b><small>Your name will not appear in other students' viewer lists</small></span><input type="checkbox" checked={preferences.hideViews} onChange={event=>void savePreferences({hideViews:event.target.checked})}/></label>
-      <label className="cmh-setting-row"><span><b>Allow replies to my statuses</b><small>Replies open a private one-to-one conversation</small></span><input type="checkbox" checked={preferences.allowReplies} onChange={event=>void savePreferences({allowReplies:event.target.checked})}/></label>
+      <label className="cmh-setting-row"><span><b>Hide my status views</b><small>Your name will not appear in other students' viewer lists</small></span><input type="checkbox" checked={preferences.hideViews} disabled={saving} onChange={event=>void savePreferences({hideViews:event.target.checked})}/></label>
+      <label className="cmh-setting-row"><span><b>Allow replies to my statuses</b><small>Replies open a private one-to-one conversation</small></span><input type="checkbox" checked={preferences.allowReplies} disabled={saving} onChange={event=>void savePreferences({allowReplies:event.target.checked})}/></label>
       {saving&&<small className="cmh-saving">Saving privacy settings…</small>}
     </div>
     <div className="cmh-settings-card">

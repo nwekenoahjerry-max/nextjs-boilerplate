@@ -460,13 +460,13 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     <section className="clerkme-dm-page" aria-label="Private messages">
       <div className="dm-page-heading">
         <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>One-to-one conversations with verified ClerkMe students.</p></div>
-        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><span aria-hidden="true">＋</span> New message</button>
+        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New message</span></button>
       </div>
       {notice && <div className="dm-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
       <div className={"dm-workspace" + (selectedId ? " has-selection" : "")}>
         <aside className={"dm-inbox" + (selectedId ? " dm-mobile-hidden" : "")}>
-          <div className="dm-inbox-heading"><strong>{showNew ? "New conversation" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "New conversation"}>{showNew ? "×" : "＋"}</button></div>
+          <div className="dm-inbox-heading"><strong>{showNew ? "New conversation" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "New conversation"}>{showNew ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>}</button></div>
           {showNew && <div className="dm-search-panel">
             <label htmlFor="dm-search">Find a ClerkMe student</label>
             <input id="dm-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name or university" autoComplete="off"/>
@@ -479,10 +479,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               </button>)}
             </div>
           </div>}
-          {!showNew && <div className="dm-conversation-search">
-            <label htmlFor="dm-conversation-search">Search conversations</label>
-            <input id="dm-conversation-search" type="search" value={conversationSearch} onChange={event => setConversationSearch(event.target.value)} placeholder="Find a chat or message…" autoComplete="off"/>
-          </div>}
+          {!showNew && <div className="dm-conversation-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="dm-conversation-search" type="search" value={conversationSearch} onChange={event => setConversationSearch(event.target.value)} placeholder="Search conversations…" aria-label="Search conversations by student name or recent message preview" autoComplete="off"/></div>}
           {!showNew && <div className="dm-conversation-list">
             {loading ? <div className="dm-empty-list">Loading conversations…</div> : conversations.length === 0 ? <div className="dm-empty-list">
               <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Start a private academic conversation with another ClerkMe student.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
@@ -498,7 +495,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
         <div className={"dm-thread" + (!selectedId ? " dm-mobile-hidden" : "")}>
           {selected && selectedId ? <>
             <header className="dm-thread-header">
-              <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations">‹</button>
+              <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
               <span className="dm-avatar dm-header-avatar">{initials(selected.otherName)}</span>
               <div className="dm-thread-person"><strong>{selected.otherName}</strong><small>{peerOnline || isOnline(selected.otherLastSeenAt) ? "Online" : selected.otherLastSeenAt ? "Last seen " + timeLabel(selected.otherLastSeenAt) : "ClerkMe student"}</small></div>
               <span className={"dm-connection" + (connection === "connected" ? " is-connected" : "")}>{connection === "connected" ? "Live" : connection === "offline" ? "Offline" : "Reconnecting"}</span>
@@ -537,9 +534,9 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             <form className="dm-composer" onSubmit={event => { event.preventDefault(); sendMessage(); }}>
               {replyingStatusId && <div className="dm-status-reply-context"><span>↩ Replying to a status</span><button type="button" onClick={() => setReplyingStatusId("")}>Cancel</button></div>}
               <textarea value={draft} maxLength={4000} rows={1} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Write a message…" aria-label="Write a message"/>
-              <div className="dm-composer-footer"><small>{draft.length}/4000 · Keep conversations respectful and academic.</small><button type="submit" disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}>Send <span>↗</span></button></div>
+              <div className="dm-composer-footer"><small>{draft.length}/4000 · Keep conversations respectful and academic.</small><button type="submit" disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}><span>Send</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button></div>
             </form>
-          </> : <div className="dm-welcome"><div className="dm-welcome-icon">✉</div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Messages are private to the two participants. Do not share identifiable patient information.</small></div>}
+          </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Messages are private to the two participants. Do not share identifiable patient information.</small></div>}
         </div>
       </div>
 
