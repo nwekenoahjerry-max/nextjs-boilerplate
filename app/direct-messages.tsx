@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-type Student = { id: string; name: string; university?: string; level?: string; lastSeenAt?: number | null };
+type Student = { id: string; name: string; university?: string; level?: string; lastSeenAt?: number | null; relationship?: "connected"|"incoming"|"outgoing"|"none"; requestId?: string|null; photoUrl?: string|null };
 type Conversation = {
   id: string; otherId: string; otherName: string; otherUniversity?: string; otherLevel?: string;
-  otherLastSeenAt?: number | null; lastMessagePreview?: string; lastMessageAt?: number | null;
+  otherLastSeenAt?: number | null; otherPhotoUrl?: string|null; lastMessagePreview?: string; lastMessageAt?: number | null;
   unreadCount: number;
 };
+type ConnectionPerson = Student & { createdAt?:number };
+type ConnectionInbox = { connections:ConnectionPerson[]; incoming:ConnectionPerson[]; outgoing:ConnectionPerson[]; incomingCount:number };
 type ChatMessage = {
   id: number; public_id?: string; conversation_id: string; sender_id: string;
   client_message_id?: string; body: string; created_at: number; delivered_at?: number | null;
@@ -21,6 +23,9 @@ type SocketEvent = {
 };
 
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "CM";
+function StudentAvatar({name,photoUrl,className="dm-avatar"}:{name:string;photoUrl?:string|null;className?:string}) {
+  return <span className={className}>{photoUrl?<img src={photoUrl} alt="" loading="lazy"/>:initials(name)}</span>;
+}
 const timeLabel = (timestamp?: number | null) => {
   if (!timestamp) return "";
   const date = new Date(timestamp * 1000);
@@ -42,6 +47,8 @@ const notifyUnreadMessagesChanged = () => window.dispatchEvent(new Event("clerkm
 
 export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "" }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [connectionInbox,setConnectionInbox]=useState<ConnectionInbox>({connections:[],incoming:[],outgoing:[],incomingCount:0});
+  const [connectionsLoading,setConnectionsLoading]=useState(true);
   const [selectedId, setSelectedId] = useState(initialConversationId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerReadMessageId, setPeerReadMessageId] = useState(0);
@@ -382,6 +389,14 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       document.removeEventListener("visibilitychange", refresh);
     };
   }, [loadConversations]);
+  useEffect(()=>{
+    void loadConnections();
+    const refresh=()=>{if(document.visibilityState==="visible")void loadConnections();};
+    const interval=window.setInterval(refresh,30000);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);};
+  },[loadConnections]);
+
   useEffect(() => {
     setPeerOnline(isOnline(selected?.otherLastSeenAt));
   }, [selected?.otherLastSeenAt]);
@@ -419,6 +434,69 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       notifyUnreadMessagesChanged();
     } catch { /* Reconciled on the next inbox refresh. */ }
   }, []);
+
+  const loadConnections=useCallback(async()=>{
+    try{
+      const response=await fetch("/api/connections",{credentials:"same-origin",cache:"no-store"});
+      if(response.status===401){window.location.href="/login";return;}
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"Your connections could not be loaded.");
+      setConnectionInbox({
+        connections:Array.isArray(data.connections)?data.connections:[],
+        incoming:Array.isArray(data.incoming)?data.incoming:[],
+        outgoing:Array.isArray(data.outgoing)?data.outgoing:[],
+        incomingCount:Number(data.incomingCount)||0
+      });
+    }catch(error){
+      setNotice(error instanceof Error?error.message:"Your connection requests could not be loaded.");
+    }finally{setConnectionsLoading(false);}
+  },[]);
+
+  const refreshStudentSearch=useCallback(async()=>{
+    const query=search.trim();
+    if(query.length<2)return;
+    try{
+      const response=await fetch("/api/messages/users?q="+encodeURIComponent(query),{credentials:"same-origin",cache:"no-store"});
+      const data=await response.json();
+      if(response.ok)setSearchResults(Array.isArray(data.users)?data.users:[]);
+    }catch{/* Keep current results visible while offline. */}
+  },[search]);
+
+  const respondToConnectionRequest=async(requestId:string,action:"accept"|"decline")=>{
+    try{
+      const response=await fetch("/api/connections/"+encodeURIComponent(requestId),{
+        method:"PATCH",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"The connection request could not be updated.");
+      setNotice(action==="accept"?"Connection accepted. You can now message each other.":"Connection request declined.");
+      await Promise.all([loadConnections(),loadConversations(),refreshStudentSearch()]);
+      window.dispatchEvent(new Event("clerkme:notifications-refresh"));
+    }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be updated.");}
+  };
+
+  const handleStudentAction=async(student:Student)=>{
+    if(student.relationship==="connected"){await openConversation(student);return;}
+    if(student.relationship==="incoming"&&student.requestId){await respondToConnectionRequest(student.requestId,"accept");return;}
+    if(student.relationship==="outgoing")return;
+    try{
+      const response=await fetch("/api/connections",{
+        method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({recipientId:student.id})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"The connection request could not be sent.");
+      if(data.connected){
+        setNotice("You are now connected. You can start a private conversation.");
+        await Promise.all([loadConnections(),loadConversations(),refreshStudentSearch()]);
+      }else{
+        setSearchResults(current=>current.map(item=>item.id===student.id?{...item,relationship:"outgoing",requestId:data.requestId}:item));
+        setNotice("Connection request sent. You can message after the student accepts.");
+        window.dispatchEvent(new Event("clerkme:notifications-refresh"));
+      }
+    }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be sent.");}
+  };
 
   useEffect(() => {
     if (!selectedId) {
@@ -680,7 +758,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
         if (current.some(item => item.id === data.conversation.id)) return current;
         return [{
           id: data.conversation.id, otherId: other.id, otherName: other.name,
-          otherUniversity: other.university, otherLevel: other.level, otherLastSeenAt: other.lastSeenAt,
+          otherUniversity: other.university, otherLevel: other.level, otherLastSeenAt: other.lastSeenAt, otherPhotoUrl: other.photoUrl,
           lastMessagePreview: "", lastMessageAt: null, unreadCount: 0
         }, ...current];
       });
@@ -878,32 +956,50 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   return (
     <section className="clerkme-dm-page" aria-label="Private messages">
       <div className="dm-page-heading">
-        <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>One-to-one conversations with verified ClerkMe students.</p></div>
-        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New message</span></button>
+        <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>Private chats with students you have accepted as connections.</p></div>
+        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Find a connection</span></button>
       </div>
       {notice && <div className="dm-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
       <div className={"dm-workspace" + (selectedId ? " has-selection" : "")}>
         <aside className={"dm-inbox" + (selectedId ? " dm-mobile-hidden" : "")}>
-          <div className="dm-inbox-heading"><strong>{showNew ? "New conversation" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "New conversation"}>{showNew ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>}</button></div>
+          <div className="dm-inbox-heading"><strong>{showNew ? "Find a connection" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "Find a connection"}>{showNew ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>}</button></div>
           {showNew && <div className="dm-search-panel">
-            <label htmlFor="dm-search">Find a ClerkMe student</label>
+            <label htmlFor="dm-search">Connect with a verified ClerkMe student</label>
             <input id="dm-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name or university" autoComplete="off"/>
             <div className="dm-search-results">
               {searching && <p className="dm-muted">Searching students…</p>}
-              {!searching && search.trim().length < 2 && <p className="dm-muted">Enter at least two characters.</p>}
+              {!searching && search.trim().length < 2 && <p className="dm-muted">Search by name or university. You can message after your request is accepted.</p>}
               {!searching && search.trim().length >= 2 && searchResults.length === 0 && <p className="dm-muted">No verified student found.</p>}
-              {searchResults.map(student => <button type="button" className="dm-student-result" key={student.id} onClick={() => void openConversation(student)}>
-                <span className="dm-avatar">{initials(student.name)}</span><span><strong>{student.name}</strong><small>{student.university || "ClerkMe student"}{student.level ? " · " + student.level : ""}</small></span><b>›</b>
+              {searchResults.map(student => <button type="button" className="dm-student-result" key={student.id} onClick={() => void handleStudentAction(student)} disabled={student.relationship==="outgoing"}>
+                <StudentAvatar name={student.name} photoUrl={student.photoUrl}/><span><strong>{student.name}</strong><small>{student.university || "ClerkMe student"}{student.level ? " · " + student.level : ""}</small></span><b>{student.relationship==="connected"?"Message":student.relationship==="incoming"?"Accept":student.relationship==="outgoing"?"Request sent":"Connect"}</b>
               </button>)}
             </div>
           </div>}
           {!showNew && <div className="dm-conversation-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="dm-conversation-search" type="search" value={conversationSearch} onChange={event => setConversationSearch(event.target.value)} placeholder="Search conversations…" aria-label="Search conversations by student name or recent message preview" autoComplete="off"/></div>}
+          {!showNew && <div className="dm-social-panel">
+            {connectionInbox.incoming.length>0&&<section className="dm-incoming-requests" aria-label="Incoming connection requests">
+              <div className="dm-social-heading"><strong>Connection requests</strong><b>{connectionInbox.incoming.length}</b></div>
+              {connectionInbox.incoming.map(person=><div className="dm-social-person" key={person.requestId}>
+                <StudentAvatar name={person.name}/><span><strong>{person.name}</strong><small>{person.university||"ClerkMe student"}</small></span>
+                <button type="button" className="dm-request-accept" onClick={()=>person.requestId&&void respondToConnectionRequest(person.requestId,"accept")}>Accept</button>
+                <button type="button" className="dm-request-decline" onClick={()=>person.requestId&&void respondToConnectionRequest(person.requestId,"decline")} aria-label={"Decline request from "+person.name}>×</button>
+              </div>)}
+            </section>}
+            {connectionInbox.connections.filter(person=>!conversations.some(chat=>chat.otherId===person.id)).length>0&&<section className="dm-accepted-connections" aria-label="Accepted connections without a chat">
+              <div className="dm-social-heading"><strong>Your connections</strong><span>{connectionInbox.connections.length}</span></div>
+              {connectionInbox.connections.filter(person=>!conversations.some(chat=>chat.otherId===person.id)).slice(0,12).map(person=><div className="dm-social-person" key={person.id}>
+                <StudentAvatar name={person.name} photoUrl={person.photoUrl}/><span><strong>{person.name}</strong><small>{person.university||"ClerkMe student"}</small></span>
+                <button type="button" className="dm-request-accept" onClick={()=>void openConversation(person)}>Message</button>
+              </div>)}
+            </section>}
+            {connectionsLoading&&<p className="dm-muted">Checking connection requests…</p>}
+          </div>}
           {!showNew && <div className="dm-conversation-list">
             {loading ? <div className="dm-empty-list">Loading conversations…</div> : conversations.length === 0 ? <div className="dm-empty-list">
-              <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Start a private academic conversation with another ClerkMe student.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
+              <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Connect with another ClerkMe student first. Once they accept, you can open a private conversation.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
             </div> : filteredConversations.length === 0 ? <div className="dm-empty-list">No conversations match that search.</div> : filteredConversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { setSelectedId(item.id); setShowNew(false); }}>
-              <span className="dm-avatar">{initials(item.otherName)}</span>
+              <StudentAvatar name={item.otherName} photoUrl={item.otherPhotoUrl}/>
               <span className="dm-conversation-copy"><span className="dm-conversation-top"><strong>{item.otherName}</strong><time>{timeLabel(item.lastMessageAt)}</time></span>
                 <span className="dm-conversation-bottom"><small>{item.lastMessagePreview || "Start a conversation"}</small>{item.unreadCount > 0 && <b>{item.unreadCount > 9 ? "9+" : item.unreadCount}</b>}</span>
               </span>
@@ -915,7 +1011,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
           {selectedId && !selected ? <div className="dm-thread-loading"><span className="dm-loading-indicator"/>Opening conversation…</div> : selected && selectedId ? <>
             <header className="dm-thread-header">
               <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
-              <span className="dm-avatar dm-header-avatar">{initials(selected.otherName)}</span>
+              <StudentAvatar name={selected.otherName} photoUrl={selected.otherPhotoUrl} className="dm-avatar dm-header-avatar"/>
               <div className="dm-thread-person"><strong>{selected.otherName}</strong><small>{peerOnline || isOnline(selected.otherLastSeenAt) ? "Online" : selected.otherLastSeenAt ? "Last seen " + timeLabel(selected.otherLastSeenAt) : "ClerkMe student"}</small></div>
               <span className={"dm-connection" + (connection === "connected" ? " is-connected" : "")}>{connection === "connected" ? "Live" : connection === "offline" ? "Offline" : "Reconnecting"}</span>
               <button type="button" className="dm-call-button" onClick={() => void startVoiceCall()} disabled={connection !== "connected" || callState !== "idle" || recording || Boolean(voiceDraft)} aria-label="Start voice call" title="Start voice call">
@@ -1008,7 +1104,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               </div>}
               <div className="dm-composer-footer"><small id="dm-composer-hint">{recording ? "Keep your message clear and concise." : voiceDraft ? "Listen before sending. Voice notes are private to this conversation." : draft.length + "/4000 · " + (connection === "connected" ? "Enter to send, Shift + Enter for a new line." : "Your text is saved here while the chat reconnects.")}</small></div>
             </form>
-          </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Choose a student first. The message box appears at the bottom of the conversation. Messages are private to the two participants; never share identifiable patient information.</small></div>}
+          </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose an existing chat or find a verified student to connect with. Messaging opens after connection approval.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Find a connection <span>→</span></button><small>Choose a student first. The message box appears at the bottom of the conversation. Messages are private to the two participants; never share identifiable patient information.</small></div>}
         </div>
       </div>
 
