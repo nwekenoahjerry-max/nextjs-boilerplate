@@ -688,6 +688,36 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const refreshMessageUnreadCount = useCallback(async () => {
+    if (!authUser?.id) { setMessageUnreadCount(0); return; }
+    try {
+      const response = await fetch("/api/messages", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json() as { conversations?: Array<{ unreadCount?: number }> };
+      const count = Array.isArray(data.conversations)
+        ? data.conversations.reduce((total, conversation) => total + Math.max(0, Number(conversation.unreadCount) || 0), 0)
+        : 0;
+      setMessageUnreadCount(count);
+    } catch {
+      // Keep the last known badge count while the device is temporarily offline.
+    }
+  }, [authUser?.id]);
+  useEffect(() => {
+    if (!authUser?.id) { setMessageUnreadCount(0); return; }
+    const refresh = () => {
+      if (document.visibilityState === "visible") void refreshMessageUnreadCount();
+    };
+    void refreshMessageUnreadCount();
+    window.addEventListener("clerkme:messages-unread-refresh", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const interval = window.setInterval(refresh, 15000);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("clerkme:messages-unread-refresh", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [authUser?.id, refreshMessageUnreadCount]);
   useEffect(() => {
     if (!authUser) return;
     const url = new URL(window.location.href);
@@ -1154,7 +1184,7 @@ export default function Home() {
           <div className="nav-section-label nav-section-spaced">MESSAGES</div>
           {navItems.slice(12, 13).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
-              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/>{id === "messages" && messageUnreadCount > 0 && <span className="nav-unread-badge" aria-hidden="true">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span>}</span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
@@ -1183,8 +1213,8 @@ export default function Home() {
         <button type="button" className={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"page":undefined}>
           <span><WorkspaceIcon name="book-open"/></span><small>Study</small>
         </button>
-        <button type="button" className={active==="messages"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("messages")} aria-current={active==="messages"?"page":undefined}>
-          <span><WorkspaceIcon name="messages-square"/></span><small>Messages</small>
+        <button type="button" className={active==="messages"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("messages")} aria-current={active==="messages"?"page":undefined} aria-label={messageUnreadCount > 0 ? "Messages, " + messageUnreadCount + " unread" : "Messages"}>
+          <span className="mobile-dock-icon-wrap"><WorkspaceIcon name="messages-square"/>{messageUnreadCount > 0 && <span className="nav-unread-badge" aria-hidden="true">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span>}</span><small>Messages</small>
         </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
