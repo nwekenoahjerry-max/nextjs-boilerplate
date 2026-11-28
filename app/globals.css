@@ -8537,3 +8537,58 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   }
   .mobile-dock-item:has(svg):focus-visible{outline-offset:1px}
 }
+
+
+/* Unread message count: visible on both desktop navigation and the mobile dock. */
+.nav-icon{position:relative}
+.message-dock-icon-wrap{position:relative}
+.unread-message-badge{
+  position:absolute;
+  z-index:2;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 4px;
+  border:2px solid #fff;
+  border-radius:999px;
+  background:#c83f4d;
+  color:#fff;
+  font:800 9px/1 Manrope,DM Sans,sans-serif;
+  letter-spacing:-.02em;
+  box-shadow:0 2px 5px rgba(11,35,72,.18);
+  pointer-events:none;
+}
+.nav-icon>.unread-message-badge{
+  top:-8px;
+  right:-10px;
+}
+.message-dock-icon-wrap>.unread-message-badge{
+  top:-6px;
+  right:-9px;
+  min-width:19px;
+  height:19px;
+  font-size:9px;
+}
+[data-theme="dark"] .unread-message-badge{
+  border-color:#fff;
+}
+@media(max-width:760px){
+  .message-dock-icon-wrap{
+    display:grid!important;
+    place-items:center;
+    width:29px!important;
+    height:27px!important;
+    flex:0 0 29px;
+    overflow:visible;
+  }
+  .message-dock-icon-wrap>svg{
+    width:22px;
+    height:22px;
+  }
+  .message-dock-icon-wrap>.unread-message-badge{
+    top:-5px;
+    right:-8px;
+  }
+}
