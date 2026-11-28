@@ -65,7 +65,10 @@ export class ConversationRoom {
       if (new URL(origin).host !== new URL(request.url).host) return new Response("Invalid origin", { status: 403 });
     } catch { return new Response("Invalid origin", { status: 403 }); }
 
-    const conversationId = new URL(request.url).searchParams.get("conversationId") || "";
+    const requestUrl = new URL(request.url);
+    const pathConversationId = requestUrl.pathname.split("/")[3] || "";
+    let conversationId = requestUrl.searchParams.get("conversationId") || pathConversationId;
+    try { conversationId = decodeURIComponent(conversationId); } catch { return new Response("Conversation not found", { status: 404 }); }
     if (!conversationId || conversationId.length > 80) return new Response("Conversation not found", { status: 404 });
 
     const token = readSessionCookie(request);
