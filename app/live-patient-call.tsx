@@ -59,6 +59,8 @@ function callTime(seconds: number): string {
   return Math.floor(seconds / 60).toString().padStart(2, "0") + ":" + (seconds % 60).toString().padStart(2, "0");
 }
 
+const LIVE_PATIENT_MODEL = "models/gemini-3.1-flash-live-preview";
+
 const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePatientCall(
   { unit, caseId, sex, openingMessage, onTurns, onStatusChange },
   ref
@@ -86,12 +88,31 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const callAttemptRef = useRef(0);
   const transcriptFlushTimerRef = useRef<number|null>(null);
   const connectionTimeoutRef = useRef<number|null>(null);
+  const responseTimeoutRef = useRef<number|null>(null);
 
   const clearConnectionTimeout = () => {
     if (connectionTimeoutRef.current !== null) {
       window.clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
     }
+  };
+
+  const clearResponseTimeout = () => {
+    if (responseTimeoutRef.current !== null) {
+      window.clearTimeout(responseTimeoutRef.current);
+      responseTimeoutRef.current = null;
+    }
+  };
+
+  const armResponseTimeout = (kind: "opening" | "answer") => {
+    clearResponseTimeout();
+    responseTimeoutRef.current = window.setTimeout(() => {
+      responseTimeoutRef.current = null;
+      if (endingRef.current || !setupCompleteRef.current) return;
+      setNotice(kind === "opening"
+        ? "The patient has not spoken yet. Check your connection and retry the call, or continue with the text interview."
+        : "The patient has not replied yet. Please repeat your question or continue with the text interview.");
+    }, 15000);
   };
 
   const updateStatus = (next: LiveCallStatus) => {
@@ -164,6 +185,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const stopCall = (notifyParent = true): LivePatientTurn[] => {
     callAttemptRef.current += 1;
     clearConnectionTimeout();
+    clearResponseTimeout();
     clearTranscriptFlush();
     const pending = takePendingTurns();
     endingRef.current = true;
@@ -201,6 +223,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     endingRef.current = true;
     setupCompleteRef.current = false;
     clearTranscriptFlush();
+    clearResponseTimeout();
     audioGateRef.current.reset();
     try { socketRef.current?.close(); } catch {}
     socketRef.current = null;
@@ -260,15 +283,24 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         if (!pcm.length) return;
         const gated = audioGateRef.current.process(pcm, samples, audioContext.sampleRate);
         try {
+          if (gated.activityStart) {
+            clearResponseTimeout();
+            socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+            setNotice("Listening to your question…");
+          }
           for (const chunk of gated.chunks) {
             socket.send(JSON.stringify({
               realtimeInput: { audio: { data: pcmToBase64(chunk), mimeType: "audio/pcm;rate=16000" } }
             }));
           }
-          if (gated.audioStreamEnd) {
-            socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
+          if (gated.activityEnd) {
+            socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
+            setNotice("Question sent. Waiting for the patient…");
+            armResponseTimeout("answer");
           }
         } catch {
+          clearResponseTimeout();
+          audioGateRef.current.reset();
           setNotice("The audio connection paused. Check your internet connection.");
         }
       };
@@ -303,24 +335,36 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         const voiceName = sex.toLowerCase().includes("female") ? "Kore" : "Puck";
         socket.send(JSON.stringify({
           setup: {
-            model: "models/gemini-3.8-live",
+            model: LIVE_PATIENT_MODEL,
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
             },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            sessionResumption: {},
-            contextWindowCompression: { slidingWindow: { targetTokens: 12000 } }
+            realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
+            sessionResumption: {}
           }
         }));
       };
 
-      socket.onmessage = event => {
-        if (typeof event.data !== "string") return;
+      socket.onmessage = async event => {
+        let rawMessage = "";
+        try {
+          if (typeof event.data === "string") rawMessage = event.data;
+          else if (event.data instanceof ArrayBuffer) rawMessage = new TextDecoder().decode(event.data);
+          else if (event.data instanceof Blob) rawMessage = await event.data.text();
+          else return;
+        } catch {
+          setNotice("The patient call sent a message ClerkMe could not read. Please retry the call.");
+          return;
+        }
         let message: Record<string, any>;
-        try { message = JSON.parse(event.data) as Record<string, any>; }
-        catch { return; }
+        try { message = JSON.parse(rawMessage) as Record<string, any>; }
+        catch {
+          setNotice("The patient call returned an unreadable response. Please retry the call.");
+          return;
+        }
 
         const serverContent = message.serverContent as Record<string, any> | undefined;
         const inputTranscript = message.inputTranscription?.text ?? serverContent?.inputTranscription?.text;
@@ -330,6 +374,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
           scheduleTranscriptFlush();
         }
         if (outputTranscript) {
+          clearResponseTimeout();
           patientTranscriptRef.current = appendText(patientTranscriptRef.current, String(outputTranscript));
           scheduleTranscriptFlush();
         }
@@ -357,6 +402,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
               turnComplete: true
             }
           }));
+          armResponseTimeout("opening");
           return;
         }
 
@@ -371,6 +417,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         for (const part of parts) {
           const audioData = part.inlineData?.data;
           if (typeof audioData !== "string" || audioData.length < 8) continue;
+          clearResponseTimeout();
           const activeAudioContext = audioContextRef.current;
           if (!activeAudioContext || activeAudioContext.state === "closed") continue;
           try {
@@ -393,6 +440,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         }
 
         if (serverContent.turnComplete) {
+          clearResponseTimeout();
           scheduleTranscriptFlush();
           setNotice("Connected · Listening for your next question");
         }
@@ -436,7 +484,8 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     const next = !mutedRef.current;
     const socket = socketRef.current;
     if (next && socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+      clearResponseTimeout();
+      try { socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } })); } catch {}
     } else if (next) {
       audioGateRef.current.reset();
     }
