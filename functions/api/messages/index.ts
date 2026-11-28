@@ -2,7 +2,7 @@ import { json, requireUser, isResponse, validSameOrigin, type AppContext } from 
 import { areConnected } from "../../_lib/connections";
 
 type ConversationRow = {
-  id: string; otherId: string; otherName: string; otherUniversity: string; otherLevel: string;
+  id: string; otherId: string; otherName: string; otherUniversity: string; otherLevel: string; otherPhotoUrl?:string|null;
   otherLastSeenAt: number | null; lastMessagePreview: string; lastMessageAt: number | null;
   lastMessageSenderId: string | null; lastReadMessageId: number | null; unreadCount: number;
 };
@@ -95,7 +95,7 @@ export const onRequestPost = async (context: AppContext) => {
     "INSERT OR IGNORE INTO direct_conversation_members (conversation_id, user_id, joined_at) VALUES (?, ?, unixepoch()), (?, ?, unixepoch())"
   ).bind(conversation.id, user.id, conversation.id, recipientId).run();
   const profile = await context.env.DB.prepare(
-    "SELECT id, full_name AS name, school AS university, level, last_seen_at AS lastSeenAt FROM student_profiles WHERE id = ?"
+    "SELECT id, full_name AS name, school AS university, level, last_seen_at AS lastSeenAt, CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo' ELSE NULL END AS photoUrl FROM student_profiles WHERE id = ?"
   ).bind(recipientId).first();
   return json({ conversation: { id: conversation.id, other: profile } }, 201);
 };
