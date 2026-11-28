@@ -687,6 +687,14 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  useEffect(() => {
+    if (!authUser) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("open") !== "messages") return;
+    setActive("messages");
+    url.searchParams.delete("open");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }, [authUser?.id]);
   const [resumeStudy, setResumeStudy] = useState<{materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number}|null>(null);
   const [timeGreeting, setTimeGreeting] = useState("Hello");
   useEffect(() => {
@@ -1166,6 +1174,7 @@ export default function Home() {
           <div className="mobile-account-tool-grid">
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("guides")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="book-check"/></span><strong>Clinical guides</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("patients")}><span className="mobile-account-tool-icon cases"><WorkspaceIcon name="users"/></span><strong>My cases</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("simulation")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="stethoscope"/></span><strong>Clinical simulation</strong></button>
           </div>
           <div className="mobile-account-section-heading"><strong>Study & practise</strong><span>Resources built for your learning</span></div>
           <div className="mobile-account-tool-grid">
