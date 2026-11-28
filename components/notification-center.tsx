@@ -70,7 +70,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
   const activate = async (item: Notification) => {
     if (!item.isRead) await markRead(item.id);
     setOpen(false);
-    onNavigate(item.kind === "direct_message" ? "messages" : item.destination);
+    onNavigate(item.kind === "direct_message" || item.kind === "connection_request" ? "messages" : item.destination);
   };
   return (
     <div className="notification-center">
@@ -97,7 +97,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
             ) : items.map(item => (
               <button type="button" className={"notification-item" + (item.isRead ? "" : " is-unread")} key={item.id} onClick={() => void activate(item)}>
                 <span className={"notification-item-icon" + (item.kind.includes("failed") ? " is-warning" : "")}><NotificationIcon kind={item.kind}/></span>
-                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" ? "Open messages" : destinationLabels[item.destination]}</em></span>
+                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" ? "Open messages" : item.kind === "connection_request" ? "Review request" : destinationLabels[item.destination]}</em></span>
                 {!item.isRead && <i className="notification-unread-dot" aria-label="Unread"/>}
               </button>
             ))}
