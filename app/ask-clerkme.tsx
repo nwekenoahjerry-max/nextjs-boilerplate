@@ -988,7 +988,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
           clearPendingAudio();
         }
         clearConnectionTimeout();
-        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
+        const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(token);
         const socket = new WebSocket(endpoint);
         socket.binaryType = "arraybuffer";
         socketRef.current = socket;
