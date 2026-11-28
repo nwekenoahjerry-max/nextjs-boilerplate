@@ -45,19 +45,20 @@ export const onRequestPost = async (context: AppContext) => {
 
   try {
     const current = await context.env.DB.prepare(
-      "SELECT profile_photo_key AS photoKey FROM student_profiles WHERE id = ? LIMIT 1"
-    ).bind(user.id).first<{ photoKey: string | null }>();
-    if (!current) return json({ error: "Student profile not found." }, 404);
-
+      "SELECT photo_key AS photoKey FROM student_profile_photos WHERE user_id = ? LIMIT 1"
+    ).bind(user.id).first<{ photoKey: string }>();
     await bucket.put(newKey, bytes, {
       httpMetadata: { contentType: file.type },
       customMetadata: { ownerId: user.id, purpose: "profile-photo" }
     });
     await context.env.DB.prepare(
-      "UPDATE student_profiles SET profile_photo_key = ?, profile_photo_updated_at = unixepoch(), updated_at = unixepoch() WHERE id = ?"
-    ).bind(newKey, user.id).run();
+      "INSERT INTO student_profile_photos (user_id, photo_key, content_type, updated_at) " +
+      "VALUES (?, ?, ?, unixepoch()) " +
+      "ON CONFLICT(user_id) DO UPDATE SET photo_key = excluded.photo_key, " +
+      "content_type = excluded.content_type, updated_at = unixepoch()"
+    ).bind(user.id, newKey, file.type).run();
 
-    if (current.photoKey) await bucket.delete(current.photoKey).catch(error => {
+    if (current?.photoKey) await bucket.delete(current.photoKey).catch(error => {
       console.warn("[profile-photo] Previous image cleanup failed.", error instanceof Error ? error.message : "unknown error");
     });
     const version = Math.floor(Date.now() / 1000);
@@ -70,24 +71,22 @@ export const onRequestPost = async (context: AppContext) => {
 };
 
 export const onRequestDelete = async (context: AppContext) => {
-  if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
+  if (!validSameOrigin(context.request)) return json({ error: "Invalid upload origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
   const bucket = context.env.STATUS_MEDIA;
   if (!bucket) return json({ error: "Profile photo storage is not available in this environment yet." }, 503);
 
   const current = await context.env.DB.prepare(
-    "SELECT profile_photo_key AS photoKey FROM student_profiles WHERE id = ? LIMIT 1"
-  ).bind(user.id).first<{ photoKey: string | null }>();
-  if (!current) return json({ error: "Student profile not found." }, 404);
+    "SELECT photo_key AS photoKey FROM student_profile_photos WHERE user_id = ? LIMIT 1"
+  ).bind(user.id).first<{ photoKey: string }>();
+  if (!current) return json({ removed: true, profilePhotoUrl: null });
 
   await context.env.DB.prepare(
-    "UPDATE student_profiles SET profile_photo_key = NULL, profile_photo_updated_at = unixepoch(), updated_at = unixepoch() WHERE id = ?"
+    "DELETE FROM student_profile_photos WHERE user_id = ?"
   ).bind(user.id).run();
-  if (current.photoKey) {
-    await bucket.delete(current.photoKey).catch(error => {
-      console.warn("[profile-photo] Removed image cleanup failed.", error instanceof Error ? error.message : "unknown error");
-    });
-  }
+  await bucket.delete(current.photoKey).catch(error => {
+    console.warn("[profile-photo] Removed image cleanup failed.", error instanceof Error ? error.message : "unknown error");
+  });
   return json({ removed: true, profilePhotoUrl: null });
 };
