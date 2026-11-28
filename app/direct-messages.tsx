@@ -43,6 +43,7 @@ const getVoiceNote = (body:string) => {
 const durationLabel = (seconds:number) => String(Math.floor(seconds/60)).padStart(2,"0") + ":" + String(seconds%60).padStart(2,"0");
 const conversationPreview = (body:string) => getVoiceNote(body) ? "🎙 Voice note" : body;
 const notifyUnreadMessagesChanged = () => window.dispatchEvent(new Event("clerkme:messages-unread-refresh"));
+const notifyConnectionsChanged = () => window.dispatchEvent(new Event("clerkme:connections-refresh"));
 
 
 export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "" }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string }) {
@@ -715,6 +716,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "The connection request could not be sent.");
       const updated = { ...student, connectionStatus: data.status as Student["connectionStatus"], connectionId: data.connectionId || student.connectionId };
+      notifyConnectionsChanged();
       setSearchResults(current => current.map(item => item.id === student.id ? updated : item));
       if (updated.connectionStatus === "accepted") {
         setNotice("You are now connected. You can start messaging.");
@@ -739,6 +741,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "The connection request could not be accepted.");
       const updated = { ...student, connectionStatus: "accepted" as const };
+      notifyConnectionsChanged();
       setSearchResults(current => current.map(item => item.id === student.id ? updated : item));
       setNotice("Connection accepted. You can now message each other.");
       await openConversation(updated);
@@ -938,13 +941,13 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     <section className="clerkme-dm-page" aria-label="Private messages">
       <div className="dm-page-heading">
         <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>One-to-one conversations with verified ClerkMe students.</p></div>
-        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New message</span></button>
+        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Connect</span></button>
       </div>
       {notice && <div className="dm-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
       <div className={"dm-workspace" + (selectedId ? " has-selection" : "")}>
         <aside className={"dm-inbox" + (selectedId ? " dm-mobile-hidden" : "")}>
-          <div className="dm-inbox-heading"><strong>{showNew ? "New conversation" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "New conversation"}>{showNew ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>}</button></div>
+          <div className="dm-inbox-heading"><strong>{showNew ? "Connect with students" : "Your conversations"}</strong><button type="button" className="dm-inbox-action" onClick={() => { setShowNew(value => !value); setSearch(""); }} aria-label={showNew ? "Close search" : "New conversation"}>{showNew ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>}</button></div>
           {showNew && <div className="dm-search-panel">
             <label htmlFor="dm-search">Find a ClerkMe student</label>
             <input id="dm-search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name or university" autoComplete="off"/>
@@ -967,7 +970,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
           {!showNew && <div className="dm-conversation-search" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg><input id="dm-conversation-search" type="search" value={conversationSearch} onChange={event => setConversationSearch(event.target.value)} placeholder="Search conversations…" aria-label="Search conversations by student name or recent message preview" autoComplete="off"/></div>}
           {!showNew && <div className="dm-conversation-list">
             {loading ? <div className="dm-empty-list">Loading conversations…</div> : conversations.length === 0 ? <div className="dm-empty-list">
-              <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Start a private academic conversation with another ClerkMe student.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
+              <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Send a connection request to start private conversations with other ClerkMe students.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
             </div> : filteredConversations.length === 0 ? <div className="dm-empty-list">No conversations match that search.</div> : filteredConversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { setSelectedId(item.id); setShowNew(false); }}>
               {studentAvatar(item.otherName, item.otherProfilePhotoUrl)}
               <span className="dm-conversation-copy"><span className="dm-conversation-top"><strong>{item.otherName}</strong><time>{timeLabel(item.lastMessageAt)}</time></span>
