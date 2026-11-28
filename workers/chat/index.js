@@ -30,8 +30,8 @@ export class ConversationRoom {
   }
 
   async fetch(request) {
-    const requestUrl = new URL(request.url);
-    if (request.method === "POST" && requestUrl.pathname === "/internal/message-edit") {
+    const internalUrl = new URL(request.url);
+    if (request.method === "POST" && internalUrl.pathname === "/internal/message-edit") {
       let input;
       try { input = await request.json(); } catch { return Response.json({ error: "Invalid edit event." }, { status: 400 }); }
       const conversationId = typeof input?.conversationId === "string" ? input.conversationId.slice(0, 80) : "";
