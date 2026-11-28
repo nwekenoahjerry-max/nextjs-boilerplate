@@ -1,9 +1,10 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Current native speech-to-speech Live model. Audio turns are submitted as
-// completed clientContent PCM messages to avoid the reported Gemini 3.8
-// realtimeInput turn-stall affecting streamed audio sessions.
-const LIVE_MODEL = "models/gemini-3.8-live";
+// Temporary compatibility fallback: recent reports describe Gemini 3.8
+// Live stalling on streamed realtimeInput audio. Gemini 3.1 Flash Live is
+// still listed by Google and uses the documented realtimeInput protocol.
+// Re-test 3.8 after Google resolves the input regression.
+const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -188,10 +189,18 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
         body: JSON.stringify({
-          // Keep enough connection uses for short-lived reconnect/resumption attempts.
-          uses: 3,
+          // One new session per token; Google permits the same token to resume
+          // that session through its resumption handle during token expiry.
+          uses: 1,
           expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
           newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
+          liveConnectConstraints: {
+            model: LIVE_MODEL,
+            config: {
+              sessionResumption: {},
+              responseModalities: ["AUDIO"]
+            }
+          }
         }),
         signal: AbortSignal.timeout(20000)
       });
