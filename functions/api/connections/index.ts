@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { notifyStudent } from "../../_lib/notifications";
 
 type ConnectionRow = {
   connectionId: string;
@@ -92,6 +93,9 @@ export const onRequestPost = async (context: AppContext) => {
         "UPDATE clerkme_student_connections_v1 SET status = 'accepted', updated_at = unixepoch(), responded_at = unixepoch() " +
         "WHERE id = ? AND status = 'pending' AND requested_to = ?"
       ).bind(existing.id, user.id).run();
+      await notifyStudent(context, { userId: existing.requestedBy, dedupeKey: "connection-accepted:"+existing.id+":"+existing.requestedBy,
+        kind:"connection_accepted",title:"Connection accepted",message:"Your connection request was accepted. You can now message each other.",
+        url:"/?open=messages",tag:"clerkme-connection-accepted-"+existing.id });
       return json({ connectionId: existing.id, status: "accepted", mutualRequest: true });
     }
     return json({
@@ -121,6 +125,9 @@ export const onRequestPost = async (context: AppContext) => {
       "UPDATE clerkme_student_connections_v1 SET requested_by = ?, requested_to = ?, status = 'pending', " +
       "created_at = unixepoch(), updated_at = unixepoch(), responded_at = NULL WHERE id = ?"
     ).bind(user.id, recipientId, existing.id).run();
+    await notifyStudent(context, {userId:recipientId,dedupeKey:"connection-request:"+existing.id,kind:"connection_request",
+      title:"New connection request",message:"A verified ClerkMe student would like to connect with you.",
+      url:"/?open=connections",tag:"clerkme-connection-request-"+existing.id});
     return json({ connectionId: existing.id, status: "pending_sent" }, 201);
   }
 
@@ -135,6 +142,11 @@ export const onRequestPost = async (context: AppContext) => {
     "SELECT id, requested_by AS requestedBy, status FROM clerkme_student_connections_v1 WHERE user_low_id = ? AND user_high_id = ? LIMIT 1"
   ).bind(userLow, userHigh).first<{ id: string; requestedBy: string; status: string }>();
   if (!saved) return json({ error: "The connection request could not be saved." }, 500);
+  if (saved.status === "pending" && saved.requestedBy === user.id) {
+    await notifyStudent(context, {userId:recipientId,dedupeKey:"connection-request:"+saved.id,kind:"connection_request",
+      title:"New connection request",message:"A verified ClerkMe student would like to connect with you.",
+      url:"/?open=connections",tag:"clerkme-connection-request-"+saved.id});
+  }
   return json({
     connectionId: saved.id,
     status: saved.status === "accepted" ? "accepted" : saved.requestedBy === user.id ? "pending_sent" : "pending_received"
