@@ -32,7 +32,7 @@ export const onRequestPatch = async (context: AppContext) => {
       if (blocked) return json({ error: "This student is unavailable." }, 403);
     }
     const nextStatus = action === "accept" ? "accepted" : "declined";
-    const result = await context.env.DB.prepare(
+    await context.env.DB.prepare(
       "UPDATE student_connections SET status = ?, updated_at = unixepoch(), responded_at = unixepoch() " +
       "WHERE id = ? AND requested_to = ? AND status = 'pending'"
     ).bind(nextStatus, connectionId, user.id).run();
