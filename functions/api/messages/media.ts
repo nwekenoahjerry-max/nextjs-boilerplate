@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { areConnected } from "../../_lib/connections";
 
 const audioExtensions = new Map<string,string>([
   ["audio/webm","webm"],["audio/ogg","ogg"],["audio/mp4","m4a"],
@@ -43,7 +44,7 @@ export const onRequestPost = async (context: AppContext) => {
       )
     LIMIT 1
   `).bind(conversationId,user.id).first<{peerId:string}>();
-  if (!member) return json({ error:"This conversation is unavailable." },404);
+  if (!member || !await areConnected(context.env.DB,user.id,member.peerId)) return json({ error:"This conversation is unavailable." },404);
 
   const mediaKey = "voice-" + crypto.randomUUID() + "." + extension;
   try {
