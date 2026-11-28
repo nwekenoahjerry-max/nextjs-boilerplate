@@ -173,6 +173,32 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
         retries = 0;
         setConnection("connected");
         socket.send(JSON.stringify({ type: "ping" }));
+
+        // Reconcile any optimistic messages after a reconnect. The D1 history is
+        // authoritative if a send acknowledgement was lost while the network dropped.
+        void fetch("/api/messages/" + encodeURIComponent(selectedId), {
+          credentials: "same-origin", cache: "no-store"
+        }).then(async response => {
+          if (!response.ok) return null;
+          return await response.json();
+        }).then(data => {
+          if (stopped || !data || !Array.isArray(data.messages)) return;
+          const persisted = data.messages as ChatMessage[];
+          const nearBottom = !scrollRef.current ||
+            scrollRef.current.scrollHeight - scrollRef.current.scrollTop - scrollRef.current.clientHeight < 100;
+          setMessages(current => {
+            const pending = current.filter(item =>
+              item.id < 0 && item.client_message_id &&
+              !persisted.some(saved => saved.client_message_id === item.client_message_id)
+            );
+            return [...persisted, ...pending].sort((a, b) => a.id - b.id);
+          });
+          setPeerReadMessageId(Number(data.otherLastReadMessageId) || 0);
+          setHasMore(Boolean(data.hasMore));
+          setNextCursor(data.nextCursor ? Number(data.nextCursor) : null);
+          keepScroll.current = nearBottom;
+        }).catch(() => { /* The current message list remains available offline. */ });
+
         heartbeatTimer = window.setInterval(() => {
           if (socket.readyState === WebSocket.OPEN && document.visibilityState === "visible") {
             socket.send(JSON.stringify({ type: "ping" }));
@@ -240,10 +266,16 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
       };
 
       socket.onerror = () => { if (!stopped) setConnection("reconnecting"); };
-      socket.onclose = () => {
+      socket.onclose = event => {
         window.clearInterval(heartbeatTimer);
         if (socketRef.current === socket) socketRef.current = null;
-        if (!stopped) scheduleReconnect();
+        if (stopped) return;
+        if (event.code === 1008) {
+          setConnection("offline");
+          setNotice("This conversation is no longer available. Refresh your inbox.");
+          return;
+        }
+        scheduleReconnect();
       };
     };
 
