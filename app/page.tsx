@@ -874,6 +874,33 @@ export default function Home() {
   useLayoutEffect(() => {
     void checkAuthSession();
   }, [checkAuthSession]);
+
+  // Online status is a short-lived heartbeat, not a permanent profile flag.
+  // Hidden tabs stop pinging so peers naturally see the student as offline.
+  useEffect(() => {
+    if (!authUser) return;
+    let stopped = false;
+    let inFlight = false;
+    const heartbeat = () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      fetch("/api/messages/presence", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Accept": "application/json" },
+        keepalive: true
+      }).catch(() => {}).finally(() => { inFlight = false; });
+    };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 30000);
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") heartbeat(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [authUser?.id]);
+
   useEffect(() => {
     if (!authUser) return;
     fetch("/api/activity", { method: "POST", credentials: "same-origin" })
