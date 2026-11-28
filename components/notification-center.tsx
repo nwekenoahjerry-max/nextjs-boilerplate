@@ -92,6 +92,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
   };
   const activate = async (item: Notification) => {
     if (!item.isRead) await markRead(item.id);
+    setForegroundToast(null);
     setOpen(false);
     if (item.kind === "direct_message") onNavigate("messages", "chats");
     else if (item.kind === "connection_request" || item.kind === "connection_accepted") onNavigate("messages", "connections");
