@@ -39,6 +39,22 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
   const [section,setSection]=useState<"chats"|"connections"|"status"|"profile">("chats");
   const [replyLaunch,setReplyLaunch]=useState<ReplyLaunch|null>(null);
   const [hubNotice,setHubNotice]=useState("");
+  const [incomingConnectionCount,setIncomingConnectionCount]=useState(0);
+  useEffect(()=>{
+    let cancelled=false;
+    const refresh=async()=>{
+      try{
+        const response=await fetch("/api/connections",{credentials:"same-origin",cache:"no-store"});
+        if(!response.ok)return;
+        const data=await response.json();
+        if(!cancelled)setIncomingConnectionCount(Array.isArray(data.incoming)?data.incoming.length:0);
+      }catch{/* Keep the last known badge count when temporarily offline. */}
+    };
+    void refresh();
+    const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh();},30000);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{cancelled=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);};
+  },[userId]);
   const startReply=useCallback(async (status:Status,draft:string)=>{
     try{
       const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:status.userId})});
@@ -65,7 +81,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
         document.getElementById("cmh-tab-"+order[next])?.focus();
       }}>
       <button id="cmh-tab-chats" type="button" role="tab" aria-controls="cmh-panel-chats" aria-selected={section==="chats"} tabIndex={section==="chats"?0:-1} className={section==="chats"?"is-active":""} onClick={()=>setSection("chats")}><span className="cmh-tab-icon"><CmhIcon name="chat"/></span><span className="cmh-tab-label">Chats</span></button>
-      <button id="cmh-tab-connections" type="button" role="tab" aria-controls="cmh-panel-connections" aria-selected={section==="connections"} tabIndex={section==="connections"?0:-1} className={section==="connections"?"is-active":""} onClick={()=>setSection("connections")}><span className="cmh-tab-icon"><CmhIcon name="connections"/></span><span className="cmh-tab-label">Connections</span></button>
+      <button id="cmh-tab-connections" type="button" role="tab" aria-controls="cmh-panel-connections" aria-selected={section==="connections"} tabIndex={section==="connections"?0:-1} className={section==="connections"?"is-active":""} onClick={()=>setSection("connections")}><span className="cmh-tab-icon"><CmhIcon name="connections"/>{incomingConnectionCount>0&&<span className="cmh-tab-count" aria-label={incomingConnectionCount+" pending connection requests"}>{incomingConnectionCount>9?"9+":incomingConnectionCount}</span>}</span><span className="cmh-tab-label">Connections</span></button>
       <button id="cmh-tab-status" type="button" role="tab" aria-controls="cmh-panel-status" aria-selected={section==="status"} tabIndex={section==="status"?0:-1} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><span className="cmh-tab-icon"><CmhIcon name="status"/></span><span className="cmh-tab-label">Status</span></button>
       <button id="cmh-tab-profile" type="button" role="tab" aria-controls="cmh-panel-profile" aria-selected={section==="profile"} tabIndex={section==="profile"?0:-1} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><span className="cmh-tab-icon"><CmhIcon name="user"/></span><span className="cmh-tab-label">Profile</span></button>
     </nav>
