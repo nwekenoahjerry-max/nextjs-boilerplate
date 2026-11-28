@@ -2,7 +2,7 @@ import { json, requireUser, isResponse, type AppContext } from "../../_lib/auth"
 
 type MessageRow = {
   id: number; public_id: string; conversation_id: string; sender_id: string;
-  body: string; created_at: number; delivered_at: number | null;
+  body: string; created_at: number; delivered_at: number | null; reply_to_status_id: string | null;
 };
 
 export const onRequestGet = async (context: AppContext) => {
@@ -34,8 +34,8 @@ export const onRequestGet = async (context: AppContext) => {
   const limit = Number.isInteger(rawLimit) ? Math.max(1, Math.min(50, rawLimit)) : 50;
   if (before !== null && (!Number.isSafeInteger(before) || before < 1)) return json({ error: "Invalid message cursor." }, 400);
   const sql = before === null
-    ? "SELECT id, public_id, conversation_id, sender_id, body, created_at, delivered_at FROM direct_messages WHERE conversation_id = ? AND deleted_at IS NULL ORDER BY id DESC LIMIT ?"
-    : "SELECT id, public_id, conversation_id, sender_id, body, created_at, delivered_at FROM direct_messages WHERE conversation_id = ? AND id < ? AND deleted_at IS NULL ORDER BY id DESC LIMIT ?";
+    ? "SELECT m.id, m.public_id, m.conversation_id, m.sender_id, m.body, m.created_at, m.delivered_at, sr.status_id AS reply_to_status_id FROM direct_messages m LEFT JOIN status_replies sr ON sr.message_id = m.id WHERE m.conversation_id = ? AND m.deleted_at IS NULL ORDER BY m.id DESC LIMIT ?"
+    : "SELECT m.id, m.public_id, m.conversation_id, m.sender_id, m.body, m.created_at, m.delivered_at, sr.status_id AS reply_to_status_id FROM direct_messages m LEFT JOIN status_replies sr ON sr.message_id = m.id WHERE m.conversation_id = ? AND m.id < ? AND m.deleted_at IS NULL ORDER BY m.id DESC LIMIT ?";
   const result = before === null
     ? await context.env.DB.prepare(sql).bind(conversationId, limit + 1).all<MessageRow>()
     : await context.env.DB.prepare(sql).bind(conversationId, before, limit + 1).all<MessageRow>();

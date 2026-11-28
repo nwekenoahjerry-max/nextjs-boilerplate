@@ -43,6 +43,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
+  const [conversationSearch, setConversationSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [searching, setSearching] = useState(false);
   const [draft, setDraft] = useState(initialDraft);
@@ -66,6 +67,12 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     if (initialStatusReplyId) setReplyingStatusId(initialStatusReplyId);
     if (initialDraft) setDraft(initialDraft);
   }, [initialConversationId, initialStatusReplyId, initialDraft]);
+
+  const filteredConversations = useMemo(() => {
+    const query = conversationSearch.trim().toLocaleLowerCase();
+    if (!query) return conversations;
+    return conversations.filter(item => item.otherName.toLocaleLowerCase().includes(query) || (item.lastMessagePreview || "").toLocaleLowerCase().includes(query));
+  }, [conversations, conversationSearch]);
 
   const selected = useMemo(() => conversations.find(item => item.id === selectedId) || null, [conversations, selectedId]);
 
@@ -472,10 +479,14 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               </button>)}
             </div>
           </div>}
+          {!showNew && <div className="dm-conversation-search">
+            <label htmlFor="dm-conversation-search">Search conversations</label>
+            <input id="dm-conversation-search" type="search" value={conversationSearch} onChange={event => setConversationSearch(event.target.value)} placeholder="Find a chat or message…" autoComplete="off"/>
+          </div>}
           {!showNew && <div className="dm-conversation-list">
             {loading ? <div className="dm-empty-list">Loading conversations…</div> : conversations.length === 0 ? <div className="dm-empty-list">
               <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Start a private academic conversation with another ClerkMe student.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
-            </div> : conversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { setSelectedId(item.id); setShowNew(false); }}>
+            </div> : filteredConversations.length === 0 ? <div className="dm-empty-list">No conversations match that search.</div> : filteredConversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { setSelectedId(item.id); setShowNew(false); }}>
               <span className="dm-avatar">{initials(item.otherName)}</span>
               <span className="dm-conversation-copy"><span className="dm-conversation-top"><strong>{item.otherName}</strong><time>{timeLabel(item.lastMessageAt)}</time></span>
                 <span className="dm-conversation-bottom"><small>{item.lastMessagePreview || "Start a conversation"}</small>{item.unreadCount > 0 && <b>{item.unreadCount > 9 ? "9+" : item.unreadCount}</b>}</span>
@@ -512,6 +523,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 return <div className="dm-message-group" key={message.public_id || message.client_message_id || message.id}>
                   {showDay && <div className="dm-day-divider"><span>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(message.created_at * 1000))}</span></div>}
                   <div className={"dm-message-row" + (own ? " is-own" : "")}><div className={"dm-bubble" + (own ? " dm-own-bubble" : "")}>
+                    {message.reply_to_status_id && <small className="dm-status-reply-marker">↩ Status reply</small>}
                     <p>{message.body}</p><div className="dm-message-meta"><time>{timeLabel(message.created_at)}</time>
                       {own && <span>{message.deliveryState === "sending" ? "Sending…" : message.deliveryState === "failed" ? "Not sent" : read ? "Read" : message.delivered_at ? "Delivered" : "Sent"}</span>}
                       {own && message.deliveryState === "failed" && <button type="button" onClick={() => retryMessage(message)}>Retry</button>}
