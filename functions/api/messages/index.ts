@@ -95,7 +95,7 @@ export const onRequestPost = async (context: AppContext) => {
     "INSERT OR IGNORE INTO direct_conversation_members (conversation_id, user_id, joined_at) VALUES (?, ?, unixepoch()), (?, ?, unixepoch())"
   ).bind(conversation.id, user.id, conversation.id, recipientId).run();
   const profile = await context.env.DB.prepare(
-    "SELECT id, full_name AS name, school AS university, level, last_seen_at AS lastSeenAt, CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo' ELSE NULL END AS photoUrl FROM student_profiles WHERE id = ?"
+    "SELECT id, full_name AS name, school AS university, level, last_seen_at AS lastSeenAt, CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo?userId=' || id ELSE NULL END AS photoUrl FROM student_profiles WHERE id = ?"
   ).bind(recipientId).first();
   return json({ conversation: { id: conversation.id, other: profile } }, 201);
 };
