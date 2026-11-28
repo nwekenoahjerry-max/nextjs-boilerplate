@@ -8,19 +8,28 @@ export const onRequestGet = async (context: AppContext) => {
   if (isResponse(user)) return user;
   try {
     const expired = await context.env.DB.prepare(
-      "SELECT media_key FROM status_posts WHERE expires_at <= unixepoch() AND media_key IS NOT NULL LIMIT 100"
-    ).all<{ media_key: string }>();
-    if (context.env.STATUS_MEDIA && expired.results.length) {
-      await Promise.all(expired.results.map(item => context.env.STATUS_MEDIA!.delete(item.media_key).catch(() => undefined)));
+      "SELECT id, media_key FROM status_posts WHERE expires_at <= unixepoch() LIMIT 100"
+    ).all<{ id: string; media_key: string | null }>();
+    if (expired.results.length) {
+      const mediaKeys = expired.results.map(item => item.media_key).filter((key): key is string => Boolean(key));
+      if (context.env.STATUS_MEDIA && mediaKeys.length) {
+        await Promise.all(mediaKeys.map(key => context.env.STATUS_MEDIA!.delete(key).catch(() => undefined)));
+      }
+      const ids = expired.results.map(item => item.id);
+      await context.env.DB.prepare("DELETE FROM status_posts WHERE id IN (" + ids.map(() => "?").join(",") + ")")
+        .bind(...ids).run();
     }
-    await context.env.DB.prepare("DELETE FROM status_posts WHERE expires_at <= unixepoch()").run();
     const stale = await context.env.DB.prepare(
       "SELECT media_key FROM status_media_uploads WHERE created_at <= unixepoch() - 3600 LIMIT 100"
     ).all<{ media_key: string }>();
-    if (context.env.STATUS_MEDIA && stale.results.length) {
-      await Promise.all(stale.results.map(item => context.env.STATUS_MEDIA!.delete(item.media_key).catch(() => undefined)));
+    if (stale.results.length) {
+      const keys = stale.results.map(item => item.media_key);
+      if (context.env.STATUS_MEDIA) {
+        await Promise.all(keys.map(key => context.env.STATUS_MEDIA!.delete(key).catch(() => undefined)));
+      }
+      await context.env.DB.prepare("DELETE FROM status_media_uploads WHERE media_key IN (" + keys.map(() => "?").join(",") + ")")
+        .bind(...keys).run();
     }
-    await context.env.DB.prepare("DELETE FROM status_media_uploads WHERE created_at <= unixepoch() - 3600").run();
 
     const rows = await context.env.DB.prepare(
       "SELECT s.id, s.user_id AS userId, p.full_name AS ownerName, p.school AS ownerUniversity, " +
