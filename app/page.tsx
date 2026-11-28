@@ -13,7 +13,8 @@ import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
-import DirectMessagesPanel from "./direct-messages";
+import ClerkMeMessagingHub from "./messaging-hub";
+import "./messaging-hub.css";
 import "./direct-messages.css";
 import WhatsAppSupportLink from "../components/whatsapp-support-link";
 import ReminderSettings from "../components/reminder-settings";
@@ -1507,7 +1508,7 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
-          {active === "messages" && <DirectMessagesPanel userId={authUser.id}/>}
+          {active === "messages" && <ClerkMeMessagingHub userId={authUser.id}/>}
         </div>
       </section>
       {showSignOutConfirm && (

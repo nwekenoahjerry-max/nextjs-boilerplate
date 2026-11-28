@@ -12,6 +12,7 @@ type ChatMessage = {
   id: number; public_id?: string; conversation_id: string; sender_id: string;
   client_message_id?: string; body: string; created_at: number; delivered_at?: number | null;
   deliveryState?: "sending" | "sent" | "failed";
+  reply_to_status_id?: string | null;
 };
 type SocketEvent = {
   type: string; message?: ChatMessage | string; messageId?: number; deliveredAt?: number;
@@ -31,9 +32,9 @@ const isOnline = (lastSeen?: number | null) => Boolean(lastSeen && Date.now() / 
 const socketUrl = (id: string) => (window.location.protocol === "https:" ? "wss://" : "ws://") +
   window.location.host + "/api/messages/" + encodeURIComponent(id) + "/socket";
 
-export default function DirectMessagesPanel({ userId }: { userId: string }) {
+export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "" }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState(initialConversationId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerReadMessageId, setPeerReadMessageId] = useState(0);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -44,7 +45,8 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [searching, setSearching] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
+  const [replyingStatusId, setReplyingStatusId] = useState(initialStatusReplyId);
   const [connection, setConnection] = useState<"connecting" | "connected" | "reconnecting" | "offline">("offline");
   const [peerOnline, setPeerOnline] = useState(false);
   const [typing, setTyping] = useState(false);
@@ -58,6 +60,12 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
   const keepScroll = useRef(true);
+
+  useEffect(() => {
+    if (initialConversationId) setSelectedId(initialConversationId);
+    if (initialStatusReplyId) setReplyingStatusId(initialStatusReplyId);
+    if (initialDraft) setDraft(initialDraft);
+  }, [initialConversationId, initialStatusReplyId, initialDraft]);
 
   const selected = useMemo(() => conversations.find(item => item.id === selectedId) || null, [conversations, selectedId]);
 
@@ -370,13 +378,17 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
     const clientMessageId = crypto.randomUUID();
     const optimistic: ChatMessage = {
       id: -Date.now(), conversation_id: selectedId, sender_id: userId, client_message_id: clientMessageId,
-      body, created_at: Math.floor(Date.now() / 1000), deliveryState: "sending"
+      body, created_at: Math.floor(Date.now() / 1000), deliveryState: "sending",
+      reply_to_status_id: replyingStatusId || null
     };
     keepScroll.current = true;
     setMessages(current => [...current, optimistic]);
     setDraft("");
     setNotice("");
-    try { socket.send(JSON.stringify({ type: "message", clientMessageId, body })); }
+    try {
+      socket.send(JSON.stringify({ type: "message", clientMessageId, body, replyToStatusId: replyingStatusId || undefined }));
+      setReplyingStatusId("");
+    }
     catch {
       setMessages(current => current.map(item => item.client_message_id === clientMessageId
         ? { ...item, deliveryState: "failed" } : item));
@@ -397,7 +409,8 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
       socket.send(JSON.stringify({
         type: "message",
         clientMessageId: message.client_message_id,
-        body: message.body
+        body: message.body,
+        replyToStatusId: message.reply_to_status_id || undefined
       }));
     } catch {
       setMessages(current => current.map(item => item.client_message_id === message.client_message_id
@@ -510,11 +523,12 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
               {typing && <div className="dm-typing-indicator"><i/><i/><i/><span>Typing…</span></div>}
             </div>
             <form className="dm-composer" onSubmit={event => { event.preventDefault(); sendMessage(); }}>
+              {replyingStatusId && <div className="dm-status-reply-context"><span>↩ Replying to a status</span><button type="button" onClick={() => setReplyingStatusId("")}>Cancel</button></div>}
               <textarea value={draft} maxLength={4000} rows={1} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Write a message…" aria-label="Write a message"/>
               <div className="dm-composer-footer"><small>{draft.length}/4000 · Keep conversations respectful and academic.</small><button type="submit" disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}>Send <span>↗</span></button></div>
             </form>
           </> : <div className="dm-welcome"><div className="dm-welcome-icon">✉</div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Messages are private to the two participants. Do not share identifiable patient information.</small></div>}
-        </main>
+        </div>
       </div>
 
       {reportTarget && <div className="dm-modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setReportTarget(null); }}>

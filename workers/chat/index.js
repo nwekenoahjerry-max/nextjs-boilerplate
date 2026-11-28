@@ -272,6 +272,24 @@ export class ConversationRoom {
       return;
     }
 
+    const replyToStatusId = typeof payload.replyToStatusId === "string" &&
+      payload.replyToStatusId.length <= 80 ? payload.replyToStatusId : "";
+    if (replyToStatusId) {
+      const status = await this.env.DB.prepare(
+        "SELECT s.user_id AS ownerId, s.visibility, s.expires_at AS expiresAt, " +
+        "COALESCE(p.allow_replies,1) AS allowReplies FROM status_posts s " +
+        "LEFT JOIN status_preferences p ON p.user_id = s.user_id WHERE s.id = ? LIMIT 1"
+      ).bind(replyToStatusId).first();
+      const allowed = status && status.ownerId === other.id &&
+        Number(status.expiresAt) > Math.floor(Date.now()/1000) &&
+        status.visibility !== "only_me" && Number(status.allowReplies) === 1;
+      if (!allowed) {
+        safeSend(socket,{type:"error",code:"STATUS_REPLY_UNAVAILABLE",clientMessageId,
+          message:"This status is no longer available for replies."});
+        return;
+      }
+    }
+
     let message = await this.env.DB.prepare(`
       SELECT id, public_id, conversation_id, sender_id, client_message_id, body, created_at, delivered_at
       FROM direct_messages WHERE sender_id = ? AND client_message_id = ? LIMIT 1
@@ -300,6 +318,11 @@ export class ConversationRoom {
 
     const messageId = Number(message.id);
     const createdAt = Number(message.created_at);
+    if (replyToStatusId) {
+      await this.env.DB.prepare(
+        "INSERT OR IGNORE INTO status_replies (id,status_id,message_id,sender_id,created_at) VALUES (?,?,?,?,unixepoch())"
+      ).bind(crypto.randomUUID(),replyToStatusId,messageId,identity.userId).run();
+    }
     const preview = body.length > 160 ? body.slice(0, 157) + "…" : body;
     await this.env.DB.prepare(`
       UPDATE direct_conversations
@@ -321,7 +344,8 @@ export class ConversationRoom {
         client_message_id: clientMessageId,
         body: String(message.body),
         created_at: createdAt,
-        delivered_at: message.delivered_at ? Number(message.delivered_at) : null
+        delivered_at: message.delivered_at ? Number(message.delivered_at) : null,
+        reply_to_status_id: replyToStatusId || null
       }
     });
 
@@ -336,8 +360,9 @@ export class ConversationRoom {
         type: "message:delivery-updated", messageId,
         deliveredAt: Math.floor(Date.now() / 1000)
       });
-    } else {
-      const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
+    }
+    const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
+    if (!delivered) {
       await this.env.DB.prepare(`
         INSERT OR IGNORE INTO student_notifications
           (id, user_id, dedupe_key, kind, title, message, destination, created_at)
@@ -345,26 +370,29 @@ export class ConversationRoom {
       `).bind(
         crypto.randomUUID(), other.id, "direct-message:" + messageId, notificationTitle
       ).run();
+    }
 
-      if (this.env.PUSH_SERVICE && this.env.CRON_TOKEN) {
-        try {
-          await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
-            method: "POST",
-            headers: {
-              "Authorization": "Bearer " + this.env.CRON_TOKEN,
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              userId: other.id,
-              title: notificationTitle,
-              body: "You have a new private message on ClerkMe.",
-              url: "/?open=messages",
-              tag: "clerkme-dm-" + identity.conversationId
-            })
-          });
-        } catch (error) {
-          console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
-        }
+    // A live WebSocket does not mean the recipient's tab is in the foreground.
+    // Send a generic Web Push alert for every message; the service worker suppresses
+    // it when a visible ClerkMe tab is already open.
+    if (this.env.PUSH_SERVICE && this.env.CRON_TOKEN) {
+      try {
+        await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + this.env.CRON_TOKEN,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            userId: other.id,
+            title: notificationTitle,
+            body: "You have a new private message on ClerkMe.",
+            url: "/?open=messages",
+            tag: "clerkme-dm-" + identity.conversationId
+          })
+        });
+      } catch (error) {
+        console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
       }
     }
   }

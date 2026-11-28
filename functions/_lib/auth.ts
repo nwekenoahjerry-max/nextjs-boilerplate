@@ -31,6 +31,7 @@ export interface Env {
   GEMINI_API_KEY?: string;
   ZAI_API_KEY?: string;
   SOURCE_FILES?: R2BucketLike;
+  STATUS_MEDIA?: R2BucketLike;
   AI?: WorkersAI;
 }
 export interface AppUser {
