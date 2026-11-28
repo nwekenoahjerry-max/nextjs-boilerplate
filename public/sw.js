@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v34-foreground-chat-alerts";
+const CACHE_NAME = "clerkme-shell-v35-community-notifications";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
@@ -61,18 +61,9 @@ self.addEventListener("push", event => {
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { body: event.data ? event.data.text() : "" }; }
   event.waitUntil((async () => {
-    // A foreground ClerkMe window already gives the student live unread badges
-    // and conversation updates. Do not interrupt that session with OS alerts.
-    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    const clerkMeIsVisible = windows.some(client => {
-      try {
-        return new URL(client.url).origin === self.location.origin &&
-          client.visibilityState === "visible";
-      } catch { return false; }
-    });
-    if (clerkMeIsVisible) return;
-
-    await self.registration.showNotification(payload.title || "New ClerkMe message", {
+    // Keep OS-level alerts enabled while the PWA is in the foreground too.
+    // The in-app notification centre also shows a clickable toast for new events.
+    await self.registration.showNotification(payload.title || "New ClerkMe update", {
       body: payload.body || "You have a new private message on ClerkMe.",
       icon: "/clerkme-icon-512.png",
       badge: "/favicon.png",

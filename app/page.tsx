@@ -646,6 +646,7 @@ function formatStudyTime(seconds: number) {
 export default function Home() {
   const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
+  const [messagingInitialSection, setMessagingInitialSection] = useState<"chats"|"connections">("chats");
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   // The Ask launcher is deliberately fixed in its reserved lower-corner space.
@@ -656,7 +657,12 @@ export default function Home() {
   }, []);
 
   const mobileAccountCloseRef = useRef<HTMLButtonElement>(null);
-  const selectSection = (id: string) => { setActive(id); setShowNew(id === "clerking"); setMoreOpen(false); };
+  const selectSection = (id: string, messagingSection?: "chats"|"connections") => {
+    setActive(id);
+    if (id === "messages") setMessagingInitialSection(messagingSection || "chats");
+    setShowNew(id === "clerking");
+    setMoreOpen(false);
+  };
   useEffect(() => {
     if (!moreOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -729,8 +735,10 @@ export default function Home() {
   useEffect(() => {
     if (!authUser) return;
     const url = new URL(window.location.href);
-    if (url.searchParams.get("open") !== "messages") return;
+    const openTarget = url.searchParams.get("open");
+    if (openTarget !== "messages" && openTarget !== "connections") return;
     setActive("messages");
+    setMessagingInitialSection(openTarget === "connections" ? "connections" : "chats");
     url.searchParams.delete("open");
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
   }, [authUser?.id]);
@@ -1546,7 +1554,7 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
-          {active === "messages" && <ClerkMeMessagingHub userId={authUser.id}/>}
+          {active === "messages" && <ClerkMeMessagingHub userId={authUser.id} initialSection={messagingInitialSection}/>}
         </div>
       </section>
       {showSignOutConfirm && (

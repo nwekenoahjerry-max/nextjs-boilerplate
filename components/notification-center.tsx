@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 type Notification = {
   id: string; kind: string; title: string; message: string;
   destination: "materials" | "qbank" | "study" | "you";
@@ -18,16 +18,21 @@ function timeAgo(timestamp: number) {
 }
 function NotificationIcon({ kind }: { kind: string }) {
   if (kind.includes("direct_message")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>;
+  if (kind.includes("connection")) return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M16 15a5 5 0 0 1 5 5"/></svg>;
   if (kind.includes("failed")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4M12 16.5v.1"/></svg>;
   if (kind.includes("sba")) return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h2M13 12h3M8 16h8"/></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v18H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M5 18a2.5 2.5 0 0 1 2.5-2H19M9 7h6M9 11h6"/></svg>;
 }
-export default function NotificationCenter({ onNavigate }: { onNavigate: (section: string) => void }) {
+export default function NotificationCenter({ onNavigate }: { onNavigate: (section: string, messagingSection?: "chats" | "connections") => void }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [foregroundToast, setForegroundToast] = useState<Notification | null>(null);
+  const knownIds = useRef<Set<string>>(new Set());
+  const hasInitialSnapshot = useRef(false);
+  const toastTimer = useRef<number | null>(null);
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -35,7 +40,21 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
       if (response.status === 401) return;
       if (!response.ok) throw new Error("Notifications are temporarily unavailable.");
       const data = await response.json() as { notifications?: Notification[]; unreadCount?: number };
-      setItems(Array.isArray(data.notifications) ? data.notifications : []);
+      const nextItems = Array.isArray(data.notifications) ? data.notifications : [];
+      if (hasInitialSnapshot.current && document.visibilityState === "visible") {
+        const fresh = nextItems.find(item =>
+          !knownIds.current.has(item.id + ":" + item.createdAt) &&
+          (item.kind === "direct_message" || item.kind === "connection_request" || item.kind === "connection_accepted")
+        );
+        if (fresh) {
+          setForegroundToast(fresh);
+          if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+          toastTimer.current = window.setTimeout(() => setForegroundToast(null), 6500);
+        }
+      }
+      knownIds.current = new Set(nextItems.map(item => item.id + ":" + item.createdAt));
+      hasInitialSnapshot.current = true;
+      setItems(nextItems);
       setUnreadCount(Number(data.unreadCount) || 0);
       setLoaded(true);
     } catch {
@@ -46,11 +65,15 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
     void load();
     const refresh = () => { void load(true); };
     window.addEventListener("clerkme:notifications-refresh", refresh);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") void load(true);
-    }, 45000);
+    const onVisibility = () => { if (document.visibilityState === "visible") void load(true); };
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void load(true); }, 5000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.clearInterval(timer);
+      if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("clerkme:notifications-refresh", refresh);
     };
   }, [load]);
@@ -69,8 +92,11 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
   };
   const activate = async (item: Notification) => {
     if (!item.isRead) await markRead(item.id);
+    setForegroundToast(null);
     setOpen(false);
-    onNavigate(item.kind === "direct_message" ? "messages" : item.destination);
+    if (item.kind === "direct_message" || item.kind === "connection_accepted") onNavigate("messages", "chats");
+    else if (item.kind === "connection_request") onNavigate("messages", "connections");
+    else onNavigate(item.destination);
   };
   return (
     <div className="notification-center">
@@ -81,6 +107,14 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
         {unreadCount > 0 && <span className="notification-count">{unreadCount > 9 ? "9+" : unreadCount}</span>}
       </button>
+      {foregroundToast && <div className="notification-foreground-toast" role="status" aria-live="polite">
+        <span className="notification-foreground-icon"><NotificationIcon kind={foregroundToast.kind}/></span>
+        <button type="button" className="notification-foreground-copy" onClick={() => void activate(foregroundToast)}>
+          <strong>{foregroundToast.title}</strong><small>{foregroundToast.message}</small>
+          <em>{foregroundToast.kind === "direct_message" ? "Open chat" : foregroundToast.kind === "connection_request" ? "Respond to request" : "Start messaging"}</em>
+        </button>
+        <button type="button" className="notification-foreground-close" aria-label="Dismiss notification" onClick={() => setForegroundToast(null)}>×</button>
+      </div>}
       {open && <>
         <button type="button" className="notification-dismiss-layer" aria-label="Close notifications" onClick={() => setOpen(false)}/>
         <section className="notification-popover" role="dialog" aria-label="Notifications">
@@ -97,7 +131,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
             ) : items.map(item => (
               <button type="button" className={"notification-item" + (item.isRead ? "" : " is-unread")} key={item.id} onClick={() => void activate(item)}>
                 <span className={"notification-item-icon" + (item.kind.includes("failed") ? " is-warning" : "")}><NotificationIcon kind={item.kind}/></span>
-                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" ? "Open messages" : destinationLabels[item.destination]}</em></span>
+                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" || item.kind === "connection_accepted" ? "Open messages" : item.kind === "connection_request" ? "Respond to request" : destinationLabels[item.destination]}</em></span>
                 {!item.isRead && <i className="notification-unread-dot" aria-label="Unread"/>}
               </button>
             ))}

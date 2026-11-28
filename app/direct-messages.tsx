@@ -370,7 +370,9 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     return conversations.filter(item => item.otherName.toLocaleLowerCase().includes(query) || (item.lastMessagePreview || "").toLocaleLowerCase().includes(query));
   }, [conversations, conversationSearch]);
 
-  const selected = useMemo(() => conversations.find(item => item.id === selectedId) || null, [conversations, selectedId]);
+  const selected = useMemo(() => conversations.find(item => item.id === selectedId) ||
+    (initialConversation && initialConversation.id === selectedId ? initialConversation : null),
+    [conversations, selectedId, initialConversation]);
 
   const loadConversations = useCallback(async () => {
     try {
@@ -998,7 +1000,13 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
         </aside>
 
         <div className={"dm-thread" + (!selectedId ? " dm-mobile-hidden" : "")}>
-          {selectedId && !selected ? <div className="dm-thread-loading"><span className="dm-loading-indicator"/>Opening conversation…</div> : selected && selectedId ? <>
+          {selectedId && !selected ? <div className="dm-thread-loading" role="status">
+            {loading ? <><span className="dm-loading-indicator"/>Opening conversation…</> : <>
+              <strong>Conversation details are still loading.</strong>
+              <p>Your connection is saved. Return to the inbox and try opening this conversation again.</p>
+              <button type="button" onClick={()=>{setSelectedId("");setNotice("");void loadConversations();}}>Back to conversations</button>
+            </>}
+          </div> : selected && selectedId ? <>
             <header className="dm-thread-header">
               <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
               {studentAvatar(selected.otherName, selected.otherProfilePhotoUrl, "dm-avatar dm-header-avatar")}

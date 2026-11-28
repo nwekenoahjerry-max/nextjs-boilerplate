@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { notifyStudent } from "../../_lib/notifications";
 
 export const onRequestPatch = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
@@ -36,6 +37,11 @@ export const onRequestPatch = async (context: AppContext) => {
       "UPDATE clerkme_student_connections_v1 SET status = ?, updated_at = unixepoch(), responded_at = unixepoch() " +
       "WHERE id = ? AND requested_to = ? AND status = 'pending'"
     ).bind(nextStatus, connectionId, user.id).run();
+    if (action === "accept") {
+      await notifyStudent(context, {userId:connection.requestedBy,dedupeKey:"connection-accepted:"+connectionId+":"+connection.requestedBy,
+        kind:"connection_accepted",title:"Connection accepted",message:"Your connection request was accepted. You can now message each other.",
+        url:"/?open=messages",tag:"clerkme-connection-accepted-"+connectionId});
+    }
     return json({ updated: true, status: nextStatus });
   }
 
