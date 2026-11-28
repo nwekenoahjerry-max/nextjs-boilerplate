@@ -57,11 +57,11 @@ Deploy its production environment only after production D1 migration and the req
 npx wrangler deploy --config workers/chat/wrangler.toml
 ```
 
-The preview Pages configuration binds to `clerkme-chat-preview`; production binds to `clerkme-chat`. The chat Worker uses the `DB` D1 binding and exports `ConversationRoom`.
+The separate chat Worker uses the `DB` D1 binding and exports `ConversationRoom`. Bind the already-created namespace to the Pages project as `CHAT_ROOMS` in the relevant environment (Pages project Settings → Bindings → Durable Object). For preview, select the `clerkme-chat-preview_ConversationRoom` namespace. After the production Worker is deployed, bind its `ConversationRoom` namespace to the Pages production environment. Pages cannot create the Durable Object class itself.
 
 ## Push notification secrets
 
-The existing reminder Worker must have its VAPID public/private keys configured. For offline direct-message push, the chat Worker and reminder Worker must also share the same `CRON_TOKEN` secret. Never place that value in `wrangler.jsonc`, source code, browser JavaScript or this document.
+The existing reminder Worker must have its VAPID public/private keys configured. For offline direct-message push, the production chat Worker and reminder Worker must also share the same `CRON_TOKEN` secret. Set it separately on both Worker services with `wrangler secret put CRON_TOKEN` (using each Worker's config). Never place that value in `wrangler.jsonc`, source code, browser JavaScript or this document.
 
 ## Security notes and known limits
 
