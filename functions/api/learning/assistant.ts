@@ -1,6 +1,6 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Gemini 3.8 Live is the supported replacement for the retired 3.1 Live preview.
+// Gemini 3.8 Live is primary; Gemini 3.1 Live Preview remains a compatibility fallback.
 const LIVE_MODEL = "models/gemini-3.8-live";
 const LIVE_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
