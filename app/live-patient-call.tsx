@@ -418,7 +418,6 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
             },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
             sessionResumption: {}
           }
         }));
