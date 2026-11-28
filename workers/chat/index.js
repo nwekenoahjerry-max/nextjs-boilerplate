@@ -494,7 +494,7 @@ export class ConversationRoom {
       } catch (error) {
         console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
       }
-    } else {
+    } else if (!recipientActive && !delivered) {
       console.error("[clerkme-chat] Push notifications are not configured: PUSH_SERVICE or PUSH_INTERNAL_TOKEN is missing.");
     }
   }
