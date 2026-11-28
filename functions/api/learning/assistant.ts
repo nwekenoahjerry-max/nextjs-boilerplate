@@ -220,20 +220,22 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         lastCode = data.error?.status || "HTTP_ERROR";
         lastDetail = clean(data.error?.message || raw, 240);
 
-        // 3.1 is a legacy preview model. If Google no longer provisions it,
-        // retry once against the current 3.8 Live model using the same protocol.
-        if ((response.status === 400 || response.status === 404) && modelIndex < models.length - 1) {
-          console.warn("[ClerkME] Legacy Live model unavailable; trying current model.", {
-            requestId,
-            model,
-            status: response.status,
-            upstreamCode: lastCode
-          });
-          tryNextModel = true;
+        // Any upstream rejection can be model-specific (including a 5xx
+        // from Google's token service). Exhaust short retries, then attempt
+        // the other Live model before failing the entire voice session.
+        if (!retryableStatuses.has(response.status) || attempt === 2) {
+          if (modelIndex < models.length - 1) {
+            console.warn("[ClerkME] Live model token request failed; trying the alternate model.", {
+              requestId,
+              model,
+              alternateModel: models[modelIndex + 1],
+              status: response.status,
+              upstreamCode: lastCode
+            });
+            tryNextModel = true;
+          }
           break;
         }
-
-        if (!retryableStatuses.has(response.status) || attempt === 2) break;
       } catch (error) {
         lastStatus = 0;
         lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
@@ -311,7 +313,7 @@ function decodeBase64Image(value: string): Uint8Array {
   return bytes;
 }
 
-export const onRequestPost = async (context: AppContext) => {
+const handleAssistantPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
@@ -477,5 +479,29 @@ export const onRequestPost = async (context: AppContext) => {
     if (/429|quota|rate limit|RESOURCE_EXHAUSTED/i.test(detail)) return json({ error: "ClerkME's AI service is busy. Please try again shortly.", code: "AI_RATE_LIMIT" }, 429);
     if (/timeout|abort/i.test(detail)) return json({ error: "That answer is taking longer than expected. Please try a shorter question.", code: "AI_TIMEOUT" }, 504);
     return json({ error: "ClerkME could not complete that answer. Your conversation is still saved on this device; please try again.", code: "AI_UNAVAILABLE" }, 502);
+  }
+};
+
+
+/**
+ * Catch failures that occur before an intent-specific handler can return its
+ * own JSON response (for example, an auth-store or runtime binding exception).
+ * This prevents a generic Cloudflare HTML 502 page from hiding the real layer.
+ */
+export const onRequestPost = async (context: AppContext) => {
+  const requestId = crypto.randomUUID().slice(0, 12);
+  try {
+    return await handleAssistantPost(context);
+  } catch (error) {
+    const detail = error instanceof Error ? clean(error.message, 220) : "Unknown assistant route failure";
+    console.error("[ClerkME] Assistant route failed outside its normal response handler.", {
+      requestId,
+      detail
+    });
+    return json({
+      error: "ClerkME could not initialise the learning service. Please retry.",
+      code: "ASSISTANT_ROUTE_FAILURE",
+      requestId
+    }, 502);
   }
 };
