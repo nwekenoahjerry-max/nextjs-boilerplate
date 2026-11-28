@@ -471,7 +471,7 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
           </div>}
         </aside>
 
-        <main className={"dm-thread" + (!selectedId ? " dm-mobile-hidden" : "")}>
+        <div className={"dm-thread" + (!selectedId ? " dm-mobile-hidden" : "")}>
           {selected && selectedId ? <>
             <header className="dm-thread-header">
               <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations">‹</button>
