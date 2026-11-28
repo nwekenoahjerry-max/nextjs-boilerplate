@@ -65,7 +65,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
         document.getElementById("cmh-tab-"+order[next])?.focus();
       }}>
       <button id="cmh-tab-chats" type="button" role="tab" aria-controls="cmh-panel-chats" aria-selected={section==="chats"} tabIndex={section==="chats"?0:-1} className={section==="chats"?"is-active":""} onClick={()=>setSection("chats")}><span className="cmh-tab-icon"><CmhIcon name="chat"/></span><span className="cmh-tab-label">Chats</span></button>
-      <button id="cmh-tab-status" type="button" role="tab" aria-controls="cmh-panel-status" aria-selected={section==="status"} tabIndex={section==="status"?0:-1} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><span className="cmh-tab-icon"><CmhIcon name="spark"/></span><span className="cmh-tab-label">Status</span></button>
+      <button id="cmh-tab-status" type="button" role="tab" aria-controls="cmh-panel-status" aria-selected={section==="status"} tabIndex={section==="status"?0:-1} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><span className="cmh-tab-icon"><CmhIcon name="status"/></span><span className="cmh-tab-label">Status</span></button>
       <button id="cmh-tab-profile" type="button" role="tab" aria-controls="cmh-panel-profile" aria-selected={section==="profile"} tabIndex={section==="profile"?0:-1} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><span className="cmh-tab-icon"><CmhIcon name="user"/></span><span className="cmh-tab-label">Profile</span></button>
     </nav>
     {hubNotice&&<div className="cmh-alert" role="alert">{hubNotice}<button type="button" onClick={()=>setHubNotice("")} aria-label="Dismiss">×</button></div>}
@@ -75,10 +75,11 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
   </section>;
 }
 
-function CmhIcon({name}:{name:"chat"|"spark"|"user"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"|"search"|"upload"|"video"|"close"|"chevron-left"|"chevron-right"}) {
+function CmhIcon({name}:{name:"chat"|"spark"|"status"|"user"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"|"search"|"upload"|"video"|"close"|"chevron-left"|"chevron-right"}) {
   const paths:Record<string,ReactNode>={
     chat:<><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></>,
     spark:<><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></>,
+    status:<><path d="M19.3 8.2a8.5 8.5 0 1 1-3.5-3.6"/><path d="M19.5 3.8v4.8h-4.8"/><circle cx="12" cy="12" r="3.2"/></>,
     user:<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
     eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></>,
     plus:<><path d="M12 5v14M5 12h14"/></>,

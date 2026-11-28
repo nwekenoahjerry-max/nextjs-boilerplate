@@ -159,3 +159,23 @@
 .cmh-story-stage{touch-action:pan-y}
 .cmh-story-nav{touch-action:manipulation}
 @media(max-width:760px){.cmh-story-nav{width:38px;height:48px}}
+
+/* Dark-theme contrast fixes for Status, profile and viewer details */
+:root[data-theme="dark"] .cmh-eyebrow,
+:root[data-theme="dark"] .cmh-settings-heading>span{color:#afc7e7}
+:root[data-theme="dark"] .cmh-story-person{color:#e7eef8}
+:root[data-theme="dark"] .cmh-story-person small,
+:root[data-theme="dark"] .cmh-feed-heading>span,
+:root[data-theme="dark"] .cmh-status-card-meta small,
+:root[data-theme="dark"] .cmh-muted{color:#b4c2d5}
+:root[data-theme="dark"] .cmh-viewers-panel{background:#111d2e;color:#e7eef8}
+:root[data-theme="dark"] .cmh-viewers-panel>div{border-color:#2a3b52}
+:root[data-theme="dark"] .cmh-viewers-panel>div>span{background:#263d5a;color:#e4effd}
+:root[data-theme="dark"] .cmh-viewers-panel small,
+:root[data-theme="dark"] .cmh-viewers-panel time{color:#b4c2d5}
+:root[data-theme="dark"] .cmh-viewers-loading{background:#111d2e;color:#d3e1f2}
+:root[data-theme="dark"] .cmh-status-reply-context{background:#203755;color:#d8e7fb}
+:root[data-theme="dark"] .cmh-status-reply-context button{color:#d8e7fb}
+:root[data-theme="dark"] .cmh-story-footer input{color:#f1f5fb}
+:root[data-theme="dark"] .cmh-story-footer input::placeholder{color:#b8c6d8}
+:root[data-theme="dark"] .cmh-story-footer button{background:#dce8f7;color:#173765}

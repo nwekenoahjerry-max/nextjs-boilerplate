@@ -30,6 +30,22 @@ export class ConversationRoom {
   }
 
   async fetch(request) {
+    const internalUrl = new URL(request.url);
+    if (request.method === "POST" && internalUrl.pathname === "/internal/message-edit") {
+      let input;
+      try { input = await request.json(); } catch { return Response.json({ error: "Invalid edit event." }, { status: 400 }); }
+      const conversationId = typeof input?.conversationId === "string" ? input.conversationId.slice(0, 80) : "";
+      const messageId = Number(input?.messageId);
+      if (!conversationId || !Number.isSafeInteger(messageId) || messageId < 1) return Response.json({ error: "Invalid edit event." }, { status: 400 });
+      const message = await this.env.DB.prepare(
+        "SELECT m.id, m.public_id, m.conversation_id, m.sender_id, m.client_message_id, m.body, m.created_at, m.delivered_at, m.edited_at, sr.status_id AS reply_to_status_id " +
+        "FROM direct_messages m LEFT JOIN status_replies sr ON sr.message_id = m.id " +
+        "WHERE m.id = ? AND m.conversation_id = ? AND m.deleted_at IS NULL LIMIT 1"
+      ).bind(messageId, conversationId).first();
+      if (!message) return Response.json({ error: "Message not found." }, { status: 404 });
+      this.broadcast(conversationId, { type: "message:updated", message });
+      return Response.json({ updated: true });
+    }
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("WebSocket upgrade required", { status: 426 });
     }
