@@ -191,7 +191,7 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
               item.id < 0 && item.client_message_id &&
               !persisted.some(saved => saved.client_message_id === item.client_message_id)
             );
-            return [...persisted, ...pending].sort((a, b) => a.id - b.id);
+            return [...persisted, ...pending];
           });
           setPeerReadMessageId(Number(data.otherLastReadMessageId) || 0);
           setHasMore(Boolean(data.hasMore));
