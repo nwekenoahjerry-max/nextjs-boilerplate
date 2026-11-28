@@ -18,6 +18,15 @@
   },
   "env": {
     "preview": {
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOMS",
+            "class_name": "ConversationRoom",
+            "script_name": "clerkme-chat-preview"
+          }
+        ]
+      },
       "d1_databases": [
         {
           "binding": "DB",
@@ -33,6 +42,15 @@
       }
     },
     "production": {
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOMS",
+            "class_name": "ConversationRoom",
+            "script_name": "clerkme-chat"
+          }
+        ]
+      },
       "r2_buckets": [
         {
           "binding": "SOURCE_FILES",
