@@ -220,3 +220,137 @@
 }\n
 .dm-call-audio-enable{min-height:34px;padding:7px 11px;border:1px solid var(--dm-border);border-radius:9px;background:#e8eff8;color:#173765;font-size:.7rem;font-weight:800;cursor:pointer}
 [data-theme="dark"] .dm-call-audio-enable{background:#263d5a;color:#e4effd;border-color:#405875}
+
+
+/* Focused mobile conversation: keep the thread and composer above the app dock. */
+@media(max-width:760px){
+  .app-shell:has(.dm-workspace.has-selection){
+    height:100dvh;
+    min-height:0;
+    padding-bottom:0!important;
+    overflow:hidden;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .main-area{
+    display:flex;
+    flex-direction:column;
+    height:calc(100dvh - 80px);
+    min-height:0;
+    overflow:hidden;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .topbar{
+    flex:0 0 64px;
+    position:relative;
+    top:auto;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .content{
+    display:flex;
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+    padding:10px 11px 10px!important;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection){
+    display:flex;
+    flex:1 1 auto;
+    flex-direction:column;
+    height:100%;
+    min-height:0;
+    padding:0;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection)>.cmh-heading,
+  .cmh-shell:has(.dm-workspace.has-selection)>.cmh-tabs{
+    display:none!important;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection) .cmh-tab-panel{
+    display:flex;
+    flex:1 1 auto;
+    width:100%;
+    height:100%;
+    min-height:0;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection){
+    display:flex;
+    flex:1 1 auto;
+    flex-direction:column;
+    height:100%;
+    min-height:0;
+    gap:0;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-page-heading{
+    display:none!important;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-notice{
+    flex:0 0 auto;
+    margin:0 0 8px;
+  }
+  .dm-workspace.has-selection{
+    display:block;
+    flex:1 1 auto;
+    width:100%;
+    height:100%;
+    min-height:0;
+    max-height:none;
+    border-radius:16px;
+  }
+  .dm-workspace.has-selection .dm-thread{
+    display:flex;
+    width:100%;
+    height:100%;
+    min-height:0;
+  }
+  .dm-workspace.has-selection .dm-message-scroll{
+    flex:1 1 auto;
+    min-height:0;
+    padding:12px 11px 14px;
+  }
+  .dm-workspace.has-selection .dm-composer{
+    position:relative;
+    bottom:auto;
+    z-index:3;
+    flex:0 0 auto;
+    margin-top:0;
+    padding:10px 10px calc(11px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--dm-border);
+    background:var(--surface,#fff);
+    box-shadow:0 -8px 20px #102d5a10;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row{
+    grid-template-columns:minmax(0,1fr) 48px 76px;
+    gap:7px;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row textarea{
+    min-height:54px;
+    max-height:112px;
+    resize:none;
+    border:1.5px solid #a9bdd6;
+    border-radius:13px;
+    background:var(--composer-background,#f7f9fc);
+    padding:12px 13px;
+    font-size:16px;
+    line-height:1.4;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row textarea:focus{
+    border-color:#315b91;
+    box-shadow:0 0 0 3px #315b9120;
+  }
+  .dm-workspace.has-selection .dm-voice-record,
+  .dm-workspace.has-selection .dm-send-button{
+    min-height:54px;
+    border-radius:12px;
+  }
+  .dm-workspace.has-selection .dm-composer-footer{
+    margin-top:6px;
+  }
+  .dm-workspace.has-selection .dm-composer-footer small{
+    font-size:10px;
+    line-height:1.35;
+  }
+  [data-theme="dark"] .dm-workspace.has-selection .dm-composer-input-row textarea{
+    border-color:#49617f;
+    background:#14243a;
+    color:#edf3fb;
+  }
+  [data-theme="dark"] .dm-workspace.has-selection .dm-composer-input-row textarea::placeholder{
+    color:#adbed3;
+  }
+}

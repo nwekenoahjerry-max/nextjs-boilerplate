@@ -646,6 +646,7 @@ function formatStudyTime(seconds: number) {
 export default function Home() {
   const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   // The Ask launcher is deliberately fixed in its reserved lower-corner space.
   // Clear positions saved by the earlier draggable experiment so it cannot
@@ -688,6 +689,43 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  const refreshUnreadMessages = useCallback(async () => {
+    try {
+      const response = await fetch("/api/messages", { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } });
+      if (!response.ok) return;
+      const data = await response.json() as { totalUnreadCount?: number };
+      const count = Number(data.totalUnreadCount);
+      if (Number.isFinite(count)) setUnreadMessageCount(Math.max(0, count));
+    } catch {
+      // Keep the last known unread count while temporarily offline.
+    }
+  }, []);
+  useEffect(() => {
+    if (!authUser?.id) { setUnreadMessageCount(0); return; }
+    let stopped = false;
+    let inFlight = false;
+    const refresh = () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      void refreshUnreadMessages().finally(() => { inFlight = false; });
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 15000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("clerkme:messages-unread-refresh", refresh);
+    const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("clerkme:messages-unread-refresh", refresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [authUser?.id, refreshUnreadMessages]);
+  useEffect(() => {
+    if (active === "messages") void refreshUnreadMessages();
+  }, [active, refreshUnreadMessages]);
   useEffect(() => {
     if (!authUser) return;
     const url = new URL(window.location.href);
@@ -1154,7 +1192,7 @@ export default function Home() {
           <div className="nav-section-label nav-section-spaced">MESSAGES</div>
           {navItems.slice(12, 13).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
-              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/>{id === "messages" && unreadMessageCount > 0 && <span className="unread-message-badge" aria-hidden="true">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}</span><span className="nav-label">{label}</span>
             </button>
           ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
@@ -1183,8 +1221,8 @@ export default function Home() {
         <button type="button" className={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"page":undefined}>
           <span><WorkspaceIcon name="book-open"/></span><small>Study</small>
         </button>
-        <button type="button" className={active==="messages"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("messages")} aria-current={active==="messages"?"page":undefined}>
-          <span><WorkspaceIcon name="messages-square"/></span><small>Messages</small>
+        <button type="button" className={active==="messages"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("messages")} aria-current={active==="messages"?"page":undefined} aria-label={unreadMessageCount > 0 ? "Messages, " + unreadMessageCount + " unread" : "Messages"}>
+          <span className="message-dock-icon-wrap"><WorkspaceIcon name="messages-square"/>{unreadMessageCount > 0 && <span className="unread-message-badge" aria-hidden="true">{unreadMessageCount > 9 ? "9+" : unreadMessageCount}</span>}</span><small>Messages</small>
         </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>

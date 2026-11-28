@@ -32,7 +32,27 @@ export const onRequestGet = async (context: AppContext) => {
     )
     ORDER BY COALESCE(c.last_message_at, c.created_at) DESC LIMIT 100
   `).bind(user.id, user.id, user.id).all<ConversationRow>();
-  return json({ conversations: result.results });
+  const unread = await context.env.DB.prepare(`
+    SELECT COUNT(*) AS count
+    FROM direct_conversation_members me
+    INNER JOIN direct_conversation_members other
+      ON other.conversation_id = me.conversation_id AND other.user_id <> me.user_id
+    INNER JOIN direct_messages message
+      ON message.conversation_id = me.conversation_id
+      AND message.sender_id = other.user_id
+      AND message.deleted_at IS NULL
+      AND message.id > COALESCE(me.last_read_message_id, 0)
+    WHERE me.user_id = ? AND me.archived_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM direct_message_blocks b
+        WHERE (b.blocker_id = me.user_id AND b.blocked_id = other.user_id)
+           OR (b.blocker_id = other.user_id AND b.blocked_id = me.user_id)
+      )
+  `).bind(user.id).first<{ count: number }>();
+  return json({
+    conversations: result.results,
+    totalUnreadCount: Number(unread?.count) || 0
+  });
 };
 
 export const onRequestPost = async (context: AppContext) => {
