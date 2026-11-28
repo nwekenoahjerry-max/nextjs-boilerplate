@@ -1,9 +1,10 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Current native speech-to-speech Live model. Audio turns are submitted as
-// completed clientContent PCM messages to avoid the reported Gemini 3.8
-// realtimeInput turn-stall affecting streamed audio sessions.
-const LIVE_MODEL = "models/gemini-3.8-live";
+// Prefer the legacy 3.1 Live preview when the project can still use it:
+// community reports describe 3.8 realtimeInput stalls. If 3.1 is retired or
+// rejected by Google's token service, transparently fall back to current 3.8.
+const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
+const LIVE_MODEL_FALLBACK = "models/gemini-3.8-live";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -173,57 +174,83 @@ async function askWorkersAITutor(
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
+  const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
   let lastStatus = 0;
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
 
-  // Gemini's token endpoint can transiently return gateway/availability errors.
-  // Retry only transient failures; never retry authentication or bad-request errors.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const now = Date.now();
-    try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
-        body: JSON.stringify({
-          // Keep enough connection uses for short-lived reconnect/resumption attempts.
-          uses: 3,
-          expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
-          newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
-        }),
-        signal: AbortSignal.timeout(20000)
-      });
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex];
+    let tryNextModel = false;
 
-      const raw = await response.text();
-      let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
-      try { data = JSON.parse(raw) as typeof data; } catch { /* Google or an upstream gateway may return non-JSON text. */ }
+    // Retry transient provisioning failures, but do not cycle models for
+    // account-wide network, authentication or quota failures.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const now = Date.now();
+      try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
+          body: JSON.stringify({
+            uses: 1,
+            expireTime: new Date(now + 30 * 60 * 1000).toISOString(),
+            newSessionExpireTime: new Date(now + 60 * 1000).toISOString(),
+            liveConnectConstraints: {
+              model,
+              config: {
+                sessionResumption: {},
+                responseModalities: ["AUDIO"]
+              }
+            }
+          }),
+          signal: AbortSignal.timeout(20000)
+        });
 
-      if (response.ok && typeof data.name === "string" && data.name.trim()) {
-        // Treat the API's returned resource name as opaque; do not assume a
-        // particular camelCase/snake_case resource prefix across API versions.
-        return { name: data.name.trim(), systemInstruction };
+        const raw = await response.text();
+        let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
+        try { data = JSON.parse(raw) as typeof data; } catch { /* Keep the upstream response safely bounded below. */ }
+
+        if (response.ok && typeof data.name === "string" && data.name.trim()) {
+          return { name: data.name.trim(), systemInstruction, model };
+        }
+
+        lastStatus = response.status;
+        lastCode = data.error?.status || "HTTP_ERROR";
+        lastDetail = clean(data.error?.message || raw, 240);
+
+        // 3.1 is a legacy preview model. If Google no longer provisions it,
+        // retry once against the current 3.8 Live model using the same protocol.
+        if ((response.status === 400 || response.status === 404) && modelIndex < models.length - 1) {
+          console.warn("[ClerkME] Legacy Live model unavailable; trying current model.", {
+            requestId,
+            model,
+            status: response.status,
+            upstreamCode: lastCode
+          });
+          tryNextModel = true;
+          break;
+        }
+
+        if (!retryableStatuses.has(response.status) || attempt === 2) break;
+      } catch (error) {
+        lastStatus = 0;
+        lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
+        lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
+        if (attempt === 2) break;
       }
 
-      lastStatus = response.status;
-      lastCode = data.error?.status || "HTTP_ERROR";
-      lastDetail = clean(data.error?.message || raw, 240);
-
-      if (!retryableStatuses.has(response.status) || attempt === 2) break;
-    } catch (error) {
-      lastStatus = 0;
-      lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
-      lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
-      if (attempt === 2) break;
+      await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
     }
 
-    await new Promise(resolve => setTimeout(resolve, 350 * (attempt + 1)));
+    if (tryNextModel) continue;
+    break;
   }
 
   console.error("[ClerkME] Ask ClerkME live-session token creation failed.", {
     requestId,
-    model: LIVE_MODEL,
+    models,
     status: lastStatus,
     upstreamCode: lastCode,
     detail: lastDetail
@@ -330,8 +357,8 @@ export const onRequestPost = async (context: AppContext) => {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
       const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode, requestId, user.name);
-      console.info("[ClerkME] Live token provisioned.", { requestId, model: LIVE_MODEL });
-      return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction, requestId, model: LIVE_MODEL });
+      console.info("[ClerkME] Live token provisioned.", { requestId, model: liveSession.model });
+      return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction, requestId, model: liveSession.model });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
       const network = detail.match(/^LIVE_TOKEN_NETWORK_([A-Z_]+)$/);
