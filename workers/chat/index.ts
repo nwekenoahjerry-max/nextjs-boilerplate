@@ -15,7 +15,11 @@ interface AttachedWebSocket extends WebSocket {
   serializeAttachment(value: SocketAttachment): void;
   deserializeAttachment(): SocketAttachment;
 }
-interface ChatEnv { DB: D1Database; }
+interface ChatEnv {
+  DB: D1Database;
+  CRON_TOKEN?: string;
+  PUSH_SERVICE?: { fetch(input: string, init?: RequestInit): Promise<Response> };
+}
 declare const WebSocketPair: { new (): { 0: WebSocket; 1: WebSocket } };
 
 const SESSION_COOKIE = "__Host-clerkme_session";
@@ -342,14 +346,36 @@ export class ConversationRoom {
         deliveredAt: Math.floor(Date.now() / 1000)
       });
     } else {
+      const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
       await this.env.DB.prepare(`
         INSERT OR IGNORE INTO student_notifications
           (id, user_id, dedupe_key, kind, title, message, destination, created_at)
         VALUES (?, ?, ?, 'direct_message', ?, 'Open ClerkMe Messages to read it.', 'you', unixepoch())
       `).bind(
-        crypto.randomUUID(), other.id, "direct-message:" + messageId,
-        "New message from " + (sender?.name || "a ClerkMe student")
+        crypto.randomUUID(), other.id, "direct-message:" + messageId, notificationTitle
       ).run();
+
+      // Reuse ClerkMe's existing VAPID/Web Push sender; message contents are never placed in push previews.
+      if (this.env.PUSH_SERVICE && this.env.CRON_TOKEN) {
+        try {
+          await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + this.env.CRON_TOKEN,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              userId: other.id,
+              title: notificationTitle,
+              body: "You have a new private message on ClerkMe.",
+              url: "/?open=messages",
+              tag: "clerkme-dm-" + identity.conversationId
+            })
+          });
+        } catch (error) {
+          console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
+        }
+      }
     }
   }
 
