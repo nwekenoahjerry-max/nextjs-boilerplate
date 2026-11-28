@@ -14,8 +14,8 @@ type ConnectionRow = {
   profilePhotoUrl: string | null;
 };
 
-const photoUrl = "CASE WHEN p.profile_photo_key IS NOT NULL " +
-  "THEN '/api/profile/photo/' || p.id || '?v=' || COALESCE(p.profile_photo_updated_at, 0) ELSE NULL END";
+const photoUrl = "(SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at " +
+  "FROM student_profile_photos photos WHERE photos.user_id = p.id)";
 
 const connectionSelect = `
   SELECT c.id AS connectionId, c.status, c.requested_by AS requestedBy,
