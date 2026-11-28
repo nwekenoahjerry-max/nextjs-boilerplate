@@ -59,8 +59,27 @@ const decodeVapidKey = (value:string) => {
 };
 const defaults:Preferences={defaultAudience:"everyone",hideViews:false,allowReplies:true};
 
-export default function ClerkMeMessagingHub({userId}:{userId:string}) {
-  const [section,setSection]=useState<"chats"|"connections"|"status"|"profile">("chats");
+class MessagingHubErrorBoundary extends Component<{children:ReactNode},{failed:boolean}> {
+  state={failed:false};
+  static getDerivedStateFromError(){return {failed:true};}
+  componentDidCatch(error:Error,info:ErrorInfo){console.error("ClerkMe messaging hub failed to render",error,info.componentStack);}
+  render(){
+    if(this.state.failed)return <div className="cmh-chat-error" role="alert"><span aria-hidden="true">!</span>
+      <strong>ClerkMe Connect could not be displayed.</strong>
+      <p>Your conversations and connections have not been deleted. Reload this section to try again.</p>
+      <button type="button" onClick={()=>window.location.reload()}>Reload messaging</button>
+    </div>;
+    return this.props.children;
+  }
+}
+
+export default function ClerkMeMessagingHub({userId,initialSection="chats"}:{userId:string;initialSection?:"chats"|"connections"}) {
+  return <MessagingHubErrorBoundary><ClerkMeMessagingHubContent userId={userId} initialSection={initialSection}/></MessagingHubErrorBoundary>;
+}
+
+function ClerkMeMessagingHubContent({userId,initialSection}:{userId:string;initialSection:"chats"|"connections"}) {
+  const [section,setSection]=useState<"chats"|"connections"|"status"|"profile">(initialSection);
+  useEffect(()=>setSection(initialSection),[initialSection]);
   const [replyLaunch,setReplyLaunch]=useState<ReplyLaunch|null>(null);
   const [hubNotice,setHubNotice]=useState("");
   const [incomingConnectionCount,setIncomingConnectionCount]=useState(0);
@@ -75,7 +94,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
       }catch{/* Keep the last known badge count when temporarily offline. */}
     };
     void refresh();
-    const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh();},30000);
+    const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh();},8000);
     document.addEventListener("visibilitychange",refresh);
     window.addEventListener("clerkme:connections-refresh",refresh);
     return()=>{cancelled=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);window.removeEventListener("clerkme:connections-refresh",refresh);};
@@ -84,7 +103,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
     try{
       const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:status.userId})});
       const data=await response.json();
-      if(!response.ok||!data.conversation?.id) throw new Error(data.error||"The conversation could not be opened.");
+      if(!response.ok||!data.conversation?.id||!data.conversation?.other?.id) throw new Error(data.error||"The conversation could not be opened.");
       const conversation = toLaunchConversation(data.conversation.id,data.conversation.other as LaunchPeer);
       setReplyLaunch({conversationId:data.conversation.id,statusId:status.id,draft,conversation});
       setHubNotice("");
@@ -121,7 +140,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
       try{
         const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:student.id})});
         const data=await response.json();
-        if(!response.ok||!data.conversation?.id)throw new Error(data.error||"The conversation could not be opened.");
+        if(!response.ok||!data.conversation?.id||!data.conversation?.other?.id)throw new Error(data.error||"The conversation could not be opened.");
         const conversation = toLaunchConversation(data.conversation.id,data.conversation.other as LaunchPeer);
         setReplyLaunch({conversationId:data.conversation.id,statusId:"",draft:"",conversation});
         setHubNotice("");
@@ -586,7 +605,7 @@ function MessagingProfilePanel() {
     </details>
 
     <div className="cmh-settings-card cmh-notification-card">
-      <div className="cmh-settings-heading"><span>PHONE ALERTS</span><h3>Message notifications</h3><p>Get a phone notification when another student messages you, even when ClerkMe is in the background.</p></div>
+      <div className="cmh-settings-heading"><span>PHONE ALERTS</span><h3>Message and connection notifications</h3><p>Get a phone notification for new private messages and connection requests, including while ClerkMe is in the background.</p></div>
       <div className="cmh-notification-actions">
         <div className="cmh-notification-state">
           <span className={"cmh-notification-dot"+(pushEnabled?" is-on":"")}/>
