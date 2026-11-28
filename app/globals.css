@@ -8627,3 +8627,10 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
   .profile-photo-actions{grid-column:1/-1}
   .profile-photo-actions button{min-height:38px}
 }
+
+[data-theme="dark"] .profile-page .profile-identity-card{background:#14243a!important;border-color:#2c405a!important}
+[data-theme="dark"] .profile-account-avatar{background:#20344e;border-color:#263b55;color:#d7e7fb;box-shadow:0 0 0 1px #405875}
+[data-theme="dark"] .profile-identity-copy strong{color:#e6eef9}
+[data-theme="dark"] .profile-identity-copy span,[data-theme="dark"] .profile-identity-copy small,[data-theme="dark"] .profile-photo-actions small{color:#aabbd0}
+[data-theme="dark"] .profile-photo-remove{background:#30252b;border-color:#68414a;color:#ffc4cb}
+[data-theme="dark"] .profile-photo-notice{background:#1b2d43;border-color:#354b67;color:#d8e6f8}
