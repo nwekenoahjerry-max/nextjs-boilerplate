@@ -11,7 +11,7 @@ type Status = {
 };
 type StatusGroup = { userId:string; name:string; university?:string; statuses:Status[] };
 type Preferences = { defaultAudience:Audience; hideViews:boolean; allowReplies:boolean };
-type Profile = { id:string; name:string; email:string; university:string; country:string; level:string; futureSpecialty:string; state:string; lga:string };
+type Profile = { id:string; name:string; email:string; university:string; country:string; level:string; futureSpecialty:string; state:string; lga:string; profilePhotoUrl?:string|null };
 type ReplyLaunch = { conversationId:string; statusId:string; draft:string };
 
 const backgrounds = ["#173765","#4C376D","#8A3F51","#23645E","#7A5B2C","#26374D"];
@@ -36,7 +36,7 @@ const decodeVapidKey = (value:string) => {
 const defaults:Preferences={defaultAudience:"everyone",hideViews:false,allowReplies:true};
 
 export default function ClerkMeMessagingHub({userId}:{userId:string}) {
-  const [section,setSection]=useState<"chats"|"status"|"profile">("chats");
+  const [section,setSection]=useState<"chats"|"connections"|"status"|"profile">("chats");
   const [replyLaunch,setReplyLaunch]=useState<ReplyLaunch|null>(null);
   const [hubNotice,setHubNotice]=useState("");
   const startReply=useCallback(async (status:Status,draft:string)=>{
@@ -56,7 +56,7 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
     </header>
     <nav className="cmh-tabs" aria-label="Messaging sections" role="tablist"
       onKeyDown={event=>{
-        const order=["chats","status","profile"] as const;
+        const order=["chats","connections","status","profile"] as const;
         const currentIndex=order.indexOf(section);
         const next=event.key==="ArrowRight"?(currentIndex+1)%order.length:event.key==="ArrowLeft"?(currentIndex+order.length-1)%order.length:event.key==="Home"?0:event.key==="End"?order.length-1:-1;
         if(next<0)return;
@@ -65,22 +65,34 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
         document.getElementById("cmh-tab-"+order[next])?.focus();
       }}>
       <button id="cmh-tab-chats" type="button" role="tab" aria-controls="cmh-panel-chats" aria-selected={section==="chats"} tabIndex={section==="chats"?0:-1} className={section==="chats"?"is-active":""} onClick={()=>setSection("chats")}><span className="cmh-tab-icon"><CmhIcon name="chat"/></span><span className="cmh-tab-label">Chats</span></button>
+      <button id="cmh-tab-connections" type="button" role="tab" aria-controls="cmh-panel-connections" aria-selected={section==="connections"} tabIndex={section==="connections"?0:-1} className={section==="connections"?"is-active":""} onClick={()=>setSection("connections")}><span className="cmh-tab-icon"><CmhIcon name="connections"/></span><span className="cmh-tab-label">Connections</span></button>
       <button id="cmh-tab-status" type="button" role="tab" aria-controls="cmh-panel-status" aria-selected={section==="status"} tabIndex={section==="status"?0:-1} className={section==="status"?"is-active":""} onClick={()=>setSection("status")}><span className="cmh-tab-icon"><CmhIcon name="status"/></span><span className="cmh-tab-label">Status</span></button>
       <button id="cmh-tab-profile" type="button" role="tab" aria-controls="cmh-panel-profile" aria-selected={section==="profile"} tabIndex={section==="profile"?0:-1} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><span className="cmh-tab-icon"><CmhIcon name="user"/></span><span className="cmh-tab-label">Profile</span></button>
     </nav>
     {hubNotice&&<div className="cmh-alert" role="alert">{hubNotice}<button type="button" onClick={()=>setHubNotice("")} aria-label="Dismiss">×</button></div>}
     {section==="chats"&&<div id="cmh-panel-chats" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-chats" tabIndex={0}><DirectMessagesPanel key={replyLaunch?.statusId||"clerkme-chats"} userId={userId} initialConversationId={replyLaunch?.conversationId||""} initialStatusReplyId={replyLaunch?.statusId||""} initialDraft={replyLaunch?.draft||""}/></div>}
-    {section==="status"&&<div id="cmh-panel-status" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-status" tabIndex={0}><StatusPanel userId={userId} onReply={startReply}/></div>}
+        {section==="connections"&&<div id="cmh-panel-connections" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-connections" tabIndex={0}><ConnectionsPanel onMessage={async student=>{
+      try{
+        const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:student.id})});
+        const data=await response.json();
+        if(!response.ok||!data.conversation?.id)throw new Error(data.error||"The conversation could not be opened.");
+        setReplyLaunch({conversationId:data.conversation.id,statusId:"",draft:""});
+        setHubNotice("");
+        setSection("chats");
+      }catch(error){setHubNotice(error instanceof Error?error.message:"The conversation could not be opened.");}
+    }}/></div>}
+{section==="status"&&<div id="cmh-panel-status" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-status" tabIndex={0}><StatusPanel userId={userId} onReply={startReply}/></div>}
     {section==="profile"&&<div id="cmh-panel-profile" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-profile" tabIndex={0}><MessagingProfilePanel/></div>}
   </section>;
 }
 
-function CmhIcon({name}:{name:"chat"|"spark"|"status"|"user"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"|"search"|"upload"|"video"|"close"|"chevron-left"|"chevron-right"}) {
+function CmhIcon({name}:{name:"chat"|"spark"|"status"|"user"|"connections"|"eye"|"plus"|"clock"|"shield"|"bell"|"image"|"send"|"trash"|"chevron"|"search"|"upload"|"video"|"close"|"chevron-left"|"chevron-right"}) {
   const paths:Record<string,ReactNode>={
     chat:<><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></>,
     spark:<><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></>,
     status:<><path d="M19.3 8.2a8.5 8.5 0 1 1-3.5-3.6"/><path d="M19.5 3.8v4.8h-4.8"/><circle cx="12" cy="12" r="3.2"/></>,
     user:<><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+    connections:<><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M16 15a5 5 0 0 1 5 5"/></>,
     eye:<><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="2.5"/></>,
     plus:<><path d="M12 5v14M5 12h14"/></>,
     clock:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
@@ -319,6 +331,96 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
   </section>;
 }
 
+type ConnectionStudent = {
+  connectionId:string; status:"pending"|"accepted"; requestedBy:string; createdAt:number;
+  updatedAt:number; otherId:string; name:string; university:string; level:string;
+  lastSeenAt:number|null; profilePhotoUrl:string|null;
+};
+
+function ConnectionsPanel({onMessage}:{onMessage:(student:{id:string;name:string;university?:string;level?:string;lastSeenAt?:number|null;profilePhotoUrl?:string|null;connectionStatus:"accepted"})=>void}) {
+  const [incoming,setIncoming]=useState<ConnectionStudent[]>([]);
+  const [outgoing,setOutgoing]=useState<ConnectionStudent[]>([]);
+  const [accepted,setAccepted]=useState<ConnectionStudent[]>([]);
+  const [loading,setLoading]=useState(true);
+  const [busy,setBusy]=useState("");
+  const [notice,setNotice]=useState("");
+
+  const load=useCallback(async()=>{
+    try{
+      const response=await fetch("/api/connections",{credentials:"same-origin",cache:"no-store"});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"Connections could not be loaded.");
+      setIncoming(Array.isArray(data.incoming)?data.incoming:[]);
+      setOutgoing(Array.isArray(data.outgoing)?data.outgoing:[]);
+      setAccepted(Array.isArray(data.accepted)?data.accepted:[]);
+    }catch(error){setNotice(error instanceof Error?error.message:"Connections could not be loaded.");}
+    finally{setLoading(false);}
+  },[]);
+  useEffect(()=>{void load();},[load]);
+
+  const updateRequest=async(item:ConnectionStudent,action:"accept"|"decline"|"cancel")=>{
+    setBusy(item.connectionId);setNotice("");
+    try{
+      const response=await fetch("/api/connections/"+encodeURIComponent(item.connectionId),{
+        method:"PATCH",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action})
+      });
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"The connection request could not be updated.");
+      setNotice(action==="accept"?"Connection accepted. You can now message each other.":action==="decline"?"Connection request declined.":"Connection request cancelled.");
+      await load();
+    }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be updated.");}
+    finally{setBusy("");}
+  };
+  const removeConnection=async(item:ConnectionStudent)=>{
+    if(!window.confirm("Remove "+item.name+" from your connections? Private messaging will be disabled for both of you."))return;
+    setBusy(item.connectionId);setNotice("");
+    try{
+      const response=await fetch("/api/connections/"+encodeURIComponent(item.connectionId),{method:"DELETE",credentials:"same-origin"});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||"The connection could not be removed.");
+      setNotice("Connection removed. Private messaging is now closed.");
+      await load();
+    }catch(error){setNotice(error instanceof Error?error.message:"The connection could not be removed.");}
+    finally{setBusy("");}
+  };
+  const avatar=(item:ConnectionStudent)=><span className="cmh-connection-avatar">{item.profilePhotoUrl?<img src={item.profilePhotoUrl} alt="" loading="lazy"/>:initials(item.name)}</span>;
+  const card=(item:ConnectionStudent,kind:"incoming"|"outgoing"|"accepted")=><article className="cmh-connection-card" key={item.connectionId}>
+    {avatar(item)}
+    <div className="cmh-connection-copy"><strong>{item.name}</strong><small>{[item.university,item.level].filter(Boolean).join(" · ")||"ClerkMe student"}</small>
+      <span>{kind==="incoming"?"Wants to connect with you":kind==="outgoing"?"Waiting for your request to be accepted":"Connected on ClerkMe"}</span>
+    </div>
+    <div className="cmh-connection-actions">
+      {kind==="incoming"?<>
+        <button type="button" className="cmh-primary" disabled={Boolean(busy)} onClick={()=>void updateRequest(item,"accept")}>{busy===item.connectionId?"Saving…":"Accept"}</button>
+        <button type="button" className="cmh-secondary" disabled={Boolean(busy)} onClick={()=>void updateRequest(item,"decline")}>Decline</button>
+      </>:kind==="outgoing"?<>
+        <span className="cmh-pending-label">Request sent</span>
+        <button type="button" className="cmh-secondary" disabled={Boolean(busy)} onClick={()=>void updateRequest(item,"cancel")}>Cancel</button>
+      </>:<>
+        <button type="button" className="cmh-primary" onClick={()=>onMessage({id:item.otherId,name:item.name,university:item.university,level:item.level,lastSeenAt:item.lastSeenAt,profilePhotoUrl:item.profilePhotoUrl,connectionStatus:"accepted"})}>Message</button>
+        <button type="button" className="cmh-secondary" disabled={Boolean(busy)} onClick={()=>void removeConnection(item)}>{busy===item.connectionId?"Removing…":"Remove"}</button>
+      </>}
+    </div>
+  </article>;
+
+  if(loading)return <div className="cmh-profile-loading" role="status"><i/>Loading your connections…</div>;
+  return <section className="cmh-connections" aria-label="Your student connections">
+    {notice&&<div className="cmh-alert" role="status"><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Dismiss">×</button></div>}
+    <div className="cmh-connections-heading"><div><span className="cmh-eyebrow">YOUR NETWORK</span><h2>Connections</h2><p>Accept a request before either student can start a private conversation.</p></div><span className="cmh-connections-count">{accepted.length} connected</span></div>
+    <section className="cmh-connection-group"><div className="cmh-connection-group-heading"><h3>Requests to you</h3><span>{incoming.length}</span></div>
+      {incoming.length?incoming.map(item=>card(item,"incoming")):<p className="cmh-connection-empty">No new requests. Incoming requests will appear here.</p>}
+    </section>
+    <section className="cmh-connection-group"><div className="cmh-connection-group-heading"><h3>Requests you sent</h3><span>{outgoing.length}</span></div>
+      {outgoing.length?outgoing.map(item=>card(item,"outgoing")):<p className="cmh-connection-empty">You have no pending requests.</p>}
+    </section>
+    <section className="cmh-connection-group"><div className="cmh-connection-group-heading"><h3>Your connections</h3><span>{accepted.length}</span></div>
+      {accepted.length?accepted.map(item=>card(item,"accepted")):<p className="cmh-connection-empty">No connections yet. Find a student in Chats and send a request.</p>}
+    </section>
+    <p className="cmh-connection-privacy"><CmhIcon name="shield"/> Private messages are available only between accepted connections. You can remove a connection at any time.</p>
+  </section>;
+}
+
 function MessagingProfilePanel() {
   const [profile,setProfile]=useState<Profile|null>(null);
   const [preferences,setPreferences]=useState<Preferences>(defaults);
@@ -401,7 +503,7 @@ function MessagingProfilePanel() {
   return <section className="cmh-profile" aria-label="Messaging profile and privacy">
     {notice&&<div className="cmh-alert" role="status"><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Dismiss">×</button></div>}
     <div className="cmh-profile-card">
-      <div className="cmh-profile-avatar">{initials(profile?.name||"Student")}</div>
+      <div className="cmh-profile-avatar">{profile?.profilePhotoUrl?<img src={profile.profilePhotoUrl} alt="" loading="lazy"/>:initials(profile?.name||"Student")}</div>
       <div className="cmh-profile-details">
         <span className="cmh-eyebrow">YOUR PROFILE</span>
         <h2>{profile?.name||"Student"}</h2>
