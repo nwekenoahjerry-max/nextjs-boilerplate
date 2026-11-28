@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v33-private-message-push";
+const CACHE_NAME = "clerkme-shell-v34-foreground-chat-alerts";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
@@ -61,18 +61,26 @@ self.addEventListener("push", event => {
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { body: event.data ? event.data.text() : "" }; }
   event.waitUntil((async () => {
-    // Do not suppress a message alert merely because another ClerkMe screen
-    // is visible. Students may be studying elsewhere in the app and still
-    // need to see that a private message has arrived.
+    // A foreground ClerkMe window already gives the student live unread badges
+    // and conversation updates. Do not interrupt that session with OS alerts.
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const clerkMeIsVisible = windows.some(client => {
+      try {
+        return new URL(client.url).origin === self.location.origin &&
+          client.visibilityState === "visible";
+      } catch { return false; }
+    });
+    if (clerkMeIsVisible) return;
+
     await self.registration.showNotification(payload.title || "New ClerkMe message", {
       body: payload.body || "You have a new private message on ClerkMe.",
       icon: "/clerkme-icon-512.png",
       badge: "/favicon.png",
-      tag: payload.tag || ("clerkme-message-" + Date.now()),
-      renotify: true,
+      tag: payload.tag || (payload.conversationId ? "clerkme-dm-" + payload.conversationId : "clerkme-message"),
+      renotify: false,
       requireInteraction: false,
       vibrate: [120, 60, 120],
-      data: { url: payload.url || "/?open=messages", messageId: payload.messageId || null }
+      data: { url: payload.url || "/?open=messages", messageId: payload.messageId || null, conversationId: payload.conversationId || null }
     });
   })());
 });
