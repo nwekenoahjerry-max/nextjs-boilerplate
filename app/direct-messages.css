@@ -461,3 +461,266 @@
   }
   .dm-workspace.has-selection .dm-thread{min-height:0}
 }
+
+
+/* WhatsApp-style conversation viewport:
+   the contact header and composer stay in view; only message history scrolls. */
+.app-shell:has(.dm-workspace.has-selection){
+  height:100dvh;
+  min-height:0;
+  overflow:hidden;
+}
+.app-shell:has(.dm-workspace.has-selection) .main-area{
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+  min-height:0;
+  overflow:hidden;
+}
+.app-shell:has(.dm-workspace.has-selection) .topbar{
+  position:relative;
+  top:auto;
+  flex:0 0 70px;
+  height:70px;
+}
+.app-shell:has(.dm-workspace.has-selection) .content{
+  display:flex;
+  flex:1 1 auto;
+  width:100%;
+  max-width:none;
+  height:0;
+  min-height:0;
+  margin:0;
+  padding:14px clamp(14px,2.5vw,34px);
+  overflow:hidden;
+}
+.cmh-shell:has(.dm-workspace.has-selection){
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  width:100%;
+  max-width:none;
+  height:100%;
+  min-height:0;
+  padding:0;
+}
+.cmh-shell:has(.dm-workspace.has-selection)>.cmh-heading,
+.cmh-shell:has(.dm-workspace.has-selection)>.cmh-tabs{
+  display:none!important;
+}
+.cmh-shell:has(.dm-workspace.has-selection) .cmh-tab-panel{
+  display:flex;
+  flex:1 1 auto;
+  width:100%;
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+}
+.clerkme-dm-page:has(.dm-workspace.has-selection){
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  width:100%;
+  height:100%;
+  min-height:0;
+  gap:0;
+}
+.clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-page-heading{
+  display:none!important;
+}
+.clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-notice{
+  flex:0 0 auto;
+  margin:0 0 8px;
+}
+.dm-workspace.has-selection{
+  display:grid;
+  flex:1 1 auto;
+  grid-template-columns:minmax(240px,320px) minmax(0,1fr);
+  width:100%;
+  height:100%;
+  min-height:0;
+  max-height:none;
+  overflow:hidden;
+  border-radius:16px;
+}
+.dm-workspace.has-selection .dm-inbox,
+.dm-workspace.has-selection .dm-thread{
+  height:100%;
+  min-height:0;
+}
+.dm-workspace.has-selection .dm-thread{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+}
+.dm-workspace.has-selection .dm-thread-header{
+  position:relative;
+  z-index:5;
+  flex:0 0 auto;
+}
+.dm-workspace.has-selection .dm-call-panel{
+  flex:0 0 auto;
+  max-height:28%;
+  overflow-y:auto;
+}
+.dm-workspace.has-selection .dm-message-scroll{
+  flex:1 1 0%;
+  height:0;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:auto;
+}
+.dm-workspace.has-selection .dm-composer{
+  position:relative;
+  bottom:auto;
+  z-index:6;
+  flex:0 0 auto;
+  margin:0;
+}
+@media(max-width:700px){
+  .app-shell:has(.dm-workspace.has-selection){
+    display:block;
+    height:100dvh;
+    min-height:0;
+    padding-bottom:0!important;
+    overflow:hidden;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .main-area{
+    display:flex;
+    flex-direction:column;
+    width:100%;
+    height:calc(100dvh - 72px);
+    min-height:0;
+    margin:0;
+    overflow:hidden;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .topbar{
+    position:relative;
+    top:auto;
+    flex:0 0 56px;
+    height:56px;
+    min-height:56px;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .content{
+    flex:1 1 auto;
+    width:100%;
+    height:0;
+    min-height:0;
+    padding:8px 8px 7px;
+    overflow:hidden;
+  }
+  .dm-workspace.has-selection{
+    display:block;
+    height:100%;
+    min-height:0;
+    max-height:none;
+    border-radius:14px;
+  }
+  .dm-workspace.has-selection .dm-inbox,
+  .dm-workspace.has-selection .dm-thread{
+    width:100%;
+    height:100%;
+    min-height:0;
+  }
+  .dm-workspace.has-selection .dm-thread-header{
+    gap:5px;
+    min-height:60px;
+    padding:8px 9px;
+  }
+  .dm-workspace.has-selection .dm-back-button{
+    width:32px;
+    height:34px;
+    flex:0 0 32px;
+  }
+  .dm-workspace.has-selection .dm-header-avatar{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+  }
+  .dm-workspace.has-selection .dm-thread-person{
+    min-width:0;
+    flex:1 1 auto;
+  }
+  .dm-workspace.has-selection .dm-thread-person strong{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .dm-workspace.has-selection .dm-connection{
+    flex:0 0 auto;
+    padding:4px 5px;
+    font-size:.57rem;
+  }
+  .dm-workspace.has-selection .dm-call-button{
+    width:32px;
+    height:34px;
+    flex:0 0 32px;
+  }
+  .dm-workspace.has-selection .dm-menu-button{
+    width:24px;
+    height:34px;
+    flex:0 0 24px;
+  }
+  .dm-workspace.has-selection .dm-message-scroll{
+    flex:1 1 0%;
+    height:0;
+    min-height:0;
+    padding:11px 10px 14px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:auto;
+  }
+  .dm-workspace.has-selection .dm-composer{
+    flex:0 0 auto;
+    padding:9px 9px max(9px,env(safe-area-inset-bottom));
+  }
+  .dm-workspace.has-selection .dm-composer-heading{
+    margin:0 2px 6px;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row{
+    grid-template-columns:minmax(0,1fr) 46px 72px;
+    gap:6px;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row textarea{
+    min-height:52px;
+    max-height:112px;
+    resize:none;
+    padding:10px 11px;
+    font-size:16px;
+  }
+  .dm-workspace.has-selection .dm-voice-record,
+  .dm-workspace.has-selection .dm-send-button{
+    min-height:52px;
+  }
+  .dm-workspace.has-selection .dm-composer-footer{
+    margin-top:5px;
+  }
+  .dm-workspace.has-selection .dm-composer-footer small{
+    font-size:9px;
+    line-height:1.3;
+  }
+}
+@media(max-width:390px){
+  .dm-workspace.has-selection .dm-composer-input-row{
+    grid-template-columns:minmax(0,1fr) 42px 66px;
+    gap:5px;
+  }
+  .dm-workspace.has-selection .dm-voice-record span{
+    font-size:.58rem;
+  }
+  .dm-workspace.has-selection .dm-send-button{
+    font-size:.68rem;
+    gap:4px;
+  }
+  .dm-workspace.has-selection .dm-connection{
+    font-size:.53rem;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .dm-workspace.has-selection .dm-message-scroll{
+    scroll-behavior:auto;
+  }
+}
