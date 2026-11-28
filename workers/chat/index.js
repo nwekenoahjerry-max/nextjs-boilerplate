@@ -110,6 +110,13 @@ export class ConversationRoom {
       socket.close(1008, "Session expired");
       return;
     }
+    const peer = await this.env.DB.prepare(
+      "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
+    ).bind(identity.conversationId, identity.userId).first();
+    if (!peer || await this.isBlocked(identity.userId, peer.id)) {
+      socket.close(1008, "Conversation unavailable");
+      return;
+    }
 
     const rawText = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
     if (rawText.length > MAX_MESSAGE_LENGTH + 2000) {
