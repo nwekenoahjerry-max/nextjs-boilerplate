@@ -74,6 +74,9 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
   }, []);
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    setPeerOnline(isOnline(selected?.otherLastSeenAt));
+  }, [selected?.otherLastSeenAt]);
 
   useEffect(() => {
     if (!showNew || search.trim().length < 2) { setSearchResults([]); setSearching(false); return; }
@@ -122,6 +125,7 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
         if (!response.ok) throw new Error(data.error || "This conversation could not be opened.");
         if (cancelled) return;
         const history = Array.isArray(data.messages) ? data.messages as ChatMessage[] : [];
+        setPeerOnline(isOnline(selected?.otherLastSeenAt));
         setMessages(history);
         setPeerReadMessageId(Number(data.otherLastReadMessageId) || 0);
         setHasMore(Boolean(data.hasMore));
