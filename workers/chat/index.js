@@ -288,7 +288,7 @@ export class ConversationRoom {
     if (!userId || !otherId || userId === otherId) return false;
     const [low, high] = [userId, otherId].sort();
     const row = await this.env.DB.prepare(
-      "SELECT 1 AS connected FROM student_connection_requests WHERE user_low_id = ? AND user_high_id = ? AND status = 'accepted' LIMIT 1"
+      "SELECT 1 AS connected FROM clerkme_student_connections_v1 WHERE user_low_id = ? AND user_high_id = ? AND status = 'accepted' LIMIT 1"
     ).bind(low, high).first();
     return Boolean(row);
   }
