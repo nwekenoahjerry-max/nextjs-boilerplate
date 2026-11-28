@@ -743,3 +743,5 @@
   .dm-student-result{gap:8px;padding:10px 2px}
   .dm-student-action{min-height:36px;padding:8px 10px;font-size:.68rem}
 }
+
+.dm-student-action:focus-visible{outline:3px solid #7da4d4;outline-offset:3px}
