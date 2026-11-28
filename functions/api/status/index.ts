@@ -45,10 +45,11 @@ export const onRequestGet = async (context: AppContext) => {
       "p.email_verified_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM direct_message_blocks b WHERE " +
       "(b.blocker_id = ? AND b.blocked_id = s.user_id) OR (b.blocker_id = s.user_id AND b.blocked_id = ?)) " +
       "AND (s.visibility = 'everyone' OR (s.visibility = 'conversations' AND EXISTS (" +
-      "SELECT 1 FROM direct_conversation_members a INNER JOIN direct_conversation_members b " +
-      "ON b.conversation_id = a.conversation_id WHERE a.user_id = s.user_id AND b.user_id = ?))))) " +
+      "SELECT 1 FROM clerkme_student_connections_v1 connection WHERE " +
+      "connection.user_low_id = CASE WHEN ? < s.user_id THEN ? ELSE s.user_id END AND " +
+      "connection.user_high_id = CASE WHEN ? < s.user_id THEN s.user_id ELSE ? END AND connection.status = 'accepted'))))) " +
       "ORDER BY s.created_at DESC LIMIT 200"
-    ).bind(user.id,user.id,user.id,user.id,user.id).all<{
+    ).bind(user.id,user.id,user.id,user.id,user.id,user.id,user.id,user.id).all<{
       id:string; userId:string; ownerName:string; ownerUniversity:string; body:string; background:string;
       visibility:StatusAudience; mediaKey:string|null; mediaType:string|null; createdAt:number; expiresAt:number;
       viewCount:number; hasViewed:number; allowReplies:number;

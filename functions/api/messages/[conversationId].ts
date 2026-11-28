@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, type AppContext } from "../../_lib/auth";
+import { hasAcceptedConnection } from "../../_lib/connections";
 
 type MessageRow = {
   id: number; public_id: string; conversation_id: string; sender_id: string;
@@ -11,9 +12,14 @@ export const onRequestGet = async (context: AppContext) => {
   const conversationId = context.params.conversationId || "";
   if (!conversationId || conversationId.length > 80) return json({ error: "Conversation not found." }, 404);
   const membership = await context.env.DB.prepare(
-    "SELECT last_read_message_id AS lastReadMessageId FROM direct_conversation_members WHERE conversation_id = ? AND user_id = ? AND archived_at IS NULL"
-  ).bind(conversationId, user.id).first<{ lastReadMessageId: number | null }>();
-  if (!membership) return json({ error: "Conversation not found." }, 404);
+    "SELECT me.last_read_message_id AS lastReadMessageId, other.user_id AS otherId " +
+    "FROM direct_conversation_members me INNER JOIN direct_conversation_members other " +
+    "ON other.conversation_id = me.conversation_id AND other.user_id <> me.user_id " +
+    "WHERE me.conversation_id = ? AND me.user_id = ? AND me.archived_at IS NULL LIMIT 1"
+  ).bind(conversationId, user.id).first<{ lastReadMessageId: number | null; otherId: string }>();
+  if (!membership || !await hasAcceptedConnection(context.env.DB, user.id, membership.otherId)) {
+    return json({ error: "Conversation not found. You must be connected to view these messages." }, 404);
+  }
   const blocked = await context.env.DB.prepare(`
     SELECT 1 AS blocked
     FROM direct_conversation_members peer

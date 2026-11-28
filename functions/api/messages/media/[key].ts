@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, type AppContext } from "../../../_lib/auth";
+import { hasAcceptedConnection } from "../../../_lib/connections";
 
 export const onRequestGet = async (context: AppContext) => {
   const user = await requireUser(context);
@@ -11,7 +12,7 @@ export const onRequestGet = async (context: AppContext) => {
   }
 
   const allowed = await context.env.DB.prepare(`
-    SELECT 1 AS ok
+    SELECT peer.user_id AS peerId
     FROM direct_messages m
     INNER JOIN direct_conversation_members me
       ON me.conversation_id = m.conversation_id AND me.user_id = ? AND me.archived_at IS NULL
@@ -25,8 +26,10 @@ export const onRequestGet = async (context: AppContext) => {
            OR (b.blocker_id = peer.user_id AND b.blocked_id = me.user_id)
       )
     LIMIT 1
-  `).bind(user.id,"CLERKME_VOICE_NOTE_V1|"+key+"|").first();
-  if (!allowed) return json({ error:"Voice note not found." },404);
+  `).bind(user.id,"CLERKME_VOICE_NOTE_V1|"+key+"|").first<{peerId:string}>();
+  if (!allowed || !await hasAcceptedConnection(context.env.DB, user.id, allowed.peerId)) {
+    return json({ error:"Voice note not found." },404);
+  }
 
   const object = await context.env.STATUS_MEDIA.get(key);
   if (!object) return json({ error:"Voice note not found." },404);

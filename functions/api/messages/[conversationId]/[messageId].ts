@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
+import { hasAcceptedConnection } from "../../../_lib/connections";
 
 type EditableMessage = {
   id: number; public_id: string; conversation_id: string; sender_id: string;
@@ -26,7 +27,7 @@ export const onRequestPatch = async (context: AppContext) => {
   }
 
   const membership = await context.env.DB.prepare(`
-    SELECT 1 AS ok
+    SELECT peer.user_id AS peerId
     FROM direct_conversation_members me
     INNER JOIN direct_conversation_members peer
       ON peer.conversation_id = me.conversation_id AND peer.user_id <> me.user_id
@@ -37,8 +38,10 @@ export const onRequestPatch = async (context: AppContext) => {
            OR (b.blocker_id = peer.user_id AND b.blocked_id = me.user_id)
       )
     LIMIT 1
-  `).bind(conversationId, user.id).first();
-  if (!membership) return json({ error: "Conversation not found." }, 404);
+  `).bind(conversationId, user.id).first<{peerId:string}>();
+  if (!membership || !await hasAcceptedConnection(context.env.DB, user.id, membership.peerId)) {
+    return json({ error: "Conversation not found." }, 404);
+  }
 
   const existing = await context.env.DB.prepare(
     "SELECT id, sender_id FROM direct_messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL"

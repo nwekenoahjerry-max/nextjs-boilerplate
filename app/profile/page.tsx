@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ClerkMeBrand from "../../components/clerkme-brand";
 import SearchablePicker from "../searchable-picker";
 import { nigeriaLgasByState, nigeriaStates } from "../../lib/nigeria-locations";
@@ -8,7 +8,7 @@ import { nigerianUniversities } from "../../lib/nigerian-universities";
 
 type Profile = {
   id: string; email: string; name: string; university: string; country: string; level: string;
-  futureSpecialty: string; state: string; lga: string;
+  futureSpecialty: string; state: string; lga: string; profilePhotoUrl?: string | null;
 };
 type CountryOption = { code: string; name: string };
 type UniversityRecord = [string, string];
@@ -44,6 +44,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoNotice, setPhotoNotice] = useState("");
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const isNigeria = country === "Nigeria";
   const availableLgas = isNigeria ? (nigeriaLgasByState[stateSelection] || []) : [];
@@ -203,6 +206,76 @@ export default function ProfilePage() {
     }
   };
 
+  const uploadProfilePhoto = async (file: File) => {
+    setPhotoNotice("");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setPhotoNotice("Choose a JPG, PNG or WebP photo.");
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      setPhotoNotice("Choose a photo smaller than 12 MB. ClerkMe will optimise it before upload.");
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const side = 512;
+      const canvas = document.createElement("canvas");
+      canvas.width = side;
+      canvas.height = side;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        bitmap.close();
+        throw new Error("Your browser could not prepare this photo. Please try another image.");
+      }
+      const cropSize = Math.min(bitmap.width, bitmap.height);
+      const sourceX = Math.round((bitmap.width - cropSize) / 2);
+      const sourceY = Math.round((bitmap.height - cropSize) / 2);
+      context.drawImage(bitmap, sourceX, sourceY, cropSize, cropSize, 0, 0, side, side);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.86));
+      if (!blob) throw new Error("Your photo could not be optimised. Please try another image.");
+      if (blob.size > 2 * 1024 * 1024) throw new Error("This photo is still too large after optimisation. Try a smaller image.");
+      const form = new FormData();
+      form.append("file", new File([blob], "clerkme-profile.webp", { type: "image/webp" }));
+      const response = await fetch("/api/profile/photo", {
+        method: "POST", credentials: "same-origin", body: form
+      });
+      const data = await response.json();
+      if (!response.ok || !data.uploaded || typeof data.profilePhotoUrl !== "string") {
+        throw new Error(data.error || "Your profile photo could not be saved.");
+      }
+      setProfile(current => current ? { ...current, profilePhotoUrl: data.profilePhotoUrl } : current);
+      setPhotoNotice("Your profile photo has been updated.");
+    } catch (reason) {
+      setPhotoNotice(reason instanceof Error ? reason.message : "Your profile photo could not be uploaded.");
+    } finally {
+      setPhotoBusy(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  };
+
+  const removeProfilePhoto = async () => {
+    if (!profile?.profilePhotoUrl || photoBusy) return;
+    if (!window.confirm("Remove your profile photo? Your initials will be shown instead.")) return;
+    setPhotoBusy(true);
+    setPhotoNotice("");
+    try {
+      const response = await fetch("/api/profile/photo", {
+        method: "DELETE", credentials: "same-origin",
+        headers: { "Accept": "application/json" }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.removed) throw new Error(data.error || "Your profile photo could not be removed.");
+      setProfile(current => current ? { ...current, profilePhotoUrl: null } : current);
+      setPhotoNotice("Your profile photo has been removed.");
+    } catch (reason) {
+      setPhotoNotice(reason instanceof Error ? reason.message : "Your profile photo could not be removed.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
   if (loading) return <main className="auth-page profile-page">
     <div className="auth-card profile-loading"><ClerkMeBrand caption="STUDENT PROFILE"/><p>Loading your profile…</p></div>
   </main>;
@@ -219,7 +292,19 @@ export default function ProfilePage() {
           <h1>Your student profile</h1>
           <p className="profile-intro">A few details help ClerkME organise your clinical learning. You can update them whenever your academic information changes.</p>
         </div>
-        {profile && <div className="profile-account-summary"><strong>{profile.name || "Student account"}</strong><span>{profile.email}</span></div>}
+        {profile && <div className="profile-account-summary profile-identity-card">
+          <div className="profile-account-avatar">
+            {profile.profilePhotoUrl ? <img src={profile.profilePhotoUrl} alt={profile.name + " profile"} /> : <span>{profile.name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase() || "CM"}</span>}
+          </div>
+          <div className="profile-identity-copy"><strong>{profile.name || "Student account"}</strong><span>{profile.email}</span><small>One photo across your ClerkMe profile and private chats.</small></div>
+          <div className="profile-photo-actions">
+            <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>{const file=event.target.files?.[0];if(file)void uploadProfilePhoto(file);}} aria-label="Choose profile photo" />
+            <button type="button" className="profile-photo-upload" onClick={()=>photoInputRef.current?.click()} disabled={photoBusy}>{photoBusy?"Updating…":profile.profilePhotoUrl?"Change photo":"Upload photo"}</button>
+            {profile.profilePhotoUrl&&<button type="button" className="profile-photo-remove" onClick={()=>void removeProfilePhoto()} disabled={photoBusy}>Remove</button>}
+            <small>JPG, PNG or WebP · Square crop · Private to signed-in students</small>
+          </div>
+        </div>}
+        {photoNotice&&<p className="profile-photo-notice" role="status">{photoNotice}</p>}
 
         <section className="profile-progress-card" aria-label="Student profile completion">
           <div className="profile-progress-heading">
