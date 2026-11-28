@@ -2,6 +2,8 @@ import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const LIVE_PATIENT_MODEL = "models/gemini-3.8-live";
+const LIVE_PATIENT_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
+const LIVE_PATIENT_MODELS = [LIVE_PATIENT_MODEL, LIVE_PATIENT_MODEL_FALLBACK] as const;
 const ALLOWED_UNITS = ["general-medicine","surgery","paediatrics","obstetrics-gynaecology","emergency","psychiatry","community-medicine","orthopaedics"];
 
 type CaseProfile = {
@@ -113,62 +115,106 @@ const handleSimulationPost = async (context:AppContext) => {
     ].join("\n\n");
 
     const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
+    const requestId=crypto.randomUUID().slice(0,12);
     const retryableStatuses=new Set([408,429,500,502,503,504]);
     let lastStatus=0;
-    for(let attempt=0;attempt<2;attempt++){
-      try{
-        const now=Date.now();
-        const expireTime=new Date(now+30*60*1000).toISOString();
-        const newSessionExpireTime=new Date(now+60*1000).toISOString();
-        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","Accept":"application/json","x-goog-api-key":apiKey},
-          body:JSON.stringify({
-            uses:1,
-            expireTime,
-            newSessionExpireTime,
-            liveConnectConstraints:{
-              model:LIVE_PATIENT_MODEL,
-              config:{
-                systemInstruction:{parts:[{text:patientVoicePrompt}]},
-                responseModalities:["AUDIO"],
-                speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
-                inputAudioTranscription:{},
-                outputAudioTranscription:{},
-                sessionResumption:{}
+    let lastCode="NETWORK_FAILURE";
+    let lastDetail="";
+
+    // Use Gemini 3.8 first. If Google rejects that model or its token request,
+    // make one bounded attempt with the previously supported 3.1 Live preview.
+    for(let modelIndex=0;modelIndex<LIVE_PATIENT_MODELS.length;modelIndex++){
+      const model=LIVE_PATIENT_MODELS[modelIndex];
+      const attempts=modelIndex===0?2:1;
+      for(let attempt=0;attempt<attempts;attempt++){
+        try{
+          const now=Date.now();
+          const expireTime=new Date(now+30*60*1000).toISOString();
+          const newSessionExpireTime=new Date(now+60*1000).toISOString();
+          const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","Accept":"application/json","x-goog-api-key":apiKey},
+            body:JSON.stringify({
+              uses:1,
+              expireTime,
+              newSessionExpireTime,
+              liveConnectConstraints:{
+                model,
+                config:{
+                  systemInstruction:{parts:[{text:patientVoicePrompt}]},
+                  responseModalities:["AUDIO"],
+                  speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
+                  inputAudioTranscription:{},
+                  outputAudioTranscription:{},
+                  sessionResumption:{}
+                }
               }
-            }
-          }),
-          signal:AbortSignal.timeout(9000)
-        });
-        const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string}};
-        if(tokenResponse.ok&&typeof tokenData.name==="string"&&tokenData.name){
-          console.info("[ClerkMe] Live patient token provisioned.",{unit,caseId,model:LIVE_PATIENT_MODEL,attempt:attempt+1});
-          return json({token:tokenData.name,expiresAt:expireTime,model:LIVE_PATIENT_MODEL});
+            }),
+            signal:AbortSignal.timeout(7000)
+          });
+          const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string;status?:string;code?:number}};
+          if(tokenResponse.ok&&typeof tokenData.name==="string"&&tokenData.name){
+            console.info("[ClerkMe] Live patient token provisioned.",{
+              requestId,unit,caseId,model,attempt:attempt+1
+            });
+            return json({token:tokenData.name,expiresAt:expireTime,model});
+          }
+          lastStatus=tokenResponse.status;
+          lastCode=tokenData.error?.status||"HTTP_ERROR";
+          lastDetail=clean(tokenData.error?.message,220);
+          console.warn("[ClerkMe] Live patient token request failed.",{
+            requestId,unit,caseId,model,status:lastStatus,upstreamCode:lastCode,
+            attempt:attempt+1,retrying:retryableStatuses.has(lastStatus)&&attempt+1<attempts,
+            detail:lastDetail
+          });
+          if(!retryableStatuses.has(lastStatus)||attempt+1>=attempts) break;
+        }catch(error){
+          lastStatus=0;
+          lastCode=error instanceof DOMException&&error.name==="TimeoutError"?"TIMEOUT":"NETWORK_FAILURE";
+          lastDetail=error instanceof Error?clean(error.message,220):"Unknown error";
+          console.warn("[ClerkMe] Live patient token request did not complete.",{
+            requestId,unit,caseId,model,attempt:attempt+1,
+            retrying:attempt+1<attempts,detail:lastDetail
+          });
+          if(attempt+1>=attempts) break;
         }
-        lastStatus=tokenResponse.status;
-        console.warn("[ClerkMe] Live patient token request failed.",{
-          unit,caseId,status:lastStatus,attempt:attempt+1,retrying:retryableStatuses.has(lastStatus)&&attempt===0,
-          detail:clean(tokenData.error?.message,220)
-        });
-        if(!retryableStatuses.has(lastStatus)||attempt===1) break;
-      }catch(error){
-        lastStatus=0;
-        console.warn("[ClerkMe] Live patient token request did not complete.",{
-          unit,caseId,attempt:attempt+1,retrying:attempt===0,
-          detail:error instanceof Error?clean(error.message,220):"Unknown error"
-        });
-        if(attempt===1) break;
+        await new Promise(resolve=>setTimeout(resolve,250));
       }
-      await new Promise(resolve=>setTimeout(resolve,350));
     }
 
+    const errorCode=lastStatus===401||lastStatus===403
+      ?"LIVE_API_KEY_NOT_AUTHORISED"
+      :lastStatus===429
+        ?"LIVE_API_QUOTA"
+        :lastStatus===400
+          ?"LIVE_TOKEN_CONFIGURATION_REJECTED"
+          :lastStatus===404
+            ?"LIVE_MODEL_OR_ENDPOINT_UNAVAILABLE"
+            :lastStatus===0
+              ?"LIVE_TOKEN_NETWORK_FAILURE"
+              :"LIVE_TOKEN_PROVISIONING_FAILED";
+    const errorMessage=lastStatus===401||lastStatus===403
+      ?"Google did not authorise ClerkMe's Gemini Live credentials or requested model. Please verify the server's Gemini API key and Live API access."
+      :lastStatus===429
+        ?"Gemini Live has reached its current usage limit. Please try again later."
+        :lastStatus===400
+          ?"Google rejected the Live token configuration. ClerkMe has recorded the provider error."
+          :lastStatus===404
+            ?"Google could not find the requested Live model or token endpoint."
+            :lastStatus===0
+              ?"ClerkMe could not reach Google's Live token service. Check the connection and retry."
+              :"ClerkMe could not start the Live patient call just now. Your text interview is still available.";
+    console.error("[ClerkMe] Patient Live token provisioning failed for all configured models.",{
+      requestId,unit,caseId,models:LIVE_PATIENT_MODELS,status:lastStatus,
+      upstreamCode:lastCode,detail:lastDetail
+    });
     return json({
-      error:lastStatus===401||lastStatus===403
-        ?"The Live patient service could not authorise the current Gemini credentials. Please contact support."
-        :lastStatus===429
-          ?"The Live patient service has reached its current usage limit. Please try again later."
-          :"ClerkMe could not start the live patient call just now. Your case is still available as a text interview. Please try again shortly."
+      error:errorMessage,
+      code:errorCode,
+      upstreamStatus:lastStatus||null,
+      upstreamCode:lastCode,
+      ...(lastDetail?{upstreamMessage:lastDetail}:{}),
+      requestId
     },lastStatus===429?429:502);
   }
   if(!context.env.AI) return json({error:"The patient interview service is temporarily unavailable. Please try again shortly."},503);
