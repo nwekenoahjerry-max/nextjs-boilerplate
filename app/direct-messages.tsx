@@ -23,11 +23,20 @@ type SocketEvent = {
 
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "CM";
 const timeLabel = (timestamp?: number | null) => {
-  if (!timestamp) return "";
-  const date = new Date(timestamp * 1000);
+  if (timestamp === null || timestamp === undefined) return "";
+  const seconds = Number(timestamp);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  const date = new Date(seconds * 1000);
+  if (!Number.isFinite(date.getTime())) return "";
   return date.toDateString() === new Date().toDateString()
     ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(date)
     : new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(date);
+};
+const dateDividerLabel = (timestamp: number) => {
+  const date = new Date(Number(timestamp) * 1000);
+  if (!Number.isFinite(date.getTime())) return "Earlier";
+  try { return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date); }
+  catch { return date.toLocaleDateString(); }
 };
 const isOnline = (lastSeen?: number | null) => Boolean(lastSeen && Date.now() / 1000 - lastSeen <= 90);
 const studentAvatar = (name: string, photoUrl?: string | null, className = "dm-avatar") => (
@@ -63,6 +72,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
@@ -457,9 +467,11 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   useEffect(() => {
     if (!selectedId) {
       setMessages([]); setPeerReadMessageId(0); setNextCursor(null); setHasMore(false); setPeerOnline(false);
+      setLoadingMessages(false);
       return;
     }
     let cancelled = false;
+    setLoadingMessages(true);
     setMessages([]);
     setEditingMessageId(null);
     setEditDraft("");
@@ -480,6 +492,8 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
         if (newest) await markRead(selectedId, newest.id);
       } catch (error) {
         if (!cancelled) setNotice(error instanceof Error ? error.message : "This conversation could not be opened.");
+      } finally {
+        if (!cancelled) setLoadingMessages(false);
       }
     };
     void load();
@@ -1054,14 +1068,15 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               }
             }}>
               {hasMore && <button type="button" className="dm-load-earlier" onClick={() => void loadEarlier()} disabled={loadingEarlier}>{loadingEarlier ? "Loading…" : "Load earlier messages"}</button>}
-              {messages.length === 0 && <div className="dm-thread-empty"><span>✦</span><strong>Start the conversation</strong><p>Ask a question, discuss an academic topic or exchange learning ideas.</p></div>}
+              {loadingMessages && messages.length === 0 && <div className="dm-history-loading" role="status"><span className="dm-loading-indicator" aria-hidden="true"/><strong>Opening your conversation…</strong></div>}
+              {!loadingMessages && messages.length === 0 && <div className="dm-thread-empty"><span>✦</span><strong>Start the conversation</strong><p>Ask a question, discuss an academic topic or exchange learning ideas.</p></div>}
               {messages.map((message, index) => {
                 const own = message.sender_id === userId;
                 const prev = messages[index - 1];
                 const showDay = !prev || new Date(prev.created_at * 1000).toDateString() !== new Date(message.created_at * 1000).toDateString();
                 const read = own && message.id > 0 && message.id <= peerReadMessageId;
                 return <div className="dm-message-group" key={message.public_id || message.client_message_id || message.id}>
-                  {showDay && <div className="dm-day-divider"><span>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(message.created_at * 1000))}</span></div>}
+                  {showDay && <div className="dm-day-divider"><span>{dateDividerLabel(message.created_at)}</span></div>}
                   <div className={"dm-message-row" + (own ? " is-own" : "")}><div className={"dm-bubble" + (own ? " dm-own-bubble" : "")}>
                     {message.reply_to_status_id && <small className="dm-status-reply-marker">↩ Status reply</small>}
                     {editingMessageId === message.id ? <div className="dm-edit-box">

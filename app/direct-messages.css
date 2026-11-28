@@ -745,3 +745,146 @@
 }
 
 .dm-student-action:focus-visible{outline:3px solid #7da4d4;outline-offset:3px}
+
+
+/* Reliable focused conversation layout.
+   Anchor the selected chat directly between the fixed app header and mobile dock.
+   This avoids the nested 100%/flex height chain that could collapse on Android. */
+@media(max-width:760px){
+  .app-shell:has(.dm-workspace.has-selection){
+    height:auto!important;
+    min-height:100dvh!important;
+    overflow:visible!important;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .main-area{
+    display:block!important;
+    height:auto!important;
+    min-height:100dvh!important;
+    overflow:visible!important;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .topbar{
+    position:sticky!important;
+    top:0!important;
+    z-index:20!important;
+    height:64px!important;
+    min-height:64px!important;
+  }
+  .app-shell:has(.dm-workspace.has-selection) .content{
+    position:fixed!important;
+    inset:64px 0 72px 0!important;
+    z-index:12!important;
+    display:flex!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection){
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection)>.cmh-heading,
+  .cmh-shell:has(.dm-workspace.has-selection)>.cmh-tabs{
+    display:none!important;
+  }
+  .cmh-shell:has(.dm-workspace.has-selection)>.cmh-tab-panel{
+    display:flex!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection){
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    gap:0!important;
+    overflow:hidden!important;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-page-heading{
+    display:none!important;
+  }
+  .clerkme-dm-page:has(.dm-workspace.has-selection)>.dm-notice{
+    flex:0 0 auto!important;
+    margin:8px 10px!important;
+  }
+  .dm-workspace.has-selection{
+    position:relative!important;
+    display:block!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    overflow:hidden!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+  .dm-workspace.has-selection>.dm-inbox{
+    display:none!important;
+  }
+  .dm-workspace.has-selection>.dm-thread{
+    position:absolute!important;
+    inset:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    border:1px solid var(--dm-border)!important;
+    border-radius:14px!important;
+  }
+  .dm-workspace.has-selection .dm-thread-header{
+    flex:0 0 auto!important;
+  }
+  .dm-workspace.has-selection .dm-message-scroll{
+    flex:1 1 0%!important;
+    height:0!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
+  .dm-workspace.has-selection .dm-composer{
+    position:relative!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    padding:9px 9px max(9px,env(safe-area-inset-bottom))!important;
+  }
+}
+.dm-history-loading{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  min-height:130px;
+  padding:20px;
+  color:var(--dm-muted,#718096);
+  font-size:.82rem;
+  text-align:center;
+}
+.dm-history-loading strong{font-weight:700}
+:root[data-theme="dark"] .dm-history-loading{color:#b5c3d6}
+@media(prefers-reduced-motion:reduce){.dm-history-loading .dm-loading-indicator{animation:none}}
