@@ -23,7 +23,7 @@ type SocketEvent = {
 
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "CM";
 const timeLabel = (timestamp?: number | null) => {
-  if (timestamp === null || timestamp === undefined || timestamp === "") return "";
+  if (timestamp === null || timestamp === undefined) return "";
   const seconds = Number(timestamp);
   if (!Number.isFinite(seconds) || seconds <= 0) return "";
   const date = new Date(seconds * 1000);
