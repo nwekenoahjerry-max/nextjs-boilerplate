@@ -217,4 +217,6 @@
 }
 @media(prefers-reduced-motion:reduce){
   .dm-recording-dot,.dm-loading-indicator{animation:none}
-}
+}\n
+.dm-call-audio-enable{min-height:34px;padding:7px 11px;border:1px solid var(--dm-border);border-radius:9px;background:#e8eff8;color:#173765;font-size:.7rem;font-weight:800;cursor:pointer}
+[data-theme="dark"] .dm-call-audio-enable{background:#263d5a;color:#e4effd;border-color:#405875}
