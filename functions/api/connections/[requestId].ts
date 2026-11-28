@@ -32,6 +32,9 @@ export const onRequestPatch=async(context:AppContext)=>{
     await context.env.DB.prepare(
       "INSERT OR IGNORE INTO student_connections (user_a_id,user_b_id,created_at) VALUES (?,?,unixepoch())"
     ).bind(userA,userB).run();
+    const reverse=await context.env.DB.prepare(
+      "SELECT id FROM student_connection_requests WHERE sender_id=? AND recipient_id=? AND status='pending' LIMIT 1"
+    ).bind(request.recipientId,request.senderId).first<{id:string}>();
     await context.env.DB.prepare(`
       UPDATE student_connection_requests SET status='accepted',updated_at=unixepoch()
       WHERE (sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)
@@ -39,6 +42,11 @@ export const onRequestPatch=async(context:AppContext)=>{
     await context.env.DB.prepare(
       "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
     ).bind(user.id,"connection-request:"+request.id).run();
+    if(reverse){
+      await context.env.DB.prepare(
+        "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
+      ).bind(request.senderId,"connection-request:"+reverse.id).run();
+    }
     return json({status:"connected",connected:true});
   }
   const next=action==="decline"?"declined":"cancelled";
@@ -49,6 +57,10 @@ export const onRequestPatch=async(context:AppContext)=>{
     await context.env.DB.prepare(
       "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
     ).bind(user.id,"connection-request:"+request.id).run();
+  }else{
+    await context.env.DB.prepare(
+      "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
+    ).bind(request.recipientId,"connection-request:"+request.id).run();
   }
   return json({status:next});
 };
