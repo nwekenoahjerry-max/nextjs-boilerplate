@@ -24,10 +24,6 @@ new_sqlite_classes = ["ConversationRoom"]
 name = "clerkme-chat-preview"
 workers_dev = false
 
-[[env.preview.services]]
-binding = "PUSH_SERVICE"
-service = "clerkme-reminders"
-
 [[env.preview.d1_databases]]
 binding = "DB"
 database_name = "clerkme-preview"
