@@ -663,6 +663,8 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
       clearPendingAudio();
       speechActiveRef.current = false;
       lastSpeechAtRef.current = 0;
+      pendingSpeechTurnRef.current = false;
+      clearSpeechResponseTimer();
       return false;
     }
 
