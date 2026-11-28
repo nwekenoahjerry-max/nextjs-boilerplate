@@ -471,7 +471,20 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const handleStudentAction=async(student:Student)=>{
     if(student.relationship==="connected"){await openConversation(student);return;}
     if(student.relationship==="incoming"&&student.requestId){await respondToConnectionRequest(student.requestId,"accept");return;}
-    if(student.relationship==="outgoing")return;
+    if(student.relationship==="outgoing"&&student.requestId){
+      try{
+        const response=await fetch("/api/connections/"+encodeURIComponent(student.requestId),{
+          method:"PATCH",credentials:"same-origin",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({action:"cancel"})
+        });
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.error||"The request could not be cancelled.");
+        setSearchResults(current=>current.map(item=>item.id===student.id?{...item,relationship:"none",requestId:null}:item));
+        setNotice("Connection request cancelled.");
+        await loadConnections();
+      }catch(error){setNotice(error instanceof Error?error.message:"The request could not be cancelled.");}
+      return;
+    }
     try{
       const response=await fetch("/api/connections",{
         method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},
@@ -971,8 +984,8 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               {searching && <p className="dm-muted">Searching students…</p>}
               {!searching && search.trim().length < 2 && <p className="dm-muted">Search by name or university. You can message after your request is accepted.</p>}
               {!searching && search.trim().length >= 2 && searchResults.length === 0 && <p className="dm-muted">No verified student found.</p>}
-              {searchResults.map(student => <button type="button" className="dm-student-result" key={student.id} onClick={() => void handleStudentAction(student)} disabled={student.relationship==="outgoing"}>
-                <StudentAvatar name={student.name} photoUrl={student.photoUrl}/><span><strong>{student.name}</strong><small>{student.university || "ClerkMe student"}{student.level ? " · " + student.level : ""}</small></span><b>{student.relationship==="connected"?"Message":student.relationship==="incoming"?"Accept":student.relationship==="outgoing"?"Request sent":"Connect"}</b>
+              {searchResults.map(student => <button type="button" className="dm-student-result" key={student.id} onClick={() => void handleStudentAction(student)} >
+                <StudentAvatar name={student.name} photoUrl={student.photoUrl}/><span><strong>{student.name}</strong><small>{student.university || "ClerkMe student"}{student.level ? " · " + student.level : ""}</small></span><b>{student.relationship==="connected"?"Message":student.relationship==="incoming"?"Accept":student.relationship==="outgoing"?"Cancel request":"Connect"}</b>
               </button>)}
             </div>
           </div>}
