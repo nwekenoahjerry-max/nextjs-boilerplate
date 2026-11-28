@@ -152,15 +152,20 @@ export const onRequestPost=async(context:AppContext)=>{
   if(!detected.signature(header)) return json({error:"The image contents do not match the selected file type."},415);
 
   const mimeType=file.type.toLowerCase();
+  let cleanBytes:Uint8Array;
+  try{
+    cleanBytes=stripImageMetadata(new Uint8Array(await file.arrayBuffer()),mimeType);
+  }catch(error){
+    console.warn("[profile-photo] Image metadata sanitization rejected an invalid file.",error instanceof Error?error.message:"unknown error");
+    return json({error:"The image could not be safely processed. Please choose another photo."},415);
+  }
+  if(cleanBytes.length<1||cleanBytes.length>MAX_PHOTO_SIZE) return json({error:"The processed profile photo must be 3 MB or smaller."},413);
+  const sanitizedFile=new Blob([cleanBytes],{type:mimeType});
+  const old=await context.env.DB.prepare(
+    "SELECT profile_photo_key AS photoKey FROM student_profiles WHERE id=?"
+  ).bind(user.id).first<{photoKey:string|null}>();
   const key="profile-"+crypto.randomUUID()+"."+detected.extension;
   try{
-    const original=new Uint8Array(await file.arrayBuffer());
-    const cleanBytes=stripImageMetadata(original,mimeType);
-    if(cleanBytes.length<1||cleanBytes.length>MAX_PHOTO_SIZE) return json({error:"The processed profile photo must be 3 MB or smaller."},413);
-    const sanitizedFile=new Blob([cleanBytes],{type:mimeType});
-    const old=await context.env.DB.prepare(
-      "SELECT profile_photo_key AS photoKey FROM student_profiles WHERE id=?"
-    ).bind(user.id).first<{photoKey:string|null}>();
     await context.env.STATUS_MEDIA.put(key,sanitizedFile,{
       httpMetadata:{contentType:mimeType},
       customMetadata:{ownerId:user.id,assetType:"profile-photo"}
@@ -172,8 +177,8 @@ export const onRequestPost=async(context:AppContext)=>{
     return json({photoUrl:"/api/profile/photo",updated:true,byteSize:cleanBytes.length},201);
   }catch(error){
     await context.env.STATUS_MEDIA.delete(key).catch(()=>undefined);
-    console.error("[profile-photo] Upload failed",error instanceof Error?error.message:"unknown error");
-    return json({error:"The image could not be safely processed. Please choose another photo."},415);
+    console.error("[profile-photo] Storage update failed",error instanceof Error?error.message:"unknown error");
+    return json({error:"Your profile photo could not be saved. Please try again."},500);
   }
 };
 
