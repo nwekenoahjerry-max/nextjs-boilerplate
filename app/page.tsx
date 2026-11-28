@@ -46,7 +46,6 @@ import ClerkMeBrand from "../components/clerkme-brand";
 import type { UnitClerkingFramework } from "../lib/unit-clerking";
 import "./home-quick-actions.css";
 
-const _unusedPanelStateGuard = true;
 
 const ClerkMeMessagingHub = dynamic(loadMessagingHub, {
   ssr: false,
