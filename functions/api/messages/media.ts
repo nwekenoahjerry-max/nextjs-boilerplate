@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
+import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
 const audioExtensions = new Map<string,string>([
   ["audio/webm","webm"],["audio/ogg","ogg"],["audio/mp4","m4a"],
@@ -17,7 +17,7 @@ export const onRequestPost = async (context: AppContext) => {
 
   const conversationId = typeof form.get("conversationId") === "string" ? String(form.get("conversationId")).trim() : "";
   const file = form.get("file");
-  const durationSeconds = Number(form.get("durationSeconds));
+  const durationSeconds = Number(form.get("durationSeconds"));
   if (!conversationId || conversationId.length > 80) return json({ error:"Open a conversation before sending a voice note." },400);
   if (!(file instanceof File)) return json({ error:"Record a voice note before sending." },400);
   const mimeType = file.type.split(";")[0].trim().toLowerCase();
