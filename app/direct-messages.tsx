@@ -498,6 +498,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       }else{
         setSearchResults(current=>current.map(item=>item.id===student.id?{...item,relationship:"outgoing",requestId:data.requestId}:item));
         setNotice("Connection request sent. You can message after the student accepts.");
+        void loadConnections();
         window.dispatchEvent(new Event("clerkme:notifications-refresh"));
       }
     }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be sent.");}
