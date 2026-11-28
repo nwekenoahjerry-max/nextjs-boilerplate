@@ -682,9 +682,10 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
       reconnectTimerRef.current = null;
     }
     endingRef.current = true;
+    const wasSetupReady = setupReadyRef.current;
     setupReadyRef.current = false;
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && setupReadyRef.current) {
+    if (socket?.readyState === WebSocket.OPEN && wasSetupReady) {
       try {
         flushPendingAudio(socket, true);
         socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } }));
