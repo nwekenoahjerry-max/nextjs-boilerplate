@@ -99,3 +99,32 @@
   .dm-edit-actions small{flex-basis:100%;margin:0}
   .dm-edit-actions button{min-height:36px;padding:8px 12px}
 }
+
+
+/* Final dark-theme contrast pass: keep primary message actions readable */
+[data-theme="dark"] .dm-new-button,
+[data-theme="dark"] .dm-welcome button,
+[data-theme="dark"] .dm-composer-footer button,
+[data-theme="dark"] .dm-report-submit{
+  background:#8fb7e8;
+  color:#102d50;
+  box-shadow:0 4px 12px #0004;
+}
+[data-theme="dark"] .dm-composer-footer button:hover,
+[data-theme="dark"] .dm-new-button:hover,
+[data-theme="dark"] .dm-report-submit:hover{
+  background:#b3cff1;
+  color:#102d50;
+}
+:root[data-theme="dark"] .cmh-alert{
+  background:#382b1d;
+  color:#f6d9a5;
+  border-color:#6e512b;
+}
+:root[data-theme="dark"] .cmh-profile-card p,
+:root[data-theme="dark"] .cmh-profile-card small,
+:root[data-theme="dark"] .cmh-setting-row small,
+:root[data-theme="dark"] .cmh-privacy-note,
+:root[data-theme="dark"] .cmh-profile-loading{
+  color:#b8c7d9;
+}
