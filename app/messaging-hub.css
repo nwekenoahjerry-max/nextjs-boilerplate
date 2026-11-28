@@ -251,3 +251,17 @@
  .cmh-security-note p{font-size:9px;line-height:1.4}
  .cmh-security-note .cmh-icon{width:16px;height:16px;flex-basis:16px}
 }
+
+
+/* Keep Messages section icons clearly visible without turning them white in dark mode. */
+:root[data-theme="dark"] .cmh-tabs .cmh-tab-icon {
+  color: #c7d9f0;
+  background: #203958;
+}
+:root[data-theme="dark"] .cmh-tabs button.is-active .cmh-tab-icon {
+  color: #173765;
+  background: #dce8f7;
+}
+:root[data-theme="dark"] .cmh-tabs .cmh-tab-icon .cmh-icon {
+  stroke: currentColor;
+}
