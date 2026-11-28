@@ -963,7 +963,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
           typeof payload.message === "string" ? payload.message : "",
           typeof payload.detail === "string" ? payload.detail : "",
           typeof firstProviderError?.message === "string" ? firstProviderError.message : ""
-        ].find(Boolean) || "";
+          typeof payload.upstreamMessage === "string" ? payload.upstreamMessage : ""
         const codeCandidate = [
           payload.code, payload.upstreamCode, nestedError?.status, nestedError?.code,
           firstProviderError?.code, payload.status
