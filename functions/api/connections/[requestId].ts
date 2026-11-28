@@ -1,5 +1,5 @@
-import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
-import { sortedStudentPair } from "../../../_lib/connections";
+import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { sortedStudentPair } from "../../_lib/connections";
 
 export const onRequestPatch=async(context:AppContext)=>{
   if(!validSameOrigin(context.request)) return json({error:"Invalid request origin."},403);
