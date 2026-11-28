@@ -384,6 +384,28 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
     }
   };
 
+  const retryMessage = (message: ChatMessage) => {
+    const socket = socketRef.current;
+    if (!selectedId || !message.client_message_id || !socket || socket.readyState !== WebSocket.OPEN) {
+      setNotice("Reconnect to this conversation before retrying the message.");
+      return;
+    }
+    setMessages(current => current.map(item => item.client_message_id === message.client_message_id
+      ? { ...item, deliveryState: "sending" } : item));
+    setNotice("");
+    try {
+      socket.send(JSON.stringify({
+        type: "message",
+        clientMessageId: message.client_message_id,
+        body: message.body
+      }));
+    } catch {
+      setMessages(current => current.map(item => item.client_message_id === message.client_message_id
+        ? { ...item, deliveryState: "failed" } : item));
+      setNotice("The connection was interrupted. Please retry when it reconnects.");
+    }
+  };
+
   const blockStudent = async () => {
     if (!selectedId || !selected || !window.confirm("Block " + selected.otherName + "? They will no longer be able to message you.")) return;
     try {
@@ -479,6 +501,7 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
                   <div className={"dm-message-row" + (own ? " is-own" : "")}><div className={"dm-bubble" + (own ? " dm-own-bubble" : "")}>
                     <p>{message.body}</p><div className="dm-message-meta"><time>{timeLabel(message.created_at)}</time>
                       {own && <span>{message.deliveryState === "sending" ? "Sending…" : message.deliveryState === "failed" ? "Not sent" : read ? "Read" : message.delivered_at ? "Delivered" : "Sent"}</span>}
+                      {own && message.deliveryState === "failed" && <button type="button" onClick={() => retryMessage(message)}>Retry</button>}
                       {!own && message.id > 0 && <button type="button" onClick={() => setReportTarget(message)}>Report</button>}
                     </div>
                   </div></div>
