@@ -984,7 +984,8 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               })}
               {typing && <div className="dm-typing-indicator"><i/><i/><i/><span>Typing…</span></div>}
             </div>
-            <form className="dm-composer" onSubmit={event => { event.preventDefault(); sendMessage(); }}>
+            <form className="dm-composer" aria-label="Write a message" onSubmit={event => { event.preventDefault(); sendMessage(); }}>
+              <div className="dm-composer-heading"><label htmlFor="dm-message-input">Message</label><span>Private chat</span></div>
               {replyingStatusId && <div className="dm-status-reply-context"><span>↩ Replying to a status</span><button type="button" onClick={() => setReplyingStatusId("")}>Cancel</button></div>}
               {recording ? <div className="dm-recording-row">
                 <span className="dm-recording-dot" aria-hidden="true"/>
@@ -995,13 +996,13 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 <button type="button" className="dm-voice-discard" onClick={discardVoiceDraft} disabled={voiceUploading}>Discard</button>
                 <button type="button" className="dm-voice-send" onClick={() => void sendVoiceNote()} disabled={voiceUploading || connection !== "connected"}>{voiceUploading ? "Uploading…" : "Send voice note"}</button>
               </div> : <div className="dm-composer-input-row">
-                <textarea value={draft} maxLength={4000} rows={2} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Write a message…" aria-label="Write a message"/>
+                <textarea id="dm-message-input" value={draft} maxLength={4000} rows={2} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Type your message here…" aria-label="Type your message here"/>
                 <button type="button" className="dm-voice-record" onClick={() => void startVoiceRecording()} disabled={connection !== "connected" || callState !== "idle"} aria-label="Record a voice note" title="Record a voice note">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span>Voice</span>
                 </button>
                 <button type="submit" className="dm-send-button" disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}><span>{connection === "connected" ? "Send" : "Connecting…"}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
               </div>}
-              <div className="dm-composer-footer"><small>{recording ? "Keep your message clear and concise." : voiceDraft ? "Listen before sending. Voice notes are private to this conversation." : draft.length + "/4000 · " + (connection === "connected" ? "Enter to send, Shift + Enter for a new line." : "Your text is saved here while the chat reconnects.")}</small></div>
+              <div className="dm-composer-footer"><small id="dm-composer-hint">{recording ? "Keep your message clear and concise." : voiceDraft ? "Listen before sending. Voice notes are private to this conversation." : draft.length + "/4000 · " + (connection === "connected" ? "Enter to send, Shift + Enter for a new line." : "Your text is saved here while the chat reconnects.")}</small></div>
             </form>
           </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Choose a student first. The message box appears at the bottom of the conversation. Messages are private to the two participants; never share identifiable patient information.</small></div>}
         </div>
