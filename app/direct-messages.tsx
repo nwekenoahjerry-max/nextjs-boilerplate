@@ -1031,7 +1031,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             </>}
           </div> : selected && selectedId ? <>
             <header className="dm-thread-header">
-              <button className="dm-back-button" type="button" onClick={() => changeSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button className="dm-back-button" type="button" onClick={() => { changeSelectedId(""); setNotice(""); setMenuOpen(false); }} aria-label="Back to chats" title="Back to chats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span className="dm-back-label">Chats</span></button>
               {studentAvatar(selected.otherName, selected.otherProfilePhotoUrl, "dm-avatar dm-header-avatar")}
               <div className="dm-thread-person"><strong>{selected.otherName}</strong><small>{peerOnline || isOnline(selected.otherLastSeenAt) ? "Online" : selected.otherLastSeenAt ? "Last seen " + timeLabel(selected.otherLastSeenAt) : "ClerkMe student"}</small></div>
               <span className={"dm-connection" + (connection === "connected" ? " is-connected" : "")}>{connection === "connected" ? "Live" : connection === "offline" ? "Offline" : "Reconnecting"}</span>
