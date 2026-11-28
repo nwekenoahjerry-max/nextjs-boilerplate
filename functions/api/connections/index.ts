@@ -67,6 +67,15 @@ export const onRequestPost=async(context:AppContext)=>{
     SELECT id FROM student_connection_requests
     WHERE sender_id=? AND recipient_id=? AND status='pending' LIMIT 1
   `).bind(recipientId,user.id).first<{id:string}>();
+  const ownPending=await context.env.DB.prepare(
+    "SELECT id FROM student_connection_requests WHERE sender_id=? AND recipient_id=? AND status='pending' LIMIT 1"
+  ).bind(user.id,recipientId).first<{id:string}>();
+  if(ownPending) return json({status:"pending",requestId:ownPending.id,alreadyPending:true});
+  const recentRequests=await context.env.DB.prepare(
+    "SELECT COUNT(*) AS count FROM student_connection_requests WHERE sender_id=? AND created_at>=unixepoch()-3600"
+  ).bind(user.id).first<{count:number}>();
+  if(Number(recentRequests?.count||0)>=30) return json({error:"You have reached the hourly connection-request limit. Please try again later."},429);
+
   if(reciprocal){
     await context.env.DB.prepare(
       "INSERT OR IGNORE INTO student_connections (user_a_id,user_b_id,created_at) VALUES (?,?,unixepoch())"
