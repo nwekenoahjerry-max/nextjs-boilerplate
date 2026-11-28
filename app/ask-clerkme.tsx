@@ -951,19 +951,42 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
       let tokenData: { token?: string; systemInstruction?: string; error?: string; code?: string; upstreamCode?: string; upstreamMessage?: string; requestId?: string; model?: string } = {};
       try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain a safe preview of unexpected gateway responses below */ }
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
-        const serverMessage = typeof tokenData.error === "string" ? tokenData.error : "";
-        const reference = [tokenData.code, tokenData.upstreamCode, tokenData.requestId ? "ref " + tokenData.requestId : ""].filter(Boolean).join(" / ");
-        const upstreamMessage = typeof tokenData.upstreamMessage === "string" ? " — " + tokenData.upstreamMessage.slice(0, 180) : "";
+        const payload = tokenData as typeof tokenData & Record<string, unknown>;
+        const nestedError = payload.error && typeof payload.error === "object"
+          ? payload.error as Record<string, unknown>
+          : null;
+        const providerErrors = Array.isArray(payload.errors) ? payload.errors as Array<Record<string, unknown>> : [];
+        const firstProviderError = providerErrors[0];
+        const messageCandidate = [
+          typeof payload.error === "string" ? payload.error : "",
+          typeof nestedError?.message === "string" ? nestedError.message : "",
+          typeof payload.message === "string" ? payload.message : "",
+          typeof payload.detail === "string" ? payload.detail : "",
+          typeof firstProviderError?.message === "string" ? firstProviderError.message : ""
+        ].find(Boolean) || "";
+        const codeCandidate = [
+          payload.code, payload.upstreamCode, nestedError?.status, nestedError?.code,
+          firstProviderError?.code, payload.status
+        ].find(value => typeof value === "string" || typeof value === "number");
+        const requestId = typeof payload.requestId === "string" ? payload.requestId
+          : typeof payload.request_id === "string" ? payload.request_id : "";
+        const reference = [
+          typeof codeCandidate === "number" ? "code " + codeCandidate : codeCandidate,
+          requestId ? "ref " + requestId : ""
+        ].filter(Boolean).join(" / ");
+        const safeMessage = String(messageCandidate).replace(/AIza[0-9A-Za-z_-]{20,}/g, "[redacted API key]").replace(/Bearer\\s+\\S+/gi, "Bearer [redacted]").slice(0, 200);
         const contentType = response.headers.get("content-type") || "unknown response type";
         const cfRay = response.headers.get("cf-ray");
-        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+        const htmlTitle = rawTokenResponse.match(/<title[^>]*>([\\s\\S]*?)<\\/title>/i)?.[1]?.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
         const gatewayHint = !contentType.toLowerCase().includes("json") && htmlTitle ? " · " + htmlTitle.slice(0, 90) : "";
+        const keys = payload && typeof payload === "object" ? Object.keys(payload).slice(0, 10).join(",") : typeof payload;
         const diagnostics = ["HTTP " + response.status, contentType, cfRay ? "CF-Ray " + cfRay : ""].filter(Boolean).join(" · ");
         const diagnostic = " ( " + (reference ? reference + " · " : "") + diagnostics + gatewayHint + " )";
         const fallbackMessage = contentType.toLowerCase().includes("json")
           ? "ClerkME could not obtain a Live API session."
           : "The Live session endpoint returned a gateway response instead of its normal JSON reply.";
-        throw new Error((serverMessage || fallbackMessage) + upstreamMessage + diagnostic);
+        const detail = safeMessage || (keys ? "JSON response fields: " + keys : "No readable response body");
+        throw new Error((detail && messageCandidate ? detail : fallbackMessage) + diagnostic);
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
