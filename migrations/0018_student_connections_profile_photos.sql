@@ -1,7 +1,7 @@
 -- Mutual connection approval is required before students can start or continue private chats.
 -- Use a dedicated table name so older deployments with a legacy student_connections
 -- table (a simple pair-only schema) can be upgraded without destructive changes.
-CREATE TABLE IF NOT EXISTS student_connection_requests (
+CREATE TABLE IF NOT EXISTS clerkme_student_connections_v1 (
   id TEXT PRIMARY KEY,
   user_low_id TEXT NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
   user_high_id TEXT NOT NULL REFERENCES student_profiles(id) ON DELETE CASCADE,
@@ -20,27 +20,27 @@ CREATE TABLE IF NOT EXISTS student_connection_requests (
     OR (requested_by = user_high_id AND requested_to = user_low_id)
   )
 );
-CREATE INDEX IF NOT EXISTS idx_student_connection_requests_incoming
-  ON student_connection_requests(requested_to, status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_student_connection_requests_outgoing
-  ON student_connection_requests(requested_by, status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_student_connection_requests_pair_status
-  ON student_connection_requests(user_low_id, user_high_id, status);
+CREATE INDEX IF NOT EXISTS idx_clerkme_connections_v1_incoming
+  ON clerkme_student_connections_v1(requested_to, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_clerkme_connections_v1_outgoing
+  ON clerkme_student_connections_v1(requested_by, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_clerkme_connections_v1_pair_status
+  ON clerkme_student_connections_v1(user_low_id, user_high_id, status);
 
 -- Store photo metadata separately so existing student_profiles schemas remain compatible.
 -- The R2 object itself stays private and is served only by an authenticated endpoint.
-CREATE TABLE IF NOT EXISTS student_profile_photos (
+CREATE TABLE IF NOT EXISTS clerkme_profile_photos_v1 (
   user_id TEXT PRIMARY KEY REFERENCES student_profiles(id) ON DELETE CASCADE,
   photo_key TEXT NOT NULL UNIQUE,
   content_type TEXT NOT NULL CHECK (content_type IN ('image/jpeg', 'image/png', 'image/webp')),
   updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
-CREATE INDEX IF NOT EXISTS idx_student_profile_photos_updated
-  ON student_profile_photos(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_clerkme_profile_photos_v1_updated
+  ON clerkme_profile_photos_v1(updated_at DESC);
 
 -- Existing active private conversations represent established relationships.
 -- Preserve them as accepted so current chats are not unexpectedly locked.
-INSERT OR IGNORE INTO student_connection_requests
+INSERT OR IGNORE INTO clerkme_student_connections_v1
   (id, user_low_id, user_high_id, requested_by, requested_to, status, created_at, updated_at, responded_at)
 SELECT
   lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' ||
