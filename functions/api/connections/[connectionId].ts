@@ -16,7 +16,7 @@ export const onRequestPatch = async (context: AppContext) => {
 
   const connection = await context.env.DB.prepare(
     "SELECT id, requested_by AS requestedBy, requested_to AS requestedTo, status " +
-    "FROM student_connection_requests WHERE id = ? AND (user_low_id = ? OR user_high_id = ?) LIMIT 1"
+    "FROM clerkme_student_connections_v1 WHERE id = ? AND (user_low_id = ? OR user_high_id = ?) LIMIT 1"
   ).bind(connectionId, user.id, user.id).first<{
     id: string; requestedBy: string; requestedTo: string; status: string;
   }>();
@@ -33,7 +33,7 @@ export const onRequestPatch = async (context: AppContext) => {
     }
     const nextStatus = action === "accept" ? "accepted" : "declined";
     await context.env.DB.prepare(
-      "UPDATE student_connection_requests SET status = ?, updated_at = unixepoch(), responded_at = unixepoch() " +
+      "UPDATE clerkme_student_connections_v1 SET status = ?, updated_at = unixepoch(), responded_at = unixepoch() " +
       "WHERE id = ? AND requested_to = ? AND status = 'pending'"
     ).bind(nextStatus, connectionId, user.id).run();
     return json({ updated: true, status: nextStatus });
@@ -41,7 +41,7 @@ export const onRequestPatch = async (context: AppContext) => {
 
   if (connection.requestedBy !== user.id) return json({ error: "Only the sender can cancel this request." }, 403);
   await context.env.DB.prepare(
-    "UPDATE student_connection_requests SET status = 'removed', updated_at = unixepoch(), responded_at = unixepoch() " +
+    "UPDATE clerkme_student_connections_v1 SET status = 'removed', updated_at = unixepoch(), responded_at = unixepoch() " +
     "WHERE id = ? AND requested_by = ? AND status = 'pending'"
   ).bind(connectionId, user.id).run();
   return json({ updated: true, status: "removed" });
@@ -56,14 +56,14 @@ export const onRequestDelete = async (context: AppContext) => {
   if (!/^[0-9a-f-]{36}$/i.test(connectionId)) return json({ error: "Connection not found." }, 404);
   const connection = await context.env.DB.prepare(
     "SELECT id, user_low_id AS userLowId, user_high_id AS userHighId, status " +
-    "FROM student_connection_requests WHERE id = ? AND (user_low_id = ? OR user_high_id = ?) LIMIT 1"
+    "FROM clerkme_student_connections_v1 WHERE id = ? AND (user_low_id = ? OR user_high_id = ?) LIMIT 1"
   ).bind(connectionId, user.id, user.id).first<{
     id: string; userLowId: string; userHighId: string; status: string;
   }>();
   if (!connection || connection.status !== "accepted") return json({ error: "This connection is no longer active." }, 404);
 
   await context.env.DB.prepare(
-    "UPDATE student_connection_requests SET status = 'removed', updated_at = unixepoch(), responded_at = unixepoch() " +
+    "UPDATE clerkme_student_connections_v1 SET status = 'removed', updated_at = unixepoch(), responded_at = unixepoch() " +
     "WHERE id = ? AND status = 'accepted'"
   ).bind(connectionId).run();
   await context.env.DB.prepare(
