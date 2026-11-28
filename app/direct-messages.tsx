@@ -8,6 +8,7 @@ type Conversation = {
   otherLastSeenAt?: number | null; otherProfilePhotoUrl?: string | null; lastMessagePreview?: string; lastMessageAt?: number | null;
   unreadCount: number;
 };
+export type DirectMessageConversation = Conversation;
 type ChatMessage = {
   id: number; public_id?: string; conversation_id: string; sender_id: string;
   client_message_id?: string; body: string; created_at: number; delivered_at?: number | null;
@@ -46,8 +47,10 @@ const notifyUnreadMessagesChanged = () => window.dispatchEvent(new Event("clerkm
 const notifyConnectionsChanged = () => window.dispatchEvent(new Event("clerkme:connections-refresh"));
 
 
-export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "" }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string }) {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "", initialConversation }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string; initialConversation?: DirectMessageConversation }) {
+  // Seed the thread from the accepted student card so navigation never depends on
+  // a second inbox request finishing before the conversation can be rendered.
+  const [conversations, setConversations] = useState<Conversation[]>(() => initialConversation ? [initialConversation] : []);
   const [selectedId, setSelectedId] = useState(initialConversationId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerReadMessageId, setPeerReadMessageId] = useState(0);
@@ -98,10 +101,16 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const callStartedAtRef = useRef(0);
 
   useEffect(() => {
-    if (initialConversationId) setSelectedId(initialConversationId);
+    if (initialConversation) {
+      setConversations(current => current.some(item => item.id === initialConversation.id)
+        ? current.map(item => item.id === initialConversation.id ? { ...item, ...initialConversation } : item)
+        : [initialConversation, ...current]);
+    }
+    const conversationId = initialConversationId || initialConversation?.id || "";
+    if (conversationId) setSelectedId(conversationId);
     if (initialStatusReplyId) setReplyingStatusId(initialStatusReplyId);
     if (initialDraft) setDraft(initialDraft);
-  }, [initialConversationId, initialStatusReplyId, initialDraft]);
+  }, [initialConversation, initialConversationId, initialStatusReplyId, initialDraft]);
 
 
   const sendCallSignal = (type:string, signal?:RTCSessionDescriptionInit|RTCIceCandidateInit) => {
@@ -369,12 +378,20 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       if (response.status === 401) { window.location.href = "/login"; return; }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Your conversations could not be loaded.");
-      setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+      const serverConversations = Array.isArray(data.conversations) ? data.conversations as Conversation[] : [];
+      setConversations(current => {
+        // Keep the launch card as a safe fallback if the inbox endpoint is
+        // temporarily stale, while preferring the canonical server record.
+        if (!initialConversation || serverConversations.some(item => item.id === initialConversation.id)) {
+          return serverConversations;
+        }
+        return [initialConversation, ...serverConversations.filter(item => item.id !== initialConversation.id)];
+      });
       notifyUnreadMessagesChanged();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Your conversations could not be loaded.");
     } finally { setLoading(false); }
-  }, []);
+  }, [initialConversation]);
 
   useEffect(() => {
     void loadConversations();
