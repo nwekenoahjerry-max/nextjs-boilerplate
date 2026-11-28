@@ -120,7 +120,9 @@ export class ConversationRoom {
       WHERE me.conversation_id = ? AND me.user_id = ? AND me.archived_at IS NULL
       LIMIT 1
     `).bind(conversationId, session.userId).first();
-    if (!membership) return new Response("Conversation not found", { status: 404 });
+    if (!membership || !await this.isConnected(session.userId, membership.otherId)) {
+      return new Response("An accepted connection is required", { status: 403 });
+    }
 
     if (await this.isBlocked(session.userId, membership.otherId)) {
       return new Response("Conversation unavailable", { status: 403 });
@@ -162,7 +164,8 @@ export class ConversationRoom {
     const peer = await this.env.DB.prepare(
       "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
     ).bind(identity.conversationId, identity.userId).first();
-    if (!peer || await this.isBlocked(identity.userId, peer.id)) {
+    if (!peer || await this.isBlocked(identity.userId, peer.id) ||
+        !await this.isConnected(identity.userId, peer.id)) {
       socket.close(1008, "Conversation unavailable");
       return;
     }
@@ -273,10 +276,21 @@ export class ConversationRoom {
       "SELECT 1 AS ok FROM sessions WHERE token_hash = ? AND user_id = ? AND expires_at > unixepoch()"
     ).bind(identity.tokenHash, identity.userId).first();
     if (!session) return false;
-    const member = await this.env.DB.prepare(
-      "SELECT 1 AS ok FROM direct_conversation_members WHERE conversation_id = ? AND user_id = ? AND archived_at IS NULL"
+    const peer = await this.env.DB.prepare(
+      "SELECT other.user_id AS otherId FROM direct_conversation_members me " +
+      "INNER JOIN direct_conversation_members other ON other.conversation_id = me.conversation_id AND other.user_id <> me.user_id " +
+      "WHERE me.conversation_id = ? AND me.user_id = ? AND me.archived_at IS NULL LIMIT 1"
     ).bind(identity.conversationId, identity.userId).first();
-    return Boolean(member);
+    return Boolean(peer && await this.isConnected(identity.userId, peer.otherId));
+  }
+
+  async isConnected(userId, otherId) {
+    if (!userId || !otherId || userId === otherId) return false;
+    const [low, high] = [userId, otherId].sort();
+    const row = await this.env.DB.prepare(
+      "SELECT 1 AS connected FROM student_connections WHERE user_low_id = ? AND user_high_id = ? AND status = 'accepted' LIMIT 1"
+    ).bind(low, high).first();
+    return Boolean(row);
   }
 
   async isBlocked(userId, otherId) {
@@ -348,8 +362,9 @@ export class ConversationRoom {
     const other = await this.env.DB.prepare(
       "SELECT user_id AS id FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ? LIMIT 1"
     ).bind(identity.conversationId, identity.userId).first();
-    if (!other || await this.isBlocked(identity.userId, other.id)) {
-      safeSend(socket, { type: "error", code: "CONVERSATION_UNAVAILABLE", message: "This conversation is unavailable." });
+    if (!other || await this.isBlocked(identity.userId, other.id) ||
+        !await this.isConnected(identity.userId, other.id)) {
+      safeSend(socket, { type: "error", code: "CONVERSATION_UNAVAILABLE", message: "This conversation is unavailable. An accepted connection is required to send messages." });
       return;
     }
 
