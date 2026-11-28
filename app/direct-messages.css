@@ -771,7 +771,7 @@
   }
   .app-shell:has(.dm-workspace.has-selection) .content{
     position:fixed!important;
-    inset:64px 0 72px 0!important;
+    inset:64px 0 calc(72px + env(safe-area-inset-bottom)) 0!important;
     z-index:12!important;
     display:flex!important;
     width:100%!important;
