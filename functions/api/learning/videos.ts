@@ -45,12 +45,9 @@ export const onRequestPost = async (context: AppContext) => {
   const order = ["relevance", "viewCount", "date"].includes(orderValue) ? orderValue : "relevance";
   const focusMusicMode = body.mode === "focus-music";
   if (query.length < 2) return json({ error: "Enter a topic to search for." }, 400);
-  const apiKey = clean(context.env.YOUTUBE_API_KEY, 256);
+  const apiKey = context.env.YOUTUBE_API_KEY;
   if (!apiKey) return json({
-    error: focusMusicMode
-      ? "ClerkMe's production server is not receiving its YOUTUBE_API_KEY secret. Add or re-save it under Cloudflare Pages → clerkmd → Settings → Variables and Secrets → Production, then deploy again."
-      : "ClerkMe's production server is not receiving its YOUTUBE_API_KEY secret. Add or re-save it under Cloudflare Pages → clerkmd → Settings → Variables and Secrets → Production, then deploy again.",
-    code: "YOUTUBE_API_KEY_MISSING"
+    error: focusMusicMode ? "YouTube music recommendations need a valid YouTube Data API key. Please try again later." : "In-app video search needs a YouTube Data API key, which has not been configured yet. You can still paste a YouTube video link above and play it inside ClerkMe."
   }, 503);
 
   const params = new URLSearchParams({
