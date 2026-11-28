@@ -5,7 +5,7 @@ import { clinicalUnits } from "../lib/learning-content";
 import { goodHistoryExamples } from "../lib/good-history";
 import { coreClerkingSections, unitClerkingFrameworks, type GuideSection } from "../lib/unit-clerking";
 import { getUnitPresentationPathways, type PresentingComplaintPathway } from "../lib/presentation-pathways";
-import { caseGuides } from "../lib/learning-content";
+import { caseGuides } from "../lib/case-guides";
 
 function BulletGroup({ title, items }: { title: string; items: string[] }) {
   if (!items?.length) return null;

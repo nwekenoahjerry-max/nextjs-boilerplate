@@ -1031,7 +1031,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             </>}
           </div> : selected && selectedId ? <>
             <header className="dm-thread-header">
-              <button className="dm-back-button" type="button" onClick={() => changeSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button className="dm-back-button" type="button" onClick={() => { changeSelectedId(""); setNotice(""); setMenuOpen(false); }} aria-label="Back to chats" title="Back to chats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg><span className="dm-back-label">Chats</span></button>
               {studentAvatar(selected.otherName, selected.otherProfilePhotoUrl, "dm-avatar dm-header-avatar")}
               <div className="dm-thread-person"><strong>{selected.otherName}</strong><small>{peerOnline || isOnline(selected.otherLastSeenAt) ? "Online" : selected.otherLastSeenAt ? "Last seen " + timeLabel(selected.otherLastSeenAt) : "ClerkMe student"}</small></div>
               <span className={"dm-connection" + (connection === "connected" ? " is-connected" : "")}>{connection === "connected" ? "Live" : connection === "offline" ? "Offline" : "Reconnecting"}</span>
@@ -1122,7 +1122,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 <button type="button" className="dm-voice-record" onClick={() => void startVoiceRecording()} disabled={connection !== "connected" || callState !== "idle"} aria-label="Record a voice note" title="Record a voice note">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span>Voice</span>
                 </button>
-                <button type="submit" className="dm-send-button" disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}><span>{connection === "connected" ? "Send" : "Connecting…"}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
+                <button type="submit" className="dm-send-button" aria-label={connection === "connected" ? "Send message" : "Connecting to chat"} title={connection === "connected" ? "Send message" : "Connecting to chat"} disabled={!draft.trim() || draft.length > 4000 || connection !== "connected"}><span>{connection === "connected" ? "Send" : "Connecting…"}</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></svg></button>
               </div>}
               <div className="dm-composer-footer"><small id="dm-composer-hint">{recording ? "Keep your message clear and concise." : voiceDraft ? "Listen before sending. Voice notes are private to this conversation." : draft.length + "/4000 · " + (connection === "connected" ? "Enter to send, Shift + Enter for a new line." : "Your text is saved here while the chat reconnects.")}</small></div>
             </form>

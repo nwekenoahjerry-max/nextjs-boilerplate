@@ -771,7 +771,7 @@
   }
   .app-shell:has(.dm-workspace.has-selection) .content{
     position:fixed!important;
-    inset:64px 0 72px 0!important;
+    inset:64px 0 calc(72px + env(safe-area-inset-bottom)) 0!important;
     z-index:12!important;
     display:flex!important;
     width:100%!important;
@@ -888,3 +888,179 @@
 .dm-history-loading strong{font-weight:700}
 :root[data-theme="dark"] .dm-history-loading{color:#b5c3d6}
 @media(prefers-reduced-motion:reduce){.dm-history-loading .dm-loading-indicator{animation:none}}
+
+
+/* ClerkMe chat polish: explicit inbox navigation and a compact, familiar composer. */
+.dm-back-label{display:none}
+@media(max-width:760px){
+  .dm-workspace.has-selection .dm-thread-header{
+    min-height:68px!important;
+    padding:9px 12px!important;
+    gap:9px!important;
+    background:var(--surface,#fff)!important;
+    box-shadow:0 1px 5px #142b4610;
+  }
+  .dm-workspace.has-selection .dm-back-button{
+    display:inline-flex!important;
+    flex:0 0 auto!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:3px!important;
+    width:auto!important;
+    min-width:68px!important;
+    height:42px!important;
+    padding:0 9px!important;
+    border:1px solid var(--dm-border,#dce4ed)!important;
+    border-radius:13px!important;
+    background:var(--composer-background,#f7f9fc)!important;
+    color:var(--dm-navy,#17345e)!important;
+    font-size:13px!important;
+    font-weight:750!important;
+    line-height:1!important;
+    white-space:nowrap!important;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .dm-workspace.has-selection .dm-back-button svg{
+    display:block!important;
+    width:19px!important;
+    height:19px!important;
+    fill:none!important;
+    stroke:currentColor!important;
+    stroke-width:2.4!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+    flex:0 0 auto!important;
+  }
+  .dm-workspace.has-selection .dm-back-label{
+    display:inline!important;
+    font-size:12px!important;
+  }
+  .dm-workspace.has-selection .dm-header-avatar{
+    width:38px!important;
+    height:38px!important;
+    flex:0 0 38px!important;
+  }
+  .dm-workspace.has-selection .dm-thread-person strong{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:13px!important;
+  }
+  .dm-workspace.has-selection .dm-thread-person small{font-size:10px!important}
+  .dm-workspace.has-selection .dm-connection{
+    padding:4px 6px!important;
+    font-size:9px!important;
+  }
+  .dm-workspace.has-selection .dm-call-button,
+  .dm-workspace.has-selection .dm-menu-button{
+    width:36px!important;
+    height:36px!important;
+    flex:0 0 36px!important;
+  }
+  .dm-workspace.has-selection .dm-message-scroll{
+    padding:12px 12px 16px!important;
+    gap:6px!important;
+    background:var(--chat-background,#f5f7fa)!important;
+    overscroll-behavior:contain;
+  }
+  .dm-workspace.has-selection .dm-bubble{
+    max-width:88%!important;
+    padding:9px 11px 6px!important;
+    border-radius:15px!important;
+    box-shadow:0 1px 1px #102d5a0b!important;
+  }
+  .dm-workspace.has-selection .dm-message-row:not(.is-own) .dm-bubble{
+    border-top-left-radius:5px!important;
+  }
+  .dm-workspace.has-selection .dm-own-bubble{
+    background:#e8f0fc!important;
+    border-color:#d6e3f5!important;
+    border-top-right-radius:5px!important;
+    color:#17345e!important;
+  }
+  .dm-workspace.has-selection .dm-bubble p{
+    font-size:14px!important;
+    line-height:1.45!important;
+  }
+  .dm-workspace.has-selection .dm-composer{
+    padding:8px 10px max(8px,env(safe-area-inset-bottom))!important;
+    background:var(--surface,#fff)!important;
+    box-shadow:0 -5px 16px #102d5a0c!important;
+  }
+  .dm-workspace.has-selection .dm-composer-heading{display:none!important}
+  .dm-workspace.has-selection .dm-composer-input-row{
+    grid-template-columns:minmax(0,1fr) 44px 48px!important;
+    align-items:end!important;
+    gap:7px!important;
+  }
+  .dm-workspace.has-selection .dm-composer-input-row textarea{
+    min-height:46px!important;
+    max-height:108px!important;
+    height:auto!important;
+    padding:11px 13px!important;
+    border:1px solid var(--dm-border,#dce4ed)!important;
+    border-radius:23px!important;
+    font-size:16px!important;
+    line-height:1.4!important;
+    background:var(--composer-background,#f7f9fc)!important;
+  }
+  .dm-workspace.has-selection .dm-voice-record,
+  .dm-workspace.has-selection .dm-send-button{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:44px!important;
+    min-width:44px!important;
+    height:44px!important;
+    min-height:44px!important;
+    padding:0!important;
+    border-radius:50%!important;
+  }
+  .dm-workspace.has-selection .dm-voice-record{
+    background:var(--composer-background,#f1f4f8)!important;
+    color:var(--dm-navy,#17345e)!important;
+    border:1px solid var(--dm-border,#dce4ed)!important;
+    box-shadow:none!important;
+  }
+  .dm-workspace.has-selection .dm-voice-record svg,
+  .dm-workspace.has-selection .dm-send-button svg{
+    display:block!important;
+    width:20px!important;
+    height:20px!important;
+    fill:none!important;
+    stroke:currentColor!important;
+    stroke-width:2!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+  }
+  .dm-workspace.has-selection .dm-voice-record span,
+  .dm-workspace.has-selection .dm-send-button span{display:none!important}
+  .dm-workspace.has-selection .dm-send-button{
+    background:var(--dm-navy,#17345e)!important;
+    color:#fff!important;
+    box-shadow:0 2px 5px #17345e25!important;
+  }
+  .dm-workspace.has-selection .dm-send-button:disabled{opacity:.42!important}
+  .dm-workspace.has-selection .dm-composer-footer{display:none!important}
+  .dm-workspace.has-selection .dm-day-divider{margin:8px 0!important}
+  [data-theme="dark"] .dm-workspace.has-selection .dm-own-bubble{
+    background:#203a5d!important;
+    border-color:#345477!important;
+    color:#eef4fc!important;
+  }
+  [data-theme="dark"] .dm-workspace.has-selection .dm-back-button{
+    background:#172a43!important;
+    border-color:#344b67!important;
+    color:#e7effa!important;
+  }
+  [data-theme="dark"] .dm-workspace.has-selection .dm-voice-record{
+    background:#172a43!important;
+    border-color:#344b67!important;
+    color:#e7effa!important;
+  }
+}
+@media(max-width:370px){
+  .dm-workspace.has-selection .dm-thread-header{gap:6px!important;padding-inline:8px!important}
+  .dm-workspace.has-selection .dm-back-button{min-width:60px!important;padding-inline:6px!important}
+  .dm-workspace.has-selection .dm-connection{display:none!important}
+}

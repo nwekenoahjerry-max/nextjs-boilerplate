@@ -2,17 +2,21 @@
 
 import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { clinicalUnits, questionBank } from "../lib/learning-content";
-import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
-import ClinicalGuides from "./clinical-guides";
-import MaterialsPanel from "./materials-panel";
-import VideoLibraryPanel from "./video-library-panel";
-import FocusMusicPlayer from "./focus-music-player";
-import AdaptiveFlightGame from "./adaptive-flight-game";
-import LearningQuestionBank from "./learning-question-bank";
-import FlashcardsPanel from "./flashcards";
-import ClinicalSimulation from "./clinical-simulation";
-import AskClerkMePanel from "./ask-clerkme";
+import { clinicalUnits } from "../lib/learning-content";
+import type { QuestionBankItem } from "../lib/question-bank";
+import { STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text-constants";
+// Split substantial workspace tools into independent chunks. Students download
+// the code for a tool when they open it, rather than paying for every tool at login.
+const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span className="cmh-entry-spinner" aria-hidden="true"><i /></span><span>Opening workspace…</span></div>;
+const ClinicalGuides = dynamic(() => import("./clinical-guides"), { ssr: false, loading: deferredPanel });
+const MaterialsPanel = dynamic(() => import("./materials-panel"), { ssr: false, loading: deferredPanel });
+const VideoLibraryPanel = dynamic(() => import("./video-library-panel"), { ssr: false, loading: deferredPanel });
+const FocusMusicPlayer = dynamic(() => import("./focus-music-player"), { ssr: false, loading: deferredPanel });
+const AdaptiveFlightGame = dynamic(() => import("./adaptive-flight-game"), { ssr: false, loading: deferredPanel });
+const LearningQuestionBank = dynamic(() => import("./learning-question-bank"), { ssr: false, loading: deferredPanel });
+const FlashcardsPanel = dynamic(() => import("./flashcards"), { ssr: false, loading: deferredPanel });
+const ClinicalSimulation = dynamic(() => import("./clinical-simulation"), { ssr: false, loading: deferredPanel });
+const AskClerkMePanel = dynamic(() => import("./ask-clerkme"), { ssr: false, loading: deferredPanel });
 import NotificationCenter from "../components/notification-center";
 
 import "./messaging-hub.css";
@@ -21,7 +25,7 @@ import WhatsAppSupportLink from "../components/whatsapp-support-link";
 import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
-import { unitClerkingFrameworks } from "../lib/unit-clerking";
+import type { UnitClerkingFramework } from "../lib/unit-clerking";
 import "./home-quick-actions.css";
 
 const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
@@ -725,6 +729,28 @@ export default function Home() {
   const [osceUnit, setOsceUnit] = useState("general-medicine");
   const [osceIndex, setOsceIndex] = useState(0);
   const [osceReveal, setOsceReveal] = useState(false);
+  const [osceQuestions, setOsceQuestions] = useState<QuestionBankItem[]>([]);
+  const [osceQuestionsLoading, setOsceQuestionsLoading] = useState(false);
+  const [osceQuestionsError, setOsceQuestionsError] = useState("");
+  const [osceQuestionsRetry, setOsceQuestionsRetry] = useState(0);
+  useEffect(() => {
+    if (active !== "osce" || osceQuestions.length > 0) return;
+    let cancelled = false;
+    setOsceQuestionsLoading(true);
+    setOsceQuestionsError("");
+    void import("../lib/question-bank")
+      .then(({ questionBank }) => {
+        if (!cancelled) setOsceQuestions(questionBank);
+      })
+      .catch(() => {
+        if (!cancelled) setOsceQuestionsError("Viva questions could not be loaded. Check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setOsceQuestionsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [active, osceQuestions.length, osceQuestionsRetry]);
+
   const [showNew, setShowNew] = useState(false);
   const [rawClerkingNotes,setRawClerkingNotes]=useState("");
   const [organisedClerkingProse,setOrganisedClerkingProse]=useState("");
@@ -862,9 +888,30 @@ export default function Home() {
   const [caseList, setCaseList] = useState<Array<{id:string;title:string;case_reference:string;specialty:string;presenting_complaint:string;status:string;updated_at:string}>>([]);
   const [saving, setSaving] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState("general-medicine");
+  const [clerkingFrameworks, setClerkingFrameworks] = useState<Record<string, UnitClerkingFramework> | null>(null);
+  const [clerkingFrameworksLoading, setClerkingFrameworksLoading] = useState(false);
+  const [clerkingFrameworksError, setClerkingFrameworksError] = useState("");
+  const [clerkingFrameworksRetry, setClerkingFrameworksRetry] = useState(0);
+  useEffect(() => {
+    if (active !== "clerking" || !showNew || clerkingFrameworks) return;
+    let cancelled = false;
+    setClerkingFrameworksLoading(true);
+    setClerkingFrameworksError("");
+    void import("../lib/unit-clerking")
+      .then(({ unitClerkingFrameworks }) => {
+        if (!cancelled) setClerkingFrameworks(unitClerkingFrameworks);
+      })
+      .catch(() => {
+        if (!cancelled) setClerkingFrameworksError("Specialty guidance could not be loaded. Check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setClerkingFrameworksLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [active, showNew, clerkingFrameworks, clerkingFrameworksRetry]);
   const clerkingFormRef = useRef<HTMLDivElement>(null);
   const selectedTemplate = templates.find(template => template.id === selectedSpecialty) || templates[0];
-  const selectedTemplateFramework = unitClerkingFrameworks[selectedSpecialty];
+  const selectedTemplateFramework = clerkingFrameworks?.[selectedSpecialty];
   const firstName = authUser?.name?.trim().split(/\s+/)[0] || "there";
   const learningWeek = useMemo(() => {
     if (!streakData.today) return [];
@@ -1567,9 +1614,11 @@ export default function Home() {
           </>}
           
 {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
+            {clerkingFrameworksLoading && <p className="auth-message" role="status" aria-live="polite">Loading specialty guidance…</p>}
+            {clerkingFrameworksError && <div className="auth-error" role="alert"><p>{clerkingFrameworksError}</p><button type="button" className="text-link" onClick={()=>setClerkingFrameworksRetry(value=>value+1)}>Try again</button></div>}
             {selectedTemplateFramework && <div className="selected-template-context"><strong>{selectedTemplateFramework.title} focus</strong><p>{selectedTemplateFramework.overview}</p><div><span>Specialty-specific sections</span><ul>{selectedTemplateFramework.unitSections.map(section => <li key={section.title}>{section.title}</li>)}</ul></div></div>}
             <div className="clerking-note-panel"><div className="clerking-note-heading"><div><span className="eyebrow">CLERKING NOTE ORGANISER</span><h3>Organise rough notes into a clear clinical history</h3><p>Upload a document or paste your notes. ClerkMe will arrange the information you provide and identify details that still need to be checked.</p></div><span className="upload-icon">✎</span></div>
-              <label className="slide-file-picker"><span>⇧</span><span><strong>Upload existing clerking notes</strong><small>{STUDY_FILE_TYPES} · remove names and hospital identifiers first</small></span><input type="file" accept={STUDY_FILE_ACCEPT} onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setOrganiseError("");try{const extracted=await extractStudyFile(file);setRawClerkingNotes(extracted.text);}catch(err){setOrganiseError(err instanceof Error?err.message:"Could not read that file.");}}}/></label>
+              <label className="slide-file-picker"><span>⇧</span><span><strong>Upload existing clerking notes</strong><small>{STUDY_FILE_TYPES} · remove names and hospital identifiers first</small></span><input type="file" accept={STUDY_FILE_ACCEPT} onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setOrganiseError("");try{const {extractStudyFile}=await import("../lib/file-text");const extracted=await extractStudyFile(file);setRawClerkingNotes(extracted.text);}catch(err){setOrganiseError(err instanceof Error?err.message:"Could not read that file.");}}}/></label>
               <label>Paste or edit your raw clerking notes<textarea rows={7} value={rawClerkingNotes} onChange={e=>setRawClerkingNotes(e.target.value)} placeholder="Paste your rough notes here: presenting complaint, chronology, associated symptoms, relevant negatives, past history, medications, examination and assessment…"/></label>
               <button className="primary-button" onClick={organiseClerking} disabled={organiseLoading||rawClerkingNotes.trim().length<30}>{organiseLoading?"Organising your clerking…":"Organise into clinical prose"} <span>→</span></button>
               {organiseError&&<p className="auth-error">{organiseError}</p>}
@@ -1594,7 +1643,15 @@ export default function Home() {
           {active === "materials" && <MaterialsPanel userKey={authUser.id}/>}
           {active === "flashcards" && <FlashcardsPanel userKey={authUser.id}/> }
           {active === "videos" && <VideoLibraryPanel/>}
-          {active === "osce" && <><div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div><div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>{(()=>{const qs=questionBank.filter(q=>q.unit===osceUnit);const q=qs[osceIndex%qs.length];return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>})()}</>}
+          {active === "osce" && <>
+            <div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div>
+            <div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>
+            {osceQuestionsLoading || (osceQuestions.length === 0 && !osceQuestionsError)
+              ? <p className="osce-loading" role="status" aria-live="polite">Loading viva questions…</p>
+              : osceQuestionsError
+                ? <div className="osce-load-error" role="alert"><p>{osceQuestionsError}</p><button type="button" className="secondary-button" onClick={()=>setOsceQuestionsRetry(value=>value+1)}>Try again</button></div>
+                : (()=>{const qs=osceQuestions.filter(q=>q.unit===osceUnit);const q=qs.length?qs[osceIndex%qs.length]:null;return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>;})()}
+          </>}
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}

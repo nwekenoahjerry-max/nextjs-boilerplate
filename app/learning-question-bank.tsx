@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { clinicalUnits, questionBank } from "../lib/learning-content";
+import { clinicalUnits } from "../lib/learning-content";
+import { questionBank } from "../lib/question-bank";
 
 type GeneratedQuestion = {
   question:string; options:string[]; answerIndex:number; explanation:string; topic:string; difficulty:string;

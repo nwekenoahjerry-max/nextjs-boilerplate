@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { clinicalUnits, questionBank } from "../lib/learning-content";
+import { clinicalUnits } from "../lib/learning-content";
+import { questionBank } from "../lib/question-bank";
 
 type GeneratedQuestion = {
   question: string;

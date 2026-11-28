@@ -378,3 +378,5 @@
   .cmh-entry-state p{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.cmh-entry-spinner{animation:none}}
+
+.cmh-panel-loading{display:flex;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:24px;color:var(--dm-muted,#718096);font-size:.85rem;font-weight:650}
