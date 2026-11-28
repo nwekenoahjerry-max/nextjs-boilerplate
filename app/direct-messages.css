@@ -724,3 +724,33 @@
     scroll-behavior:auto;
   }
 }
+
+
+/* Connection approval and profile-photo affordances. */
+.dm-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.dm-student-result>span:first-child img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.dm-student-result:disabled{cursor:default;opacity:.8}
+.dm-student-result:disabled>b{color:var(--dm-muted);background:var(--hover-background,#f3f6fa)}
+.dm-social-panel{flex:0 0 auto;max-height:34%;overflow-y:auto;overflow-x:hidden;border-bottom:1px solid var(--dm-border);background:var(--surface,#fff);padding:7px 10px 9px}
+.dm-social-panel:empty{display:none}
+.dm-social-panel section+section{margin-top:8px;padding-top:8px;border-top:1px solid var(--dm-border)}
+.dm-social-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 3px 6px;color:var(--dm-muted);font-size:.68rem;font-weight:800}
+.dm-social-heading b,.dm-social-heading span{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:20px;background:#eaf1fb;color:#173765;font-size:.63rem}
+.dm-social-person{display:flex;align-items:center;gap:8px;padding:6px 2px;min-width:0}
+.dm-social-person>.dm-avatar{width:34px;height:34px;flex:0 0 34px;font-size:.65rem}
+.dm-social-person>span:nth-child(2){display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.dm-social-person>span:nth-child(2) strong{font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-social-person>span:nth-child(2) small{font-size:.61rem;color:var(--dm-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-social-person button{border:0;border-radius:8px;min-height:29px;padding:6px 8px;font-size:.62rem;font-weight:800;cursor:pointer;white-space:nowrap}
+.dm-request-accept{background:var(--dm-navy);color:#fff}
+.dm-request-decline{background:#f8eeee;color:#a5454a;font-size:.9rem!important;min-width:28px}
+.dm-social-person button:disabled{opacity:.5;cursor:not-allowed}
+[data-theme="dark"] .dm-social-heading b,[data-theme="dark"] .dm-social-heading span{background:#263d5a;color:#d7e6fa}
+[data-theme="dark"] .dm-request-accept{background:#8fb7e8;color:#102d50}
+[data-theme="dark"] .dm-request-decline{background:#472d36;color:#ffc3c3}
+@media(max-width:760px){
+  .dm-social-panel{max-height:28%;padding:5px 9px 7px}
+  .dm-social-person{gap:6px}
+  .dm-social-person>.dm-avatar{width:32px;height:32px;flex-basis:32px}
+  .dm-social-person button{min-height:32px;padding:7px 9px}
+}
