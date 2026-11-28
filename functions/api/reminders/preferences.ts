@@ -40,8 +40,8 @@ export const onRequestPatch = async (context: AppContext) => {
       .bind(body.flashcardRemindersEnabled ? 1 : 0, user.id).run();
   }
   if (hasTimeZone) {
-    await context.env.DB.prepare("UPDATE student_profiles SET time_zone = ?, flashcard_reminder_next_at = NULL WHERE id = ?")
-      .bind(requestedTimeZone, user.id).run();
+    await context.env.DB.prepare("UPDATE student_profiles SET time_zone = ?, flashcard_reminder_next_at = NULL WHERE id = ? AND time_zone != ?")
+      .bind(requestedTimeZone, user.id, requestedTimeZone).run();
   }
   return json({
     ...(hasEmailPreference ? { emailRemindersEnabled: body.emailRemindersEnabled } : {}),
