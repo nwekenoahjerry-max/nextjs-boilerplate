@@ -179,3 +179,75 @@
 :root[data-theme="dark"] .cmh-story-footer input{color:#f1f5fb}
 :root[data-theme="dark"] .cmh-story-footer input::placeholder{color:#b8c6d8}
 :root[data-theme="dark"] .cmh-story-footer button{background:#dce8f7;color:#173765}
+
+
+/* Compact, organised Messages profile on mobile */
+.cmh-profile-card{min-width:0}
+.cmh-profile-details{min-width:0;overflow:hidden}
+.cmh-profile-details h2,.cmh-profile-details p,.cmh-profile-details small{overflow:hidden;text-overflow:ellipsis}
+.cmh-profile-card .cmh-edit-profile{white-space:nowrap;flex:0 0 auto}
+.cmh-profile-privacy{padding:0;overflow:hidden}
+.cmh-privacy-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 19px;cursor:pointer;list-style:none}
+.cmh-privacy-summary::-webkit-details-marker{display:none}
+.cmh-privacy-summary-copy{display:flex;min-width:0;flex-direction:column;gap:4px}
+.cmh-privacy-summary-copy>span{font-size:9px;font-weight:850;letter-spacing:.13em;color:#657d9f}
+.cmh-privacy-summary-copy>b{font-size:15px}
+.cmh-privacy-summary-copy>small{font-size:11px;color:var(--text-secondary,#718096)}
+.cmh-privacy-chevron{width:32px;height:32px;flex:0 0 32px;border-radius:10px;display:grid;place-items:center;background:var(--surface-muted,#f3f6fa);color:var(--text-secondary,#60738d);transition:transform .18s}
+.cmh-profile-privacy[open] .cmh-privacy-chevron{transform:rotate(90deg)}
+.cmh-profile-privacy-content{padding:0 19px 15px;border-top:1px solid var(--border,#e3eaf2)}
+.cmh-profile-privacy-content .cmh-settings-heading{margin:13px 0 4px}
+.cmh-profile-privacy-content .cmh-settings-heading h3{font-size:15px}
+.cmh-profile-privacy-content .cmh-setting-row{padding:11px 0}
+.cmh-notification-actions{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cmh-notification-state{display:flex;align-items:flex-start;gap:9px;min-width:0}
+.cmh-notification-state>span:last-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cmh-notification-state b{font-size:12px}
+.cmh-notification-state small{font-size:10px;line-height:1.45;color:var(--text-secondary,#718096)}
+.cmh-notification-dot{width:9px;height:9px;flex:0 0 9px;margin-top:4px;border-radius:50%;background:#9aa8b8}
+.cmh-notification-dot.is-on{background:#269568;box-shadow:0 0 0 4px #26956820}
+.cmh-test-notification{display:inline-flex;align-items:center;justify-content:center;min-height:34px;margin-top:12px;padding:7px 10px;border:1px solid var(--border,#dce4ef);border-radius:9px;background:var(--surface-muted,#f4f7fb);color:var(--text-primary,#17345e);font-size:11px;font-weight:750;cursor:pointer}
+.cmh-test-notification:disabled{opacity:.55;cursor:wait}
+.cmh-notification-card .cmh-settings-heading{margin-bottom:13px}
+:root[data-theme="dark"] .cmh-privacy-summary-copy>span{color:#afc7e7}
+:root[data-theme="dark"] .cmh-privacy-summary-copy>small,
+:root[data-theme="dark"] .cmh-notification-state small{color:#b8c7d9}
+:root[data-theme="dark"] .cmh-privacy-chevron,
+:root[data-theme="dark"] .cmh-test-notification{background:#20344e;color:#e6eef9;border-color:#3b506c}
+:root[data-theme="dark"] .cmh-profile-privacy-content{border-color:#293a51}
+:root[data-theme="dark"] .cmh-notification-dot{background:#8190a4}
+:root[data-theme="dark"] .cmh-notification-dot.is-on{background:#50c895}
+@media(max-width:760px){
+ .cmh-profile{gap:10px}
+ .cmh-profile-card,.cmh-settings-card{border-radius:14px;padding:13px}
+ .cmh-profile-card{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:9px}
+ .cmh-profile-avatar{width:44px;height:44px;flex-basis:44px;border-radius:13px;font-size:15px}
+ .cmh-profile-details{display:flex;flex-direction:column;gap:2px}
+ .cmh-profile-details .cmh-eyebrow{font-size:8px;letter-spacing:.11em}
+ .cmh-profile-card h2{font-size:14px;line-height:1.2;margin:0}
+ .cmh-profile-card p{font-size:10px;line-height:1.25}
+ .cmh-profile-card small{font-size:9px;line-height:1.2;margin-top:1px;white-space:nowrap}
+ .cmh-profile-card .cmh-edit-profile{min-height:34px;padding:7px 9px;border-radius:9px;font-size:10px}
+ .cmh-privacy-summary{padding:13px 14px}
+ .cmh-privacy-summary-copy>b{font-size:13px}
+ .cmh-privacy-summary-copy>small{font-size:10px}
+ .cmh-privacy-chevron{width:29px;height:29px;flex-basis:29px}
+ .cmh-profile-privacy-content{padding:0 14px 11px}
+ .cmh-profile-privacy-content .cmh-setting-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px;padding:10px 0}
+ .cmh-profile-privacy-content .cmh-setting-row>span{gap:2px}
+ .cmh-profile-privacy-content .cmh-setting-row b{font-size:11px}
+ .cmh-profile-privacy-content .cmh-setting-row small{font-size:9px;line-height:1.35}
+ .cmh-profile-privacy-content .cmh-setting-row select{max-width:145px;font-size:10px;padding:8px}
+ .cmh-notification-card .cmh-settings-heading{margin-bottom:11px}
+ .cmh-notification-card .cmh-settings-heading h3{font-size:15px}
+ .cmh-notification-card .cmh-settings-heading p{font-size:10px;line-height:1.45;margin-bottom:0}
+ .cmh-notification-actions{align-items:flex-start}
+ .cmh-notification-state b{font-size:11px}
+ .cmh-notification-state small{font-size:9px;line-height:1.4}
+ .cmh-notification-actions>.cmh-primary,.cmh-notification-actions>.cmh-secondary{min-height:35px;padding:8px 10px;white-space:nowrap;font-size:10px;border-radius:9px}
+ .cmh-test-notification{margin-top:10px;min-height:33px;font-size:10px}
+ .cmh-privacy-note{font-size:9px;line-height:1.4;margin-top:9px}
+ .cmh-security-note{gap:8px;padding:10px 12px;align-items:center}
+ .cmh-security-note p{font-size:9px;line-height:1.4}
+ .cmh-security-note .cmh-icon{width:16px;height:16px;flex-basis:16px}
+}

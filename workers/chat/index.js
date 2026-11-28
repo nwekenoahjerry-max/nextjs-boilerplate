@@ -31,6 +31,39 @@ export class ConversationRoom {
 
   async fetch(request) {
     const internalUrl = new URL(request.url);
+    if (request.method === "POST" && internalUrl.pathname === "/internal/push-test") {
+      let input;
+      try { input = await request.json(); } catch { return Response.json({ error: "Invalid test request." }, { status: 400 }); }
+      const userId = typeof input?.userId === "string" ? input.userId.slice(0, 100) : "";
+      if (!userId || !this.env.PUSH_SERVICE || !this.env.PUSH_INTERNAL_TOKEN) {
+        return Response.json({ error: "Phone notifications are not available right now." }, { status: 503 });
+      }
+      const subscriptions = await this.env.DB.prepare(
+        "SELECT COUNT(*) AS count FROM push_subscriptions WHERE user_id = ?"
+      ).bind(userId).first();
+      if (!Number(subscriptions?.count)) return Response.json({ error: "This device is not registered. Enable phone notifications first." }, { status: 409 });
+      try {
+        const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + this.env.PUSH_INTERNAL_TOKEN, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            title: "ClerkMe notifications are working",
+            body: "You will now receive alerts when a student sends you a private message.",
+            url: "/?open=messages",
+            tag: "clerkme-test-" + crypto.randomUUID()
+          })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !Number(result.sent)) {
+          return Response.json({ error: result.error || "The test alert could not be delivered. Check your device notification permission." }, response.ok ? 502 : response.status);
+        }
+        return Response.json({ sent: Number(result.sent) });
+      } catch (error) {
+        console.error("[clerkme-chat] Test push failed.", error instanceof Error ? error.message : "unknown error");
+        return Response.json({ error: "The notification service could not be reached." }, { status: 502 });
+      }
+    }
     if (request.method === "POST" && internalUrl.pathname === "/internal/message-edit") {
       let input;
       try { input = await request.json(); } catch { return Response.json({ error: "Invalid edit event." }, { status: 400 }); }
@@ -388,15 +421,15 @@ export class ConversationRoom {
       ).run();
     }
 
-    // A live WebSocket does not mean the recipient's tab is in the foreground.
-    // Send a generic Web Push alert for every message; the service worker suppresses
-    // it when a visible ClerkMe tab is already open.
-    if (this.env.PUSH_SERVICE && this.env.CRON_TOKEN) {
+    // Push every direct message through a dedicated service-to-service token.
+    // The recipient may have ClerkMe open on a different screen, so the device
+    // alert is still useful even when a WebSocket is connected.
+    if (this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
       try {
-        await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
+        const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
           method: "POST",
           headers: {
-            "Authorization": "Bearer " + this.env.CRON_TOKEN,
+            "Authorization": "Bearer " + this.env.PUSH_INTERNAL_TOKEN,
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -404,12 +437,20 @@ export class ConversationRoom {
             title: notificationTitle,
             body: "You have a new private message on ClerkMe.",
             url: "/?open=messages",
-            tag: "clerkme-dm-" + identity.conversationId
+            tag: "clerkme-dm-" + messageId,
+            messageId,
+            conversationId: identity.conversationId
           })
         });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !Number(result.sent)) {
+          console.warn("[clerkme-chat] Push handoff returned no delivered alerts.", response.status, result.error || result.reason || "no active subscription");
+        }
       } catch (error) {
         console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
       }
+    } else {
+      console.error("[clerkme-chat] Push notifications are not configured: PUSH_SERVICE or PUSH_INTERNAL_TOKEN is missing.");
     }
   }
 

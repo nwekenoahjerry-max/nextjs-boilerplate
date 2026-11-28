@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v32-branded-app-icons";
+const CACHE_NAME = "clerkme-shell-v33-private-message-push";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
@@ -61,15 +61,18 @@ self.addEventListener("push", event => {
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { body: event.data ? event.data.text() : "" }; }
   event.waitUntil((async () => {
-    // A live socket can remain connected while a tab is hidden. Avoid noisy
-    // duplicate notifications only when a ClerkMe window is actually visible.
-    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    if (windows.some(client => client.visibilityState === "visible")) return;
-    await self.registration.showNotification(payload.title || "ClerkMe has missed you 💙", {
-      body: payload.body || "Your clinical learning space is waiting whenever you are ready.",
-      icon: "/clerkme-192.png", badge: "/clerkme-192.png",
-      tag: payload.tag || "clerkme-gentle-reengagement", renotify: false,
-      data: { url: payload.url || "/" }, timestamp: Date.now()
+    // Do not suppress a message alert merely because another ClerkMe screen
+    // is visible. Students may be studying elsewhere in the app and still
+    // need to see that a private message has arrived.
+    await self.registration.showNotification(payload.title || "New ClerkMe message", {
+      body: payload.body || "You have a new private message on ClerkMe.",
+      icon: "/clerkme-icon-512.png",
+      badge: "/favicon.png",
+      tag: payload.tag || ("clerkme-message-" + Date.now()),
+      renotify: true,
+      requireInteraction: false,
+      vibrate: [120, 60, 120],
+      data: { url: payload.url || "/?open=messages", messageId: payload.messageId || null }
     });
   })());
 });
