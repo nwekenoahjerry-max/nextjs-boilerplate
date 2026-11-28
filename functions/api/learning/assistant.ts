@@ -175,7 +175,7 @@ async function askWorkersAITutor(
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
   const retryableStatuses = new Set([429, 500, 502, 503, 504]);
   const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
-  const firstName = clean(studentName, 60).split(/\\s+/)[0] || "";
+  const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
   let lastStatus = 0;
   let lastCode = "NETWORK_FAILURE";
