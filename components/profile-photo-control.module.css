@@ -6,7 +6,7 @@
 .content>strong{font-size:14px;color:var(--text-color,#17345e);font-weight:800}
 .content>p{margin:0;color:var(--muted-color,#718096);font-size:11px;line-height:1.5}
 .actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px}
-.upload,.remove{min-height:35px;display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid #d9e3ef;border-radius:9px;background:#f4f7fb;color:#173765;font:750 11px/1.2 inherit;cursor:pointer}
+.upload,.remove{min-height:35px;display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid #d9e3ef;border-radius:9px;background:#f4f7fb;color:#173765;font:inherit;font-size:11px;font-weight:750;line-height:1.2;cursor:pointer}
 .upload input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .remove{background:transparent;color:#9d4148}
 .upload:focus-within,.remove:focus-visible{outline:3px solid #89a9d2;outline-offset:2px}
