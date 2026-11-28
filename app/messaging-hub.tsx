@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import DirectMessagesPanel from "./direct-messages";
-import { PUSH_VAPID_PUBLIC_KEY } from "../lib/push-config";
 
 type Audience = "everyone" | "conversations" | "only_me";
 type Status = {
@@ -312,9 +311,14 @@ function MessagingProfilePanel() {
         if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("This browser does not support background notifications. Try a supported browser or install ClerkMe as an app.");
         const granted=await Notification.requestPermission();setPermission(granted);
         if(granted!=="granted")throw new Error(granted==="denied"?"Notifications are blocked in browser settings. Allow them for ClerkMe, then try again.":"Notification permission was not granted.");
+        const keyResponse=await fetch("/api/push/config",{credentials:"same-origin",cache:"no-store"});
+        const keyData=await keyResponse.json();
+        if(!keyResponse.ok||typeof keyData.publicKey!=="string"||!keyData.publicKey){
+          throw new Error(keyData.error||"Push notifications are not configured for this environment yet.");
+        }
         await navigator.serviceWorker.register("/sw.js");
         const registration=await navigator.serviceWorker.ready;
-        const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeVapidKey(PUSH_VAPID_PUBLIC_KEY)});
+        const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeVapidKey(keyData.publicKey)});
         const response=await fetch("/api/push/subscriptions",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(subscription.toJSON())});
         const data=await response.json();if(!response.ok)throw new Error(data.error||"Your device could not be registered for notifications.");
         setPushEnabled(true);setNotice("Background notifications are enabled on this device.");
