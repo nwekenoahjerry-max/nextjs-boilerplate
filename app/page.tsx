@@ -4,15 +4,18 @@ import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useL
 import dynamic from "next/dynamic";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
-import ClinicalGuides from "./clinical-guides";
-import MaterialsPanel from "./materials-panel";
-import VideoLibraryPanel from "./video-library-panel";
-import FocusMusicPlayer from "./focus-music-player";
-import AdaptiveFlightGame from "./adaptive-flight-game";
-import LearningQuestionBank from "./learning-question-bank";
-import FlashcardsPanel from "./flashcards";
-import ClinicalSimulation from "./clinical-simulation";
-import AskClerkMePanel from "./ask-clerkme";
+// Split substantial workspace tools into independent chunks. Students download
+// the code for a tool when they open it, rather than paying for every tool at login.
+const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span className="cmh-entry-spinner" aria-hidden="true"><i /></span><span>Opening workspace…</span></div>;
+const ClinicalGuides = dynamic(() => import("./clinical-guides"), { ssr: false, loading: deferredPanel });
+const MaterialsPanel = dynamic(() => import("./materials-panel"), { ssr: false, loading: deferredPanel });
+const VideoLibraryPanel = dynamic(() => import("./video-library-panel"), { ssr: false, loading: deferredPanel });
+const FocusMusicPlayer = dynamic(() => import("./focus-music-player"), { ssr: false, loading: deferredPanel });
+const AdaptiveFlightGame = dynamic(() => import("./adaptive-flight-game"), { ssr: false, loading: deferredPanel });
+const LearningQuestionBank = dynamic(() => import("./learning-question-bank"), { ssr: false, loading: deferredPanel });
+const FlashcardsPanel = dynamic(() => import("./flashcards"), { ssr: false, loading: deferredPanel });
+const ClinicalSimulation = dynamic(() => import("./clinical-simulation"), { ssr: false, loading: deferredPanel });
+const AskClerkMePanel = dynamic(() => import("./ask-clerkme"), { ssr: false, loading: deferredPanel });
 import NotificationCenter from "../components/notification-center";
 
 import "./messaging-hub.css";
