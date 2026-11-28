@@ -73,6 +73,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const [voiceUploading,setVoiceUploading] = useState(false);
   const [callState,setCallState] = useState<"idle"|"calling"|"incoming"|"connecting"|"active">("idle");
   const [callMuted,setCallMuted] = useState(false);
+  const [callAudioNeedsTap,setCallAudioNeedsTap] = useState(false);
   const [callSeconds,setCallSeconds] = useState(0);
   const socketRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -118,6 +119,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     callStreamRef.current?.getTracks().forEach(track=>track.stop());
     callStreamRef.current = null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
+    setCallAudioNeedsTap(false);
     incomingOfferRef.current = null;
     pendingIceRef.current = [];
     callStartedAtRef.current = 0;
@@ -149,7 +151,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const remoteStream = event.streams[0] || new MediaStream([event.track]);
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = remoteStream;
-        void remoteAudioRef.current.play().catch(()=>undefined);
+        void remoteAudioRef.current.play().then(()=>setCallAudioNeedsTap(false)).catch(()=>setCallAudioNeedsTap(true));
       }
     };
     pc.onconnectionstatechange = () => {
@@ -929,6 +931,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 </> : <button type="button" className="dm-call-decline" onClick={() => endVoiceCall(true)}>Cancel</button>}
               </div>
               <audio ref={remoteAudioRef} autoPlay playsInline/>
+              {callAudioNeedsTap && <button type="button" className="dm-call-audio-enable" onClick={() => { void remoteAudioRef.current?.play().then(()=>setCallAudioNeedsTap(false)).catch(()=>setNotice("Call audio could not start. Check your speaker volume and browser permission.")); }}>Enable call audio</button>}
               <small className="dm-call-network-note">Both students need this conversation open. Some networks may block direct peer-to-peer calls.</small>
             </section>}
             <div className="dm-message-scroll" ref={scrollRef} onScroll={() => {
