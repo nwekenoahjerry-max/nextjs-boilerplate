@@ -1,7 +1,7 @@
 import { nigeriaLgasByState } from "../../lib/nigeria-locations";
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../_lib/auth";
 
-const profileSelect = "SELECT id, email, full_name AS name, school AS university, country, level, future_specialty AS futureSpecialty, state, lga FROM student_profiles WHERE id = ?";
+const profileSelect = "SELECT id, email, full_name AS name, school AS university, country, level, future_specialty AS futureSpecialty, state, lga, CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo' ELSE NULL END AS photoUrl FROM student_profiles WHERE id = ?";
 
 type StudentProfile = {
   id: string;
@@ -13,6 +13,7 @@ type StudentProfile = {
   futureSpecialty: string;
   state: string;
   lga: string;
+  photoUrl: string | null;
 };
 
 export const onRequestGet = async (context: AppContext) => {
