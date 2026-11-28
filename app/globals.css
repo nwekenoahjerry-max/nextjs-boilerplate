@@ -8592,3 +8592,38 @@ input,select,textarea{accent-color:var(--clerkme-navy)}
     right:-8px;
   }
 }
+
+/* Reusable student identity photo on the profile page. */
+.profile-page .profile-identity-card{
+  display:grid;
+  grid-template-columns:76px minmax(0,1fr) minmax(210px,auto);
+  align-items:center;
+  gap:16px;
+  padding:18px;
+}
+.profile-account-avatar{
+  width:76px;height:76px;display:grid;place-items:center;overflow:hidden;
+  border:3px solid #fff;border-radius:50%;background:#e8eff8;color:#173765;
+  box-shadow:0 0 0 1px #d7e2ef;font-size:22px;font-weight:850;
+}
+.profile-account-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-identity-copy{display:grid;gap:5px;min-width:0}
+.profile-identity-copy strong{overflow-wrap:anywhere;font-size:16px;color:#0b2348}
+.profile-identity-copy span{overflow-wrap:anywhere;font-size:13px;color:#52647c}
+.profile-identity-copy small,.profile-photo-actions small{font-size:10px;color:#718096;line-height:1.45}
+.profile-photo-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.profile-photo-actions input{display:none}
+.profile-photo-actions button{min-height:36px;padding:8px 11px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer}
+.profile-photo-upload{border:1px solid #173765;background:#173765;color:#fff}
+.profile-photo-remove{border:1px solid #e2d9d9;background:#fff;color:#984b4b}
+.profile-photo-actions button:disabled{opacity:.55;cursor:not-allowed}
+.profile-photo-actions small{flex-basis:100%}
+.profile-photo-notice{margin:9px 0 14px;padding:10px 12px;border:1px solid #dce6f1;border-radius:10px;background:#f5f8fc;color:#173765;font-size:12px;line-height:1.45}
+@media(max-width:700px){
+  .profile-page .profile-identity-card{grid-template-columns:62px minmax(0,1fr);gap:12px;padding:14px}
+  .profile-account-avatar{width:62px;height:62px;font-size:19px}
+  .profile-identity-copy strong{font-size:14px}
+  .profile-identity-copy span{font-size:11px}
+  .profile-photo-actions{grid-column:1/-1}
+  .profile-photo-actions button{min-height:38px}
+}
