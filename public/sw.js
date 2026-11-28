@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v35-community-notifications";
+const CACHE_NAME = "clerkme-shell-v36-flashcard-practice";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {

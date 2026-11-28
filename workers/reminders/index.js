@@ -148,6 +148,150 @@ async function sendPushReminders(env) {
   return { usersChecked: users.results?.length || 0, usersSent, endpointsRemoved };
 }
 
+
+function zonedClockParts(timestamp, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+  }).formatToParts(timestamp);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute)
+  };
+}
+
+function localClockToEpochSeconds(year, month, day, hour, minute, timeZone) {
+  const desired = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  let guess = desired;
+  // Iteratively account for the timezone offset, including daylight-saving changes.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const actual = zonedClockParts(new Date(guess), timeZone);
+    const represented = Date.UTC(actual.year, actual.month - 1, actual.day, actual.hour, actual.minute, 0, 0);
+    const difference = desired - represented;
+    if (difference === 0) break;
+    guess += difference;
+  }
+  return Math.floor(guess / 1000);
+}
+
+function nextLocalSixPm(nowMs, timeZone) {
+  const local = zonedClockParts(new Date(nowMs), timeZone);
+  const todayAtSix = localClockToEpochSeconds(local.year, local.month, local.day, 18, 0, timeZone);
+  if (todayAtSix * 1000 > nowMs) return todayAtSix;
+  const tomorrow = new Date(Date.UTC(local.year, local.month - 1, local.day + 1));
+  return localClockToEpochSeconds(
+    tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() + 1, tomorrow.getUTCDate(), 18, 0, timeZone
+  );
+}
+
+function validTimeZone(value) {
+  if (typeof value !== "string" || !value.trim() || value.length > 80) return false;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date()); return true; }
+  catch { return false; }
+}
+
+async function sendFlashcardPracticeReminders(env) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const due = await env.DB.prepare(
+    "SELECT id, full_name, time_zone, flashcard_reminder_next_at " +
+    "FROM student_profiles WHERE flashcard_reminders_enabled = 1 " +
+    "AND (flashcard_reminder_next_at IS NULL OR flashcard_reminder_next_at <= ?) " +
+    "ORDER BY COALESCE(flashcard_reminder_next_at, 0) ASC LIMIT 100"
+  ).bind(nowSeconds).all();
+
+  let usersChecked = 0;
+  let notificationsCreated = 0;
+  let pushesSent = 0;
+  let endpointsRemoved = 0;
+
+  for (const student of due.results || []) {
+    usersChecked++;
+    const timeZone = validTimeZone(student.time_zone) ? student.time_zone : "Africa/Lagos";
+    const nextAt = student.flashcard_reminder_next_at == null ? null : Number(student.flashcard_reminder_next_at);
+
+    // Initialise newly opted-in accounts for the next upcoming local 6 pm.
+    if (nextAt === null) {
+      const initialAt = nextLocalSixPm(Date.now(), timeZone);
+      await env.DB.prepare(
+        "UPDATE student_profiles SET flashcard_reminder_next_at = ? WHERE id = ? AND flashcard_reminders_enabled = 1 AND flashcard_reminder_next_at IS NULL"
+      ).bind(initialAt, student.id).run();
+      continue;
+    }
+
+    // Recalculate if a timezone change or clock correction made the queued time early.
+    const localNow = zonedClockParts(new Date(), timeZone);
+    if (localNow.hour < 18) {
+      const correctedAt = nextLocalSixPm(Date.now(), timeZone);
+      await env.DB.prepare(
+        "UPDATE student_profiles SET flashcard_reminder_next_at = ? WHERE id = ? AND flashcard_reminders_enabled = 1"
+      ).bind(correctedAt, student.id).run();
+      continue;
+    }
+
+    const localDate = [
+      String(localNow.year).padStart(4, "0"),
+      String(localNow.month).padStart(2, "0"),
+      String(localNow.day).padStart(2, "0")
+    ].join("-");
+    const dedupeKey = "flashcard-practice:" + student.id + ":" + localDate;
+    const notification = await env.DB.prepare(
+      "INSERT OR IGNORE INTO student_notifications " +
+      "(id, user_id, dedupe_key, kind, title, message, destination, created_at) " +
+      "VALUES (?, ?, ?, 'flashcard_practice_reminder', 'Time for your flashcards', " +
+      "'Take a few minutes to practise your flashcards and strengthen today’s learning.', 'study', unixepoch()) " +
+      "RETURNING id"
+    ).bind(crypto.randomUUID(), student.id, dedupeKey).first();
+
+    if (notification) {
+      notificationsCreated++;
+      const subscriptions = await env.DB.prepare(
+        "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?"
+      ).bind(student.id).all();
+
+      for (const subscription of subscriptions.results || []) {
+        try {
+          const status = await sendPush(subscription, {
+            title: "Your 6 pm flashcard practice 💙",
+            body: "Take a few minutes to practise your flashcards and strengthen today’s learning.",
+            url: "/?open=flashcards",
+            tag: "clerkme-flashcards-" + student.id + "-" + localDate
+          }, env);
+          if (status === 201 || status === 202) {
+            pushesSent++;
+            await env.DB.prepare(
+              "UPDATE push_subscriptions SET last_success_at = unixepoch() WHERE id = ?"
+            ).bind(subscription.id).run();
+          } else if (status === 404 || status === 410) {
+            await env.DB.prepare("DELETE FROM push_subscriptions WHERE id = ?")
+              .bind(subscription.id).run();
+            endpointsRemoved++;
+          } else {
+            console.error("[clerkme-reminders] Flashcard push returned status", status);
+          }
+        } catch (error) {
+          console.error("[clerkme-reminders] Flashcard push failed.", error instanceof Error ? error.message : "unknown error");
+        }
+      }
+    }
+
+    const tomorrow = new Date(Date.UTC(localNow.year, localNow.month - 1, localNow.day + 1));
+    const nextReminder = localClockToEpochSeconds(
+      tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() + 1, tomorrow.getUTCDate(), 18, 0, timeZone
+    );
+    await env.DB.prepare(
+      "UPDATE student_profiles SET flashcard_reminder_sent_on = ?, flashcard_reminder_next_at = ? " +
+      "WHERE id = ? AND flashcard_reminders_enabled = 1"
+    ).bind(localDate, nextReminder, student.id).run();
+  }
+
+  return { usersChecked, notificationsCreated, pushesSent, endpointsRemoved };
+}
+
 export default {
   async scheduled(_controller, env, _ctx) {
     if (env.CRON_TOKEN) {
@@ -166,6 +310,12 @@ export default {
     }
     const pushResult = await sendPushReminders(env);
     console.log("[clerkme-reminders] Push batch:", JSON.stringify(pushResult));
+    try {
+      const flashcardResult = await sendFlashcardPracticeReminders(env);
+      console.log("[clerkme-reminders] Flashcard practice batch:", JSON.stringify(flashcardResult));
+    } catch (error) {
+      console.error("[clerkme-reminders] Flashcard practice batch failed.", error instanceof Error ? error.message : "unknown error");
+    }
   },
   async fetch(request, env) {
     const url = new URL(request.url);

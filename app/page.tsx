@@ -20,12 +20,15 @@ const loadAskClerkMePanel = () => import("./ask-clerkme");
 const loadMessagingHub = () => import("./messaging-hub");
 const loadUnitClerkingData = () => import("../lib/unit-clerking");
 
-const workspacePreloadBatches: Array<Array<() => Promise<unknown>>> = [
-  [loadMaterialsPanel, loadVideoLibraryPanel, loadClinicalGuides],
-  [loadFlashcardsPanel, loadLearningQuestionBank, loadMessagingHub],
-  [loadClinicalSimulation, loadAdaptiveFlightGame, loadAskClerkMePanel, loadUnitClerkingData]
+const workspacePreloaders: Array<() => Promise<unknown>> = [
+  loadMaterialsPanel, loadVideoLibraryPanel, loadClinicalGuides,
+  loadFlashcardsPanel, loadLearningQuestionBank, loadMessagingHub,
+  loadClinicalSimulation, loadAdaptiveFlightGame, loadAskClerkMePanel,
+  loadUnitClerkingData
 ];
-const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span className="cmh-entry-spinner" aria-hidden="true"><i /></span><span>Preparing workspace…</span></div>;
+// Keep the fallback quiet and still; the workspace chunks are warmed together
+// after authentication so normal navigation does not show a rolling loader.
+const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span>Opening workspace…</span></div>;
 const ClinicalGuides = dynamic(loadClinicalGuides, { ssr: false, loading: deferredPanel });
 const MaterialsPanel = dynamic(loadMaterialsPanel, { ssr: false, loading: deferredPanel });
 const VideoLibraryPanel = dynamic(loadVideoLibraryPanel, { ssr: false, loading: deferredPanel });
@@ -51,11 +54,10 @@ const ClerkMeMessagingHub = dynamic(loadMessagingHub, {
   ssr: false,
   loading: () => (
     <section className="cmh-entry-state cmh-entry-loading" role="status" aria-live="polite">
-      <span className="cmh-entry-spinner" aria-hidden="true"><i /></span>
       <div>
         <span className="cmh-eyebrow">CLERKME CONNECT</span>
         <h1>Opening your messages</h1>
-        <p>Loading your chats and student connections…</p>
+        <p>Preparing your chats and student connections…</p>
       </div>
     </section>
   ),
@@ -786,23 +788,28 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
-  // Warm large workspace chunks after the signed-in dashboard has painted.
-  // Each batch is deliberately small so background imports do not block the
-  // first interaction or compete heavily with API requests on mobile networks.
+  // Warm every major workspace chunk in parallel immediately after sign-in.
+  // This avoids serial chunk-loading pauses when students move between tools.
   useEffect(() => {
     if (!authUser?.id) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void (async () => {
-        for (const batch of workspacePreloadBatches) {
-          if (cancelled) return;
-          await Promise.allSettled(batch.map(load => load()));
-          if (cancelled) return;
-          await new Promise<void>(resolve => window.setTimeout(resolve, 120));
-        }
-      })();
-    }, 350);
+      if (!cancelled) void Promise.allSettled(workspacePreloaders.map(load => load()));
+    }, 100);
     return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [authUser?.id]);
+
+  // Keep the student's reminder schedule aligned with the device's IANA timezone.
+  // The server only writes when the timezone actually changes.
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Lagos";
+    void fetch("/api/reminders/preferences", {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ timeZone })
+    }).catch(() => {});
   }, [authUser?.id]);
 
   // Also preserve visited study/reference panels. Their data stays in memory
@@ -852,9 +859,13 @@ export default function Home() {
     if (!authUser) return;
     const url = new URL(window.location.href);
     const openTarget = url.searchParams.get("open");
-    if (openTarget !== "messages" && openTarget !== "connections") return;
-    setActive("messages");
-    setMessagingInitialSection(openTarget === "connections" ? "connections" : "chats");
+    if (openTarget === "flashcards") {
+      setActive("flashcards");
+      setVisitedSections(current => current.has("flashcards") ? current : new Set(current).add("flashcards"));
+    } else if (openTarget === "messages" || openTarget === "connections") {
+      setActive("messages");
+      setMessagingInitialSection(openTarget === "connections" ? "connections" : "chats");
+    } else return;
     url.searchParams.delete("open");
     window.history.replaceState({}, "", url.pathname + url.search + url.hash);
   }, [authUser?.id]);

@@ -13,4 +13,4 @@ VAPID_PUBLIC_KEY = "BOmGKXo7G7bdhAbeMMHds5rpr8PDmrsh_QMVZ3LI8lvIwaWrXYYqF7XrYfzu
 VAPID_SUBJECT = "mailto:accounts@mail.clerkme.com.ng"
 
 [triggers]
-crons = ["*/15 * * * *"]
+crons = ["*/5 * * * *"]

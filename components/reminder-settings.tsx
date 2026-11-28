@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-type ReminderPreferences = { emailRemindersEnabled: boolean; messageAlertsEnabled: boolean; vapidPublicKey: string };
+type ReminderPreferences = { emailRemindersEnabled: boolean; messageAlertsEnabled: boolean; flashcardRemindersEnabled: boolean; timeZone: string; vapidPublicKey: string };
 function decodeApplicationServerKey(value: string): Uint8Array {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
   const raw = atob(padded);
@@ -9,6 +9,7 @@ function decodeApplicationServerKey(value: string): Uint8Array {
 export default function ReminderSettings() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [messageAlertsEnabled, setMessageAlertsEnabled] = useState(true);
+  const [flashcardRemindersEnabled, setFlashcardRemindersEnabled] = useState(true);
   const [vapidPublicKey, setVapidPublicKey] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -21,7 +22,18 @@ export default function ReminderSettings() {
       const response = await fetch("/api/reminders/preferences", { credentials: "same-origin", cache: "no-store" });
       if (!response.ok) throw new Error("We could not load your reminder preferences.");
       const data = await response.json() as ReminderPreferences;
-      setEmailEnabled(data.emailRemindersEnabled !== false); setMessageAlertsEnabled(data.messageAlertsEnabled !== false); setVapidPublicKey(data.vapidPublicKey || "");
+      setEmailEnabled(data.emailRemindersEnabled !== false);
+      setMessageAlertsEnabled(data.messageAlertsEnabled !== false);
+      setFlashcardRemindersEnabled(data.flashcardRemindersEnabled !== false);
+      setVapidPublicKey(data.vapidPublicKey || "");
+      const deviceTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Africa/Lagos";
+      if (deviceTimeZone && deviceTimeZone !== data.timeZone) {
+        void fetch("/api/reminders/preferences", {
+          method: "PATCH", credentials: "same-origin",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({ timeZone: deviceTimeZone })
+        }).catch(() => {});
+      }
       if (pushSupported) {
         const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
         setPushEnabled(Boolean(data.vapidPublicKey && await registration.pushManager.getSubscription()));
@@ -50,6 +62,24 @@ export default function ReminderSettings() {
     } catch (reason) { setMessageAlertsEnabled(previous); setError(reason instanceof Error ? reason.message : "Your message-alert preference could not be saved."); }
     finally { setBusy(false); }
   };
+  const updateFlashcardReminders = async (enabled: boolean) => {
+    setBusy(true); setError(""); setNotice("");
+    const previous = flashcardRemindersEnabled;
+    setFlashcardRemindersEnabled(enabled);
+    try {
+      const response = await fetch("/api/reminders/preferences", {
+        method: "PATCH", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ flashcardRemindersEnabled: enabled })
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Your flashcard reminder preference could not be saved.");
+      setNotice(enabled ? "Daily flashcard practice reminders are on for 6:00 pm local time." : "Daily flashcard practice reminders are switched off.");
+    } catch (reason) {
+      setFlashcardRemindersEnabled(previous);
+      setError(reason instanceof Error ? reason.message : "Your flashcard reminder preference could not be saved.");
+    } finally { setBusy(false); }
+  };
   const enablePush = async () => {
     setBusy(true); setError(""); setNotice("");
     try {
@@ -64,7 +94,7 @@ export default function ReminderSettings() {
       const response = await fetch("/api/push/subscriptions", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(subscription.toJSON()) });
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error || "Your phone could not be registered for notifications.");
-      setPushEnabled(true); setNotice("Phone reminders are on. ClerkMe will keep the little notes occasional and kind.");
+      setPushEnabled(true); setNotice("Phone notifications are on for your messages, connections and daily study reminders.");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Phone notifications could not be enabled."); }
     finally { setBusy(false); }
   };
@@ -89,12 +119,13 @@ export default function ReminderSettings() {
     <div className="account-settings-group-heading"><span className="account-settings-icon" aria-hidden="true">♡</span><div><h3>A little note from ClerkMe</h3><p>Stay connected, even when you are away studying elsewhere.</p></div></div>
     <div className="reminder-intro-note"><span aria-hidden="true">💙</span><p>We know life and medical school can get busy. When we have not seen you for 48 hours, ClerkMe can send a gentle hello and remind you that your study space is right where you left it. No guilt, just encouragement.</p></div>
     <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Email reminders</strong><small>Receive one warm email after 48 hours away. You can turn this off whenever you like.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={emailEnabled} aria-label="Email reminders" disabled={loading || busy} onClick={() => void updateEmail(!emailEnabled)}><span/></button></div>
+    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Daily flashcard practice</strong><small>Get a gentle reminder every day at 6:00 pm in your local time. Open it to go straight to your flashcards.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={flashcardRemindersEnabled} aria-label="Daily flashcard practice reminders" disabled={loading || busy} onClick={() => void updateFlashcardReminders(!flashcardRemindersEnabled)}><span/></button></div>
     <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Messages and connection alerts</strong><small>Get an alert when another student sends a private message or connection request. This is on by default, and you can switch it off whenever you like.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={messageAlertsEnabled} aria-label="Message and connection alerts" disabled={loading || busy} onClick={() => void updateMessageAlerts(!messageAlertsEnabled)}><span/></button></div>
-    <p className="reminder-settings-footnote">To receive message and connection alerts while ClerkMe is closed, allow phone notifications on this device below. Your browser will ask for permission.</p>
-    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Phone notifications on this device</strong><small>Let ClerkMe send a notification to your device, even when the website is closed.</small></div><span aria-hidden="true" style={{fontSize:11,fontWeight:750,color:pushEnabled?"#16804b":"var(--clerkme-muted)"}}>{pushEnabled ? "ON" : "OFF"}</span></div>
+    <p className="reminder-settings-footnote">To receive message, connection and 6 pm flashcard alerts while ClerkMe is closed, allow phone notifications on this device below. Your browser will ask for permission.</p>
+    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Phone notifications on this device</strong><small>Let ClerkMe send message alerts and your daily flashcard reminder to this device, even when the website is closed.</small></div><span aria-hidden="true" style={{fontSize:11,fontWeight:750,color:pushEnabled?"#16804b":"var(--clerkme-muted)"}}>{pushEnabled ? "ON" : "OFF"}</span></div>
     {pushSupported && vapidPublicKey ? <button type="button" className="reminder-push-button" disabled={loading || busy} onClick={() => void (pushEnabled ? disablePush() : enablePush())}>{busy ? "Saving your choice…" : pushEnabled ? "Turn off phone notifications" : "Enable phone notifications"}</button> : <p className="reminder-settings-footnote">{pushSupported ? "Phone notifications are being prepared. Email reminders are available now." : "This browser does not support background phone notifications. Email reminders can still reach you."}</p>}
     {isIos && !isStandalone && <p className="reminder-settings-footnote">On iPhone or iPad, first add ClerkMe to your Home Screen, open it from that icon, then enable notifications here.</p>}
     {error && <p className="reminder-feedback is-error" role="alert">{error}</p>}{notice && <p className="reminder-feedback is-success" role="status">{notice}</p>}
-    <p className="reminder-settings-footnote">Your choices are private. Phone notifications require your permission. We send at most one reminder per channel until you visit ClerkMe again.</p>
+    <p className="reminder-settings-footnote">Your choices are private. Daily practice reminders appear in ClerkMe; to receive them while the app is closed, enable phone notifications on this device above.</p>
   </article>;
 }
