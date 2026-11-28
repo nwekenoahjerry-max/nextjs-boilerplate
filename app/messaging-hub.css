@@ -152,3 +152,10 @@
  .cmh-file-browse{padding:8px 10px}
 }
 @media(prefers-reduced-motion:reduce){.cmh-tab-icon{transition:none}}
+
+/* Keyboard and touch refinements for the media picker and story viewer */
+.cmh-create-modal .cmh-file-picker-label{flex-direction:row;align-items:center}
+.cmh-file-picker input:focus-visible+.cmh-file-picker-label{outline:3px solid #7da4d4;outline-offset:3px}
+.cmh-story-stage{touch-action:pan-y}
+.cmh-story-nav{touch-action:manipulation}
+@media(max-width:760px){.cmh-story-nav{width:38px;height:48px}}

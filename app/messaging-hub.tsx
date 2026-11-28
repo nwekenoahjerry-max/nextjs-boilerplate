@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import DirectMessagesPanel from "./direct-messages";
 
 type Audience = "everyone" | "conversations" | "only_me";
@@ -114,6 +114,7 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
   const [replyText,setReplyText]=useState("");
   const [viewers,setViewers]=useState<Array<{id:string;name:string;university:string;viewedAt:number}>|null>(null);
   const [viewersLoading,setViewersLoading]=useState(false);
+  const touchStartX=useRef<number|null>(null);
 
   const loadStatuses=useCallback(async()=>{
     setError("");
@@ -297,7 +298,7 @@ function StatusPanel({userId,onReply}:{userId:string;onReply:(status:Status,draf
       <section className="cmh-story-viewer" role="dialog" aria-modal="true" aria-label={viewerGroup.name+"'s status"}>
         <div className="cmh-story-progress" aria-label={"Status "+(viewerIndex+1)+" of "+stories.length}>{stories.map((story,index)=><span key={story.id} className={index<=viewerIndex?"is-filled":""}/>)}</div>
         <header className="cmh-story-header"><span className="cmh-story-avatar">{initials(viewerGroup.name)}</span><div><strong>{viewerGroup.name}</strong><small>{relativeAge(current.createdAt)} · {remaining(current.expiresAt)}</small></div><button type="button" onClick={()=>setViewerGroup(null)} aria-label="Close status"><CmhIcon name="close"/></button></header>
-        <div className="cmh-story-stage">
+        <div className="cmh-story-stage" onTouchStart={event=>{touchStartX.current=event.changedTouches[0]?.clientX??null;}} onTouchEnd={event=>{const start=touchStartX.current;touchStartX.current=null;if(start===null)return;const end=event.changedTouches[0]?.clientX??start;const delta=end-start;if(Math.abs(delta)>48)setViewerIndex(index=>Math.max(0,Math.min(stories.length-1,index+(delta<0?1:-1))));}}>
           {current.mediaUrl&&current.mediaType?.startsWith("image/")?<img src={current.mediaUrl} alt={"Status from "+viewerGroup.name}/>:
             current.mediaUrl&&current.mediaType?.startsWith("video/")?<video src={current.mediaUrl} controls autoPlay playsInline/>:
             <div className="cmh-story-text" style={{background:current.background}}>{current.body}</div>}
