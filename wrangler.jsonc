@@ -23,7 +23,8 @@
           {
             "name": "CHAT_ROOMS",
             "class_name": "ConversationRoom",
-            "script_name": "clerkme-chat-preview"
+            "script_name": "clerkme-chat-preview",
+            "environment": "production"
           }
         ]
       },
@@ -47,7 +48,8 @@
           {
             "name": "CHAT_ROOMS",
             "class_name": "ConversationRoom",
-            "script_name": "clerkme-chat"
+            "script_name": "clerkme-chat",
+            "environment": "production"
           }
         ]
       },
