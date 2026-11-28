@@ -179,10 +179,12 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
 
-  // A single bounded retry handles transient Google gateway failures without
-  // reverting to the retired 3.1 model or keeping the browser waiting too long.
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+  // Try Gemini 3.8 first, retry one transient failure, then make one
+  // bounded attempt with the previously supported 3.1 Live preview.
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const model = models[modelIndex];
+    const attempts = modelIndex === 0 ? 2 : 1;
+    for (let attempt = 0; attempt < attempts; attempt++) {
       const startedAt = Date.now();
       let shouldRetry = false;
       try {
@@ -201,7 +203,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
               }
             }
           }),
-          signal: AbortSignal.timeout(9000)
+          signal: AbortSignal.timeout(7000)
         });
 
         const raw = await response.text();
@@ -221,7 +223,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         shouldRetry = retryableStatuses.has(response.status);
         console.warn("[ClerkME] Live token model attempt failed.", {
           requestId, model, attempt: attempt + 1, status: lastStatus,
-          upstreamCode: lastCode, retrying: shouldRetry && attempt === 0,
+          upstreamCode: lastCode, retrying: shouldRetry && attempt + 1 < attempts,
           durationMs: Date.now() - startedAt
         });
       } catch (error) {
@@ -231,11 +233,11 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
         shouldRetry = true;
         console.warn("[ClerkME] Live token model attempt did not complete.", {
           requestId, model, attempt: attempt + 1, upstreamCode: lastCode,
-          retrying: attempt === 0, durationMs: Date.now() - startedAt
+          retrying: attempt + 1 < attempts, durationMs: Date.now() - startedAt
         });
       }
 
-      if (!shouldRetry || attempt === 1) break;
+      if (!shouldRetry || attempt + 1 >= attempts) break;
       await new Promise(resolve => setTimeout(resolve, 350));
     }
   }
