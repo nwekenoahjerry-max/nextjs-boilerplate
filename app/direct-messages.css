@@ -220,3 +220,52 @@
 }\n
 .dm-call-audio-enable{min-height:34px;padding:7px 11px;border:1px solid var(--dm-border);border-radius:9px;background:#e8eff8;color:#173765;font-size:.7rem;font-weight:800;cursor:pointer}
 [data-theme="dark"] .dm-call-audio-enable{background:#263d5a;color:#e4effd;border-color:#405875}
+
+
+/* Messages navigation unread indicators. The count comes from the conversation read markers. */
+.nav-list .nav-icon,
+.mobile-dock-icon-wrap{position:relative}
+.nav-unread-badge{
+  position:absolute;top:-7px;right:-12px;z-index:3;
+  display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;
+  border:2px solid #fff;border-radius:999px;background:#d9434f;color:#fff;
+  font-size:9px;font-weight:900;line-height:1;letter-spacing:0;
+  box-shadow:0 2px 6px #102d5a30;white-space:nowrap;
+}
+.mobile-dock-icon-wrap .nav-unread-badge{top:-8px;right:-10px;min-width:19px;height:19px;font-size:9px}
+[data-theme="dark"] .nav-unread-badge{border-color:#132136;background:#e34d59;color:#fff}
+
+@media(max-width:760px){
+  /* When a conversation is open, give the chat the screen instead of repeating the page heading. */
+  .clerkme-dm-page.has-open-conversation .dm-page-heading{display:none}
+  .clerkme-dm-page.has-open-conversation{gap:10px;min-height:0}
+  .clerkme-dm-page.has-open-conversation .dm-workspace{
+    height:calc(100dvh - 194px);min-height:min(420px,calc(100dvh - 194px));
+    max-height:calc(100dvh - 194px);margin-top:0;
+  }
+  .dm-thread{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+  .dm-message-scroll{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .dm-composer{
+    position:relative;bottom:auto;z-index:4;flex:0 0 auto;
+    border-top:1px solid var(--dm-border);
+    padding:10px 10px max(10px,env(safe-area-inset-bottom));
+    background:var(--surface,#fff);
+    box-shadow:0 -8px 20px #102d5a13;
+  }
+  .dm-composer-input-row textarea{
+    min-height:54px;max-height:112px;resize:none;
+    padding:12px 13px;font-size:16px;line-height:1.35;
+  }
+  .dm-composer-footer{display:none}
+  .mobile-dock-icon-wrap{display:grid;place-items:center;min-width:22px;min-height:23px}
+  .mobile-dock-icon-wrap .nav-unread-badge{right:-10px;top:-5px}
+}
+@media(max-width:390px){
+  .clerkme-dm-page.has-open-conversation .dm-workspace{
+    height:calc(100dvh - 194px);max-height:calc(100dvh - 194px);
+    min-height:min(390px,calc(100dvh - 194px));
+  }
+  .dm-composer{padding-left:8px;padding-right:8px}
+  .dm-composer-input-row{grid-template-columns:minmax(0,1fr) 44px 68px;gap:5px}
+  .dm-composer-input-row textarea{font-size:16px;padding:11px}
+}
