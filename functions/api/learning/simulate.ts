@@ -1,7 +1,7 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-const LIVE_PATIENT_MODEL = "models/gemini-3.1-flash-live-preview";
+const LIVE_PATIENT_MODEL = "models/gemini-3.8-live";
 const ALLOWED_UNITS = ["general-medicine","surgery","paediatrics","obstetrics-gynaecology","emergency","psychiatry","community-medicine","orthopaedics"];
 
 type CaseProfile = {
@@ -76,7 +76,7 @@ const UNIT_FOCUS:Record<string,string>={
   orthopaedics:"Focus on injury mechanism, anatomy, function, open wounds, distal neurovascular status and limb/spinal red flags."
 };
 
-export const onRequestPost = async (context:AppContext) => {
+const handleSimulationPost = async (context:AppContext) => {
   if(!validSameOrigin(context.request)) return json({error:"Invalid request origin."},403);
   const user=await requireUser(context);
   if(isResponse(user)) return user;
@@ -91,7 +91,7 @@ export const onRequestPost = async (context:AppContext) => {
   }
 
   if(intent==="live-token"){
-    const apiKey=context.env.GEMINI_API_KEY;
+    const apiKey=context.env.GEMINI_API_KEY?.trim();
     if(!apiKey) return json({error:"Live patient calls are not available right now. You can continue with the text interview."},503);
 
     const patientVoicePrompt=[
@@ -112,49 +112,65 @@ export const onRequestPost = async (context:AppContext) => {
       "When asked to begin the call, say only the opening statement above, in a natural patient voice, then wait quietly for the student's next question."
     ].join("\n\n");
 
-    const now=Date.now();
-    const expireTime=new Date(now+30*60*1000).toISOString();
-    const newSessionExpireTime=new Date(now+60*1000).toISOString();
     const voiceName=profile.sex.toLowerCase().includes("female")?"Kore":"Puck";
-
-    try{
-      const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},
-        body:JSON.stringify({
-          uses:1,
-          expireTime,
-          newSessionExpireTime,
-          liveConnectConstraints:{
-            model:LIVE_PATIENT_MODEL,
-            config:{
-              systemInstruction:{parts:[{text:patientVoicePrompt}]},
-              responseModalities:["AUDIO"],
-              speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
-              inputAudioTranscription:{},
-              outputAudioTranscription:{},
-              realtimeInputConfig:{automaticActivityDetection:{disabled:true}},
-              sessionResumption:{}
+    const retryableStatuses=new Set([408,429,500,502,503,504]);
+    let lastStatus=0;
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        const now=Date.now();
+        const expireTime=new Date(now+30*60*1000).toISOString();
+        const newSessionExpireTime=new Date(now+60*1000).toISOString();
+        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","Accept":"application/json","x-goog-api-key":apiKey},
+          body:JSON.stringify({
+            uses:1,
+            expireTime,
+            newSessionExpireTime,
+            liveConnectConstraints:{
+              model:LIVE_PATIENT_MODEL,
+              config:{
+                systemInstruction:{parts:[{text:patientVoicePrompt}]},
+                responseModalities:["AUDIO"],
+                speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
+                inputAudioTranscription:{},
+                outputAudioTranscription:{},
+                sessionResumption:{}
+              }
             }
-          }
-        }),
-        signal:AbortSignal.timeout(15000)
-      });
-      const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string}};
-      if(!tokenResponse.ok||!tokenData.name){
-        console.error("[ClerkMe] Live patient session token could not be created.",{
-          status:tokenResponse.status,
-          detail:clean(tokenData.error?.message,300)
+          }),
+          signal:AbortSignal.timeout(9000)
         });
-        return json({error:"ClerkMe could not start the live patient call just now. Your case is still available as a text interview. Please try again shortly."},502);
+        const tokenData=await tokenResponse.json().catch(()=>({})) as {name?:string;error?:{message?:string}};
+        if(tokenResponse.ok&&typeof tokenData.name==="string"&&tokenData.name){
+          console.info("[ClerkMe] Live patient token provisioned.",{unit,caseId,model:LIVE_PATIENT_MODEL,attempt:attempt+1});
+          return json({token:tokenData.name,expiresAt:expireTime,model:LIVE_PATIENT_MODEL});
+        }
+        lastStatus=tokenResponse.status;
+        console.warn("[ClerkMe] Live patient token request failed.",{
+          unit,caseId,status:lastStatus,attempt:attempt+1,retrying:retryableStatuses.has(lastStatus)&&attempt===0,
+          detail:clean(tokenData.error?.message,220)
+        });
+        if(!retryableStatuses.has(lastStatus)||attempt===1) break;
+      }catch(error){
+        lastStatus=0;
+        console.warn("[ClerkMe] Live patient token request did not complete.",{
+          unit,caseId,attempt:attempt+1,retrying:attempt===0,
+          detail:error instanceof Error?clean(error.message,220):"Unknown error"
+        });
+        if(attempt===1) break;
       }
-      return json({token:tokenData.name,expiresAt:expireTime});
-    }catch(error){
-      console.error("[ClerkMe] Live patient session setup failed:",error instanceof Error?error.message:"Unknown error");
-      return json({error:"ClerkMe could not connect the live patient call. Check your internet connection and try again."},502);
+      await new Promise(resolve=>setTimeout(resolve,350));
     }
-  }
 
+    return json({
+      error:lastStatus===401||lastStatus===403
+        ?"The Live patient service could not authorise the current Gemini credentials. Please contact support."
+        :lastStatus===429
+          ?"The Live patient service has reached its current usage limit. Please try again later."
+          :"ClerkMe could not start the live patient call just now. Your case is still available as a text interview. Please try again shortly."
+    },lastStatus===429?429:502);
+  }
   if(!context.env.AI) return json({error:"The patient interview service is temporarily unavailable. Please try again shortly."},503);
   const studentInput=clean(body.studentInput,2400);
   const history=Array.isArray(body.history)?body.history.slice(-24).map(item=>{
@@ -250,5 +266,24 @@ export const onRequestPost = async (context:AppContext) => {
     return json(response);
   }catch(error){
     return aiFailureResponse(error, "The patient interview is temporarily unavailable. Please try again later.");
+  }
+};
+
+
+/** Keep unexpected authentication/database/runtime failures inside a traceable JSON API response. */
+export const onRequestPost = async (context:AppContext) => {
+  const requestId=crypto.randomUUID().slice(0,12);
+  try {
+    return await handleSimulationPost(context);
+  } catch(error) {
+    console.error("[ClerkMe] Clinical simulation route failed unexpectedly.", {
+      requestId,
+      detail:error instanceof Error ? error.message.slice(0,240) : "Unknown simulation route failure"
+    });
+    return json({
+      error:"ClerkMe could not initialise the clinical simulation service. Please retry.",
+      code:"SIMULATION_ROUTE_FAILURE",
+      requestId
+    },500);
   }
 };

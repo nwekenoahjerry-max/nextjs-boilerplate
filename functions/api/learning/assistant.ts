@@ -171,58 +171,71 @@ async function askWorkersAITutor(
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
   const models = [LIVE_MODEL] as const;
+  const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
   let lastStatus = 0;
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
 
-  // Each model gets one bounded attempt. The previous nested retry loop could
-  // make six sequential 20-second requests, outlasting the browser request
-  // and allowing the one-minute token-start window to expire before delivery.
+  // A single bounded retry handles transient Google gateway failures without
+  // reverting to the retired 3.1 model or keeping the browser waiting too long.
   for (const model of models) {
-    const startedAt = Date.now();
-    try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
-        body: JSON.stringify({
-          uses: 1,
-          expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-          newSessionExpireTime: new Date(Date.now() + 60 * 1000).toISOString(),
-          liveConnectConstraints: {
-            model,
-            config: {
-              sessionResumption: {},
-              responseModalities: ["AUDIO"]
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const startedAt = Date.now();
+      let shouldRetry = false;
+      try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey, "Accept": "application/json" },
+          body: JSON.stringify({
+            uses: 1,
+            expireTime: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+            newSessionExpireTime: new Date(Date.now() + 60 * 1000).toISOString(),
+            liveConnectConstraints: {
+              model,
+              config: {
+                sessionResumption: {},
+                responseModalities: ["AUDIO"]
+              }
             }
-          }
-        }),
-        signal: AbortSignal.timeout(9000)
-      });
+          }),
+          signal: AbortSignal.timeout(9000)
+        });
 
-      const raw = await response.text();
-      let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
-      try { data = JSON.parse(raw) as typeof data; } catch { /* Keep the upstream response safely bounded below. */ }
+        const raw = await response.text();
+        let data: { name?: string; error?: { message?: string; status?: string; code?: number } } = {};
+        try { data = JSON.parse(raw) as typeof data; } catch { /* Keep the upstream response safely bounded below. */ }
 
-      if (response.ok && typeof data.name === "string" && data.name.trim()) {
-        console.info("[ClerkME] Live token provisioned.", { requestId, model, durationMs: Date.now() - startedAt });
-        return { name: data.name.trim(), systemInstruction, model };
+        if (response.ok && typeof data.name === "string" && data.name.trim()) {
+          console.info("[ClerkME] Live token provisioned.", {
+            requestId, model, attempt: attempt + 1, durationMs: Date.now() - startedAt
+          });
+          return { name: data.name.trim(), systemInstruction, model };
+        }
+
+        lastStatus = response.status;
+        lastCode = data.error?.status || "HTTP_ERROR";
+        lastDetail = clean(data.error?.message || raw, 240);
+        shouldRetry = retryableStatuses.has(response.status);
+        console.warn("[ClerkME] Live token model attempt failed.", {
+          requestId, model, attempt: attempt + 1, status: lastStatus,
+          upstreamCode: lastCode, retrying: shouldRetry && attempt === 0,
+          durationMs: Date.now() - startedAt
+        });
+      } catch (error) {
+        lastStatus = 0;
+        lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
+        lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
+        shouldRetry = true;
+        console.warn("[ClerkME] Live token model attempt did not complete.", {
+          requestId, model, attempt: attempt + 1, upstreamCode: lastCode,
+          retrying: attempt === 0, durationMs: Date.now() - startedAt
+        });
       }
 
-      lastStatus = response.status;
-      lastCode = data.error?.status || "HTTP_ERROR";
-      lastDetail = clean(data.error?.message || raw, 240);
-      console.warn("[ClerkME] Live token model attempt failed.", {
-        requestId, model, status: lastStatus, upstreamCode: lastCode, durationMs: Date.now() - startedAt
-      });
-    } catch (error) {
-      lastStatus = 0;
-      lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
-      lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
-      console.warn("[ClerkME] Live token model attempt did not complete.", {
-        requestId, model, upstreamCode: lastCode, durationMs: Date.now() - startedAt
-      });
+      if (!shouldRetry || attempt === 1) break;
+      await new Promise(resolve => setTimeout(resolve, 350));
     }
   }
 
@@ -232,6 +245,7 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   if (!lastStatus) throw new Error("LIVE_TOKEN_NETWORK_" + lastCode);
   throw new Error("LIVE_TOKEN_UPSTREAM_" + lastStatus + "_" + lastCode.replace(/[^A-Z_]/g, "_") + "|" + lastDetail);
 }
+
 type GeneratedImageResponse = {
   output_image?: { data?: string; mime_type?: string };
   steps?: Array<{ content?: Array<{ type?: string; data?: string; mime_type?: string }> }>;
