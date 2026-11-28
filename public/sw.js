@@ -60,12 +60,18 @@ self.addEventListener("push", event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; }
   catch { payload = { body: event.data ? event.data.text() : "" }; }
-  event.waitUntil(self.registration.showNotification(payload.title || "ClerkMe has missed you 💙", {
-    body: payload.body || "Your clinical learning space is waiting whenever you are ready.",
-    icon: "/clerkme-192.png", badge: "/clerkme-192.png",
-    tag: payload.tag || "clerkme-gentle-reengagement", renotify: false,
-    data: { url: payload.url || "/" }, timestamp: Date.now()
-  }));
+  event.waitUntil((async () => {
+    // A live socket can remain connected while a tab is hidden. Avoid noisy
+    // duplicate notifications only when a ClerkMe window is actually visible.
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    if (windows.some(client => client.visibilityState === "visible")) return;
+    await self.registration.showNotification(payload.title || "ClerkMe has missed you 💙", {
+      body: payload.body || "Your clinical learning space is waiting whenever you are ready.",
+      icon: "/clerkme-192.png", badge: "/clerkme-192.png",
+      tag: payload.tag || "clerkme-gentle-reengagement", renotify: false,
+      data: { url: payload.url || "/" }, timestamp: Date.now()
+    });
+  })());
 });
 self.addEventListener("notificationclick", event => {
   event.notification.close();

@@ -17,6 +17,7 @@ function timeAgo(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(new Date(timestamp * 1000));
 }
 function NotificationIcon({ kind }: { kind: string }) {
+  if (kind.includes("direct_message")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>;
   if (kind.includes("failed")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4M12 16.5v.1"/></svg>;
   if (kind.includes("sba")) return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h2M13 12h3M8 16h8"/></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v18H7.5A2.5 2.5 0 0 0 5 22V4.5Z"/><path d="M5 18a2.5 2.5 0 0 1 2.5-2H19M9 7h6M9 11h6"/></svg>;
@@ -43,10 +44,15 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
   }, []);
   useEffect(() => {
     void load();
+    const refresh = () => { void load(true); };
+    window.addEventListener("clerkme:notifications-refresh", refresh);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void load(true);
     }, 45000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("clerkme:notifications-refresh", refresh);
+    };
   }, [load]);
   const markRead = async (id?: string) => {
     const previous = items;
@@ -64,7 +70,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
   const activate = async (item: Notification) => {
     if (!item.isRead) await markRead(item.id);
     setOpen(false);
-    onNavigate(item.destination);
+    onNavigate(item.kind === "direct_message" ? "messages" : item.destination);
   };
   return (
     <div className="notification-center">
@@ -91,7 +97,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
             ) : items.map(item => (
               <button type="button" className={"notification-item" + (item.isRead ? "" : " is-unread")} key={item.id} onClick={() => void activate(item)}>
                 <span className={"notification-item-icon" + (item.kind.includes("failed") ? " is-warning" : "")}><NotificationIcon kind={item.kind}/></span>
-                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {destinationLabels[item.destination]}</em></span>
+                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" ? "Open messages" : destinationLabels[item.destination]}</em></span>
                 {!item.isRead && <i className="notification-unread-dot" aria-label="Unread"/>}
               </button>
             ))}

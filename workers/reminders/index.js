@@ -168,7 +168,55 @@ export default {
     console.log("[clerkme-reminders] Push batch:", JSON.stringify(pushResult));
   },
   async fetch(request, env) {
-    if (new URL(request.url).pathname === "/health") return Response.json({ ok: true, service: "clerkme-reminders" });
+    const url = new URL(request.url);
+    if (url.pathname === "/health") return Response.json({ ok: true, service: "clerkme-reminders" });
+
+    // Internal service-binding endpoint for private chat notifications.
+    // It is additionally protected with the existing CRON_TOKEN secret.
+    if (url.pathname === "/internal/direct-message" && request.method === "POST") {
+      if (!env.CRON_TOKEN || request.headers.get("Authorization") !== "Bearer " + env.CRON_TOKEN) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+      let input;
+      try { input = await request.json(); }
+      catch { return Response.json({ error: "Invalid notification payload." }, { status: 400 }); }
+      const userId = typeof input?.userId === "string" ? input.userId.slice(0, 100) : "";
+      const title = typeof input?.title === "string" ? input.title.slice(0, 100) : "New ClerkMe message";
+      const body = typeof input?.body === "string" ? input.body.slice(0, 160) : "You have a new private message.";
+      const requestedUrl = typeof input?.url === "string" ? input.url : "/";
+      const destination = requestedUrl.startsWith("/") && !requestedUrl.startsWith("//") ? requestedUrl : "/";
+      const tag = typeof input?.tag === "string" ? input.tag.slice(0, 120) : "clerkme-direct-message";
+      if (!userId) return Response.json({ error: "A recipient is required." }, { status: 400 });
+      if (!env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY) {
+        return Response.json({ skipped: true, reason: "Web Push is not configured." }, { status: 503 });
+      }
+
+      const subscriptions = await env.DB.prepare(
+        "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?"
+      ).bind(userId).all();
+      let sent = 0;
+      let removed = 0;
+      for (const subscription of subscriptions.results || []) {
+        try {
+          const status = await sendPush(subscription, {
+            title, body, url: destination, tag
+          }, env);
+          if (status === 201 || status === 202) {
+            sent++;
+            await env.DB.prepare(
+              "UPDATE push_subscriptions SET last_success_at = unixepoch() WHERE id = ?"
+            ).bind(subscription.id).run();
+          } else if (status === 404 || status === 410) {
+            removed++;
+            await env.DB.prepare("DELETE FROM push_subscriptions WHERE id = ?").bind(subscription.id).run();
+          }
+        } catch (error) {
+          console.error("[clerkme-reminders] Direct-message push failed.", error instanceof Error ? error.message : "unknown error");
+        }
+      }
+      return Response.json({ sent, removed });
+    }
+
     return new Response("Not found", { status: 404 });
   }
 };

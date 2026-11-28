@@ -15,8 +15,13 @@ export interface R2BucketLike {
   get(key: string): Promise<R2StoredObject | null>;
   delete(key: string): Promise<void>;
 }
+export interface DurableObjectNamespaceLike {
+  idFromName(name: string): unknown;
+  get(id: unknown): { fetch(request: Request): Promise<Response> };
+}
 export interface Env {
   DB: D1Database;
+  CHAT_ROOMS?: DurableObjectNamespaceLike;
   GOOGLE_CLIENT_ID: string;
   RESEND_API_KEY?: string;
   CRON_TOKEN?: string;
@@ -26,6 +31,7 @@ export interface Env {
   GEMINI_API_KEY?: string;
   ZAI_API_KEY?: string;
   SOURCE_FILES?: R2BucketLike;
+  STATUS_MEDIA?: R2BucketLike;
   AI?: WorkersAI;
 }
 export interface AppUser {

@@ -13,6 +13,9 @@ import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
+import ClerkMeMessagingHub from "./messaging-hub";
+import "./messaging-hub.css";
+import "./direct-messages.css";
 import WhatsAppSupportLink from "../components/whatsapp-support-link";
 import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
@@ -33,6 +36,7 @@ const navItems = [
   ["OSCE & Viva", "osce", "clipboard-list"],
   ["Question bank", "qbank", "list-checks"],
   ["Flight Academy", "game", "plane"],
+  ["Messages", "messages", "messages-square"],
   ["Account", "you", "user-round"],
 ];
 
@@ -50,6 +54,7 @@ const workspaceIconShapes: Record<string, ReactNode> = {
   "list-checks": <><path d="m3 6 2 2 3-3"/><path d="M11 6h10"/><path d="m3 12 2 2 3-3"/><path d="M11 12h10"/><path d="m3 18 2 2 3-3"/><path d="M11 18h10"/></>,
   plane: <><path d="m12 2 4 8 6 3v2l-7-1-2 8h-2l-2-8-7 1v-2l6-3z"/></>,
   "user-round": <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
+  "messages-square": <><path d="M20.5 11a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-.95L4 19l1.4-4A7.4 7.4 0 0 1 4 11a7.5 7.5 0 0 1 7.5-7.5h1.5A7.5 7.5 0 0 1 20.5 11Z"/><path d="M8 10h8M8 13.5h5"/><path d="M7 18.2 5.5 21l3.3-1.1"/></>,
   flame: <><path d="M12 22c4.1 0 7-2.8 7-6.7 0-3.1-1.7-5.3-4.7-8.3-.2 2.1-1.2 3.5-2.5 4.3C11.7 7.2 9.7 4.4 7 2c.3 4.2-3 6.8-3 11.7C4 18.4 7.2 22 12 22Z"/><path d="M12 22c-1.8-1.1-2.8-2.7-2.8-4.4 0-1.4.7-2.5 2-3.7.2 1.5 1 2.3 1.8 2.9.6.5 1 1.2 1 2 0 1.3-.7 2.4-2 3.2Z"/></>,
   clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></>,
   award: <><circle cx="12" cy="8" r="5"/><path d="m8.5 12-1 9 4.5-2.5 4.5 2.5-1-9"/></>,
@@ -683,6 +688,14 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  useEffect(() => {
+    if (!authUser) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("open") !== "messages") return;
+    setActive("messages");
+    url.searchParams.delete("open");
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }, [authUser?.id]);
   const [resumeStudy, setResumeStudy] = useState<{materialId:string;title:string;unit:string;tab:string;lastOpenedAt:number}|null>(null);
   const [timeGreeting, setTimeGreeting] = useState("Hello");
   useEffect(() => {
@@ -862,6 +875,33 @@ export default function Home() {
   useLayoutEffect(() => {
     void checkAuthSession();
   }, [checkAuthSession]);
+
+  // Online status is a short-lived heartbeat, not a permanent profile flag.
+  // Hidden tabs stop pinging so peers naturally see the student as offline.
+  useEffect(() => {
+    if (!authUser) return;
+    let stopped = false;
+    let inFlight = false;
+    const heartbeat = () => {
+      if (stopped || inFlight || document.visibilityState !== "visible") return;
+      inFlight = true;
+      fetch("/api/messages/presence", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Accept": "application/json" },
+        keepalive: true
+      }).catch(() => {}).finally(() => { inFlight = false; });
+    };
+    heartbeat();
+    const interval = window.setInterval(heartbeat, 30000);
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") heartbeat(); };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [authUser?.id]);
+
   useEffect(() => {
     if (!authUser) return;
     fetch("/api/activity", { method: "POST", credentials: "same-origin" })
@@ -1111,8 +1151,14 @@ export default function Home() {
           <button type="button" className={active === "ask" ? "nav-item active ask-nav-item" : "nav-item ask-nav-item"} onClick={() => selectSection("ask")} aria-current={active === "ask" ? "page" : undefined}>
             <span className="nav-icon"><img className="ask-nav-brand-icon" src="/clerkme-mark-navy.svg" alt="" width={21} height={21} decoding="async"/></span><span className="nav-label">Ask ClerkME</span>
           </button>
+          <div className="nav-section-label nav-section-spaced">MESSAGES</div>
+          {navItems.slice(12, 13).map(([label, id, icon]) => (
+            <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
+              <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
+            </button>
+          ))}
           <div className="nav-section-label nav-section-spaced">ACCOUNT</div>
-          {navItems.slice(12).map(([label, id, icon]) => (
+          {navItems.slice(13).map(([label, id, icon]) => (
             <button type="button" key={id} className={active === id ? "nav-item active" : "nav-item"} onClick={() => selectSection(id)} aria-label={label} title={label} aria-current={active === id ? "page" : undefined}>
               <span className="nav-icon"><WorkspaceIcon name={icon}/></span><span className="nav-label">{label}</span>
             </button>
@@ -1137,8 +1183,8 @@ export default function Home() {
         <button type="button" className={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("study")} aria-current={["study","materials","flashcards","videos","osce","qbank","game"].includes(active)?"page":undefined}>
           <span><WorkspaceIcon name="book-open"/></span><small>Study</small>
         </button>
-        <button type="button" className={active==="simulation"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("simulation")} aria-current={active==="simulation"?"page":undefined}>
-          <span><WorkspaceIcon name="stethoscope"/></span><small>Sim</small>
+        <button type="button" className={active==="messages"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>selectSection("messages")} aria-current={active==="messages"?"page":undefined}>
+          <span><WorkspaceIcon name="messages-square"/></span><small>Messages</small>
         </button>
         <button type="button" className={moreOpen||active==="you"?"mobile-dock-item active":"mobile-dock-item"} onClick={()=>setMoreOpen(true)} aria-expanded={moreOpen} aria-controls="mobile-account-sheet">
           <span className="mobile-dock-avatar">{authUser?.name?.[0] || "C"}</span><small>You</small>
@@ -1156,6 +1202,7 @@ export default function Home() {
           <div className="mobile-account-tool-grid">
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("guides")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="book-check"/></span><strong>Clinical guides</strong></button>
             <button type="button" className="mobile-account-tool" onClick={()=>selectSection("patients")}><span className="mobile-account-tool-icon cases"><WorkspaceIcon name="users"/></span><strong>My cases</strong></button>
+            <button type="button" className="mobile-account-tool" onClick={()=>selectSection("simulation")}><span className="mobile-account-tool-icon clinical"><WorkspaceIcon name="stethoscope"/></span><strong>Clinical simulation</strong></button>
           </div>
           <div className="mobile-account-section-heading"><strong>Study & practise</strong><span>Resources built for your learning</span></div>
           <div className="mobile-account-tool-grid">
@@ -1179,7 +1226,7 @@ export default function Home() {
             <button type="button" className="avatar small-avatar account-avatar-button" onClick={() => { if (window.matchMedia("(max-width:760px)").matches) setMoreOpen(true); else selectSection("you"); }} aria-label="Open account settings">{authUser?.name?.[0] || "C"}</button>
           </div>
         </header>
-        {active !== "ask" && (
+        {active !== "ask" && active !== "messages" && (
           <button
             type="button"
             className="ask-clerkme-fab"
@@ -1192,7 +1239,7 @@ export default function Home() {
           </button>
         )}
         <div className={active === "ask" ? "content ask-clerkme-content" : "content"}>
-          {active !== "ask" && <FocusMusicPlayer inVideoLibrary={active === "videos"}/>}
+          {active !== "ask" && active !== "messages" && <FocusMusicPlayer inVideoLibrary={active === "videos"}/>}
 {active === "ask" && <AskClerkMePanel userKey={authUser.id}/>}
 {active === "overview" && <>
 <div className="home-dashboard-card home-dashboard-refresh">
@@ -1461,6 +1508,7 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
+          {active === "messages" && <ClerkMeMessagingHub userId={authUser.id}/>}
         </div>
       </section>
       {showSignOutConfirm && (
