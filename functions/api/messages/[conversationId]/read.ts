@@ -1,4 +1,5 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../../_lib/auth";
+import { hasAcceptedConnection } from "../../../_lib/connections";
 
 export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
@@ -11,7 +12,7 @@ export const onRequestPost = async (context: AppContext) => {
   const messageId = Number(body.messageId);
   if (!conversationId || !Number.isSafeInteger(messageId) || messageId < 1) return json({ error: "Invalid read receipt." }, 400);
   const member = await context.env.DB.prepare(`
-    SELECT 1 AS ok
+    SELECT peer.user_id AS peerId
     FROM direct_conversation_members me
     INNER JOIN direct_conversation_members peer
       ON peer.conversation_id = me.conversation_id AND peer.user_id <> me.user_id
@@ -22,8 +23,10 @@ export const onRequestPost = async (context: AppContext) => {
            OR (b.blocker_id = peer.user_id AND b.blocked_id = me.user_id)
       )
     LIMIT 1
-  `).bind(conversationId, user.id).first();
-  if (!member) return json({ error: "Conversation not found." }, 404);
+  `).bind(conversationId, user.id).first<{peerId:string}>();
+  if (!member || !await hasAcceptedConnection(context.env.DB, user.id, member.peerId)) {
+    return json({ error: "Conversation not found." }, 404);
+  }
   const message = await context.env.DB.prepare(
     "SELECT id FROM direct_messages WHERE id = ? AND conversation_id = ? AND deleted_at IS NULL"
   ).bind(messageId, conversationId).first<{ id: number }>();
