@@ -495,7 +495,7 @@ export class ConversationRoom {
           created_at = excluded.created_at,
           read_at = NULL
       `).bind(
-        crypto.randomUUID(), other.id, "direct-message:" + identity.conversationId + ":" + messageId, notificationTitle
+        crypto.randomUUID(), other.id, "direct-message:" + identity.conversationId, notificationTitle
       ).run();
     }
 
