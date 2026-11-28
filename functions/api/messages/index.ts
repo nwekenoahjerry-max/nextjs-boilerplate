@@ -13,7 +13,7 @@ export const onRequestGet = async (context: AppContext) => {
   const result = await context.env.DB.prepare(`
     SELECT c.id, other.user_id AS otherId, p.full_name AS otherName,
       p.school AS otherUniversity, p.level AS otherLevel, p.last_seen_at AS otherLastSeenAt,
-      CASE WHEN p.profile_photo_key IS NOT NULL THEN '/api/profile/photo/' || p.id || '?v=' || COALESCE(p.profile_photo_updated_at, 0) ELSE NULL END AS otherProfilePhotoUrl,
+      (SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at FROM student_profile_photos photos WHERE photos.user_id = p.id) AS otherProfilePhotoUrl,
       c.last_message_preview AS lastMessagePreview, c.last_message_at AS lastMessageAt,
       m.sender_id AS lastMessageSenderId, me.last_read_message_id AS lastReadMessageId,
       (SELECT COUNT(*) FROM direct_messages unread
@@ -101,8 +101,8 @@ export const onRequestPost = async (context: AppContext) => {
   ).bind(conversation.id, user.id, recipientId).run();
   const profile = await context.env.DB.prepare(
     "SELECT id, full_name AS name, school AS university, level, last_seen_at AS lastSeenAt, " +
-    "CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo/' || id || '?v=' || COALESCE(profile_photo_updated_at, 0) ELSE NULL END AS profilePhotoUrl " +
-    "FROM student_profiles WHERE id = ?"
+    "(SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at FROM student_profile_photos photos WHERE photos.user_id = p.id) AS profilePhotoUrl " +
+    "FROM student_profiles p WHERE id = ?"
   ).bind(recipientId).first();
   return json({ conversation: { id: conversation.id, other: profile } }, 201);
 };
