@@ -927,7 +927,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
       setVoiceDiagnostics("Secure token issued; opening Google Live WebSocket…");
       const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
         ? tokenData.model
-        : "models/gemini-3.1-flash-live-preview";
+        : "models/gemini-3.8-live";
       liveRequestIdRef.current = typeof tokenData.requestId === "string" ? tokenData.requestId : "";
       const voiceSystemInstruction = typeof tokenData.systemInstruction === "string" ? tokenData.systemInstruction : "";
       // Gemini's ephemeral-token guidance allows session resumption with this
