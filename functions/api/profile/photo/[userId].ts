@@ -8,17 +8,19 @@ export const onRequestGet = async (context: AppContext) => {
   const bucket = context.env.STATUS_MEDIA;
   if (!bucket) return json({ error: "Profile photo is unavailable." }, 503);
 
-  const profile = await context.env.DB.prepare(
-    "SELECT p.profile_photo_key AS photoKey FROM student_profiles p " +
-    "WHERE p.id = ? AND p.email_verified_at IS NOT NULL LIMIT 1"
-  ).bind(userId).first<{ photoKey: string | null }>();
-  if (!profile?.photoKey || !profile.photoKey.startsWith("profile/" + userId + "/")) {
+  const photo = await context.env.DB.prepare(
+    "SELECT photos.photo_key AS photoKey, photos.content_type AS contentType " +
+    "FROM student_profile_photos photos " +
+    "INNER JOIN student_profiles p ON p.id = photos.user_id " +
+    "WHERE photos.user_id = ? AND p.email_verified_at IS NOT NULL LIMIT 1"
+  ).bind(userId).first<{ photoKey: string; contentType: string }>();
+  if (!photo || !photo.photoKey.startsWith("profile/" + userId + "/")) {
     return json({ error: "Profile photo not found." }, 404);
   }
 
-  const object = await bucket.get(profile.photoKey);
+  const object = await bucket.get(photo.photoKey);
   if (!object) return json({ error: "Profile photo not found." }, 404);
-  const contentType = object.httpMetadata?.contentType || "application/octet-stream";
+  const contentType = object.httpMetadata?.contentType || photo.contentType;
   if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
     return json({ error: "Profile photo not found." }, 404);
   }
