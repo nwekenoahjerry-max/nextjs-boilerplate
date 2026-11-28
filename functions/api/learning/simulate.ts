@@ -1,6 +1,7 @@
 import { json, requireUser, isResponse, validSameOrigin, aiFailureResponse, type AppContext } from "../../_lib/auth";
 
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const LIVE_PATIENT_MODEL = "models/gemini-3.1-flash-live-preview";
 const ALLOWED_UNITS = ["general-medicine","surgery","paediatrics","obstetrics-gynaecology","emergency","psychiatry","community-medicine","orthopaedics"];
 
 type CaseProfile = {
@@ -125,15 +126,15 @@ export const onRequestPost = async (context:AppContext) => {
           expireTime,
           newSessionExpireTime,
           liveConnectConstraints:{
-            model:"models/gemini-3.8-live",
+            model:LIVE_PATIENT_MODEL,
             config:{
               systemInstruction:{parts:[{text:patientVoicePrompt}]},
               responseModalities:["AUDIO"],
               speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName}}},
               inputAudioTranscription:{},
               outputAudioTranscription:{},
-              sessionResumption:{},
-              contextWindowCompression:{slidingWindow:{targetTokens:12000}}
+              realtimeInputConfig:{automaticActivityDetection:{disabled:true}},
+              sessionResumption:{}
             }
           }
         }),
