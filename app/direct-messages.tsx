@@ -73,7 +73,18 @@ export default function DirectMessagesPanel({ userId }: { userId: string }) {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void loadConversations(); }, [loadConversations]);
+  useEffect(() => {
+    void loadConversations();
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadConversations();
+    };
+    const interval = window.setInterval(refresh, 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [loadConversations]);
   useEffect(() => {
     setPeerOnline(isOnline(selected?.otherLastSeenAt));
   }, [selected?.otherLastSeenAt]);
