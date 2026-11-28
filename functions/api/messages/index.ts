@@ -25,6 +25,11 @@ export const onRequestGet = async (context: AppContext) => {
       ON other.conversation_id = c.id AND other.user_id <> ?
     INNER JOIN student_profiles p ON p.id = other.user_id
     LEFT JOIN direct_messages m ON m.id = c.last_message_id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM direct_message_blocks b
+      WHERE (b.blocker_id = me.user_id AND b.blocked_id = other.user_id)
+         OR (b.blocker_id = other.user_id AND b.blocked_id = me.user_id)
+    )
     ORDER BY COALESCE(c.last_message_at, c.created_at) DESC LIMIT 100
   `).bind(user.id, user.id, user.id).all<ConversationRow>();
   return json({ conversations: result.results });
