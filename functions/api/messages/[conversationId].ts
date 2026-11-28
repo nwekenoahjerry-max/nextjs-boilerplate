@@ -14,6 +14,16 @@ export const onRequestGet = async (context: AppContext) => {
     "SELECT last_read_message_id AS lastReadMessageId FROM direct_conversation_members WHERE conversation_id = ? AND user_id = ? AND archived_at IS NULL"
   ).bind(conversationId, user.id).first<{ lastReadMessageId: number | null }>();
   if (!membership) return json({ error: "Conversation not found." }, 404);
+  const blocked = await context.env.DB.prepare(`
+    SELECT 1 AS blocked
+    FROM direct_conversation_members peer
+    INNER JOIN direct_message_blocks b
+      ON (b.blocker_id = ? AND b.blocked_id = peer.user_id)
+      OR (b.blocker_id = peer.user_id AND b.blocked_id = ?)
+    WHERE peer.conversation_id = ? AND peer.user_id <> ?
+    LIMIT 1
+  `).bind(user.id, user.id, conversationId, user.id).first();
+  if (blocked) return json({ error: "Conversation not found." }, 404);
   const peerRead = await context.env.DB.prepare(
     "SELECT last_read_message_id AS lastReadMessageId FROM direct_conversation_members WHERE conversation_id = ? AND user_id <> ?"
   ).bind(conversationId, user.id).first<{ lastReadMessageId: number | null }>();
