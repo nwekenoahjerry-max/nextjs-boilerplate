@@ -21,7 +21,7 @@ export const onRequestGet = async (context: AppContext) => {
     SELECT p.id, p.full_name AS name, p.school AS university, p.level,
       p.last_seen_at AS lastSeenAt,
       (SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at
-        FROM student_profile_photos photos WHERE photos.user_id = p.id) AS profilePhotoUrl
+        FROM clerkme_profile_photos_v1 photos WHERE photos.user_id = p.id) AS profilePhotoUrl
     FROM student_profiles p
     WHERE p.id <> ? AND p.email_verified_at IS NOT NULL
       AND (p.full_name LIKE ? COLLATE NOCASE OR p.school LIKE ? COLLATE NOCASE)
@@ -36,7 +36,7 @@ export const onRequestGet = async (context: AppContext) => {
   const connections = await context.env.DB.prepare(
     "SELECT id, user_low_id AS userLowId, user_high_id AS userHighId, " +
     "requested_by AS requestedBy, requested_to AS requestedTo, status " +
-    "FROM student_connection_requests WHERE (user_low_id = ? OR user_high_id = ?) AND status IN ('pending', 'accepted')"
+    "FROM clerkme_student_connections_v1 WHERE (user_low_id = ? OR user_high_id = ?) AND status IN ('pending', 'accepted')"
   ).bind(user.id, user.id).all<Connection>();
   const byStudent = new Map(connections.results.map(connection => [
     connection.userLowId === user.id ? connection.userHighId : connection.userLowId,
