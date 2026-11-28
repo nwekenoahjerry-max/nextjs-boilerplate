@@ -52,9 +52,15 @@ export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
 }
 export function cookieHeader(token: string, maxAge: number) { return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`; }
 export function clearSessionCookie() { return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`; }
+// The primary owner account is bootstrapped in code so a masked Pages secret
+// can never accidentally lock the owner out when the administrator list changes.
+const CLERKME_OWNER_EMAIL = "nwekenoahjerry@gmail.com";
+
 export function hasAdminAccess(email: string, env: Pick<Env, "CLERKME_ADMIN_EMAILS">): boolean {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail === CLERKME_OWNER_EMAIL) return true;
   const allowed = (env.CLERKME_ADMIN_EMAILS || "").split(",").map(value => value.trim().toLowerCase()).filter(Boolean);
-  return allowed.includes(email.trim().toLowerCase());
+  return allowed.includes(normalizedEmail);
 }
 export async function requireUser(context: AppContext): Promise<AppUser | Response> {
   const cookie = context.request.headers.get("Cookie") || "";
