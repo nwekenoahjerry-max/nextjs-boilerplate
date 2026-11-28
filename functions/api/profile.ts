@@ -1,7 +1,7 @@
 import { nigeriaLgasByState } from "../../lib/nigeria-locations";
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../_lib/auth";
 
-const profileSelect = "SELECT id, email, full_name AS name, school AS university, country, level, future_specialty AS futureSpecialty, state, lga, CASE WHEN profile_photo_key IS NOT NULL THEN '/api/profile/photo/' || id || '?v=' || COALESCE(profile_photo_updated_at, 0) ELSE NULL END AS profilePhotoUrl FROM student_profiles WHERE id = ?";
+const profileSelect = "SELECT id, email, full_name AS name, school AS university, country, level, future_specialty AS futureSpecialty, state, lga, (SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at FROM student_profile_photos photos WHERE photos.user_id = p.id) AS profilePhotoUrl FROM student_profiles p WHERE id = ?";
 
 type StudentProfile = {
   id: string;
