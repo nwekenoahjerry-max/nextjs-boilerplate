@@ -119,6 +119,9 @@
 .cmh-tabs button{min-height:48px;min-width:112px;justify-content:center;gap:9px;padding:8px 15px;line-height:1.1;white-space:nowrap}
 .cmh-tab-icon{width:28px;height:28px;flex:0 0 28px;display:grid;place-items:center;border-radius:9px;color:#244974;background:#e9eff7;transition:background .16s,color .16s}
 .cmh-tabs button.is-active .cmh-tab-icon{color:#fff;background:#ffffff1a}
+:root[data-theme="dark"] .cmh-tabs button .cmh-tab-icon{color:#b9cce6;background:#1b2e47}
+:root[data-theme="dark"] .cmh-tabs button.is-active .cmh-tab-icon{color:#dce9fb;background:#315789}
+:root[data-theme="dark"] .cmh-tabs .cmh-tab-icon .cmh-icon{stroke:currentColor}
 .cmh-tab-label{display:block;line-height:1.1}
 .cmh-tabs button:focus-visible,.cmh-shell button:focus-visible,.cmh-shell a:focus-visible,.cmh-shell input:focus-visible,.cmh-shell select:focus-visible,.cmh-shell textarea:focus-visible{outline:3px solid #7da4d4;outline-offset:3px}
 .cmh-primary svg,.cmh-secondary svg,.cmh-story-footer button svg,.cmh-close svg,.cmh-story-header button svg,.cmh-story-nav svg{display:block;flex:0 0 auto}
