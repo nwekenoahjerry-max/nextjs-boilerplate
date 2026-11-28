@@ -59,7 +59,7 @@ function callTime(seconds: number): string {
   return Math.floor(seconds / 60).toString().padStart(2, "0") + ":" + (seconds % 60).toString().padStart(2, "0");
 }
 
-const LIVE_PATIENT_MODEL = "models/gemini-3.1-flash-live-preview";
+const LIVE_PATIENT_MODEL = "models/gemini-3.8-live";
 
 const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePatientCall(
   { unit, caseId, sex, openingMessage, onTurns, onStatusChange },
@@ -75,6 +75,10 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const audioGateRef = useRef(new LiveAudioGate());
+  const pendingAudioFramesRef = useRef<Int16Array[]>([]);
+  const pendingAudioSamplesRef = useRef(0);
+  const studentTurnPendingRef = useRef(false);
+  const studentTurnTranscriptReceivedRef = useRef(false);
   const silentGainRef = useRef<GainNode | null>(null);
   const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const nextPlaybackTimeRef = useRef(0);
@@ -109,10 +113,67 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     responseTimeoutRef.current = window.setTimeout(() => {
       responseTimeoutRef.current = null;
       if (endingRef.current || !setupCompleteRef.current) return;
+      if (kind === "answer" && studentTurnPendingRef.current && !studentTurnTranscriptReceivedRef.current) {
+        studentTranscriptRef.current = appendText(studentTranscriptRef.current, "[Spoken question]");
+        studentTurnPendingRef.current = false;
+        scheduleTranscriptFlush();
+      }
       setNotice(kind === "opening"
         ? "The patient has not spoken yet. Check your connection and retry the call, or continue with the text interview."
         : "The patient has not replied yet. Please repeat your question or continue with the text interview.");
     }, 15000);
+  };
+
+  // Gemini 3.8 Live can stall on streamed realtimeInput turns. Submit each
+  // completed, locally detected utterance as one committed PCM audio turn.
+  const sendCapturedStudentTurn = (socket: WebSocket) => {
+    if (socket.readyState !== WebSocket.OPEN || !setupCompleteRef.current) return false;
+    const sampleCount = pendingAudioSamplesRef.current;
+    if (sampleCount < 1600) {
+      pendingAudioFramesRef.current = [];
+      pendingAudioSamplesRef.current = 0;
+      setNotice("I did not catch enough speech. Please ask your question again.");
+      return false;
+    }
+
+    const utterance = new Int16Array(sampleCount);
+    let offset = 0;
+    for (const frame of pendingAudioFramesRef.current) {
+      utterance.set(frame, offset);
+      offset += frame.length;
+    }
+
+    try {
+      socket.send(JSON.stringify({
+        clientContent: {
+          turns: [{
+            role: "user",
+            parts: [{
+              inlineData: {
+                mimeType: "audio/pcm;rate=16000",
+                data: pcmToBase64(utterance)
+              }
+            }]
+          }],
+          turnComplete: true
+        }
+      }));
+    } catch {
+      pendingAudioFramesRef.current = [];
+      pendingAudioSamplesRef.current = 0;
+      studentTurnPendingRef.current = false;
+      clearResponseTimeout();
+      setNotice("Your question could not be sent. Check the connection and try again.");
+      return false;
+    }
+
+    pendingAudioFramesRef.current = [];
+    pendingAudioSamplesRef.current = 0;
+    studentTurnPendingRef.current = true;
+    studentTurnTranscriptReceivedRef.current = false;
+    setNotice("Question sent. Waiting for the patient…");
+    armResponseTimeout("answer");
+    return true;
   };
 
   const updateStatus = (next: LiveCallStatus) => {
@@ -187,15 +248,17 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     clearConnectionTimeout();
     clearResponseTimeout();
     clearTranscriptFlush();
+    if (studentTurnPendingRef.current && !studentTurnTranscriptReceivedRef.current) {
+      studentTranscriptRef.current = appendText(studentTranscriptRef.current, "[Spoken question]");
+    }
+    studentTurnPendingRef.current = false;
     const pending = takePendingTurns();
     endingRef.current = true;
     setupCompleteRef.current = false;
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      try { socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } })); } catch {}
-    } else {
-      audioGateRef.current.reset();
-    }
+    audioGateRef.current.reset();
+    pendingAudioFramesRef.current = [];
+    pendingAudioSamplesRef.current = 0;
     socketRef.current = null;
     try {
       if (socket && socket.readyState < WebSocket.CLOSING) socket.close(1000, "Call ended");
@@ -247,6 +310,10 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     patientTranscriptRef.current = "";
     patientHasSpokenOpeningRef.current = false;
     audioGateRef.current.reset();
+    pendingAudioFramesRef.current = [];
+    pendingAudioSamplesRef.current = 0;
+    studentTurnPendingRef.current = false;
+    studentTurnTranscriptReceivedRef.current = false;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -285,22 +352,28 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         try {
           if (gated.activityStart) {
             clearResponseTimeout();
-            socket.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+            pendingAudioFramesRef.current = [];
+            pendingAudioSamplesRef.current = 0;
+            studentTurnPendingRef.current = false;
+            studentTurnTranscriptReceivedRef.current = false;
             setNotice("Listening to your question…");
           }
           for (const chunk of gated.chunks) {
-            socket.send(JSON.stringify({
-              realtimeInput: { audio: { data: pcmToBase64(chunk), mimeType: "audio/pcm;rate=16000" } }
-            }));
+            pendingAudioFramesRef.current.push(chunk);
+            pendingAudioSamplesRef.current += chunk.length;
           }
           if (gated.activityEnd) {
-            socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
-            setNotice("Question sent. Waiting for the patient…");
-            armResponseTimeout("answer");
+            sendCapturedStudentTurn(socket);
+          } else if (pendingAudioSamplesRef.current >= 16000 * 30) {
+            sendCapturedStudentTurn(socket);
+            audioGateRef.current.reset();
           }
         } catch {
           clearResponseTimeout();
           audioGateRef.current.reset();
+          pendingAudioFramesRef.current = [];
+          pendingAudioSamplesRef.current = 0;
+          studentTurnPendingRef.current = false;
           setNotice("The audio connection paused. Check your internet connection.");
         }
       };
@@ -333,9 +406,12 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
       socket.onopen = () => {
         const voiceName = sex.toLowerCase().includes("female") ? "Kore" : "Puck";
+        const liveModel = typeof tokenData.model === "string" && tokenData.model.startsWith("models/")
+          ? tokenData.model
+          : LIVE_PATIENT_MODEL;
         socket.send(JSON.stringify({
           setup: {
-            model: LIVE_PATIENT_MODEL,
+            model: liveModel,
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } }
@@ -370,6 +446,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         const inputTranscript = message.inputTranscription?.text ?? serverContent?.inputTranscription?.text;
         const outputTranscript = message.outputTranscription?.text ?? serverContent?.outputTranscription?.text;
         if (inputTranscript) {
+          studentTurnTranscriptReceivedRef.current = true;
           studentTranscriptRef.current = appendText(studentTranscriptRef.current, String(inputTranscript));
           scheduleTranscriptFlush();
         }
@@ -441,6 +518,10 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
 
         if (serverContent.turnComplete) {
           clearResponseTimeout();
+          if (studentTurnPendingRef.current && !studentTurnTranscriptReceivedRef.current) {
+            studentTranscriptRef.current = appendText(studentTranscriptRef.current, "[Spoken question]");
+          }
+          studentTurnPendingRef.current = false;
           scheduleTranscriptFlush();
           setNotice("Connected · Listening for your next question");
         }
@@ -483,11 +564,14 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
   const toggleMute = () => {
     const next = !mutedRef.current;
     const socket = socketRef.current;
-    if (next && socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      clearResponseTimeout();
-      try { socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } })); } catch {}
-    } else if (next) {
-      audioGateRef.current.reset();
+    if (next) {
+      const wasSpeaking = audioGateRef.current.finish();
+      if (wasSpeaking && socket?.readyState === WebSocket.OPEN && setupCompleteRef.current) {
+        sendCapturedStudentTurn(socket);
+      } else {
+        pendingAudioFramesRef.current = [];
+        pendingAudioSamplesRef.current = 0;
+      }
     }
     mutedRef.current = next;
     setMuted(next);
