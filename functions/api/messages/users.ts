@@ -20,9 +20,8 @@ export const onRequestGet = async (context: AppContext) => {
   const result = await context.env.DB.prepare(`
     SELECT p.id, p.full_name AS name, p.school AS university, p.level,
       p.last_seen_at AS lastSeenAt,
-      CASE WHEN p.profile_photo_key IS NOT NULL
-        THEN '/api/profile/photo/' || p.id || '?v=' || COALESCE(p.profile_photo_updated_at, 0)
-        ELSE NULL END AS profilePhotoUrl
+      (SELECT '/api/profile/photo/' || p.id || '?v=' || photos.updated_at
+        FROM student_profile_photos photos WHERE photos.user_id = p.id) AS profilePhotoUrl
     FROM student_profiles p
     WHERE p.id <> ? AND p.email_verified_at IS NOT NULL
       AND (p.full_name LIKE ? COLLATE NOCASE OR p.school LIKE ? COLLATE NOCASE)
