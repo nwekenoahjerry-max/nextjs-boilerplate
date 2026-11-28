@@ -1,6 +1,5 @@
 export type ExtractedStudyFile = { name: string; text: string };
-export const STUDY_FILE_ACCEPT = ".pdf,.pptx,.docx,.xlsx,.txt,.md,.csv,.rtf,.html,.htm,.json,.png,.jpg,.jpeg,.webp,.heic,.heif";
-export const STUDY_FILE_TYPES = "PDF, PowerPoint, Word, Excel, text files, CSV and images";
+export { STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "./file-text-constants";
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_EXTRACTED_CHARS = 120000;
