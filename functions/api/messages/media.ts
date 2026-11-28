@@ -10,6 +10,8 @@ export const onRequestPost = async (context: AppContext) => {
   const user = await requireUser(context);
   if (isResponse(user)) return user;
   if (!context.env.STATUS_MEDIA) return json({ error:"Voice notes are not available in this environment yet." },503);
+  const declaredLength = Number(context.request.headers.get("Content-Length") || 0);
+  if (declaredLength > 5*1024*1024 + 16*1024) return json({ error:"Voice notes must be 5 MB or smaller." },413);
 
   let form:FormData;
   try { form = await context.request.formData(); }
