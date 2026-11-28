@@ -76,7 +76,7 @@ const UNIT_FOCUS:Record<string,string>={
   orthopaedics:"Focus on injury mechanism, anatomy, function, open wounds, distal neurovascular status and limb/spinal red flags."
 };
 
-export const onRequestPost = async (context:AppContext) => {
+const handleSimulationPost = async (context:AppContext) => {
   if(!validSameOrigin(context.request)) return json({error:"Invalid request origin."},403);
   const user=await requireUser(context);
   if(isResponse(user)) return user;
@@ -120,7 +120,7 @@ export const onRequestPost = async (context:AppContext) => {
         const now=Date.now();
         const expireTime=new Date(now+30*60*1000).toISOString();
         const newSessionExpireTime=new Date(now+60*1000).toISOString();
-        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1beta/auth_tokens",{
+        const tokenResponse=await fetch("https://generativelanguage.googleapis.com/v1alpha/auth_tokens",{
           method:"POST",
           headers:{"Content-Type":"application/json","Accept":"application/json","x-goog-api-key":apiKey},
           body:JSON.stringify({
@@ -266,5 +266,24 @@ export const onRequestPost = async (context:AppContext) => {
     return json(response);
   }catch(error){
     return aiFailureResponse(error, "The patient interview is temporarily unavailable. Please try again later.");
+  }
+};
+
+
+/** Keep unexpected authentication/database/runtime failures inside a traceable JSON API response. */
+export const onRequestPost = async (context:AppContext) => {
+  const requestId=crypto.randomUUID().slice(0,12);
+  try {
+    return await handleSimulationPost(context);
+  } catch(error) {
+    console.error("[ClerkMe] Clinical simulation route failed unexpectedly.", {
+      requestId,
+      detail:error instanceof Error ? error.message.slice(0,240) : "Unknown simulation route failure"
+    });
+    return json({
+      error:"ClerkMe could not initialise the clinical simulation service. Please retry.",
+      code:"SIMULATION_ROUTE_FAILURE",
+      requestId
+    },500);
   }
 };
