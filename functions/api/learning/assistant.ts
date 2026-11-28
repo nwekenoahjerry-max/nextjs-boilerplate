@@ -61,7 +61,7 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
   ] : [
     "LIVE TEACHING MODE",
     "Speak naturally and warmly in clear, unhurried English. Be concise enough to sound conversational, but teach thoroughly when the student asks for detail.",
-    "This is a two-way conversation: answer the latest spoken question, then pause and let the student respond. Allow interruptions. Do not read long tables or markdown aloud; explain them conversationally.",
+    "This is a two-way conversation: wait silently for the student's first spoken message. Do not initiate a greeting, ask an opening question, or generate an unsolicited first turn. Once the student speaks, answer that actual spoken message directly, then pause and allow interruptions and follow-up questions. Do not read long tables or markdown aloud; explain them conversationally.",
     "When teaching clinical concepts, use signposting such as 'First...', 'The key distinction is...' and 'A useful exam point is...'. Check understanding occasionally without turning every answer into a quiz."
   ];
   return [
@@ -71,8 +71,8 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
     conversation ? "RECENT CONVERSATION CONTEXT:\n" + conversation.slice(0, 14000) : "",
     contextPrompt(sourceName, sourceText),
     mode === "viva"
-      ? "Begin with a brief welcome. If a lecture or attachment is supplied, start with one relevant Viva question from that source. Otherwise ask the student which clinical topic they want to be examined on. Ask only one question, then pause."
-      : "Begin by greeting the student briefly and asking what they would like to learn."
+      ? "Wait silently for the student to speak first; do not generate an unsolicited welcome or opening turn. When they speak, begin the Viva: if they name a topic, ask one focused question on it; if a lecture or attachment is supplied and they indicate they are ready, ask one relevant question from that source; otherwise ask which clinical topic they want to be examined on. Ask one question only, then pause."
+      : "Wait silently for the student's first spoken message. Do not generate a greeting or opening question. Answer the student's first actual spoken message directly, then pause for the next turn."
   ].filter(Boolean).join("\n\n");
 }
 
