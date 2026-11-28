@@ -14,6 +14,16 @@ import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
+
+import "./messaging-hub.css";
+import "./direct-messages.css";
+import WhatsAppSupportLink from "../components/whatsapp-support-link";
+import ReminderSettings from "../components/reminder-settings";
+import { useAppearance } from "../components/theme-provider";
+import ClerkMeBrand from "../components/clerkme-brand";
+import { unitClerkingFrameworks } from "../lib/unit-clerking";
+import "./home-quick-actions.css";
+
 const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
   ssr: false,
   loading: () => (
@@ -27,14 +37,6 @@ const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
     </section>
   ),
 });
-import "./messaging-hub.css";
-import "./direct-messages.css";
-import WhatsAppSupportLink from "../components/whatsapp-support-link";
-import ReminderSettings from "../components/reminder-settings";
-import { useAppearance } from "../components/theme-provider";
-import ClerkMeBrand from "../components/clerkme-brand";
-import { unitClerkingFrameworks } from "../lib/unit-clerking";
-import "./home-quick-actions.css";
 
 const navItems = [
   ["Home", "overview", "home"],
