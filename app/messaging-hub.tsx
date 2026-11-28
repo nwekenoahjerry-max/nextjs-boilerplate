@@ -327,6 +327,7 @@ function MessagingProfilePanel() {
   const [pushEnabled,setPushEnabled]=useState(false);
   const [permission,setPermission]=useState<NotificationPermission|"unsupported">("default");
   const [pushBusy,setPushBusy]=useState(false);
+  const [testBusy,setTestBusy]=useState(false);
   const [notice,setNotice]=useState("");
 
   useEffect(()=>{
@@ -343,7 +344,8 @@ function MessagingProfilePanel() {
     if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window)){setPermission("unsupported");return;}
     setPermission(Notification.permission);
     navigator.serviceWorker.getRegistration().then(async registration=>{
-      const subscription=await registration?.pushManager.getSubscription();setPushEnabled(Boolean(subscription));
+      const subscription=await registration?.pushManager.getSubscription();
+      setPushEnabled(Boolean(subscription));
     }).catch(()=>setPushEnabled(false));
   },[]);
 
@@ -364,53 +366,79 @@ function MessagingProfilePanel() {
         const subscription=await registration?.pushManager.getSubscription();
         if(subscription){
           const response=await fetch("/api/push/subscriptions",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({endpoint:subscription.endpoint})});
-          if(!response.ok)throw new Error("The notification subscription could not be removed.");
+          const data=await response.json();if(!response.ok)throw new Error(data.error||"The notification subscription could not be removed.");
           await subscription.unsubscribe();
         }
-        setPushEnabled(false);setNotice("Background notifications are off on this device.");
+        setPushEnabled(false);setNotice("Phone message notifications are off on this device.");
       }else{
-        if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("This browser does not support background notifications. Try a supported browser or install ClerkMe as an app.");
+        if(!("Notification" in window)||!("serviceWorker" in navigator)||!("PushManager" in window))throw new Error("This browser does not support background notifications. Install ClerkMe as an app or use a supported browser.");
         const granted=await Notification.requestPermission();setPermission(granted);
-        if(granted!=="granted")throw new Error(granted==="denied"?"Notifications are blocked in browser settings. Allow them for ClerkMe, then try again.":"Notification permission was not granted.");
+        if(granted!=="granted")throw new Error(granted==="denied"?"Notifications are blocked in your device or browser settings. Allow them for ClerkMe, then try again.":"Notification permission was not granted.");
         const keyResponse=await fetch("/api/push/config",{credentials:"same-origin",cache:"no-store"});
         const keyData=await keyResponse.json();
-        if(!keyResponse.ok||typeof keyData.publicKey!=="string"||!keyData.publicKey){
-          throw new Error(keyData.error||"Push notifications are not configured for this environment yet.");
-        }
-        await navigator.serviceWorker.register("/sw.js");
+        if(!keyResponse.ok||typeof keyData.publicKey!=="string"||!keyData.publicKey)throw new Error(keyData.error||"Phone notifications are not configured yet.");
+        await navigator.serviceWorker.register("/sw.js",{scope:"/"});
         const registration=await navigator.serviceWorker.ready;
         const subscription=await registration.pushManager.getSubscription()||await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeVapidKey(keyData.publicKey)});
         const response=await fetch("/api/push/subscriptions",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(subscription.toJSON())});
         const data=await response.json();if(!response.ok)throw new Error(data.error||"Your device could not be registered for notifications.");
-        setPushEnabled(true);setNotice("Background notifications are enabled on this device.");
+        setPushEnabled(true);setNotice("Phone message notifications are enabled on this device.");
       }
     }catch(error){setNotice(error instanceof Error?error.message:"Notification settings could not be updated.");}
     finally{setPushBusy(false);}
+  };
+  const sendTestNotification=async()=>{
+    setTestBusy(true);setNotice("");
+    try{
+      const response=await fetch("/api/push/test",{method:"POST",credentials:"same-origin",headers:{"Accept":"application/json"}});
+      const data=await response.json();
+      if(!response.ok||!data.sent)throw new Error(data.error||"The test alert could not be delivered to this device.");
+      setNotice("Test alert sent. Check your phone's notification tray.");
+    }catch(error){setNotice(error instanceof Error?error.message:"The test alert could not be sent.");}
+    finally{setTestBusy(false);}
   };
   if(loading)return <div className="cmh-profile-loading" role="status"><i/>Loading your profile…</div>;
   return <section className="cmh-profile" aria-label="Messaging profile and privacy">
     {notice&&<div className="cmh-alert" role="status"><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Dismiss">×</button></div>}
     <div className="cmh-profile-card">
       <div className="cmh-profile-avatar">{initials(profile?.name||"Student")}</div>
-      <div className="cmh-profile-details"><span className="cmh-eyebrow">YOUR CLERKME PROFILE</span><h2>{profile?.name||"Student"}</h2><p>{profile?.email}</p><small>{[profile?.university,profile?.level].filter(Boolean).join(" · ")}</small></div>
-      <button type="button" className="cmh-secondary" onClick={()=>window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"you"}}))}>Edit profile</button>
-    </div>
-    <div className="cmh-settings-card">
-      <div className="cmh-settings-heading"><span>PRIVACY</span><h3>Your status, your choice.</h3><p>Choose who sees your updates and what activity is visible.</p></div>
-      <label className="cmh-setting-row"><span><b>Default status audience</b><small>Who can view new statuses you share</small></span>
-        <select value={preferences.defaultAudience} disabled={saving} onChange={event=>void savePreferences({defaultAudience:event.target.value as Audience})}><option value="everyone">All verified students</option><option value="conversations">Students I have chatted with</option><option value="only_me">Only me</option></select>
-      </label>
-      <label className="cmh-setting-row"><span><b>Hide my status views</b><small>Your name will not appear in other students' viewer lists</small></span><input type="checkbox" checked={preferences.hideViews} disabled={saving} onChange={event=>void savePreferences({hideViews:event.target.checked})}/></label>
-      <label className="cmh-setting-row"><span><b>Allow replies to my statuses</b><small>Replies open a private one-to-one conversation</small></span><input type="checkbox" checked={preferences.allowReplies} disabled={saving} onChange={event=>void savePreferences({allowReplies:event.target.checked})}/></label>
-      {saving&&<small className="cmh-saving">Saving privacy settings…</small>}
-    </div>
-    <div className="cmh-settings-card">
-      <div className="cmh-settings-heading"><span>NOTIFICATIONS</span><h3>Stay in the loop.</h3><p>Allow ClerkMe to alert you when you receive a private message, including when the app is in the background.</p></div>
-      <div className="cmh-setting-row"><span><b>Background notifications</b><small>{permission==="unsupported"?"Not supported by this browser.":permission==="denied"?"Blocked by browser settings.":pushEnabled?"This device is subscribed to ClerkMe push notifications.":"Enable notifications on this device."}</small></span>
-        <button type="button" className={pushEnabled?"cmh-secondary":"cmh-primary"} onClick={()=>void togglePush()} disabled={pushBusy||permission==="unsupported"||(permission==="denied"&&!pushEnabled)}>{pushBusy?"Updating…":pushEnabled?"Turn off":"Enable"}</button>
+      <div className="cmh-profile-details">
+        <span className="cmh-eyebrow">YOUR PROFILE</span>
+        <h2>{profile?.name||"Student"}</h2>
+        <p>{profile?.email}</p>
+        <small>{[profile?.university,profile?.level].filter(Boolean).join(" · ")}</small>
       </div>
-      <p className="cmh-privacy-note">Message previews are not included in push alerts. You can change browser permissions at any time in your device settings.</p>
+      <button type="button" className="cmh-secondary cmh-edit-profile" onClick={()=>window.dispatchEvent(new CustomEvent("clerkme:navigate",{detail:{section:"you"}}))}>Edit profile</button>
     </div>
-    <div className="cmh-security-note"><CmhIcon name="shield"/><p><b>Your conversations are private to their participants.</b><br/>ClerkMe uses secure sessions and encrypted connections. Messages are not currently end-to-end encrypted.</p></div>
+
+    <details className="cmh-settings-card cmh-profile-privacy">
+      <summary className="cmh-privacy-summary">
+        <span className="cmh-privacy-summary-copy"><span>PRIVACY</span><b>Privacy & status</b><small>Manage your audience, views and replies</small></span>
+        <span className="cmh-privacy-chevron" aria-hidden="true"><CmhIcon name="chevron"/></span>
+      </summary>
+      <div className="cmh-profile-privacy-content">
+        <div className="cmh-settings-heading"><h3>Your status, your choice.</h3><p>Choose who sees your updates and what activity is visible.</p></div>
+        <label className="cmh-setting-row"><span><b>Default status audience</b><small>Who can view new statuses you share</small></span>
+          <select value={preferences.defaultAudience} disabled={saving} onChange={event=>void savePreferences({defaultAudience:event.target.value as Audience})}><option value="everyone">All verified students</option><option value="conversations">Students I have chatted with</option><option value="only_me">Only me</option></select>
+        </label>
+        <label className="cmh-setting-row"><span><b>Hide my status views</b><small>Your name will not appear in other students' viewer lists</small></span><input type="checkbox" checked={preferences.hideViews} disabled={saving} onChange={event=>void savePreferences({hideViews:event.target.checked})}/></label>
+        <label className="cmh-setting-row"><span><b>Allow replies to my statuses</b><small>Replies open a private one-to-one conversation</small></span><input type="checkbox" checked={preferences.allowReplies} disabled={saving} onChange={event=>void savePreferences({allowReplies:event.target.checked})}/></label>
+        {saving&&<small className="cmh-saving">Saving privacy settings…</small>}
+      </div>
+    </details>
+
+    <div className="cmh-settings-card cmh-notification-card">
+      <div className="cmh-settings-heading"><span>PHONE ALERTS</span><h3>Message notifications</h3><p>Get a phone notification when another student messages you, even when ClerkMe is in the background.</p></div>
+      <div className="cmh-notification-actions">
+        <div className="cmh-notification-state">
+          <span className={"cmh-notification-dot"+(pushEnabled?" is-on":"")}/>
+          <span><b>{pushEnabled?"Notifications enabled":"Notifications not enabled"}</b><small>{permission==="unsupported"?"This browser does not support push notifications.":permission==="denied"?"Blocked by your device or browser settings.":pushEnabled?"This device is registered for private-message alerts.":"Allow notifications so ClerkMe can alert you about new messages."}</small></span>
+        </div>
+        <button type="button" className={pushEnabled?"cmh-secondary":"cmh-primary"} onClick={()=>void togglePush()} disabled={pushBusy||permission==="unsupported"||(permission==="denied"&&!pushEnabled)}>{pushBusy?"Updating…":pushEnabled?"Turn off":"Enable alerts"}</button>
+      </div>
+      {pushEnabled&&<button type="button" className="cmh-test-notification" onClick={()=>void sendTestNotification()} disabled={testBusy}>{testBusy?"Sending test…":"Send test notification"}</button>}
+      <p className="cmh-privacy-note">Alerts do not include the message text. You can change notification permission in your device settings.</p>
+    </div>
+    <div className="cmh-security-note"><CmhIcon name="shield"/><p><b>Private to conversation participants.</b> Messages are protected in transit but are not currently end-to-end encrypted.</p></div>
   </section>;
 }

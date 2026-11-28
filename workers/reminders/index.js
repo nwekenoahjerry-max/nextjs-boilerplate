@@ -172,9 +172,10 @@ export default {
     if (url.pathname === "/health") return Response.json({ ok: true, service: "clerkme-reminders" });
 
     // Internal service-binding endpoint for private chat notifications.
-    // It is additionally protected with the existing CRON_TOKEN secret.
+    // It is protected by a dedicated service-to-service secret, separate from
+    // the scheduled email-reminder CRON_TOKEN.
     if (url.pathname === "/internal/direct-message" && request.method === "POST") {
-      if (!env.CRON_TOKEN || request.headers.get("Authorization") !== "Bearer " + env.CRON_TOKEN) {
+      if (!env.PUSH_INTERNAL_TOKEN || request.headers.get("Authorization") !== "Bearer " + env.PUSH_INTERNAL_TOKEN) {
         return new Response("Unauthorized", { status: 401 });
       }
       let input;
@@ -196,6 +197,7 @@ export default {
       ).bind(userId).all();
       let sent = 0;
       let removed = 0;
+      let failed = 0;
       for (const subscription of subscriptions.results || []) {
         try {
           const status = await sendPush(subscription, {
@@ -209,12 +211,16 @@ export default {
           } else if (status === 404 || status === 410) {
             removed++;
             await env.DB.prepare("DELETE FROM push_subscriptions WHERE id = ?").bind(subscription.id).run();
+          } else {
+            failed++;
+            console.error("[clerkme-reminders] Direct-message push endpoint returned status", status);
           }
         } catch (error) {
+          failed++;
           console.error("[clerkme-reminders] Direct-message push failed.", error instanceof Error ? error.message : "unknown error");
         }
       }
-      return Response.json({ sent, removed });
+      return Response.json({ sent, removed, failed, subscriptions: subscriptions.results?.length || 0 });
     }
 
     return new Response("Not found", { status: 404 });
