@@ -481,9 +481,14 @@ export class ConversationRoom {
       });
     }
     const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
-    // A delivered WebSocket event means the student is already in this exact
-    // conversation. Otherwise persist an in-app alert even when active elsewhere.
-    if (!delivered) {
+    const recipientPresence = await this.env.DB.prepare(
+      "SELECT last_seen_at AS lastSeenAt FROM student_profiles WHERE id = ?"
+    ).bind(other.id).first();
+    const recipientVisible = Number(recipientPresence?.lastSeenAt || 0) >= Math.floor(Date.now() / 1000) - 45;
+    // A WebSocket can remain connected briefly after a tab is backgrounded.
+    // Treat it as delivered only while the recipient is still visibly active.
+    const shouldNotifyRecipient = !delivered || !recipientVisible;
+    if (shouldNotifyRecipient) {
       await this.env.DB.prepare(`
         INSERT INTO student_notifications
           (id, user_id, dedupe_key, kind, title, message, destination, created_at)
@@ -501,7 +506,7 @@ export class ConversationRoom {
 
     // If the exact conversation is not open, send an alert even if the student
     // is active elsewhere in ClerkMe. The foreground centre also shows a toast.
-    if (!delivered && this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
+    if (shouldNotifyRecipient && this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
       try {
         const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
           method: "POST",
@@ -526,7 +531,7 @@ export class ConversationRoom {
       } catch (error) {
         console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
       }
-    } else if (!delivered) {
+    } else if (shouldNotifyRecipient) {
       console.error("[clerkme-chat] Push notifications are not configured: PUSH_SERVICE or PUSH_INTERNAL_TOKEN is missing.");
     }
   }
