@@ -337,6 +337,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
   const pendingAudioSamplesRef = useRef(0);
   const preRollFramesRef = useRef<Int16Array[]>([]);
   const preRollSamplesRef = useRef(0);
+  const detectedSpeechSamplesRef = useRef(0);
   const liveRequestIdRef = useRef("");
   const silentGainRef = useRef<GainNode | null>(null);
   const outputSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
@@ -658,7 +659,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
   const sendCapturedVoiceTurn = (socket: WebSocket) => {
     if (socket.readyState !== WebSocket.OPEN || !setupReadyRef.current) return false;
     const sampleCount = pendingAudioSamplesRef.current;
-    if (sampleCount < 4000) {
+    if (sampleCount < 4000 || detectedSpeechSamplesRef.current < 3200) {
       clearPendingAudio();
       speechActiveRef.current = false;
       lastSpeechAtRef.current = 0;
@@ -721,6 +722,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
     pendingAudioSamplesRef.current = 0;
     preRollFramesRef.current = [];
     preRollSamplesRef.current = 0;
+    detectedSpeechSamplesRef.current = 0;
   };
 
   const stopVoiceCall = (notify = true) => {
@@ -784,6 +786,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
     microphoneNoiseFloorRef.current = 0.002;
     preRollFramesRef.current = [];
     preRollSamplesRef.current = 0;
+    detectedSpeechSamplesRef.current = 0;
     liveRequestIdRef.current = "";
     setVoiceDiagnostics("Requesting microphone permission…");
     clearPendingAudio();
@@ -873,6 +876,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
           clearSpeechResponseTimer();
           pendingAudioFramesRef.current = [...preRollFramesRef.current, pcm];
           pendingAudioSamplesRef.current = preRollSamplesRef.current + pcm.length;
+          detectedSpeechSamplesRef.current = pcm.length;
           preRollFramesRef.current = [];
           preRollSamplesRef.current = 0;
           setVoiceNotice("Listening…");
@@ -882,7 +886,10 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
 
         pendingAudioFramesRef.current.push(pcm);
         pendingAudioSamplesRef.current += pcm.length;
-        if (speechDetected) lastSpeechAtRef.current = now;
+        if (speechDetected) {
+          detectedSpeechSamplesRef.current += pcm.length;
+          lastSpeechAtRef.current = now;
+        }
 
         // A 1.1-second pause ends the student's turn. This avoids the
         // unreliable streamed realtimeInput path while preserving turn-taking.
@@ -976,7 +983,9 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
                 responseModalities: ["AUDIO"],
                 speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
               },
-              inputAudioTranscription: {},
+              // clientContent audio turns are not returned as inputTranscription
+              // by the current Gemini Live workaround; keep model transcription
+              // enabled so the student's spoken reply is still shown in chat.
               outputAudioTranscription: {},
               sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
             }
