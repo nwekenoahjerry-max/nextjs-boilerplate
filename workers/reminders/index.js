@@ -192,6 +192,15 @@ export default {
         return Response.json({ skipped: true, reason: "Web Push is not configured." }, { status: 503 });
       }
 
+      // Message alerts are enabled by default for every account. Respect the
+      // account-level opt-out before looking up any device subscriptions.
+      const recipient = await env.DB.prepare(
+        "SELECT message_alerts_enabled FROM student_profiles WHERE id = ?"
+      ).bind(userId).first();
+      if (!recipient || recipient.message_alerts_enabled === 0) {
+        return Response.json({ sent: 0, removed: 0, failed: 0, subscriptions: 0, disabled: true });
+      }
+
       const subscriptions = await env.DB.prepare(
         "SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?"
       ).bind(userId).all();

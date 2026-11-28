@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-type ReminderPreferences = { emailRemindersEnabled: boolean; vapidPublicKey: string };
+type ReminderPreferences = { emailRemindersEnabled: boolean; messageAlertsEnabled: boolean; vapidPublicKey: string };
 function decodeApplicationServerKey(value: string): Uint8Array {
   const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
   const raw = atob(padded);
@@ -8,6 +8,7 @@ function decodeApplicationServerKey(value: string): Uint8Array {
 }
 export default function ReminderSettings() {
   const [emailEnabled, setEmailEnabled] = useState(true);
+  const [messageAlertsEnabled, setMessageAlertsEnabled] = useState(true);
   const [vapidPublicKey, setVapidPublicKey] = useState("");
   const [pushEnabled, setPushEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,7 @@ export default function ReminderSettings() {
       const response = await fetch("/api/reminders/preferences", { credentials: "same-origin", cache: "no-store" });
       if (!response.ok) throw new Error("We could not load your reminder preferences.");
       const data = await response.json() as ReminderPreferences;
-      setEmailEnabled(data.emailRemindersEnabled !== false); setVapidPublicKey(data.vapidPublicKey || "");
+      setEmailEnabled(data.emailRemindersEnabled !== false); setMessageAlertsEnabled(data.messageAlertsEnabled !== false); setVapidPublicKey(data.vapidPublicKey || "");
       if (pushSupported) {
         const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
         setPushEnabled(Boolean(data.vapidPublicKey && await registration.pushManager.getSubscription()));
@@ -37,6 +38,16 @@ export default function ReminderSettings() {
       if (!response.ok) throw new Error(data.error || "Your email preference could not be saved.");
       setNotice(enabled ? "Email reminders are on. We will keep them gentle." : "Email reminders are switched off.");
     } catch (reason) { setEmailEnabled(previous); setError(reason instanceof Error ? reason.message : "Your preference could not be saved."); }
+    finally { setBusy(false); }
+  };
+  const updateMessageAlerts = async (enabled: boolean) => {
+    setBusy(true); setError(""); setNotice(""); const previous = messageAlertsEnabled; setMessageAlertsEnabled(enabled);
+    try {
+      const response = await fetch("/api/reminders/preferences", { method: "PATCH", credentials: "same-origin", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify({ messageAlertsEnabled: enabled }) });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Your message-alert preference could not be saved.");
+      setNotice(enabled ? "New message alerts are on. You can switch them off at any time." : "New message alerts are switched off.");
+    } catch (reason) { setMessageAlertsEnabled(previous); setError(reason instanceof Error ? reason.message : "Your message-alert preference could not be saved."); }
     finally { setBusy(false); }
   };
   const enablePush = async () => {
@@ -78,7 +89,9 @@ export default function ReminderSettings() {
     <div className="account-settings-group-heading"><span className="account-settings-icon" aria-hidden="true">♡</span><div><h3>A little note from ClerkMe</h3><p>Stay connected, even when you are away studying elsewhere.</p></div></div>
     <div className="reminder-intro-note"><span aria-hidden="true">💙</span><p>We know life and medical school can get busy. When we have not seen you for 48 hours, ClerkMe can send a gentle hello and remind you that your study space is right where you left it. No guilt, just encouragement.</p></div>
     <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Email reminders</strong><small>Receive one warm email after 48 hours away. You can turn this off whenever you like.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={emailEnabled} aria-label="Email reminders" disabled={loading || busy} onClick={() => void updateEmail(!emailEnabled)}><span/></button></div>
-    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Phone notifications</strong><small>Let ClerkMe send a notification to your device, even when the website is closed.</small></div><span aria-hidden="true" style={{fontSize:11,fontWeight:750,color:pushEnabled?"#16804b":"var(--clerkme-muted)"}}>{pushEnabled ? "ON" : "OFF"}</span></div>
+    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>New message alerts</strong><small>Get an alert when another student sends you a private message. This is on by default, and you can switch it off whenever you like.</small></div><button type="button" className="reminder-switch" role="switch" aria-checked={messageAlertsEnabled} aria-label="New message alerts" disabled={loading || busy} onClick={() => void updateMessageAlerts(!messageAlertsEnabled)}><span/></button></div>
+    <p className="reminder-settings-footnote">To receive message alerts while ClerkMe is closed, allow phone notifications on this device below. Your browser will ask for permission.</p>
+    <div className="reminder-setting-row"><div className="reminder-setting-copy"><strong>Phone notifications on this device</strong><small>Let ClerkMe send a notification to your device, even when the website is closed.</small></div><span aria-hidden="true" style={{fontSize:11,fontWeight:750,color:pushEnabled?"#16804b":"var(--clerkme-muted)"}}>{pushEnabled ? "ON" : "OFF"}</span></div>
     {pushSupported && vapidPublicKey ? <button type="button" className="reminder-push-button" disabled={loading || busy} onClick={() => void (pushEnabled ? disablePush() : enablePush())}>{busy ? "Saving your choice…" : pushEnabled ? "Turn off phone notifications" : "Enable phone notifications"}</button> : <p className="reminder-settings-footnote">{pushSupported ? "Phone notifications are being prepared. Email reminders are available now." : "This browser does not support background phone notifications. Email reminders can still reach you."}</p>}
     {isIos && !isStandalone && <p className="reminder-settings-footnote">On iPhone or iPad, first add ClerkMe to your Home Screen, open it from that icon, then enable notifications here.</p>}
     {error && <p className="reminder-feedback is-error" role="alert">{error}</p>}{notice && <p className="reminder-feedback is-success" role="status">{notice}</p>}
