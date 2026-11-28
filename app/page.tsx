@@ -1434,7 +1434,7 @@ export default function Home() {
         )}
         <div className={active === "ask" ? "content ask-clerkme-content" : "content"}>
           {active !== "ask" && active !== "messages" && <FocusMusicPlayer inVideoLibrary={active === "videos"}/>}
-{active === "ask" && <AskClerkMePanel userKey={authUser.id} userName={authUser.name?.trim().split(/\\s+/)[0] || ""}/>}
+{active === "ask" && <AskClerkMePanel userKey={authUser.id} userName={authUser.name?.trim().split(/\s+/)[0] || ""}/>}
 {active === "overview" && <>
 <div className="home-dashboard-card home-dashboard-refresh">
 <section className="home-compact-header" aria-label="Welcome to your ClerkME workspace">
