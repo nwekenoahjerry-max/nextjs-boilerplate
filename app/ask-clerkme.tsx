@@ -903,7 +903,12 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         if (attempt !== callAttemptRef.current || endingRef.current) return;
         setupReadyRef.current = false;
         if (resumeHandle) {
-          // Never carry queued microphone frames across a resumed socket.
+          // A partial speech turn cannot be continued on a fresh socket. Start
+          // the next user utterance with a clean boundary after setup completes.
+          speechActiveRef.current = false;
+          lastSpeechAtRef.current = 0;
+          pendingSpeechTurnRef.current = false;
+          clearSpeechResponseTimer();
           clearPendingAudio();
         }
         clearConnectionTimeout();
