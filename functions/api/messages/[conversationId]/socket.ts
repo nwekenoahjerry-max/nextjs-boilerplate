@@ -13,10 +13,6 @@ export const onRequestGet = async (context: AppContext) => {
   if (!member) return json({ error: "Conversation not found." }, 404);
   const rooms = context.env.CHAT_ROOMS;
   if (!rooms) return json({ error: "Live messaging is not configured on this environment yet." }, 503);
-  const url = new URL(context.request.url);
-  url.searchParams.set("conversationId", conversationId);
-  const headers = new Headers(context.request.headers);
-  return rooms.get(rooms.idFromName(conversationId)).fetch(
-    new Request(url.toString(), { method: "GET", headers })
-  );
+  // Forward the original upgrade request so the Cloudflare WebSocket handshake is preserved.
+  return rooms.get(rooms.idFromName(conversationId)).fetch(context.request);
 };
