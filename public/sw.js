@@ -1,4 +1,4 @@
-const CACHE_NAME = "clerkme-shell-v34-foreground-chat-alerts";
+const CACHE_NAME = "clerkme-shell-v35-community-notifications";
 const APP_SHELL = ["/offline.html", "/manifest.webmanifest", "/clerkme-mark-navy.svg", "/favicon.png", "/clerkme-icon-512.png", "/apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
