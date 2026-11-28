@@ -508,10 +508,21 @@ const handleAssistantPost = async (context: AppContext) => {
  */
 export const onRequestPost = async (context: AppContext) => {
   const requestId = crypto.randomUUID().slice(0, 12);
+  const requestBody = await context.request.clone().json().catch(() => null) as Record<string, unknown> | null;
   try {
     return await handleAssistantPost(context);
   } catch (error) {
     const detail = error instanceof Error ? clean(error.message, 220) : "Unknown assistant route failure";
+    if (requestBody?.intent === "live-token") {
+      await writeLiveDiagnostic(context, {
+        requestId,
+        route: "ask-clerkme",
+        rayId: context.request.headers.get("CF-Ray") || "",
+        stage: "route_unhandled_error",
+        errorCode: "ASSISTANT_ROUTE_FAILURE",
+        detail
+      });
+    }
     console.error("[ClerkME] Assistant route failed outside its normal response handler.", {
       requestId,
       detail
