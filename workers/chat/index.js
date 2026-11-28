@@ -31,6 +31,28 @@ export class ConversationRoom {
 
   async fetch(request) {
     const internalUrl = new URL(request.url);
+    if (request.method === "POST" && internalUrl.pathname === "/internal/push-notify") {
+      let input;
+      try { input = await request.json(); } catch { return Response.json({ error: "Invalid notification request." }, { status: 400 }); }
+      const userId = typeof input?.userId === "string" ? input.userId.slice(0, 100) : "";
+      const title = typeof input?.title === "string" ? input.title.slice(0, 100) : "ClerkMe update";
+      const body = typeof input?.body === "string" ? input.body.slice(0, 160) : "You have a new ClerkMe update.";
+      const requestedUrl = typeof input?.url === "string" ? input.url : "/";
+      const destination = requestedUrl.startsWith("/") && !requestedUrl.startsWith("//") ? requestedUrl : "/";
+      const tag = typeof input?.tag === "string" ? input.tag.slice(0, 120) : "clerkme-update-" + userId;
+      if (!userId || !this.env.PUSH_SERVICE || !this.env.PUSH_INTERNAL_TOKEN) return Response.json({ error: "Phone notifications are not available right now." }, { status: 503 });
+      try {
+        const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
+          method: "POST", headers: { "Authorization": "Bearer " + this.env.PUSH_INTERNAL_TOKEN, "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, title, body, url: destination, tag })
+        });
+        const result = await response.json().catch(() => ({}));
+        return Response.json(result, { status: response.status });
+      } catch (error) {
+        console.error("[clerkme-chat] Push handoff failed.", error instanceof Error ? error.message : "unknown error");
+        return Response.json({ error: "The notification service could not be reached." }, { status: 502 });
+      }
+    }
     if (request.method === "POST" && internalUrl.pathname === "/internal/push-test") {
       let input;
       try { input = await request.json(); } catch { return Response.json({ error: "Invalid test request." }, { status: 400 }); }
@@ -459,14 +481,9 @@ export class ConversationRoom {
       });
     }
     const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
-    // The workspace refreshes last_seen_at every 30 seconds while a student
-    // is using ClerkMe. A 90-second window allows for a missed heartbeat but
-    // avoids interrupting an active study session with a push alert.
-    const recipientPresence = await this.env.DB.prepare(
-      "SELECT last_seen_at AS lastSeenAt FROM student_profiles WHERE id = ?"
-    ).bind(other.id).first();
-    const recipientActive = Number(recipientPresence?.lastSeenAt || 0) >= Math.floor(Date.now() / 1000) - 90;
-    if (!delivered && !recipientActive) {
+    // A delivered WebSocket event means the student is already in this exact
+    // conversation. Otherwise persist an in-app alert even when active elsewhere.
+    if (!delivered) {
       await this.env.DB.prepare(`
         INSERT INTO student_notifications
           (id, user_id, dedupe_key, kind, title, message, destination, created_at)
@@ -478,13 +495,13 @@ export class ConversationRoom {
           created_at = excluded.created_at,
           read_at = NULL
       `).bind(
-        crypto.randomUUID(), other.id, "direct-message:" + identity.conversationId, notificationTitle
+        crypto.randomUUID(), other.id, "direct-message:" + identity.conversationId + ":" + messageId, notificationTitle
       ).run();
     }
 
-    // Do not alert a student who is already using ClerkMe. Their unread
-    // conversation badge remains available; push is reserved for away users.
-    if (!recipientActive && !delivered && this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
+    // If the exact conversation is not open, send an alert even if the student
+    // is active elsewhere in ClerkMe. The foreground centre also shows a toast.
+    if (!delivered && this.env.PUSH_SERVICE && this.env.PUSH_INTERNAL_TOKEN) {
       try {
         const response = await this.env.PUSH_SERVICE.fetch("https://clerkme-reminders.internal/internal/direct-message", {
           method: "POST",
@@ -509,7 +526,7 @@ export class ConversationRoom {
       } catch (error) {
         console.error("[clerkme-chat] Push notification handoff failed.", error instanceof Error ? error.message : "unknown error");
       }
-    } else if (!recipientActive && !delivered) {
+    } else if (!delivered) {
       console.error("[clerkme-chat] Push notifications are not configured: PUSH_SERVICE or PUSH_INTERNAL_TOKEN is missing.");
     }
   }
