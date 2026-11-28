@@ -482,12 +482,13 @@ export class ConversationRoom {
     }
     const notificationTitle = "New message from " + (sender?.name || "a ClerkMe student");
     const recipientPresence = await this.env.DB.prepare(
-      "SELECT last_seen_at AS lastSeenAt FROM student_profiles WHERE id = ?"
+      "SELECT last_seen_at AS lastSeenAt, message_alerts_enabled AS messageAlertsEnabled FROM student_profiles WHERE id = ?"
     ).bind(other.id).first();
     const recipientVisible = Number(recipientPresence?.lastSeenAt || 0) >= Math.floor(Date.now() / 1000) - 45;
+    const alertsEnabled = recipientPresence?.messageAlertsEnabled !== 0;
     // A WebSocket can remain connected briefly after a tab is backgrounded.
-    // Treat it as delivered only while the recipient is still visibly active.
-    const shouldNotifyRecipient = !delivered || !recipientVisible;
+    // Respect the student's account preference and alert outside the active chat.
+    const shouldNotifyRecipient = alertsEnabled && (!delivered || !recipientVisible);
     if (shouldNotifyRecipient) {
       await this.env.DB.prepare(`
         INSERT INTO student_notifications
