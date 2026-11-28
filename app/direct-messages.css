@@ -437,3 +437,27 @@
 @media(prefers-reduced-motion:reduce){
   .dm-composer-input-row textarea{transition:none}
 }
+
+
+/* Native, uninterrupted scrolling across Messages lists. */
+.dm-message-scroll,.dm-conversation-list,.dm-search-results{
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:auto;
+  scrollbar-gutter:auto;
+  scroll-behavior:auto;
+}
+.dm-message-scroll{
+  overflow-y:auto;
+  min-height:0;
+  flex:1 1 auto;
+  padding-bottom:max(18px,env(safe-area-inset-bottom));
+  overflow-anchor:auto;
+}
+.dm-conversation-list,.dm-search-results{overflow-y:auto;overflow-x:hidden;min-height:0}
+@media(max-width:760px){
+  .dm-workspace.has-selection .dm-message-scroll{
+    overflow-y:auto;overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch;
+    padding-bottom:max(18px,env(safe-area-inset-bottom));
+  }
+  .dm-workspace.has-selection .dm-thread{min-height:0}
+}
