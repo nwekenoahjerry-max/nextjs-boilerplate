@@ -160,7 +160,9 @@ export const onRequestPost=async(context:AppContext)=>{
     return json({error:"The image could not be safely processed. Please choose another photo."},415);
   }
   if(cleanBytes.length<1||cleanBytes.length>MAX_PHOTO_SIZE) return json({error:"The processed profile photo must be 3 MB or smaller."},413);
-  const sanitizedFile=new Blob([cleanBytes],{type:mimeType});
+  const safeBuffer=new ArrayBuffer(cleanBytes.byteLength);
+  new Uint8Array(safeBuffer).set(cleanBytes);
+  const sanitizedFile=new Blob([safeBuffer],{type:mimeType});
   const old=await context.env.DB.prepare(
     "SELECT profile_photo_key AS photoKey FROM student_profiles WHERE id=?"
   ).bind(user.id).first<{photoKey:string|null}>();
