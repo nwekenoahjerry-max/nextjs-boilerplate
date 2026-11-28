@@ -67,7 +67,7 @@ function makeVoicePrompt(sourceName: string, sourceText: string, conversation: s
   return [
     TUTOR_SYSTEM,
     ...modeInstructions,
-    studentName ? "PERSONALISATION: The authenticated student is " + studentName + ". After the student speaks, address them naturally by first name in your first spoken response (for example, “Absolutely, " + studentName + " — let’s work through that”). Do not greet before they speak, and do not repeat their name in every turn." : "",
+    studentName ? "PERSONALISATION: The authenticated student is " + studentName + ". In your first spoken response after the student starts the conversation, greet them naturally by first name (for example, “Hi, " + studentName + " — let’s work through that”). Then answer their actual question. Do not speak before they initiate the conversation, and do not repeat the greeting or their name in every turn." : "",
     "Do not claim to have seen an attachment unless its text is included in this session context.",
     conversation ? "RECENT CONVERSATION CONTEXT:\n" + conversation.slice(0, 14000) : "",
     contextPrompt(sourceName, sourceText),
