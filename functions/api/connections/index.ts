@@ -12,9 +12,14 @@ export const onRequestGet=async(context:AppContext)=>{
         p.profile_photo_key AS profilePhotoKey,c.created_at AS createdAt
       FROM student_connections c
       INNER JOIN student_profiles p ON p.id=CASE WHEN c.user_a_id=? THEN c.user_b_id ELSE c.user_a_id END
-      WHERE c.user_a_id=? OR c.user_b_id=?
+      WHERE (c.user_a_id=? OR c.user_b_id=?)
+        AND NOT EXISTS (
+          SELECT 1 FROM direct_message_blocks b
+          WHERE (b.blocker_id=? AND b.blocked_id=p.id)
+             OR (b.blocker_id=p.id AND b.blocked_id=?)
+        )
       ORDER BY p.full_name COLLATE NOCASE LIMIT 200
-    `).bind(user.id,user.id,user.id).all<PersonRow>(),
+    `).bind(user.id,user.id,user.id,user.id,user.id).all<PersonRow>(),
     context.env.DB.prepare(`
       SELECT r.id AS requestId,r.created_at AS createdAt,p.id,p.full_name AS name,
         p.school AS university,p.level,NULL AS profilePhotoKey
@@ -80,10 +85,18 @@ export const onRequestPost=async(context:AppContext)=>{
     await context.env.DB.prepare(
       "INSERT OR IGNORE INTO student_connections (user_a_id,user_b_id,created_at) VALUES (?,?,unixepoch())"
     ).bind(userA,userB).run();
+    const ownRequest=await context.env.DB.prepare(
+      "SELECT id FROM student_connection_requests WHERE sender_id=? AND recipient_id=? AND status='pending' LIMIT 1"
+    ).bind(user.id,recipientId).first<{id:string}>();
     await context.env.DB.prepare(`
       UPDATE student_connection_requests SET status='accepted',updated_at=unixepoch()
       WHERE (sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)
     `).bind(user.id,recipientId,recipientId,user.id).run();
+    if(ownRequest){
+      await context.env.DB.prepare(
+        "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
+      ).bind(recipientId,"connection-request:"+ownRequest.id).run();
+    }
     await context.env.DB.prepare(
       "UPDATE student_notifications SET is_read=1,read_at=unixepoch() WHERE user_id=? AND dedupe_key=?"
     ).bind(user.id,"connection-request:"+reciprocal.id).run();
