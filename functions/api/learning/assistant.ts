@@ -1,8 +1,8 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
+import { writeLiveDiagnostic } from "../../_lib/live-diagnostics";
 
-// Gemini 3.8 Live is primary; Gemini 3.1 Live Preview remains a compatibility fallback.
+// Gemini 3.8 Live is the supported Live model.
 const LIVE_MODEL = "models/gemini-3.8-live";
-const LIVE_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -171,7 +171,7 @@ async function askWorkersAITutor(
 }
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
-  const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
+  const models = [LIVE_MODEL] as const;
   const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
@@ -179,8 +179,8 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
   let lastCode = "NETWORK_FAILURE";
   let lastDetail = "";
 
-  // Try Gemini 3.8 first, retry one transient failure, then make one
-  // bounded attempt with the previously supported 3.1 Live preview.
+  // Retry one transient Gemini 3.8 token-service failure. The retired 3.1
+  // Live preview is deliberately not used as a fallback.
   for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
     const model = models[modelIndex];
     const attempts = modelIndex === 0 ? 2 : 1;
@@ -307,6 +307,7 @@ const handleAssistantPost = async (context: AppContext) => {
   if (isResponse(user)) return user;
 
   const requestId = crypto.randomUUID().slice(0, 12);
+  const rayId = context.request.headers.get("CF-Ray") || "";
   const apiKey = context.env.GEMINI_API_KEY?.trim() || "";
 
   let body: Record<string, unknown>;
@@ -315,6 +316,11 @@ const handleAssistantPost = async (context: AppContext) => {
 
   const intent = clean(body.intent, 24) || "reply";
   if (!["reply", "live-token"].includes(intent)) return json({ error: "Choose a valid Ask ClerkME action." }, 400);
+  if (intent === "live-token") {
+    await writeLiveDiagnostic(context, {
+      requestId, route: "ask-clerkme", rayId, stage: "route_entered", model: LIVE_MODEL
+    });
+  }
 
   const sourceName = clean(body.sourceName, 160);
   let sourceText = clean(body.attachmentText, 85000);
@@ -338,20 +344,44 @@ const handleAssistantPost = async (context: AppContext) => {
   }).filter(Boolean).join("\n\n") : "";
 
   if (intent === "live-token") {
-    if (!apiKey) return json({
-      error: "Live voice requires the Gemini Live credential. Text tutoring remains available.",
-      code: "GEMINI_LIVE_NOT_CONFIGURED",
-      requestId
-    }, 503);
+    if (!apiKey) {
+      await writeLiveDiagnostic(context, {
+        requestId, route: "ask-clerkme", rayId, stage: "credential_missing",
+        statusCode: 503, errorCode: "GEMINI_LIVE_NOT_CONFIGURED"
+      });
+      return json({
+        error: "Live voice requires the Gemini Live credential. Text tutoring remains available.",
+        code: "GEMINI_LIVE_NOT_CONFIGURED",
+        requestId
+      }, 503);
+    }
+    await writeLiveDiagnostic(context, {
+      requestId, route: "ask-clerkme", rayId, stage: "token_request_started", model: LIVE_MODEL
+    });
     try {
       const requestedMode = clean(body.voiceMode, 16);
       const voiceMode: VoiceMode = requestedMode === "viva" ? "viva" : "tutor";
       const liveSession = await createLiveToken(apiKey, sourceName, sourceText, conversation, voiceMode, requestId, user.name);
+      await writeLiveDiagnostic(context, {
+        requestId, route: "ask-clerkme", rayId, stage: "token_issued",
+        statusCode: 200, model: liveSession.model
+      });
       console.info("[ClerkME] Live token provisioned.", { requestId, model: liveSession.model });
       return json({ token: liveSession.name, systemInstruction: liveSession.systemInstruction, requestId, model: liveSession.model });
     } catch (error) {
       const detail = error instanceof Error ? error.message : "";
       const network = detail.match(/^LIVE_TOKEN_NETWORK_([A-Z_]+)$/);
+      const diagnosticUpstream = detail.match(/^LIVE_TOKEN_UPSTREAM_(\d+)_([A-Z_]+)/);
+      await writeLiveDiagnostic(context, {
+        requestId,
+        route: "ask-clerkme",
+        rayId,
+        stage: "token_request_failed",
+        statusCode: diagnosticUpstream ? Number(diagnosticUpstream[1]) : null,
+        model: LIVE_MODEL,
+        errorCode: diagnosticUpstream?.[2] || network?.[1] || "LIVE_SESSION_UNAVAILABLE",
+        detail: clean(detail, 240)
+      });
       if (network) {
         const code = network[1] === "TIMEOUT" ? "LIVE_API_TIMEOUT" : "LIVE_API_NETWORK_FAILURE";
         const message = network[1] === "TIMEOUT"
@@ -478,10 +508,21 @@ const handleAssistantPost = async (context: AppContext) => {
  */
 export const onRequestPost = async (context: AppContext) => {
   const requestId = crypto.randomUUID().slice(0, 12);
+  const requestBody = await context.request.clone().json().catch(() => null) as Record<string, unknown> | null;
   try {
     return await handleAssistantPost(context);
   } catch (error) {
     const detail = error instanceof Error ? clean(error.message, 220) : "Unknown assistant route failure";
+    if (requestBody?.intent === "live-token") {
+      await writeLiveDiagnostic(context, {
+        requestId,
+        route: "ask-clerkme",
+        rayId: context.request.headers.get("CF-Ray") || "",
+        stage: "route_unhandled_error",
+        errorCode: "ASSISTANT_ROUTE_FAILURE",
+        detail
+      });
+    }
     console.error("[ClerkME] Assistant route failed outside its normal response handler.", {
       requestId,
       detail
