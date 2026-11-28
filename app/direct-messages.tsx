@@ -12,7 +12,7 @@ type ChatMessage = {
   id: number; public_id?: string; conversation_id: string; sender_id: string;
   client_message_id?: string; body: string; created_at: number; delivered_at?: number | null;
   deliveryState?: "sending" | "sent" | "failed";
-  reply_to_status_id?: string | null;
+  reply_to_status_id?: string | null; edited_at?: number | null;
 };
 type SocketEvent = {
   type: string; message?: ChatMessage | string; messageId?: number; deliveredAt?: number;
@@ -57,6 +57,9 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const [reportReason, setReportReason] = useState("harassment");
   const [reportDetails, setReportDetails] = useState("");
   const [reporting, setReporting] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimer = useRef<number | null>(null);
@@ -143,6 +146,8 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     }
     let cancelled = false;
     setMessages([]);
+    setEditingMessageId(null);
+    setEditDraft("");
     keepScroll.current = true;
     const load = async () => {
       try {
@@ -250,6 +255,12 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             if (nearBottom) void markRead(selectedId, incoming.id);
             window.dispatchEvent(new Event("clerkme:notifications-refresh"));
           }
+          void loadConversations();
+          return;
+        }
+        if (data.type === "message:updated" && data.message && typeof data.message === "object") {
+          const updated = data.message;
+          setMessages(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item));
           void loadConversations();
           return;
         }
@@ -403,6 +414,39 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     }
   };
 
+  const saveEditedMessage = async (message: ChatMessage) => {
+    const body = editDraft.trim();
+    if (!selectedId || message.sender_id !== userId || message.id < 1 || !body || body.length > 4000) return;
+    setSavingEdit(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/messages/" + encodeURIComponent(selectedId) + "/" + message.id, {
+        method: "PATCH", credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.message) throw new Error(data.error || "Your message could not be edited.");
+      setMessages(current => current.map(item => item.id === message.id ? { ...item, ...data.message } : item));
+      setEditingMessageId(null);
+      setEditDraft("");
+      void loadConversations();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Your message could not be edited.");
+    } finally { setSavingEdit(false); }
+  };
+
+  const startEditingMessage = (message: ChatMessage) => {
+    if (message.sender_id !== userId || message.id < 1) return;
+    setEditingMessageId(message.id);
+    setEditDraft(message.body);
+  };
+
+  const cancelEditingMessage = () => {
+    setEditingMessageId(null);
+    setEditDraft("");
+  };
+
   const retryMessage = (message: ChatMessage) => {
     const socket = socketRef.current;
     if (!selectedId || !message.client_message_id || !socket || socket.readyState !== WebSocket.OPEN) {
@@ -521,8 +565,22 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                   {showDay && <div className="dm-day-divider"><span>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(message.created_at * 1000))}</span></div>}
                   <div className={"dm-message-row" + (own ? " is-own" : "")}><div className={"dm-bubble" + (own ? " dm-own-bubble" : "")}>
                     {message.reply_to_status_id && <small className="dm-status-reply-marker">↩ Status reply</small>}
-                    <p>{message.body}</p><div className="dm-message-meta"><time>{timeLabel(message.created_at)}</time>
+                    {editingMessageId === message.id ? <div className="dm-edit-box">
+                      <textarea aria-label="Edit your message" value={editDraft} maxLength={4000} rows={3}
+                        onChange={event => setEditDraft(event.target.value)}
+                        onKeyDown={event => {
+                          if (event.key === "Escape") { event.preventDefault(); cancelEditingMessage(); }
+                          if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); void saveEditedMessage(message); }
+                        }}/>
+                      <div className="dm-edit-actions"><small>{editDraft.length}/4000 · Ctrl/⌘ + Enter to save</small>
+                        <button type="button" className="dm-edit-cancel" onClick={cancelEditingMessage} disabled={savingEdit}>Cancel</button>
+                        <button type="button" className="dm-edit-save" onClick={() => void saveEditedMessage(message)} disabled={savingEdit || !editDraft.trim() || editDraft.trim() === message.body}>{savingEdit ? "Saving…" : "Save"}</button>
+                      </div>
+                    </div> : <p>{message.body}</p>}
+                    <div className="dm-message-meta"><time>{timeLabel(message.created_at)}</time>
+                      {message.edited_at && <em>Edited</em>}
                       {own && <span>{message.deliveryState === "sending" ? "Sending…" : message.deliveryState === "failed" ? "Not sent" : read ? "Read" : message.delivered_at ? "Delivered" : "Sent"}</span>}
+                      {own && message.id > 0 && message.deliveryState !== "failed" && editingMessageId !== message.id && <button type="button" className="dm-edit-action" onClick={() => startEditingMessage(message)}>Edit</button>}
                       {own && message.deliveryState === "failed" && <button type="button" onClick={() => retryMessage(message)}>Retry</button>}
                       {!own && message.id > 0 && <button type="button" onClick={() => setReportTarget(message)}>Report</button>}
                     </div>
