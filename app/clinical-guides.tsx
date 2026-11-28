@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { clinicalUnits } from "../lib/learning-content";
 import { goodHistoryExamples } from "../lib/good-history";
-import { coreClerkingSections, unitClerkingFrameworks, type GuideSection } from "../lib/unit-clerking";
+import { coreClerkingSections, type GuideSection } from "../lib/unit-clerking";
+import { unitClerkingFrameworks } from "../lib/unit-clerking-frameworks";
 import { getUnitPresentationPathways, type PresentingComplaintPathway } from "../lib/presentation-pathways";
 import { caseGuides } from "../lib/case-guides";
 
