@@ -301,7 +301,7 @@ function AssistantMessage({ message }: { message: ChatMessage }) {
   );
 }
 
-export default function AskClerkMePanel({ userKey }: { userKey: string }) {
+export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: string; userName?: string }) {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [activeThreadId, setActiveThreadId] = useState("");
   const [hydrated, setHydrated] = useState(false);
@@ -650,14 +650,14 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
     setVoiceTranscript("");
   };
 
-  // Send roughly 100 ms PCM frames, matching Google's recommended real-time
-  // packet range while keeping latency low.
+  // Send PCM in 40 ms frames. Google's Live troubleshooting guidance recommends
+  // 20–40 ms packets; larger batches can delay or impair turn processing.
   const flushPendingAudio = (socket: WebSocket, flushRemainder = false) => {
     while (
       socket.readyState === WebSocket.OPEN &&
-      (pendingAudioSamplesRef.current >= 1600 || (flushRemainder && pendingAudioSamplesRef.current > 0))
+      (pendingAudioSamplesRef.current >= 640 || (flushRemainder && pendingAudioSamplesRef.current > 0))
     ) {
-      const packetLength = Math.min(1600, pendingAudioSamplesRef.current);
+      const packetLength = Math.min(640, pendingAudioSamplesRef.current);
       const packet = new Int16Array(packetLength);
       let written = 0;
       while (written < packetLength) {
@@ -798,11 +798,11 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         for (let index = 0; index < samples.length; index++) energy += samples[index] * samples[index];
         const rms = Math.sqrt(energy / samples.length);
         const now = Date.now();
-        const speechThreshold = Math.max(0.005, Math.min(0.012, microphoneNoiseFloorRef.current * 2.5));
+        const speechThreshold = Math.max(0.003, Math.min(0.008, microphoneNoiseFloorRef.current * 2));
         const speechDetected = rms >= speechThreshold;
 
         // Learn the room-noise floor only while a speech turn is inactive.
-        if (!speechActiveRef.current && rms < 0.004) {
+        if (!speechActiveRef.current && rms < 0.005) {
           microphoneNoiseFloorRef.current =
             microphoneNoiseFloorRef.current * 0.96 + rms * 0.04;
         }
@@ -870,6 +870,7 @@ export default function AskClerkMePanel({ userKey }: { userKey: string }) {
         body: JSON.stringify({
           intent: "live-token",
           voiceMode: mode,
+          userName,
           history: activeMessages.slice(-10).map(message => ({ role: message.role, content: message.content })),
           attachmentText: attachment?.text || "",
           sourceName: attachment?.name || materialTitle || "",
