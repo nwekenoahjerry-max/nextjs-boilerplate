@@ -94,8 +94,8 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
     if (!item.isRead) await markRead(item.id);
     setForegroundToast(null);
     setOpen(false);
-    if (item.kind === "direct_message") onNavigate("messages", "chats");
-    else if (item.kind === "connection_request" || item.kind === "connection_accepted") onNavigate("messages", "connections");
+    if (item.kind === "direct_message" || item.kind === "connection_accepted") onNavigate("messages", "chats");
+    else if (item.kind === "connection_request") onNavigate("messages", "connections");
     else onNavigate(item.destination);
   };
   return (
@@ -111,7 +111,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
         <span className="notification-foreground-icon"><NotificationIcon kind={foregroundToast.kind}/></span>
         <button type="button" className="notification-foreground-copy" onClick={() => void activate(foregroundToast)}>
           <strong>{foregroundToast.title}</strong><small>{foregroundToast.message}</small>
-          <em>{foregroundToast.kind === "direct_message" ? "Open chat" : "View connections"}</em>
+          <em>{foregroundToast.kind === "direct_message" ? "Open chat" : foregroundToast.kind === "connection_request" ? "Respond to request" : "Start messaging"}</em>
         </button>
         <button type="button" className="notification-foreground-close" aria-label="Dismiss notification" onClick={() => setForegroundToast(null)}>×</button>
       </div>}
@@ -131,7 +131,7 @@ export default function NotificationCenter({ onNavigate }: { onNavigate: (sectio
             ) : items.map(item => (
               <button type="button" className={"notification-item" + (item.isRead ? "" : " is-unread")} key={item.id} onClick={() => void activate(item)}>
                 <span className={"notification-item-icon" + (item.kind.includes("failed") ? " is-warning" : "")}><NotificationIcon kind={item.kind}/></span>
-                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" ? "Open messages" : destinationLabels[item.destination]}</em></span>
+                <span className="notification-item-copy"><strong>{item.title}</strong><small>{item.message}</small><em>{timeAgo(item.createdAt)} · {item.kind === "direct_message" || item.kind === "connection_accepted" ? "Open messages" : item.kind === "connection_request" ? "Respond to request" : destinationLabels[item.destination]}</em></span>
                 {!item.isRead && <i className="notification-unread-dot" aria-label="Unread"/>}
               </button>
             ))}
