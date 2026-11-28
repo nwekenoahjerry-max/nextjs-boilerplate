@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import DirectMessagesPanel from "./direct-messages";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type FormEvent, type ReactNode } from "react";
+import DirectMessagesPanel, { type DirectMessageConversation } from "./direct-messages";
 
 type Audience = "everyone" | "conversations" | "only_me";
 type Status = {
@@ -12,7 +12,31 @@ type Status = {
 type StatusGroup = { userId:string; name:string; university?:string; statuses:Status[] };
 type Preferences = { defaultAudience:Audience; hideViews:boolean; allowReplies:boolean };
 type Profile = { id:string; name:string; email:string; university:string; country:string; level:string; futureSpecialty:string; state:string; lga:string; profilePhotoUrl?:string|null };
-type ReplyLaunch = { conversationId:string; statusId:string; draft:string };
+type ReplyLaunch = { conversationId:string; statusId:string; draft:string; conversation:DirectMessageConversation };
+type LaunchPeer = { id:string; name?:string; university?:string; level?:string; lastSeenAt?:number|null; profilePhotoUrl?:string|null };
+const toLaunchConversation = (id:string, other:LaunchPeer):DirectMessageConversation => ({
+  id, otherId:other.id, otherName:other.name||"ClerkMe student",
+  otherUniversity:other.university, otherLevel:other.level,
+  otherLastSeenAt:other.lastSeenAt, otherProfilePhotoUrl:other.profilePhotoUrl,
+  lastMessagePreview:"", lastMessageAt:null, unreadCount:0
+});
+
+class MessagingChatErrorBoundary extends Component<{children:ReactNode},{failed:boolean}> {
+  state = {failed:false};
+  static getDerivedStateFromError() { return {failed:true}; }
+  componentDidCatch(error:Error, info:ErrorInfo) {
+    console.error("ClerkMe messaging interface failed to render",error,info.componentStack);
+  }
+  render() {
+    if (this.state.failed) return <div className="cmh-chat-error" role="alert">
+      <span aria-hidden="true">!</span>
+      <strong>This conversation could not be displayed.</strong>
+      <p>Your account and messages have not been deleted. Reload the messaging area to try again.</p>
+      <button type="button" onClick={()=>window.location.reload()}>Reload messaging</button>
+    </div>;
+    return this.props.children;
+  }
+}
 
 const backgrounds = ["#173765","#4C376D","#8A3F51","#23645E","#7A5B2C","#26374D"];
 const initials = (name:string) => name.trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase() || "CM";
@@ -61,7 +85,8 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
       const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:status.userId})});
       const data=await response.json();
       if(!response.ok||!data.conversation?.id) throw new Error(data.error||"The conversation could not be opened.");
-      setReplyLaunch({conversationId:data.conversation.id,statusId:status.id,draft});
+      const conversation = toLaunchConversation(data.conversation.id,data.conversation.other as LaunchPeer);
+      setReplyLaunch({conversationId:data.conversation.id,statusId:status.id,draft,conversation});
       setHubNotice("");
       setSection("chats");
     }catch(error){setHubNotice(error instanceof Error?error.message:"The conversation could not be opened.");}
@@ -87,13 +112,18 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
       <button id="cmh-tab-profile" type="button" role="tab" aria-controls="cmh-panel-profile" aria-selected={section==="profile"} tabIndex={section==="profile"?0:-1} className={section==="profile"?"is-active":""} onClick={()=>setSection("profile")}><span className="cmh-tab-icon"><CmhIcon name="user"/></span><span className="cmh-tab-label">Profile</span></button>
     </nav>
     {hubNotice&&<div className="cmh-alert" role="alert">{hubNotice}<button type="button" onClick={()=>setHubNotice("")} aria-label="Dismiss">×</button></div>}
-    {section==="chats"&&<div id="cmh-panel-chats" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-chats" tabIndex={0}><DirectMessagesPanel key={replyLaunch?.statusId||"clerkme-chats"} userId={userId} initialConversationId={replyLaunch?.conversationId||""} initialStatusReplyId={replyLaunch?.statusId||""} initialDraft={replyLaunch?.draft||""}/></div>}
+    {section==="chats"&&<div id="cmh-panel-chats" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-chats" tabIndex={0}>
+      <MessagingChatErrorBoundary key={replyLaunch ? replyLaunch.conversationId+":"+replyLaunch.statusId : "clerkme-inbox"}>
+        <DirectMessagesPanel userId={userId} initialConversationId={replyLaunch?.conversationId||""} initialStatusReplyId={replyLaunch?.statusId||""} initialDraft={replyLaunch?.draft||""} initialConversation={replyLaunch?.conversation}/>
+      </MessagingChatErrorBoundary>
+    </div>}
         {section==="connections"&&<div id="cmh-panel-connections" className="cmh-tab-panel" role="tabpanel" aria-labelledby="cmh-tab-connections" tabIndex={0}><ConnectionsPanel onMessage={async student=>{
       try{
         const response=await fetch("/api/messages",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({recipientId:student.id})});
         const data=await response.json();
         if(!response.ok||!data.conversation?.id)throw new Error(data.error||"The conversation could not be opened.");
-        setReplyLaunch({conversationId:data.conversation.id,statusId:"",draft:""});
+        const conversation = toLaunchConversation(data.conversation.id,data.conversation.other as LaunchPeer);
+        setReplyLaunch({conversationId:data.conversation.id,statusId:"",draft:"",conversation});
         setHubNotice("");
         setSection("chats");
       }catch(error){setHubNotice(error instanceof Error?error.message:"The conversation could not be opened.");}
