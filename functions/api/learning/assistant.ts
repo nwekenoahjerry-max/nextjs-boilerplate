@@ -1,9 +1,9 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Temporary real-time audio compatibility fallback: Google's 3.8 Live realtimeInput path
-// has a confirmed recent regression. 3.1 Live continues to process the same audio turns.
-// Keep this centralised so we can restore 3.8 once Google resolves the regression.
-const LIVE_MODEL = "models/gemini-3.1-flash-live-preview";
+// Current native speech-to-speech Live model. Audio turns are submitted as
+// completed clientContent PCM messages to avoid the reported Gemini 3.8
+// realtimeInput turn-stall affecting streamed audio sessions.
+const LIVE_MODEL = "models/gemini-3.8-live";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
