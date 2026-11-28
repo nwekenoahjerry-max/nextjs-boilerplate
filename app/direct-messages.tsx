@@ -413,6 +413,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const socket = socketRef.current;
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "read", messageId }));
       setConversations(current => current.map(item => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
+      window.dispatchEvent(new Event("clerkme:messages-unread-refresh"));
     } catch { /* Reconciled on the next inbox refresh. */ }
   }, []);
 
@@ -582,6 +583,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
           });
           if (incoming.sender_id !== userId) {
             if (nearBottom) void markRead(selectedId, incoming.id);
+            window.dispatchEvent(new Event("clerkme:messages-unread-refresh"));
             window.dispatchEvent(new Event("clerkme:notifications-refresh"));
           }
           void loadConversations();
@@ -867,7 +869,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   };
 
   return (
-    <section className="clerkme-dm-page" aria-label="Private messages">
+    <section className={"clerkme-dm-page" + (selectedId ? " has-open-conversation" : "")} aria-label="Private messages">
       <div className="dm-page-heading">
         <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>One-to-one conversations with verified ClerkMe students.</p></div>
         <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>New message</span></button>
@@ -990,7 +992,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 <button type="button" className="dm-voice-discard" onClick={discardVoiceDraft} disabled={voiceUploading}>Discard</button>
                 <button type="button" className="dm-voice-send" onClick={() => void sendVoiceNote()} disabled={voiceUploading || connection !== "connected"}>{voiceUploading ? "Uploading…" : "Send voice note"}</button>
               </div> : <div className="dm-composer-input-row">
-                <textarea value={draft} maxLength={4000} rows={2} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Write a message…" aria-label="Write a message"/>
+                <textarea value={draft} maxLength={4000} rows={2} onChange={event => { setDraft(event.target.value); const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: true })); }} onBlur={() => { const socket = socketRef.current; if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "typing", body: false })); }} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Message…" aria-label="Write a message"/>
                 <button type="button" className="dm-voice-record" onClick={() => void startVoiceRecording()} disabled={connection !== "connected" || callState !== "idle"} aria-label="Record a voice note" title="Record a voice note">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></svg><span>Voice</span>
                 </button>
