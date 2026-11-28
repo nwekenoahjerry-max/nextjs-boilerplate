@@ -236,8 +236,8 @@ export const onRequestPost = async (context: AppContext) => {
   if (!validSameOrigin(context.request)) return json({ error: "Invalid request origin." }, 403);
   const user = await requireUser(context);
   if (isResponse(user)) return user;
-  const apiKey = context.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const apiKey = context.env.GEMINI_API_KEY?.trim() || "";
+  if (!apiKey && !context.env.AI) {
     return json({
       error: "Question generation is temporarily unavailable. Your uploaded material is safe; please try again shortly.",
       code: "QUESTION_SERVICE_UNAVAILABLE"
@@ -302,6 +302,7 @@ export const onRequestPost = async (context: AppContext) => {
       const maxOutputTokens = Math.min(6500, requested * 950 + 900);
       let parsed: Record<string, unknown>;
       try {
+        if (!apiKey) throw new Error("Gemini is not configured; use the Cloudflare Workers AI question engine.");
         const result = await requestGeminiSba(apiKey, messages, maxOutputTokens);
         parsed = parseAIResult({ response: result });
       } catch (primaryError) {
