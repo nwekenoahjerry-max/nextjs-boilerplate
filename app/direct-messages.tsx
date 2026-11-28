@@ -454,7 +454,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     }catch{/* Keep current results visible while offline. */}
   },[search]);
 
-  const respondToConnectionRequest=async(requestId:string,action:"accept"|"decline")=>{
+  const respondToConnectionRequest=async(requestId:string,action:"accept"|"decline"|"cancel")=>{
     try{
       const response=await fetch("/api/connections/"+encodeURIComponent(requestId),{
         method:"PATCH",credentials:"same-origin",headers:{"Content-Type":"application/json"},
@@ -462,7 +462,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       });
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||"The connection request could not be updated.");
-      setNotice(action==="accept"?"Connection accepted. You can now message each other.":"Connection request declined.");
+      setNotice(action==="accept"?"Connection accepted. You can now message each other.":action==="decline"?"Connection request declined.":"Connection request cancelled.");
       await Promise.all([loadConnections(),loadConversations(),refreshStudentSearch()]);
       window.dispatchEvent(new Event("clerkme:notifications-refresh"));
     }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be updated.");}
@@ -997,6 +997,13 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
                 <StudentAvatar name={person.name}/><span><strong>{person.name}</strong><small>{person.university||"ClerkMe student"}</small></span>
                 <button type="button" className="dm-request-accept" onClick={()=>person.requestId&&void respondToConnectionRequest(person.requestId,"accept")}>Accept</button>
                 <button type="button" className="dm-request-decline" onClick={()=>person.requestId&&void respondToConnectionRequest(person.requestId,"decline")} aria-label={"Decline request from "+person.name}>×</button>
+              </div>)}
+            </section>}
+            {connectionInbox.outgoing.length>0&&<section className="dm-outgoing-requests" aria-label="Sent connection requests">
+              <div className="dm-social-heading"><strong>Sent requests</strong><span>{connectionInbox.outgoing.length}</span></div>
+              {connectionInbox.outgoing.slice(0,12).map(person=><div className="dm-social-person" key={person.requestId}>
+                <StudentAvatar name={person.name}/><span><strong>{person.name}</strong><small>{person.university||"ClerkMe student"} · Awaiting response</small></span>
+                <button type="button" className="dm-request-decline" onClick={()=>person.requestId&&void respondToConnectionRequest(person.requestId,"cancel")}>Cancel</button>
               </div>)}
             </section>}
             {connectionInbox.connections.filter(person=>!conversations.some(chat=>chat.otherId===person.id)).length>0&&<section className="dm-accepted-connections" aria-label="Accepted connections without a chat">
