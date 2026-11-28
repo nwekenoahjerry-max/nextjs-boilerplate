@@ -451,7 +451,7 @@
   min-height:0;
   flex:1 1 auto;
   padding-bottom:max(18px,env(safe-area-inset-bottom));
-  overflow-anchor:auto;
+  overflow-anchor:none;
 }
 .dm-conversation-list,.dm-search-results{overflow-y:auto;overflow-x:hidden;min-height:0}
 @media(max-width:760px){
