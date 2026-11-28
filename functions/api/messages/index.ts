@@ -26,7 +26,7 @@ export const onRequestGet = async (context: AppContext) => {
     INNER JOIN direct_conversation_members other
       ON other.conversation_id = c.id AND other.user_id <> ?
     INNER JOIN student_profiles p ON p.id = other.user_id
-    INNER JOIN student_connections connection
+    INNER JOIN student_connection_requests connection
       ON connection.user_low_id = CASE WHEN me.user_id < other.user_id THEN me.user_id ELSE other.user_id END
       AND connection.user_high_id = CASE WHEN me.user_id < other.user_id THEN other.user_id ELSE me.user_id END
       AND connection.status = 'accepted'
@@ -48,7 +48,7 @@ export const onRequestGet = async (context: AppContext) => {
       AND message.sender_id = other.user_id
       AND message.deleted_at IS NULL
       AND message.id > COALESCE(me.last_read_message_id, 0)
-    INNER JOIN student_connections connection
+    INNER JOIN student_connection_requests connection
       ON connection.user_low_id = CASE WHEN me.user_id < other.user_id THEN me.user_id ELSE other.user_id END
       AND connection.user_high_id = CASE WHEN me.user_id < other.user_id THEN other.user_id ELSE me.user_id END
       AND connection.status = 'accepted'
