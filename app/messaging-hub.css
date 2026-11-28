@@ -338,3 +338,43 @@
 :root[data-theme="dark"] .notification-foreground-copy small{color:#b8c7d9}:root[data-theme="dark"] .notification-foreground-copy em{color:#a9c7ee}
 :root[data-theme="dark"] .notification-foreground-icon{background:#203958;color:#d6e6fa}:root[data-theme="dark"] .notification-foreground-close{background:#22344c;color:#dce7f5}
 @media(max-width:600px){.notification-foreground-toast{right:12px;bottom:calc(82px + env(safe-area-inset-bottom));width:calc(100vw - 24px);padding:12px}.cmh-chat-error{margin:12px;padding:18px}}
+
+
+/* Messages entry guard: keep the mobile workspace visibly responsive while its
+   isolated bundle loads, and show a useful recovery panel if that load fails. */
+.cmh-entry-state{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+  width:100%;min-width:0;min-height:min(64dvh,620px);margin:0 auto;padding:28px;
+  border:1px solid var(--border,#e2e8f0);border-radius:18px;
+  background:var(--surface,#fff);color:var(--text-primary,#17263f);
+}
+.cmh-entry-state>div{min-width:0;max-width:420px}
+.cmh-entry-state .cmh-eyebrow{margin-bottom:7px}
+.cmh-entry-state h1{margin:0 0 8px;color:var(--text-primary,#17263f);font-size:clamp(20px,3vw,27px);line-height:1.2;letter-spacing:-.035em}
+.cmh-entry-state p{margin:0;color:var(--text-secondary,#718096);font-size:13px;line-height:1.6}
+.cmh-entry-spinner{
+  display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;
+  border:3px solid #dce6f3;border-top-color:#173765;border-radius:50%;
+  animation:cmh-entry-spin .8s linear infinite;
+}
+.cmh-entry-spinner i{width:7px;height:7px;border-radius:50%;background:#173765}
+@keyframes cmh-entry-spin{to{transform:rotate(360deg)}}
+.cmh-entry-error-mark{
+  display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;
+  border-radius:14px;background:#fff0ed;color:#a34436;font-size:23px;font-weight:850;
+}
+.cmh-entry-error button{
+  min-height:42px;margin-top:16px;padding:10px 15px;border:0;border-radius:10px;
+  background:#173765;color:#fff;font-size:12px;font-weight:800;
+}
+:root[data-theme="dark"] .cmh-entry-state{background:#111d2e;border-color:#2c405a;color:#e6eef9}
+:root[data-theme="dark"] .cmh-entry-state h1{color:#e6eef9}
+:root[data-theme="dark"] .cmh-entry-state p{color:#b4c2d5}
+:root[data-theme="dark"] .cmh-entry-spinner{border-color:#344b68;border-top-color:#b9d2f3}
+:root[data-theme="dark"] .cmh-entry-spinner i{background:#b9d2f3}
+@media(max-width:760px){
+  .cmh-entry-state{min-height:calc(100dvh - 270px);flex-direction:column;gap:13px;padding:24px 17px;text-align:center;border-radius:14px}
+  .cmh-entry-state h1{font-size:21px}
+  .cmh-entry-state p{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.cmh-entry-spinner{animation:none}}

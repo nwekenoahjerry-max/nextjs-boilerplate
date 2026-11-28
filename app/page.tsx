@@ -1,6 +1,7 @@
 "use client";
 
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { clinicalUnits, questionBank } from "../lib/learning-content";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 import ClinicalGuides from "./clinical-guides";
@@ -13,7 +14,7 @@ import FlashcardsPanel from "./flashcards";
 import ClinicalSimulation from "./clinical-simulation";
 import AskClerkMePanel from "./ask-clerkme";
 import NotificationCenter from "../components/notification-center";
-import ClerkMeMessagingHub from "./messaging-hub";
+
 import "./messaging-hub.css";
 import "./direct-messages.css";
 import WhatsAppSupportLink from "../components/whatsapp-support-link";
@@ -22,6 +23,20 @@ import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
 import { unitClerkingFrameworks } from "../lib/unit-clerking";
 import "./home-quick-actions.css";
+
+const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
+  ssr: false,
+  loading: () => (
+    <section className="cmh-entry-state cmh-entry-loading" role="status" aria-live="polite">
+      <span className="cmh-entry-spinner" aria-hidden="true"><i /></span>
+      <div>
+        <span className="cmh-eyebrow">CLERKME CONNECT</span>
+        <h1>Opening your messages</h1>
+        <p>Loading your chats and student connections…</p>
+      </div>
+    </section>
+  ),
+});
 
 const navItems = [
   ["Home", "overview", "home"],
@@ -641,6 +656,35 @@ function formatStudyTime(seconds: number) {
   const remainingMinutes = minutes % 60;
   if (hours === 0) return `${minutes}m`;
   return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+class MessagingEntryErrorBoundary extends Component<{children: ReactNode}, {failed: boolean}> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("ClerkMe messages could not be loaded", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <section className="cmh-entry-state cmh-entry-error" role="alert">
+          <span className="cmh-entry-error-mark" aria-hidden="true">!</span>
+          <div>
+            <span className="cmh-eyebrow">CLERKME CONNECT</span>
+            <h1>Messages could not be opened</h1>
+            <p>Your conversations and student connections are still safe. Reload this section to try again.</p>
+            <button type="button" onClick={() => window.location.reload()}>Reload messaging</button>
+          </div>
+        </section>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default function Home() {
@@ -1554,7 +1598,7 @@ export default function Home() {
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
-          {active === "messages" && <ClerkMeMessagingHub userId={authUser.id} initialSection={messagingInitialSection}/>}
+          {active === "messages" && <MessagingEntryErrorBoundary><ClerkMeMessagingHub userId={authUser.id} initialSection={messagingInitialSection}/></MessagingEntryErrorBoundary>}
         </div>
       </section>
       {showSignOutConfirm && (
