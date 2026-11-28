@@ -702,6 +702,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
 
     studentTranscriptRef.current = appendTranscript(studentTranscriptRef.current, "[Spoken audio question]");
     setVoiceTranscript(current => appendTranscript(current, "You: [spoken audio question]"));
+    assistantAudioReceivedRef.current = false;
     clearPendingAudio();
     speechActiveRef.current = false;
     lastSpeechAtRef.current = 0;
@@ -1025,14 +1026,18 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
             setVoiceTranscript(current => appendTranscript(current, "You: " + String(inputText)));
           }
           if (outputText) {
-            pendingSpeechTurnRef.current = false;
-            clearSpeechResponseTimer();
             assistantTranscriptRef.current = appendTranscript(assistantTranscriptRef.current, String(outputText));
             setVoiceTranscript(current => appendTranscript(current, "ClerkME: " + String(outputText)));
-            if (pendingSpeechTurnRef.current) {
-              pendingSpeechTurnRef.current = false;
+            if (pendingSpeechTurnRef.current && !assistantAudioReceivedRef.current) {
+              setVoiceNotice("ClerkME has your question and is preparing the spoken reply…");
               clearSpeechResponseTimer();
-              setVoiceNotice("ClerkME is responding…");
+              speechResponseTimerRef.current = window.setTimeout(() => {
+                speechResponseTimerRef.current = null;
+                if (!pendingSpeechTurnRef.current || assistantAudioReceivedRef.current || !setupReadyRef.current || endingRef.current) return;
+                pendingSpeechTurnRef.current = false;
+                setVoiceDiagnostics("Google returned response text but no spoken audio.");
+                setVoiceNotice("ClerkME prepared an answer but no audio arrived. The written answer is saved in the chat.");
+              }, 12000);
             }
           }
 
@@ -1084,7 +1089,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
             if (pendingSpeechTurnRef.current) {
               pendingSpeechTurnRef.current = false;
               clearSpeechResponseTimer();
-              setVoiceNotice("ClerkME is responding…");
+              setVoiceNotice("ClerkME is speaking…");
             }
             const context = audioContextRef.current;
             if (!context || context.state === "closed") continue;
@@ -1112,9 +1117,16 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
             if (pendingSpeechTurnRef.current) {
               pendingSpeechTurnRef.current = false;
               clearSpeechResponseTimer();
+              if (!assistantAudioReceivedRef.current) {
+                setVoiceDiagnostics("Google finished the turn without sending spoken audio.");
+                setVoiceNotice("ClerkME finished the reply without audio. You can try another spoken question or use chat.");
+              } else {
+                setVoiceNotice("Connected · Listening for your next question");
+              }
+            } else {
+              setVoiceNotice("Connected · Listening for your next question");
             }
             commitVoiceTranscript();
-            setVoiceNotice("Connected · Listening for your next question");
           }
         };
 
