@@ -25,6 +25,21 @@
           "database_id": "9d6dcdd2-6c8c-43fa-a776-08f16ae286ac"
         }
       ],
+      "r2_buckets": [
+        {
+          "binding": "STATUS_MEDIA",
+          "bucket_name": "clerkme-status-preview"
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOMS",
+            "class_name": "ConversationRoom",
+            "script_name": "clerkme-chat-preview"
+          }
+        ]
+      },
       "ai": {
         "binding": "AI"
       },
@@ -37,13 +52,26 @@
         {
           "binding": "SOURCE_FILES",
           "bucket_name": "clerkme-source-materials"
+        },
+        {
+          "binding": "STATUS_MEDIA",
+          "bucket_name": "clerkme-status-media"
         }
       ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CHAT_ROOMS",
+            "class_name": "ConversationRoom",
+            "script_name": "clerkme-chat"
+          }
+        ]
+      },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "clerkme",
-          "database_id": "ccfafcf6-4ce7-43de-b406-fc2b1130f683"
+          "database_id": "ccfafcf6-4ce7-43fa-a776-08f16ae286ac"
         }
       ],
       "ai": {
