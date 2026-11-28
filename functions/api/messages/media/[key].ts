@@ -1,4 +1,4 @@
-import { json, requireUser, isResponse, type AppContext } from "../../../../_lib/auth";
+import { json, requireUser, isResponse, type AppContext } from "../../../_lib/auth";
 
 export const onRequestGet = async (context: AppContext) => {
   const user = await requireUser(context);
