@@ -45,14 +45,14 @@ export const onRequestPost = async (context: AppContext) => {
 
   try {
     const current = await context.env.DB.prepare(
-      "SELECT photo_key AS photoKey FROM student_profile_photos WHERE user_id = ? LIMIT 1"
+      "SELECT photo_key AS photoKey FROM clerkme_profile_photos_v1 WHERE user_id = ? LIMIT 1"
     ).bind(user.id).first<{ photoKey: string }>();
     await bucket.put(newKey, bytes, {
       httpMetadata: { contentType: file.type },
       customMetadata: { ownerId: user.id, purpose: "profile-photo" }
     });
     await context.env.DB.prepare(
-      "INSERT INTO student_profile_photos (user_id, photo_key, content_type, updated_at) " +
+      "INSERT INTO clerkme_profile_photos_v1 (user_id, photo_key, content_type, updated_at) " +
       "VALUES (?, ?, ?, unixepoch()) " +
       "ON CONFLICT(user_id) DO UPDATE SET photo_key = excluded.photo_key, " +
       "content_type = excluded.content_type, updated_at = unixepoch()"
@@ -78,12 +78,12 @@ export const onRequestDelete = async (context: AppContext) => {
   if (!bucket) return json({ error: "Profile photo storage is not available in this environment yet." }, 503);
 
   const current = await context.env.DB.prepare(
-    "SELECT photo_key AS photoKey FROM student_profile_photos WHERE user_id = ? LIMIT 1"
+    "SELECT photo_key AS photoKey FROM clerkme_profile_photos_v1 WHERE user_id = ? LIMIT 1"
   ).bind(user.id).first<{ photoKey: string }>();
   if (!current) return json({ removed: true, profilePhotoUrl: null });
 
   await context.env.DB.prepare(
-    "DELETE FROM student_profile_photos WHERE user_id = ?"
+    "DELETE FROM clerkme_profile_photos_v1 WHERE user_id = ?"
   ).bind(user.id).run();
   await bucket.delete(current.photoKey).catch(error => {
     console.warn("[profile-photo] Removed image cleanup failed.", error instanceof Error ? error.message : "unknown error");
