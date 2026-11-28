@@ -53,7 +53,8 @@ export default function ClerkMeMessagingHub({userId}:{userId:string}) {
     void refresh();
     const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh();},30000);
     document.addEventListener("visibilitychange",refresh);
-    return()=>{cancelled=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);};
+    window.addEventListener("clerkme:connections-refresh",refresh);
+    return()=>{cancelled=true;window.clearInterval(interval);document.removeEventListener("visibilitychange",refresh);window.removeEventListener("clerkme:connections-refresh",refresh);};
   },[userId]);
   const startReply=useCallback(async (status:Status,draft:string)=>{
     try{
@@ -383,6 +384,7 @@ function ConnectionsPanel({onMessage}:{onMessage:(student:{id:string;name:string
       });
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||"The connection request could not be updated.");
+      window.dispatchEvent(new Event("clerkme:connections-refresh"));
       setNotice(action==="accept"?"Connection accepted. You can now message each other.":action==="decline"?"Connection request declined.":"Connection request cancelled.");
       await load();
     }catch(error){setNotice(error instanceof Error?error.message:"The connection request could not be updated.");}
@@ -395,6 +397,7 @@ function ConnectionsPanel({onMessage}:{onMessage:(student:{id:string;name:string
       const response=await fetch("/api/connections/"+encodeURIComponent(item.connectionId),{method:"DELETE",credentials:"same-origin"});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||"The connection could not be removed.");
+      window.dispatchEvent(new Event("clerkme:connections-refresh"));
       setNotice("Connection removed. Private messaging is now closed.");
       await load();
     }catch(error){setNotice(error instanceof Error?error.message:"The connection could not be removed.");}
