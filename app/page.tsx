@@ -2,7 +2,8 @@
 
 import { Component, type ErrorInfo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { clinicalUnits, questionBank } from "../lib/learning-content";
+import { clinicalUnits } from "../lib/learning-content";
+import type { QuestionBankItem } from "../lib/question-bank";
 import { extractStudyFile, STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text";
 // Split substantial workspace tools into independent chunks. Students download
 // the code for a tool when they open it, rather than paying for every tool at login.
@@ -728,6 +729,28 @@ export default function Home() {
   const [osceUnit, setOsceUnit] = useState("general-medicine");
   const [osceIndex, setOsceIndex] = useState(0);
   const [osceReveal, setOsceReveal] = useState(false);
+  const [osceQuestions, setOsceQuestions] = useState<QuestionBankItem[]>([]);
+  const [osceQuestionsLoading, setOsceQuestionsLoading] = useState(false);
+  const [osceQuestionsError, setOsceQuestionsError] = useState("");
+  const [osceQuestionsRetry, setOsceQuestionsRetry] = useState(0);
+  useEffect(() => {
+    if (active !== "osce" || osceQuestions.length > 0) return;
+    let cancelled = false;
+    setOsceQuestionsLoading(true);
+    setOsceQuestionsError("");
+    void import("../lib/question-bank")
+      .then(({ questionBank }) => {
+        if (!cancelled) setOsceQuestions(questionBank);
+      })
+      .catch(() => {
+        if (!cancelled) setOsceQuestionsError("Viva questions could not be loaded. Check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setOsceQuestionsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [active, osceQuestions.length, osceQuestionsRetry]);
+
   const [showNew, setShowNew] = useState(false);
   const [rawClerkingNotes,setRawClerkingNotes]=useState("");
   const [organisedClerkingProse,setOrganisedClerkingProse]=useState("");
@@ -1597,7 +1620,15 @@ export default function Home() {
           {active === "materials" && <MaterialsPanel userKey={authUser.id}/>}
           {active === "flashcards" && <FlashcardsPanel userKey={authUser.id}/> }
           {active === "videos" && <VideoLibraryPanel/>}
-          {active === "osce" && <><div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div><div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>{(()=>{const qs=questionBank.filter(q=>q.unit===osceUnit);const q=qs[osceIndex%qs.length];return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>})()}</>}
+          {active === "osce" && <>
+            <div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div>
+            <div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>
+            {osceQuestionsLoading || (osceQuestions.length === 0 && !osceQuestionsError)
+              ? <p className="osce-loading" role="status" aria-live="polite">Loading viva questions…</p>
+              : osceQuestionsError
+                ? <div className="osce-load-error" role="alert"><p>{osceQuestionsError}</p><button type="button" className="secondary-button" onClick={()=>setOsceQuestionsRetry(value=>value+1)}>Try again</button></div>
+                : (()=>{const qs=osceQuestions.filter(q=>q.unit===osceUnit);const q=qs.length?qs[osceIndex%qs.length]:null;return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>;})()}
+          </>}
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
           {active === "qbank" && <LearningQuestionBank/>}
