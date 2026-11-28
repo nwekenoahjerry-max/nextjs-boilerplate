@@ -698,6 +698,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     if (!selectedId || !nextCursor || loadingEarlier) return;
     setLoadingEarlier(true);
     const oldHeight = scrollRef.current?.scrollHeight || 0;
+    const oldScrollTop = scrollRef.current?.scrollTop || 0;
     try {
       const response = await fetch("/api/messages/" + encodeURIComponent(selectedId) + "?before=" + nextCursor, {
         credentials: "same-origin", cache: "no-store"
@@ -710,7 +711,10 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       setNextCursor(data.nextCursor ? Number(data.nextCursor) : null);
       keepScroll.current = false;
       requestAnimationFrame(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight - oldHeight;
+        const scroller = scrollRef.current;
+        if (!scroller) return;
+        const addedHeight = scroller.scrollHeight - oldHeight;
+        scroller.scrollTop = oldScrollTop + Math.max(0, addedHeight);
       });
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Earlier messages could not be loaded.");
