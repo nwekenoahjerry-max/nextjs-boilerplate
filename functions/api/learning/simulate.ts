@@ -339,10 +339,12 @@ const handleSimulationPost = async (context:AppContext, requestId: string) => {
 /** Keep unexpected authentication/database/runtime failures inside a traceable JSON API response. */
 export const onRequestPost = async (context:AppContext) => {
   const requestId=crypto.randomUUID().slice(0,12);
+  // Clone before the handler consumes the body so the failure path can still
+  // identify whether this was a Live-token request.
+  const requestBody=await context.request.clone().json().catch(()=>null) as Record<string,unknown>|null;
   try {
     return await handleSimulationPost(context,requestId);
   } catch(error) {
-    const requestBody=await context.request.clone().json().catch(()=>null) as Record<string,unknown>|null;
     if(requestBody?.intent==="live-token"){
       await writeLiveDiagnostic(context,{
         requestId,route:"patient-simulation",
