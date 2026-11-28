@@ -28,6 +28,7 @@ The Durable Object checks that the referenced status belongs to the other member
 ## Preview resources and release boundary
 - Preview D1 migration: `0016_status_updates.sql` on `clerkme-preview`.
 - Preview R2 bucket: `clerkme-status-preview`, Pages preview binding `STATUS_MEDIA`.
+- Preview push service: `clerkme-reminders-preview` uses preview D1 and its own VAPID key. The preview chat Worker binds to this service with a dedicated shared secret. The Pages preview build receives the matching public VAPID key as `NEXT_PUBLIC_VAPID_PUBLIC_KEY`; production continues to use the existing public key.
 - The production `clerkme` D1 database and `clerkme-source-materials` bucket have not been migrated or changed for Status.
 - Before a production release: create and bind a dedicated production `clerkme-status` bucket, apply migrations `0015` and `0016` to production, deploy the chat Worker with the matching Durable Object and push configuration, then run a two-account test.
 
