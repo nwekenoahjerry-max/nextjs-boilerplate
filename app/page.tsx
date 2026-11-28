@@ -897,7 +897,7 @@ export default function Home() {
     let cancelled = false;
     setClerkingFrameworksLoading(true);
     setClerkingFrameworksError("");
-    void import("../lib/unit-clerking-frameworks")
+    void import("../lib/unit-clerking")
       .then(({ unitClerkingFrameworks }) => {
         if (!cancelled) setClerkingFrameworks(unitClerkingFrameworks);
       })
