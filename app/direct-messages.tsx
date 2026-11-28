@@ -52,6 +52,12 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   // a second inbox request finishing before the conversation can be rendered.
   const [conversations, setConversations] = useState<Conversation[]>(() => initialConversation ? [initialConversation] : []);
   const [selectedId, setSelectedId] = useState(initialConversationId);
+  const selectedIdRef = useRef(initialConversationId);
+  const changeSelectedId = (nextId: string) => {
+    selectedIdRef.current = nextId;
+    setSelectedId(nextId);
+  };
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peerReadMessageId, setPeerReadMessageId] = useState(0);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
@@ -107,7 +113,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
         : [initialConversation, ...current]);
     }
     const conversationId = initialConversationId || initialConversation?.id || "";
-    if (conversationId) setSelectedId(conversationId);
+    if (conversationId) changeSelectedId(conversationId);
     if (initialStatusReplyId) setReplyingStatusId(initialStatusReplyId);
     if (initialDraft) setDraft(initialDraft);
   }, [initialConversation, initialConversationId, initialStatusReplyId, initialDraft]);
@@ -382,12 +388,15 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       if (!response.ok) throw new Error(data.error || "Your conversations could not be loaded.");
       const serverConversations = Array.isArray(data.conversations) ? data.conversations as Conversation[] : [];
       setConversations(current => {
-        // Keep the launch card as a safe fallback if the inbox endpoint is
-        // temporarily stale, while preferring the canonical server record.
-        if (!initialConversation || serverConversations.some(item => item.id === initialConversation.id)) {
+        // An inbox request can have started before a new conversation was
+        // created. Never let that older response remove the thread just opened.
+        const activeId = selectedIdRef.current;
+        const activeConversation = current.find(item => item.id === activeId) ||
+          (initialConversation?.id === activeId ? initialConversation : null);
+        if (!activeConversation || serverConversations.some(item => item.id === activeConversation.id)) {
           return serverConversations;
         }
-        return [initialConversation, ...serverConversations.filter(item => item.id !== initialConversation.id)];
+        return [activeConversation, ...serverConversations.filter(item => item.id !== activeConversation.id)];
       });
       notifyUnreadMessagesChanged();
     } catch (error) {
@@ -714,7 +723,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
           lastMessagePreview: "", lastMessageAt: null, unreadCount: 0
         }, ...current];
       });
-      setSelectedId(data.conversation.id);
+      changeSelectedId(data.conversation.id);
       setShowNew(false);
       setSearch("");
       setSearchResults([]);
@@ -933,7 +942,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "This student could not be blocked.");
       setConversations(current => current.filter(item => item.id !== selectedId));
-      setSelectedId("");
+      changeSelectedId("");
       setMenuOpen(false);
       setNotice("Student blocked. You can no longer exchange messages in this conversation.");
     } catch (error) { setNotice(error instanceof Error ? error.message : "This student could not be blocked."); }
@@ -960,7 +969,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
     <section className="clerkme-dm-page" aria-label="Private messages">
       <div className="dm-page-heading">
         <div><span className="dm-eyebrow">PRIVATE STUDENT MESSAGING</span><h1>Messages</h1><p>One-to-one conversations with verified ClerkMe students.</p></div>
-        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Connect</span></button>
+        <button className="dm-new-button" type="button" onClick={() => { setShowNew(true); changeSelectedId(""); setSearch(""); }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Connect</span></button>
       </div>
       {notice && <div className="dm-notice" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="Dismiss">×</button></div>}
 
@@ -990,7 +999,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
           {!showNew && <div className="dm-conversation-list">
             {loading ? <div className="dm-empty-list">Loading conversations…</div> : conversations.length === 0 ? <div className="dm-empty-list">
               <span className="dm-empty-icon">✉</span><strong>No conversations yet</strong><p>Send a connection request to start private conversations with other ClerkMe students.</p><button type="button" onClick={() => setShowNew(true)}>Find a student</button>
-            </div> : filteredConversations.length === 0 ? <div className="dm-empty-list">No conversations match that search.</div> : filteredConversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { setSelectedId(item.id); setShowNew(false); }}>
+            </div> : filteredConversations.length === 0 ? <div className="dm-empty-list">No conversations match that search.</div> : filteredConversations.map(item => <button type="button" key={item.id} className={"dm-conversation" + (selectedId === item.id ? " is-active" : "")} onClick={() => { changeSelectedId(item.id); setShowNew(false); }}>
               {studentAvatar(item.otherName, item.otherProfilePhotoUrl)}
               <span className="dm-conversation-copy"><span className="dm-conversation-top"><strong>{item.otherName}</strong><time>{timeLabel(item.lastMessageAt)}</time></span>
                 <span className="dm-conversation-bottom"><small>{item.lastMessagePreview || "Start a conversation"}</small>{item.unreadCount > 0 && <b>{item.unreadCount > 9 ? "9+" : item.unreadCount}</b>}</span>
@@ -1004,11 +1013,11 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             {loading ? <><span className="dm-loading-indicator"/>Opening conversation…</> : <>
               <strong>Conversation details are still loading.</strong>
               <p>Your connection is saved. Return to the inbox and try opening this conversation again.</p>
-              <button type="button" onClick={()=>{setSelectedId("");setNotice("");void loadConversations();}}>Back to conversations</button>
+              <button type="button" onClick={()=>{changeSelectedId("");setNotice("");void loadConversations();}}>Back to conversations</button>
             </>}
           </div> : selected && selectedId ? <>
             <header className="dm-thread-header">
-              <button className="dm-back-button" type="button" onClick={() => setSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button className="dm-back-button" type="button" onClick={() => changeSelectedId("")} aria-label="Back to conversations"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
               {studentAvatar(selected.otherName, selected.otherProfilePhotoUrl, "dm-avatar dm-header-avatar")}
               <div className="dm-thread-person"><strong>{selected.otherName}</strong><small>{peerOnline || isOnline(selected.otherLastSeenAt) ? "Online" : selected.otherLastSeenAt ? "Last seen " + timeLabel(selected.otherLastSeenAt) : "ClerkMe student"}</small></div>
               <span className={"dm-connection" + (connection === "connected" ? " is-connected" : "")}>{connection === "connected" ? "Live" : connection === "offline" ? "Offline" : "Reconnecting"}</span>
@@ -1102,7 +1111,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
               </div>}
               <div className="dm-composer-footer"><small id="dm-composer-hint">{recording ? "Keep your message clear and concise." : voiceDraft ? "Listen before sending. Voice notes are private to this conversation." : draft.length + "/4000 · " + (connection === "connected" ? "Enter to send, Shift + Enter for a new line." : "Your text is saved here while the chat reconnects.")}</small></div>
             </form>
-          </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); setSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Choose a student first. The message box appears at the bottom of the conversation. Messages are private to the two participants; never share identifiable patient information.</small></div>}
+          </> : <div className="dm-welcome"><div className="dm-welcome-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 7.4 7.4 0 0 1-3.7-1L4 20l1.6-4.2a7.4 7.4 0 0 1-1.1-4.3A7.5 7.5 0 0 1 12 4h.5a7.5 7.5 0 0 1 7.5 7.5Z"/><path d="M8 11h8M8 14.5h5"/></svg></div><h2>Your academic conversations, together.</h2><p>Choose a conversation or start a private message with another verified ClerkMe student.</p><button type="button" onClick={() => { setShowNew(true); changeSelectedId(""); setSearch(""); }}>Start a conversation <span>→</span></button><small>Choose a student first. The message box appears at the bottom of the conversation. Messages are private to the two participants; never share identifiable patient information.</small></div>}
         </div>
       </div>
 
