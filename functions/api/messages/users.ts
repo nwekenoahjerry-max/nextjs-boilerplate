@@ -37,7 +37,7 @@ export const onRequestGet = async (context: AppContext) => {
   const connections = await context.env.DB.prepare(
     "SELECT id, user_low_id AS userLowId, user_high_id AS userHighId, " +
     "requested_by AS requestedBy, requested_to AS requestedTo, status " +
-    "FROM student_connections WHERE (user_low_id = ? OR user_high_id = ?) AND status IN ('pending', 'accepted')"
+    "FROM student_connection_requests WHERE (user_low_id = ? OR user_high_id = ?) AND status IN ('pending', 'accepted')"
   ).bind(user.id, user.id).all<Connection>();
   const byStudent = new Map(connections.results.map(connection => [
     connection.userLowId === user.id ? connection.userHighId : connection.userLowId,
