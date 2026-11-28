@@ -50,6 +50,11 @@ export const onRequestGet = async (context: AppContext) => {
       AND message.deleted_at IS NULL
       AND message.id > COALESCE(me.last_read_message_id, 0)
     WHERE me.user_id = ? AND me.archived_at IS NULL
+      AND EXISTS (
+        SELECT 1 FROM student_connections sc
+        WHERE sc.user_a_id=CASE WHEN me.user_id < other.user_id THEN me.user_id ELSE other.user_id END
+          AND sc.user_b_id=CASE WHEN me.user_id < other.user_id THEN other.user_id ELSE me.user_id END
+      )
       AND NOT EXISTS (
         SELECT 1 FROM direct_message_blocks b
         WHERE (b.blocker_id = me.user_id AND b.blocked_id = other.user_id)
