@@ -37,6 +37,7 @@ const getVoiceNote = (body:string) => {
 };
 const durationLabel = (seconds:number) => String(Math.floor(seconds/60)).padStart(2,"0") + ":" + String(seconds%60).padStart(2,"0");
 const conversationPreview = (body:string) => getVoiceNote(body) ? "🎙 Voice note" : body;
+const notifyUnreadMessagesChanged = () => window.dispatchEvent(new Event("clerkme:messages-unread-refresh"));
 
 
 export default function DirectMessagesPanel({ userId, initialConversationId = "", initialStatusReplyId = "", initialDraft = "" }: { userId: string; initialConversationId?: string; initialStatusReplyId?: string; initialDraft?: string }) {
@@ -363,6 +364,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Your conversations could not be loaded.");
       setConversations(Array.isArray(data.conversations) ? data.conversations : []);
+      notifyUnreadMessagesChanged();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Your conversations could not be loaded.");
     } finally { setLoading(false); }
@@ -406,13 +408,15 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
   const markRead = useCallback(async (conversationId: string, messageId: number) => {
     if (!messageId || messageId < 1) return;
     try {
-      await fetch("/api/messages/" + encodeURIComponent(conversationId) + "/read", {
+      const response = await fetch("/api/messages/" + encodeURIComponent(conversationId) + "/read", {
         method: "POST", credentials: "same-origin",
         headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messageId })
       });
+      if (!response.ok) throw new Error("Read status could not be updated.");
       const socket = socketRef.current;
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "read", messageId }));
       setConversations(current => current.map(item => item.id === conversationId ? { ...item, unreadCount: 0 } : item));
+      notifyUnreadMessagesChanged();
     } catch { /* Reconciled on the next inbox refresh. */ }
   }, []);
 
@@ -581,6 +585,7 @@ export default function DirectMessagesPanel({ userId, initialConversationId = ""
             return updated.sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0));
           });
           if (incoming.sender_id !== userId) {
+            notifyUnreadMessagesChanged();
             if (nearBottom) void markRead(selectedId, incoming.id);
             window.dispatchEvent(new Event("clerkme:notifications-refresh"));
           }
