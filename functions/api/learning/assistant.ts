@@ -1,9 +1,7 @@
 import { json, requireUser, isResponse, validSameOrigin, type AppContext } from "../../_lib/auth";
 
-// Gemini 3.8 Live is Google's current default low-latency model.
-// Keep the 3.1 preview only as a temporary compatibility fallback.
+// Gemini 3.8 Live is the supported replacement for the retired 3.1 Live preview.
 const LIVE_MODEL = "models/gemini-3.8-live";
-const LIVE_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -172,7 +170,7 @@ async function askWorkersAITutor(
 }
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
-  const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
+  const models = [LIVE_MODEL] as const;
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
   let lastStatus = 0;
@@ -215,20 +213,20 @@ async function createLiveToken(apiKey: string, sourceName: string, sourceText: s
       lastStatus = response.status;
       lastCode = data.error?.status || "HTTP_ERROR";
       lastDetail = clean(data.error?.message || raw, 240);
-      console.warn("[ClerkME] Live token model attempt failed; checking the alternate model.", {
+      console.warn("[ClerkME] Live token model attempt failed.", {
         requestId, model, status: lastStatus, upstreamCode: lastCode, durationMs: Date.now() - startedAt
       });
     } catch (error) {
       lastStatus = 0;
       lastCode = error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK_FAILURE";
       lastDetail = error instanceof Error ? clean(error.message, 240) : "Unknown fetch failure";
-      console.warn("[ClerkME] Live token model attempt did not complete; checking the alternate model.", {
+      console.warn("[ClerkME] Live token model attempt did not complete.", {
         requestId, model, upstreamCode: lastCode, durationMs: Date.now() - startedAt
       });
     }
   }
 
-  console.error("[ClerkME] Ask ClerkME live-session token creation failed after bounded model attempts.", {
+  console.error("[ClerkME] Ask ClerkME Gemini 3.8 Live token creation failed.", {
     requestId, models, status: lastStatus, upstreamCode: lastCode, detail: lastDetail
   });
   if (!lastStatus) throw new Error("LIVE_TOKEN_NETWORK_" + lastCode);
