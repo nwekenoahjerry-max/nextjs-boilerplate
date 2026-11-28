@@ -25,7 +25,7 @@ import WhatsAppSupportLink from "../components/whatsapp-support-link";
 import ReminderSettings from "../components/reminder-settings";
 import { useAppearance } from "../components/theme-provider";
 import ClerkMeBrand from "../components/clerkme-brand";
-import { unitClerkingFrameworks } from "../lib/unit-clerking";
+import type { UnitClerkingFramework } from "../lib/unit-clerking";
 import "./home-quick-actions.css";
 
 const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
@@ -888,9 +888,30 @@ export default function Home() {
   const [caseList, setCaseList] = useState<Array<{id:string;title:string;case_reference:string;specialty:string;presenting_complaint:string;status:string;updated_at:string}>>([]);
   const [saving, setSaving] = useState(false);
   const [selectedSpecialty, setSelectedSpecialty] = useState("general-medicine");
+  const [clerkingFrameworks, setClerkingFrameworks] = useState<Record<string, UnitClerkingFramework> | null>(null);
+  const [clerkingFrameworksLoading, setClerkingFrameworksLoading] = useState(false);
+  const [clerkingFrameworksError, setClerkingFrameworksError] = useState("");
+  const [clerkingFrameworksRetry, setClerkingFrameworksRetry] = useState(0);
+  useEffect(() => {
+    if (active !== "clerking" || !showNew || clerkingFrameworks) return;
+    let cancelled = false;
+    setClerkingFrameworksLoading(true);
+    setClerkingFrameworksError("");
+    void import("../lib/unit-clerking-frameworks")
+      .then(({ unitClerkingFrameworks }) => {
+        if (!cancelled) setClerkingFrameworks(unitClerkingFrameworks);
+      })
+      .catch(() => {
+        if (!cancelled) setClerkingFrameworksError("Specialty guidance could not be loaded. Check your connection and try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setClerkingFrameworksLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [active, showNew, clerkingFrameworks, clerkingFrameworksRetry]);
   const clerkingFormRef = useRef<HTMLDivElement>(null);
   const selectedTemplate = templates.find(template => template.id === selectedSpecialty) || templates[0];
-  const selectedTemplateFramework = unitClerkingFrameworks[selectedSpecialty];
+  const selectedTemplateFramework = clerkingFrameworks?.[selectedSpecialty];
   const firstName = authUser?.name?.trim().split(/\s+/)[0] || "there";
   const learningWeek = useMemo(() => {
     if (!streakData.today) return [];
@@ -1593,6 +1614,8 @@ export default function Home() {
           </>}
           
 {active === "clerking" && <><div className="page-intro"><div className="eyebrow">PATIENT ASSESSMENT</div><h1>Clinical clerking</h1><p>Choose a structured template and organise your patient encounter.</p></div><div className="template-grid">{templates.map(t => <article className={showNew && selectedSpecialty === t.id ? "template-card template-card-selected" : "template-card"} key={t.id}><span className="template-icon large">{t.icon}</span><span className="template-tag">{t.tag}</span><h3>{t.title}</h3><p>{t.detail}</p><button type="button" className="template-use-button" onClick={() => startClerking(t.id)}>{showNew && selectedSpecialty === t.id ? "Selected template ✓" : "Use template →"}</button></article>)}</div>{showNew && <div className="form-panel" ref={clerkingFormRef} tabIndex={-1}><div className="panel-heading"><div><span className="eyebrow">SELECTED TEMPLATE · {selectedTemplate.tag}</span><h3>{selectedTemplate.title}</h3><p>Use a non-identifying study reference. Do not enter patient names, hospital numbers or contact details.</p></div><button type="button" className="close-button" aria-label="Close clerking form" onClick={() => setShowNew(false)}>×</button></div>
+            {clerkingFrameworksLoading && <p className="auth-message" role="status" aria-live="polite">Loading specialty guidance…</p>}
+            {clerkingFrameworksError && <div className="auth-error" role="alert"><p>{clerkingFrameworksError}</p><button type="button" className="text-link" onClick={()=>setClerkingFrameworksRetry(value=>value+1)}>Try again</button></div>}
             {selectedTemplateFramework && <div className="selected-template-context"><strong>{selectedTemplateFramework.title} focus</strong><p>{selectedTemplateFramework.overview}</p><div><span>Specialty-specific sections</span><ul>{selectedTemplateFramework.unitSections.map(section => <li key={section.title}>{section.title}</li>)}</ul></div></div>}
             <div className="clerking-note-panel"><div className="clerking-note-heading"><div><span className="eyebrow">CLERKING NOTE ORGANISER</span><h3>Organise rough notes into a clear clinical history</h3><p>Upload a document or paste your notes. ClerkMe will arrange the information you provide and identify details that still need to be checked.</p></div><span className="upload-icon">✎</span></div>
               <label className="slide-file-picker"><span>⇧</span><span><strong>Upload existing clerking notes</strong><small>{STUDY_FILE_TYPES} · remove names and hospital identifiers first</small></span><input type="file" accept={STUDY_FILE_ACCEPT} onChange={async e=>{const file=e.target.files?.[0];if(!file)return;setOrganiseError("");try{const extracted=await extractStudyFile(file);setRawClerkingNotes(extracted.text);}catch(err){setOrganiseError(err instanceof Error?err.message:"Could not read that file.");}}}/></label>
