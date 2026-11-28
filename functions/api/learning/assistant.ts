@@ -2,6 +2,7 @@ import { json, requireUser, isResponse, validSameOrigin, type AppContext } from 
 
 // Gemini 3.8 Live is the supported replacement for the retired 3.1 Live preview.
 const LIVE_MODEL = "models/gemini-3.8-live";
+const LIVE_MODEL_FALLBACK = "models/gemini-3.1-flash-live-preview";
 const TEXT_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"] as const;
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -170,7 +171,7 @@ async function askWorkersAITutor(
 }
 
 async function createLiveToken(apiKey: string, sourceName: string, sourceText: string, conversation: string, mode: VoiceMode, requestId: string, studentName: string) {
-  const models = [LIVE_MODEL] as const;
+  const models = [LIVE_MODEL, LIVE_MODEL_FALLBACK] as const;
   const retryableStatuses = new Set([408, 429, 500, 502, 503, 504]);
   const firstName = clean(studentName, 60).split(/\s+/)[0] || "";
   const systemInstruction = makeVoicePrompt(sourceName, sourceText, conversation, mode, firstName);
