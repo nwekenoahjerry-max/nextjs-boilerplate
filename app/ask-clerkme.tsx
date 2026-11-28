@@ -948,7 +948,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
         })
       });
       const rawTokenResponse = await response.text();
-      let tokenData: { token?: string; systemInstruction?: string; error?: string; code?: string; upstreamCode?: string; upstreamMessage?: string; requestId?: string; model?: string } = {};
+      let tokenData: { token?: string; systemInstruction?: string; error?: string | Record<string, unknown>; code?: string; upstreamCode?: string; upstreamMessage?: string; requestId?: string; model?: string } = {};
       try { tokenData = JSON.parse(rawTokenResponse) as typeof tokenData; } catch { /* retain a safe preview of unexpected gateway responses below */ }
       if (!response.ok || typeof tokenData.token !== "string" || !tokenData.token) {
         const payload = tokenData as typeof tokenData & Record<string, unknown>;
@@ -986,7 +986,7 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
           ? "ClerkME could not obtain a Live API session."
           : "The Live session endpoint returned a gateway response instead of its normal JSON reply.";
         const detail = safeMessage || (keys ? "JSON response fields: " + keys : "No readable response body");
-        throw new Error((detail && messageCandidate ? detail : fallbackMessage) + diagnostic);
+        throw new Error((detail || fallbackMessage) + diagnostic);
       }
       if (attempt !== callAttemptRef.current || endingRef.current) return;
       const token = tokenData.token as string;
