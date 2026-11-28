@@ -17,6 +17,7 @@ function timeAgo(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(new Date(timestamp * 1000));
 }
 function NotificationIcon({ kind }: { kind: string }) {
+  if (kind === "connection_request") return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M18 8v6M15 11h6"/></svg>;
   if (kind.includes("direct_message")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 3V5Z"/><path d="M8 9h8M8 13h5"/></svg>;
   if (kind.includes("failed")) return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4M12 16.5v.1"/></svg>;
   if (kind.includes("sba")) return <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h2M13 12h3M8 16h8"/></svg>;
