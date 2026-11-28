@@ -314,3 +314,11 @@
   .cmh-connections-heading h2{font-size:21px}
   .cmh-connections-heading p{font-size:11px}
 }
+
+.cmh-tab-icon{position:relative}
+.cmh-tab-count{
+  position:absolute;top:-7px;right:-9px;min-width:17px;height:17px;padding:0 4px;
+  display:grid;place-items:center;border:2px solid var(--surface,#fff);border-radius:999px;
+  background:#c23b4a;color:#fff;font-size:9px;font-weight:900;line-height:1
+}
+:root[data-theme="dark"] .cmh-tab-count{border-color:#122035;background:#da5966;color:#fff}
