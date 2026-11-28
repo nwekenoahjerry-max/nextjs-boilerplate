@@ -738,13 +738,9 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
       reconnectTimerRef.current = null;
     }
     endingRef.current = true;
-    const wasSetupReady = setupReadyRef.current;
     setupReadyRef.current = false;
     const socket = socketRef.current;
-    if (socket?.readyState === WebSocket.OPEN && wasSetupReady) {
-      // Completed utterances have already been sent as clientContent turns.
-      // Discard a partial utterance when the student ends the session.
-    }
+    // Discard any unfinished local audio when the student ends the session.
     clearPendingAudio();
     speechActiveRef.current = false;
     lastSpeechAtRef.current = 0;
@@ -824,8 +820,8 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
       }
 
       const microphone = audioContext.createMediaStreamSource(stream);
-      // Keep capture callbacks small; flushPendingAudio aggregates them into
-      // 40 ms PCM frames before sending them to Gemini.
+      // Capture small microphone buffers locally; completed utterances are
+      // encoded and sent as a single PCM audio turn after the student pauses.
       const processor = audioContext.createScriptProcessor(1024, 1, 1);
       const silentGain = audioContext.createGain();
       silentGain.gain.value = 0;
@@ -986,9 +982,8 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
                 responseModalities: ["AUDIO"],
                 speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
               },
-              // clientContent audio turns are not returned as inputTranscription
-              // by the current Gemini Live workaround; keep model transcription
-              // enabled so the student's spoken reply is still shown in chat.
+              // Gemini does not return inputAudioTranscription for this audio
+              // turn path. Keep the model's spoken response transcribed in chat.
               outputAudioTranscription: {},
               sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
             }
@@ -1089,8 +1084,8 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
             if (pendingSpeechTurnRef.current) {
               pendingSpeechTurnRef.current = false;
               clearSpeechResponseTimer();
-              setVoiceNotice("ClerkME is speaking…");
             }
+            setVoiceNotice("ClerkME is speaking…");
             const context = audioContextRef.current;
             if (!context || context.state === "closed") continue;
             try {
@@ -1114,15 +1109,11 @@ export default function AskClerkMePanel({ userKey, userName = "" }: { userKey: s
           if (serverContent.turnComplete) {
             speechActiveRef.current = false;
             lastSpeechAtRef.current = 0;
-            if (pendingSpeechTurnRef.current) {
-              pendingSpeechTurnRef.current = false;
-              clearSpeechResponseTimer();
-              if (!assistantAudioReceivedRef.current) {
-                setVoiceDiagnostics("Google finished the turn without sending spoken audio.");
-                setVoiceNotice("ClerkME finished the reply without audio. You can try another spoken question or use chat.");
-              } else {
-                setVoiceNotice("Connected · Listening for your next question");
-              }
+            pendingSpeechTurnRef.current = false;
+            clearSpeechResponseTimer();
+            if (!assistantAudioReceivedRef.current) {
+              setVoiceDiagnostics("Google finished the turn without sending spoken audio.");
+              setVoiceNotice("ClerkME finished the reply without audio. You can try another spoken question or use chat.");
             } else {
               setVoiceNotice("Connected · Listening for your next question");
             }
