@@ -395,7 +395,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
         throw new Error(tokenData.error || "The live patient call could not be authorised.");
       }
 
-      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
+      const endpoint = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=" + encodeURIComponent(tokenData.token);
       const socket = new WebSocket(endpoint);
       socketRef.current = socket;
       connectionTimeoutRef.current = window.setTimeout(() => {
