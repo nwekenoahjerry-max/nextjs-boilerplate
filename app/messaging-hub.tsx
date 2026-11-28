@@ -373,7 +373,14 @@ function ConnectionsPanel({onMessage}:{onMessage:(student:{id:string;name:string
     }catch(error){setNotice(error instanceof Error?error.message:"Connections could not be loaded.");}
     finally{setLoading(false);}
   },[]);
-  useEffect(()=>{void load();},[load]);
+  useEffect(()=>{
+    void load();
+    const interval=window.setInterval(()=>{if(document.visibilityState==="visible")void load();},30000);
+    const refresh=()=>void load();
+    window.addEventListener("clerkme:connections-refresh",refresh);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(interval);window.removeEventListener("clerkme:connections-refresh",refresh);document.removeEventListener("visibilitychange",refresh);};
+  },[load]);
 
   const updateRequest=async(item:ConnectionStudent,action:"accept"|"decline"|"cancel")=>{
     setBusy(item.connectionId);setNotice("");
