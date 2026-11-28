@@ -192,7 +192,7 @@ const LivePatientCall = forwardRef<LivePatientCallHandle, Props>(function LivePa
     setupCompleteRef.current = false;
     const socket = socketRef.current;
     if (socket?.readyState === WebSocket.OPEN && audioGateRef.current.finish()) {
-      try { socket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+      try { socket.send(JSON.stringify({ realtimeInput: { activityEnd: {} } })); } catch {}
     } else {
       audioGateRef.current.reset();
     }
