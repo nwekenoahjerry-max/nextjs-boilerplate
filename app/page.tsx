@@ -5,18 +5,36 @@ import dynamic from "next/dynamic";
 import { clinicalUnits } from "../lib/learning-content";
 import type { QuestionBankItem } from "../lib/question-bank";
 import { STUDY_FILE_ACCEPT, STUDY_FILE_TYPES } from "../lib/file-text-constants";
-// Split substantial workspace tools into independent chunks. Students download
-// the code for a tool when they open it, rather than paying for every tool at login.
-const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span className="cmh-entry-spinner" aria-hidden="true"><i /></span><span>Opening workspace…</span></div>;
-const ClinicalGuides = dynamic(() => import("./clinical-guides"), { ssr: false, loading: deferredPanel });
-const MaterialsPanel = dynamic(() => import("./materials-panel"), { ssr: false, loading: deferredPanel });
-const VideoLibraryPanel = dynamic(() => import("./video-library-panel"), { ssr: false, loading: deferredPanel });
-const FocusMusicPlayer = dynamic(() => import("./focus-music-player"), { ssr: false, loading: deferredPanel });
-const AdaptiveFlightGame = dynamic(() => import("./adaptive-flight-game"), { ssr: false, loading: deferredPanel });
-const LearningQuestionBank = dynamic(() => import("./learning-question-bank"), { ssr: false, loading: deferredPanel });
-const FlashcardsPanel = dynamic(() => import("./flashcards"), { ssr: false, loading: deferredPanel });
-const ClinicalSimulation = dynamic(() => import("./clinical-simulation"), { ssr: false, loading: deferredPanel });
-const AskClerkMePanel = dynamic(() => import("./ask-clerkme"), { ssr: false, loading: deferredPanel });
+// Keep the initial dashboard lean, then warm workspace chunks in the background.
+// Once the dashboard is ready, common workspaces are already in the browser cache
+// before a student selects them, so section changes feel immediate.
+const loadClinicalGuides = () => import("./clinical-guides");
+const loadMaterialsPanel = () => import("./materials-panel");
+const loadVideoLibraryPanel = () => import("./video-library-panel");
+const loadFocusMusicPlayer = () => import("./focus-music-player");
+const loadAdaptiveFlightGame = () => import("./adaptive-flight-game");
+const loadLearningQuestionBank = () => import("./learning-question-bank");
+const loadFlashcardsPanel = () => import("./flashcards");
+const loadClinicalSimulation = () => import("./clinical-simulation");
+const loadAskClerkMePanel = () => import("./ask-clerkme");
+const loadMessagingHub = () => import("./messaging-hub");
+const loadUnitClerkingData = () => import("../lib/unit-clerking");
+
+const workspacePreloadBatches: Array<Array<() => Promise<unknown>>> = [
+  [loadMaterialsPanel, loadVideoLibraryPanel, loadClinicalGuides],
+  [loadFlashcardsPanel, loadLearningQuestionBank, loadMessagingHub],
+  [loadClinicalSimulation, loadAdaptiveFlightGame, loadAskClerkMePanel, loadUnitClerkingData]
+];
+const deferredPanel = () => <div className="cmh-panel-loading" role="status" aria-live="polite"><span className="cmh-entry-spinner" aria-hidden="true"><i /></span><span>Preparing workspace…</span></div>;
+const ClinicalGuides = dynamic(loadClinicalGuides, { ssr: false, loading: deferredPanel });
+const MaterialsPanel = dynamic(loadMaterialsPanel, { ssr: false, loading: deferredPanel });
+const VideoLibraryPanel = dynamic(loadVideoLibraryPanel, { ssr: false, loading: deferredPanel });
+const FocusMusicPlayer = dynamic(loadFocusMusicPlayer, { ssr: false, loading: deferredPanel });
+const AdaptiveFlightGame = dynamic(loadAdaptiveFlightGame, { ssr: false, loading: deferredPanel });
+const LearningQuestionBank = dynamic(loadLearningQuestionBank, { ssr: false, loading: deferredPanel });
+const FlashcardsPanel = dynamic(loadFlashcardsPanel, { ssr: false, loading: deferredPanel });
+const ClinicalSimulation = dynamic(loadClinicalSimulation, { ssr: false, loading: deferredPanel });
+const AskClerkMePanel = dynamic(loadAskClerkMePanel, { ssr: false, loading: deferredPanel });
 import NotificationCenter from "../components/notification-center";
 
 import "./messaging-hub.css";
@@ -28,7 +46,9 @@ import ClerkMeBrand from "../components/clerkme-brand";
 import type { UnitClerkingFramework } from "../lib/unit-clerking";
 import "./home-quick-actions.css";
 
-const ClerkMeMessagingHub = dynamic(() => import("./messaging-hub"), {
+const _unusedPanelStateGuard = true;
+
+const ClerkMeMessagingHub = dynamic(loadMessagingHub, {
   ssr: false,
   loading: () => (
     <section className="cmh-entry-state cmh-entry-loading" role="status" aria-live="polite">
@@ -694,6 +714,7 @@ class MessagingEntryErrorBoundary extends Component<{children: ReactNode}, {fail
 export default function Home() {
   const { theme, setTheme } = useAppearance();
   const [active, setActive] = useState("overview");
+  const [visitedSections, setVisitedSections] = useState<Set<string>>(() => new Set(["overview"]));
   const [messagingInitialSection, setMessagingInitialSection] = useState<"chats"|"connections">("chats");
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -707,6 +728,7 @@ export default function Home() {
   const mobileAccountCloseRef = useRef<HTMLButtonElement>(null);
   const selectSection = (id: string, messagingSection?: "chats"|"connections") => {
     setActive(id);
+    setVisitedSections(current => current.has(id) ? current : new Set(current).add(id));
     if (id === "messages") setMessagingInitialSection(messagingSection || "chats");
     setShowNew(id === "clerking");
     setMoreOpen(false);
@@ -765,6 +787,31 @@ export default function Home() {
   const [complaint, setComplaint] = useState("");
   const [saved, setSaved] = useState(false);
   const [authUser, setAuthUser] = useState<{id:string;name:string;email:string;profileComplete:number;role?:string}|null>(null);
+  // Warm large workspace chunks after the signed-in dashboard has painted.
+  // Each batch is deliberately small so background imports do not block the
+  // first interaction or compete heavily with API requests on mobile networks.
+  useEffect(() => {
+    if (!authUser?.id) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        for (const batch of workspacePreloadBatches) {
+          if (cancelled) return;
+          await Promise.allSettled(batch.map(load => load()));
+          if (cancelled) return;
+          await new Promise<void>(resolve => window.setTimeout(resolve, 120));
+        }
+      })();
+    }, 350);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [authUser?.id]);
+
+  // Also preserve visited study/reference panels. Their data stays in memory
+  // when students switch away and return, avoiding repeated API fetches.
+  useEffect(() => {
+    setVisitedSections(current => current.has(active) ? current : new Set(current).add(active));
+  }, [active]);
+
   const refreshUnreadMessages = useCallback(async () => {
     try {
       const response = await fetch("/api/messages", { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } });
@@ -1639,11 +1686,11 @@ export default function Home() {
             <button className="primary-button" onClick={saveCase} disabled={!patientName.trim() || !complaint.trim() || saving}>{saving ? "Saving…" : "Save case securely"} <span>→</span></button>{apiError && <p className="auth-error">{apiError}</p>}{saved && <p className="success-note">Your case has been saved to your account.</p>}{!authUser && <p className="auth-message">Sign in is required to save cases. <a href="/login">Sign in with Google</a>.</p>}</div>}</>}
 
           {active === "patients" && <><div className="page-intro"><div className="eyebrow">PRIVATE CASE LIBRARY</div><h1>My cases</h1><p>Cases are visible only to the account that created them.</p></div><button className="primary-button" onClick={loadCases}>Refresh cases</button>{!authUser ? <div className="empty-state"><p>Sign in to view your saved cases.</p><a className="sign-in-link" href="/login">Sign in with Google</a></div> : <div className="panel case-library">{caseList.length ? caseList.map(c=><div className="template-row" key={c.id}><span className="template-icon">▤</span><span className="template-info"><strong>{c.title} · {c.case_reference}</strong><small>{c.specialty} · {c.presenting_complaint}</small></span><span className="template-tag">{c.status}</span></div>) : <div className="empty-state"><p>No saved cases yet. Start your first clerking.</p><button className="primary-button" onClick={() => startClerking()}>Start a clerking →</button></div>}</div>}</> }
-          {active === "guides" && <ClinicalGuides/>}
-          {active === "materials" && <MaterialsPanel userKey={authUser.id}/>}
-          {active === "flashcards" && <FlashcardsPanel userKey={authUser.id}/> }
-          {active === "videos" && <VideoLibraryPanel/>}
-          {active === "osce" && <>
+          {(active === "guides" || visitedSections.has("guides")) && <div className="workspace-preserved-panel" hidden={active !== "guides"}><ClinicalGuides/></div>}
+          {(active === "materials" || visitedSections.has("materials")) && <div className="workspace-preserved-panel" hidden={active !== "materials"}><MaterialsPanel userKey={authUser.id}/></div>}
+          {(active === "flashcards" || visitedSections.has("flashcards")) && <div className="workspace-preserved-panel" hidden={active !== "flashcards"}><FlashcardsPanel userKey={authUser.id}/></div>}
+          {(active === "videos" || visitedSections.has("videos")) && <div className="workspace-preserved-panel" hidden={active !== "videos"}><VideoLibraryPanel/></div>}
+          {(active === "osce" || visitedSections.has("osce")) && <div className="workspace-preserved-panel" hidden={active !== "osce"}>
             <div className="page-intro"><div className="eyebrow">PRACTICAL EXAM PREPARATION</div><h1>OSCE & Viva practice</h1><p>Use unit-specific clinical prompts to practise your reasoning and oral presentation.</p></div>
             <div className="learning-toolbar"><label>Choose your unit<select value={osceUnit} onChange={e=>{setOsceUnit(e.target.value);setOsceIndex(0);setOsceReveal(false);}}>{clinicalUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><p>Read the stem, formulate your answer aloud, then reveal the teaching points.</p></div>
             {osceQuestionsLoading || (osceQuestions.length === 0 && !osceQuestionsError)
@@ -1651,10 +1698,10 @@ export default function Home() {
               : osceQuestionsError
                 ? <div className="osce-load-error" role="alert"><p>{osceQuestionsError}</p><button type="button" className="secondary-button" onClick={()=>setOsceQuestionsRetry(value=>value+1)}>Try again</button></div>
                 : (()=>{const qs=osceQuestions.filter(q=>q.unit===osceUnit);const q=qs.length?qs[osceIndex%qs.length]:null;return q?<div className="osce-card"><div className="question-topline"><span>VIVA STATION {String(osceIndex+1).padStart(2,"0")}</span><span>{q.topic} · {q.level}</span></div><h2>{q.q}</h2><p className="osce-instruction">Before revealing the answer, state your most likely answer and explain your clinical reasoning as if presenting to an examiner.</p><button className="primary-button" onClick={()=>setOsceReveal(v=>!v)}>{osceReveal?"Hide teaching points":"Reveal teaching points"} <span>→</span></button>{osceReveal&&<div className="guide-section"><h3>Examiner's teaching points</h3><p><strong>Best answer:</strong> {q.o[q.a]}</p><p>{q.e}</p></div>}<button className="secondary-button" onClick={()=>{setOsceIndex(i=>i+1);setOsceReveal(false);}}>Next viva prompt →</button></div>:<p>No prompts are available for this unit yet.</p>;})()}
-          </>}
+          </div>}
           {active === "game" && <><div className="page-intro"><div className="eyebrow">SUBJECT- AND MATERIAL-ADAPTIVE LEARNING</div><h1>Flight simulator</h1><p>Practise with questions from your selected subject and uploaded study materials.</p></div><AdaptiveFlightGame onOpenMaterials={()=>setActive("materials")}/></>}
           {active === "simulation" && <ClinicalSimulation/>}
-          {active === "qbank" && <LearningQuestionBank/>}
+          {(active === "qbank" || visitedSections.has("qbank")) && <div className="workspace-preserved-panel" hidden={active !== "qbank"}><LearningQuestionBank/></div>}
           {active === "messages" && <MessagingEntryErrorBoundary><ClerkMeMessagingHub userId={authUser.id} initialSection={messagingInitialSection}/></MessagingEntryErrorBoundary>}
         </div>
       </section>
