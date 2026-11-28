@@ -754,3 +754,8 @@
   .dm-social-person>.dm-avatar{width:32px;height:32px;flex-basis:32px}
   .dm-social-person button{min-height:32px;padding:7px 9px}
 }
+
+.dm-student-result>b{display:inline-flex;align-items:center;justify-content:center;min-width:62px;max-width:86px;padding:6px 8px;border-radius:8px;background:#eaf1fb;color:#173765;font-size:.62rem;font-weight:850;white-space:nowrap}
+.dm-student-result:disabled>b{background:var(--hover-background,#f3f6fa);color:var(--dm-muted)}
+[data-theme="dark"] .dm-student-result>b{background:#263d5a;color:#d7e6fa}
+[data-theme="dark"] .dm-student-result:disabled>b{background:#18283e;color:#aebed2}
