@@ -36,7 +36,7 @@ INSERT OR IGNORE INTO student_connections
 SELECT
   lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' ||
   substr(lower(hex(randomblob(2))), 2) || '-' ||
-  substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' ||
+  substr('89ab', abs(random() % 4) + 1, 1) || substr(lower(hex(randomblob(2))), 2) || '-' ||
   lower(hex(randomblob(6))),
   a.user_id, b.user_id, a.user_id, b.user_id, 'accepted',
   MIN(c.created_at), unixepoch(), unixepoch()
