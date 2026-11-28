@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import DirectMessagesPanel from "./direct-messages";
+import ProfilePhotoControl from "../components/profile-photo-control";
 
 type Audience = "everyone" | "conversations" | "only_me";
 type Status = {
@@ -11,7 +12,7 @@ type Status = {
 };
 type StatusGroup = { userId:string; name:string; university?:string; statuses:Status[] };
 type Preferences = { defaultAudience:Audience; hideViews:boolean; allowReplies:boolean };
-type Profile = { id:string; name:string; email:string; university:string; country:string; level:string; futureSpecialty:string; state:string; lga:string };
+type Profile = { id:string; name:string; email:string; university:string; country:string; level:string; futureSpecialty:string; state:string; lga:string; photoUrl?:string|null };
 type ReplyLaunch = { conversationId:string; statusId:string; draft:string };
 
 const backgrounds = ["#173765","#4C376D","#8A3F51","#23645E","#7A5B2C","#26374D"];
@@ -401,7 +402,7 @@ function MessagingProfilePanel() {
   return <section className="cmh-profile" aria-label="Messaging profile and privacy">
     {notice&&<div className="cmh-alert" role="status"><span>{notice}</span><button type="button" onClick={()=>setNotice("")} aria-label="Dismiss">×</button></div>}
     <div className="cmh-profile-card">
-      <div className="cmh-profile-avatar">{initials(profile?.name||"Student")}</div>
+      <ProfilePhotoControl compact photoUrl={profile?.photoUrl||null} name={profile?.name||"Student"} onChange={photoUrl=>setProfile(current=>current?{...current,photoUrl}:current)}/>
       <div className="cmh-profile-details">
         <span className="cmh-eyebrow">YOUR PROFILE</span>
         <h2>{profile?.name||"Student"}</h2>
