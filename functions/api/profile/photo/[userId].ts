@@ -10,7 +10,7 @@ export const onRequestGet = async (context: AppContext) => {
 
   const photo = await context.env.DB.prepare(
     "SELECT photos.photo_key AS photoKey, photos.content_type AS contentType " +
-    "FROM student_profile_photos photos " +
+    "FROM clerkme_profile_photos_v1 photos " +
     "INNER JOIN student_profiles p ON p.id = photos.user_id " +
     "WHERE photos.user_id = ? AND p.email_verified_at IS NOT NULL LIMIT 1"
   ).bind(userId).first<{ photoKey: string; contentType: string }>();
