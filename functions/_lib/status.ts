@@ -1,4 +1,5 @@
 import type { D1Database } from "./auth";
+import { hasAcceptedConnection } from "./connections";
 
 export type StatusAudience = "everyone" | "conversations" | "only_me";
 export type StatusPreferences = {
@@ -28,10 +29,5 @@ export async function canViewStatus(db: D1Database, viewerId: string, statusId: 
   if (blocked || status.visibility === "only_me") return false;
   if (status.visibility === "everyone") return true;
 
-  const connected = await db.prepare(
-    "SELECT 1 AS connected FROM direct_conversation_members a " +
-    "INNER JOIN direct_conversation_members b ON b.conversation_id = a.conversation_id " +
-    "WHERE a.user_id = ? AND b.user_id = ? LIMIT 1"
-  ).bind(viewerId, status.user_id).first();
-  return Boolean(connected);
+  return hasAcceptedConnection(db, viewerId, status.user_id);
 }
